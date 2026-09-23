@@ -1,0 +1,26 @@
+sequenceDiagram
+    participant E as Ente ou Fornecedor
+    participant P as Portal Lumen
+    participant A as Analista Lumen
+    participant B as Base de Indicios
+    participant PUB as Pagina Publica
+
+    PUB->>E: Indicio publicado como atividade para analise
+    E->>P: Registra contestacao com documentos
+    P->>B: Grava contestacao vinculada ao indicio
+    P->>PUB: Marca indicio como CONTESTADO em ate 24h
+    P->>A: Abre tarefa de analise da contestacao
+    A->>B: Reexecuta a regra com os novos documentos
+
+    alt Dado de origem estava correto
+        A->>B: Mantem indicio e anexa a resposta
+        B->>PUB: Exibe indicio e contestacao lado a lado
+    else Erro de coleta ou calculo do Lumen
+        A->>B: Retifica e registra a correcao
+        B->>PUB: Publica errata com mesmo destaque
+    else Dado publicado pela fonte estava errado
+        A->>B: Remove o indicio
+        B->>PUB: Publica nota de remocao e motivo
+    end
+
+    Note over PUB: Toda contestacao fica permanentemente<br/>acessivel junto ao indicio original

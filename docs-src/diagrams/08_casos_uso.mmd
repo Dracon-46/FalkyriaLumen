@@ -1,0 +1,47 @@
+flowchart TB
+    classDef ator fill:#1F3864,stroke:#0d1b33,color:#ffffff
+    classDef uc fill:#DCE6F1,stroke:#2E75B6,color:#1F3864
+    classDef sis fill:#C00000,stroke:#7f0000,color:#ffffff
+    classDef grp fill:#FAFBFD,stroke:#B4C6E7,color:#1F3864
+
+    subgraph A1["Cidadao"]
+        direction LR
+        CID(["Cidadao"]):::ator
+        UC01["UC-01<br/>Consultar panorama<br/>de um ente"]:::uc
+        UC03["UC-03<br/>Visualizar indicio<br/>e sua evidencia"]:::uc
+        UC04["UC-04<br/>Acompanhar ente<br/>e receber alertas"]:::uc
+        UC07["UC-07<br/>Consultar indice de<br/>conformidade"]:::uc
+        CID --> UC01 & UC03 & UC04 & UC07
+    end
+
+    subgraph A2["Jornalista, pesquisador e orgao de controle"]
+        direction LR
+        JOR(["Jornalista e<br/>orgao de controle"]):::ator
+        UC02["UC-02<br/>Pesquisar contratos<br/>e fornecedores"]:::uc
+        UC05["UC-05<br/>Exportar dossie<br/>de evidencias"]:::uc
+        UC06["UC-06<br/>Comparar ente com<br/>grupo de pares"]:::uc
+        UC14["UC-14<br/>Consumir<br/>API publica"]:::uc
+        JOR --> UC02 & UC05 & UC06 & UC14
+    end
+
+    subgraph A3["Operacao interna e ente publico"]
+        direction LR
+        ANA(["Analista Lumen"]):::ator
+        UC08["UC-08<br/>Revisar fila de<br/>indicios"]:::uc
+        UC09["UC-09<br/>Ajustar parametros<br/>de uma regra"]:::uc
+        UC10["UC-10<br/>Cadastrar nova<br/>fonte de dados"]:::uc
+        ENTE(["Ente publico"]):::ator
+        UC11["UC-11<br/>Registrar contestacao<br/>e direito de resposta"]:::uc
+        ANA --> UC08 & UC09 & UC10
+        ENTE --> UC11
+    end
+
+    subgraph A4["Processos automaticos"]
+        direction LR
+        SIS(["Sistema agendado"]):::sis
+        UC12["UC-12<br/>Executar ciclo<br/>de coleta"]:::uc
+        UC13["UC-13<br/>Executar ciclo<br/>de deteccao"]:::uc
+        SIS --> UC12 & UC13
+    end
+
+    class A1,A2,A3,A4 grp

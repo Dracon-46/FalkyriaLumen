@@ -1,0 +1,1 @@
+{"theme":"default","themeVariables":{"fontFamily":"Arial, Helvetica, sans-serif","fontSize":"15px"},"flowchart":{"htmlLabels":true,"curve":"basis","nodeSpacing":45,"rankSpacing":55},"er":{"layoutDirection":"TB","entityPadding":12},"sequence":{"actorFontSize":14,"noteFontSize":13,"messageFontSize":13},"gantt":{"fontSize":13,"barHeight":20,"sectionFontSize":14}}

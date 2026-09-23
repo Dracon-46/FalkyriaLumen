@@ -1,0 +1,71 @@
+erDiagram
+    ENTE ||--o{ UNIDADE_GESTORA : possui
+    ENTE ||--o{ CONFORMIDADE : avaliada_por
+    UNIDADE_GESTORA ||--o{ PROCESSO_CONTRATACAO : conduz
+    PROCESSO_CONTRATACAO ||--o{ CONTRATO : origina
+    PROCESSO_CONTRATACAO ||--|| AMPARO_LEGAL : fundamenta
+    PROCESSO_CONTRATACAO ||--o{ ATO_AUTORIZATIVO : autorizado_por
+    ATO_AUTORIZATIVO }o--|| AGENTE_PUBLICO : assinado_por
+    CONTRATO ||--o{ ADITIVO : altera
+    CONTRATO ||--o{ ITEM_CONTRATADO : detalha
+    CONTRATO }o--|| FORNECEDOR : executado_por
+    CONTRATO ||--o{ EMPENHO : gera
+    EMPENHO ||--o{ LIQUIDACAO : gera
+    LIQUIDACAO ||--o{ PAGAMENTO : gera
+    FORNECEDOR ||--o{ SOCIO : composto_por
+    FORNECEDOR ||--o{ SANCAO : registra
+    ITEM_CONTRATADO }o--|| CATALOGO_ITEM : classificado_por
+    INDICIO }o--|| REGRA_DETECCAO : produzido_por
+    INDICIO ||--o{ EVIDENCIA : sustentado_por
+    EVIDENCIA }o--|| DOCUMENTO_FONTE : aponta_para
+    INDICIO ||--o{ CONTESTACAO : respondido_por
+    CONTRATO ||--o{ INDICIO : pode_gerar
+    EMPENHO ||--o{ INDICIO : pode_gerar
+    ENTE ||--o{ INDICIO : pode_gerar
+
+    ENTE {
+        uuid id PK
+        string cnpj
+        string esfera
+        string poder
+        string uf
+        string codigo_ibge
+        int populacao
+        string porte
+    }
+    AGENTE_PUBLICO {
+        uuid id PK
+        string nome
+        string cargo
+        string documento_mascarado
+    }
+    ATO_AUTORIZATIVO {
+        uuid id PK
+        string tipo
+        date data
+        string justificativa_publicada
+        uuid agente_id FK
+    }
+    FORNECEDOR {
+        uuid id PK
+        string cnpj_cpf
+        date data_abertura
+        decimal capital_social
+        string cnae_principal
+    }
+    INDICIO {
+        uuid id PK
+        string regra_codigo FK
+        decimal score
+        string severidade
+        string status
+        text explicacao
+        timestamp detectado_em
+    }
+    DOCUMENTO_FONTE {
+        uuid id PK
+        string url_origem
+        string sha256
+        timestamp coletado_em
+        string formato
+    }

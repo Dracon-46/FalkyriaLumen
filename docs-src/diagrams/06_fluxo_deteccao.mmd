@@ -1,0 +1,23 @@
+flowchart TB
+    classDef etapa fill:#2E75B6,stroke:#1F3864,color:#ffffff
+    classDef dec fill:#BF8F00,stroke:#7f5f00,color:#ffffff
+    classDef fim fill:#548235,stroke:#375623,color:#ffffff
+    classDef desc fill:#7F7F7F,stroke:#404040,color:#ffffff
+
+    A["Coleta do artefato bruto com hash e carimbo de tempo,<br/>normalizacao para o esquema canonico e enriquecimento"]:::etapa
+    E{"Alguma regra do<br/>catalogo disparou?"}:::dec
+    N["Sem indicio: registro<br/>de verificacao normal"]:::desc
+    F["Score composto, severidade e montagem da<br/>trilha de evidencia com os documentos fonte"]:::etapa
+    H{"Score acima do limiar<br/>de publicacao?"}:::dec
+    L["Descartado com registro do motivo:<br/>realimenta a calibracao da regra"]:::desc
+    I["Fila de revisao humana<br/>obrigatoria na severidade alta"]:::etapa
+    J{"Indicio bem<br/>fundamentado?"}:::dec
+    K["Publicado como ATIVIDADE PARA ANALISE,<br/>com canais formais e direito de resposta abertos"]:::fim
+
+    A --> E
+    E -->|nao| N
+    E -->|sim| F --> H
+    H -->|nao| L
+    H -->|sim| I --> J
+    J -->|nao| L
+    J -->|sim| K

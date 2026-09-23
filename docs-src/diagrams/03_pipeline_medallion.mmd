@@ -1,0 +1,40 @@
+flowchart TB
+    classDef bronze fill:#A0522D,stroke:#5c2f18,color:#ffffff
+    classDef silver fill:#7F7F7F,stroke:#404040,color:#ffffff
+    classDef gold fill:#BF8F00,stroke:#7f5f00,color:#ffffff
+    classDef saida fill:#1F3864,stroke:#0d1b33,color:#ffffff
+    classDef grp fill:#FAFAFA,stroke:#BFBFBF,color:#404040
+
+    subgraph B["BRONZE - a prova, imutavel"]
+        direction LR
+        B1["Artefato bruto exatamente<br/>como publicado"]:::bronze
+        B2["SHA-256, URL, carimbo de<br/>tempo e cabecalhos HTTP"]:::bronze
+        B3["Versionado:<br/>nunca sobrescrito"]:::bronze
+        B1 --> B2 --> B3
+    end
+
+    subgraph S["SILVER - verdade normalizada, reconstruivel"]
+        direction LR
+        S1["Esquema canonico unico:<br/>Contrato, Empenho, Item, Ato"]:::silver
+        S2["Deduplicacao e resolucao<br/>de entidades"]:::silver
+        S3["Enriquecimento: QSA, CNAE,<br/>CATMAT, grupo de pares"]:::silver
+        S1 --> S2 --> S3
+    end
+
+    subgraph G["GOLD - analise, descartavel"]
+        direction LR
+        G1["Agregados e series historicas<br/>por ente, fornecedor e item"]:::gold
+        G2["Linhas de base: medianas<br/>e grupos de pares"]:::gold
+        G3["Indicios com trilha<br/>de evidencia"]:::gold
+        G1 --> G2 --> G3
+    end
+
+    OUT["Portal, API, exportacoes e dossies de evidencia"]:::saida
+
+    B ==> S
+    S ==> G
+    G ==> OUT
+    G -.->|"muda a regra: recalcula GOLD, nao recoleta"| S
+    S -.->|"corrige normalizacao: reprocessa do BRONZE"| B
+
+    class B,S,G grp

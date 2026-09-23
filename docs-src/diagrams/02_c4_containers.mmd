@@ -1,0 +1,55 @@
+flowchart TB
+    classDef ext fill:#8497B0,stroke:#44546A,color:#ffffff
+    classDef app fill:#2E75B6,stroke:#1F3864,color:#ffffff
+    classDef dados fill:#548235,stroke:#375623,color:#ffffff
+    classDef ui fill:#1F3864,stroke:#0d1b33,color:#ffffff
+
+    FONTES["Fontes Externas<br/>PNCP, SICONFI, CGU, RFB, TSE, TCEs, Municipios"]:::ext
+
+    subgraph INGEST["Camada de Ingestao"]
+        ORQ["Orquestrador<br/>Dagster - agenda, retenta, versiona"]:::app
+        WK["Workers de Coleta<br/>Python - pool por tipo de conector"]:::app
+        REG["Registro de Fontes<br/>specs declarativas YAML por ente"]:::app
+    end
+
+    subgraph ARM["Armazenamento"]
+        S3["Object Storage - Bronze<br/>artefatos brutos imutaveis + SHA-256"]:::dados
+        LAKE["Data Lakehouse<br/>Parquet + DuckDB / ClickHouse<br/>Silver e Gold"]:::dados
+        PG["PostgreSQL<br/>dominio, catalogo, indicios, auditoria"]:::dados
+        OS["OpenSearch<br/>busca textual em editais e contratos"]:::dados
+    end
+
+    subgraph PROC["Processamento"]
+        NORM["Normalizador<br/>mapeia fonte para esquema canonico"]:::app
+        ENR["Enriquecedor<br/>CNPJ, QSA, CATMAT, geo, porte do ente"]:::app
+        DET["Motor de Deteccao<br/>regras deterministicas + estatisticas"]:::app
+        CONF["Avaliador de Conformidade<br/>mede cumprimento da LAI e LC 131"]:::app
+    end
+
+    subgraph ENTREGA["Entrega"]
+        API["API Publica REST<br/>Node + TypeScript"]:::app
+        WEB["Portal Web<br/>Next.js - painel e busca"]:::ui
+        EXP["Exportador<br/>CSV, Parquet, dossie PDF"]:::app
+        RESP["Modulo Direito de Resposta"]:::app
+    end
+
+    FONTES --> WK
+    REG --> WK
+    ORQ --> WK
+    WK --> S3
+    S3 --> NORM
+    NORM --> LAKE
+    LAKE --> ENR
+    ENR --> LAKE
+    LAKE --> DET
+    DET --> PG
+    LAKE --> CONF
+    CONF --> PG
+    PG --> API
+    LAKE --> API
+    OS --> API
+    NORM --> OS
+    API --> WEB
+    API --> EXP
+    RESP --> PG
+    WEB --> RESP

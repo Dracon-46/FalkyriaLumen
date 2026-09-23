@@ -1,0 +1,26 @@
+stateDiagram-v2
+    direction TB
+    [*] --> Detectado : regra dispara
+    Detectado --> EmRevisao : score acima do limiar
+    Detectado --> Descartado : score abaixo do limiar
+    EmRevisao --> Publicado : revisor aprova
+    EmRevisao --> Descartado : revisor rejeita
+    EmRevisao --> AguardandoDado : fonte incompleta
+    AguardandoDado --> EmRevisao : nova coleta
+    AguardandoDado --> Descartado : fonte nao supre
+    Publicado --> Contestado : ente ou fornecedor responde
+    Contestado --> PublicadoComResposta : resposta anexada
+    Contestado --> Retificado : erro do sistema comprovado
+    Contestado --> Removido : dado de origem era incorreto
+    PublicadoComResposta --> Encerrado : orgao de controle conclui
+    Publicado --> Encerrado : orgao de controle conclui
+    Retificado --> Publicado : indicio recalculado
+    Descartado --> [*]
+    Removido --> [*]
+    Encerrado --> [*]
+
+    note right of Publicado
+        Rotulo publico obrigatorio:
+        ATIVIDADE PARA ANALISE
+        Nunca desvio, fraude ou crime
+    end note

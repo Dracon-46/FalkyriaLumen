@@ -1,0 +1,27 @@
+flowchart TB
+    classDef port fill:#C00000,stroke:#7f0000,color:#ffffff
+    classDef ad fill:#2E75B6,stroke:#1F3864,color:#ffffff
+    classDef cob fill:#548235,stroke:#375623,color:#ffffff
+
+    PORT["PORTA: FonteDados<br/>listar - baixar - descreverCapacidades<br/>reportarConformidade"]:::port
+
+    A1["ConectorAPI<br/>PNCP, SICONFI, CGU,<br/>Compras.gov, TSE, RFB"]:::ad
+    A2["ConectorPlataforma<br/>familias de portal usadas por<br/>centenas de prefeituras"]:::ad
+    A3["ConectorDeclarativo<br/>spec YAML com seletores<br/>sem escrever codigo novo"]:::ad
+    A4["ConectorDocumento<br/>PDF, XLSX, DOC, CSV<br/>com OCR quando necessario"]:::ad
+    A5["ConectorAssistido<br/>LLM propoe mapeamento,<br/>humano valida uma vez"]:::ad
+    A6["ConectorManual<br/>resposta de pedido LAI<br/>upload supervisionado"]:::ad
+
+    C1["Cobertura nacional imediata<br/>todos os 5.570 municipios"]:::cob
+    C2["Cobertura em lote<br/>centenas de entes por conector"]:::cob
+    C3["Cobertura unitaria<br/>cauda longa"]:::cob
+
+    PORT --> A1 --> C1
+    PORT --> A2 --> C2
+    PORT --> A3 --> C2
+    PORT --> A4 --> C3
+    PORT --> A5 --> C3
+    PORT --> A6 --> C3
+
+    NC["Se nenhum conector obtem dado estruturado<br/>isso e registrado como INDICIO DE<br/>DESCUMPRIMENTO DE TRANSPARENCIA<br/>e nao como falha do sistema"]:::port
+    A6 --> NC
