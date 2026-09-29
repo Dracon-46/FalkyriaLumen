@@ -8,7 +8,7 @@ controle, imprensa e sociedade civil.
 
 > **O sistema publica indícios, nunca conclusões.** Toda sinalização é rotulada como
 > *atividade para análise*, acompanhada da evidência primária, da regra aplicada e de seus
-> parâmetros. A determinação de que houve desvio, fraude ou crime cabe exclusivamente aos
+> parâmetros. A determinação de que houve desvio, fraude ou crime cabe exclusivamente aos <!-- lumen:vocabulario-ok: aviso que nega a imputação -->
 > órgãos de controle e ao Poder Judiciário. Essa restrição não é apenas editorial: ela é
 > imposta no código, no modelo de domínio e no pipeline de publicação.
 
@@ -74,7 +74,7 @@ descartada ou redesenhada.
 1. **Evidência antes de afirmação** — nenhum indício sem o documento primário armazenado, com
    URL de origem, hash SHA-256 e carimbo de tempo.
 2. **Linguagem neutra obrigatória** — vocabulário controlado verificado automaticamente na
-   integração contínua; termos que imputam ilícito quebram o build.
+   integração contínua; termos que imputam conduta quebram o build.
 3. **Reprodutibilidade** — qualquer indício deve poder ser reproduzido por terceiros a partir
    dos dados públicos e da especificação da regra.
 4. **Simetria de correção** — erratas e remoções têm o mesmo destaque da publicação original.
