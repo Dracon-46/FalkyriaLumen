@@ -1,0 +1,30 @@
+[project]
+name = "falkyria-lumen"
+version = "0.1.0"
+description = "Monitoramento de contratações e despesas públicas do Brasil. Publica indícios para análise, nunca conclusões."
+requires-python = ">=3.11"
+readme = "README.md"
+# Fase 0 usa apenas a biblioteca padrão. Dependência nova precisa de motivo
+# registrado: cada uma é superfície de ataque e custo de manutenção a mais.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+# Monorepo sem empacotamento por pacote ainda (DOC-04, seção 5). Cada pacote
+# é um diretório importável; o empacotamento individual entra quando algum
+# precisar ser implantado de forma independente.
+pythonpath = [
+  "packages/canonico",
+  "packages/ingestao",
+  "packages/deteccao",
+  "ferramentas/lint-vocabulario",
+]
+testpaths = [
+  "packages/canonico/testes",
+  "packages/ingestao/testes",
+  "packages/deteccao/testes",
+  "ferramentas/lint-vocabulario/testes",
+]
+addopts = "-ra --strict-markers"
