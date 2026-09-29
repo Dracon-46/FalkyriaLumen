@@ -1,0 +1,57 @@
+# Integração contínua do Lumen — DOC-09, seção 4.2.
+#
+# Os dois estágios bloqueantes que mais importam para este projeto:
+#   1. vocabulário controlado — nenhum texto público imputa conduta (ADR-007)
+#   2. testes com cobertura mínima de 80% no núcleo (RNF-28)
+#
+# O repositório é privado: cada execução consome minutos do plano do GitHub.
+# A suíte inteira roda em poucos segundos, então o custo é baixo.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vocabulario:
+    name: vocabulário controlado
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Verificar termos proibidos nos textos públicos
+        run: python ferramentas/lint-vocabulario/lint_vocabulario.py
+
+  testes:
+    name: testes (python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Dependências de desenvolvimento
+        run: python -m pip install --upgrade pip pytest pytest-cov
+      - name: Suíte completa com cobertura mínima de 80%
+        run: >
+          python -m pytest
+          --cov=lumen_ingestao --cov=lumen_canonico --cov=lumen_deteccao --cov=lint_vocabulario
+          --cov-report=term-missing
+          --cov-fail-under=80

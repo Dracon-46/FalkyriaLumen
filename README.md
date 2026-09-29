@@ -12,8 +12,9 @@ controle, imprensa e sociedade civil.
 > órgãos de controle e ao Poder Judiciário. Essa restrição não é apenas editorial: ela é
 > imposta no código, no modelo de domínio e no pipeline de publicação.
 
-Este repositório contém, neste momento, a **documentação completa do projeto**. O código-fonte
-da aplicação ainda não foi iniciado — o desenvolvimento segue o plano descrito no DOC-10.
+Este repositório contém a **documentação completa do projeto** e o **núcleo da Fase 0**: a
+camada de prova, a máquina de estados do indício, os parâmetros legais datados e o verificador
+de vocabulário controlado. O desenvolvimento segue o plano descrito no DOC-10.
 
 ---
 
@@ -112,11 +113,62 @@ npm run docs       # gera os 10 .docx em ../docs/
 Regra de estilo aplicada nos documentos: texto corrido e títulos sempre em preto; cor apenas
 em tabelas e diagramas.
 
+## Desenvolvimento
+
+Requer apenas Python 3.11 ou superior. A Fase 0 não tem dependência de execução (ADR-015).
+
+```bash
+python -m pip install pytest pytest-cov
+
+python ferramentas/lint-vocabulario/lint_vocabulario.py   # vocabulário controlado
+python -m pytest                                          # suíte completa
+```
+
+Com `make`: `make verificar` roda exatamente o que a CI roda.
+
+### Estrutura
+
+```
+packages/
+  ingestao/     porta FonteDados, camada bronze (prova), coleta HTTP
+  canonico/     entidade Indicio e máquina de estados, rótulos públicos
+  deteccao/     parâmetros legais datados
+ferramentas/
+  lint-vocabulario/   verificador de vocabulário controlado (ADR-007)
+docs/
+  adr/          decisões arquiteturais — as 011 a 015 aguardam revisão
+```
+
 ## Situação do projeto
 
-Documentação concluída. Desenvolvimento não iniciado.
+**Fase 0 — Fundação: núcleo concluído.** O marco M1 do DOC-10 está cumprido e é verificado por
+teste automatizado: um artefato é coletado, armazenado com hash verificável e recuperado a
+partir do identificador — e prova adulterada é detectada (`test_marco_m1.py`).
 
-Definições pendentes antes da Fase 0, conforme DOC-10:
+| Componente | Garantia | Testes |
+|---|---|---|
+| Camada bronze | Nada sobrescrito; hash reconferido em toda leitura; alteração na fonte registrada | 33 |
+| Coleta HTTP | Identificação obrigatória; resposta de erro preservada como prova | 13 |
+| Porta FonteDados | Falha isolada por artefato; prova corrompida interrompe a coleta | 15 |
+| Marco M1, ponta a ponta | Coleta real por HTTP, armazenamento, recuperação e detecção de adulteração | 2 |
+| Máquina de estados do indício | Severidade alta só publica com dois revisores distintos e evidência | 142 |
+| Parâmetros legais | Consulta pela data do ato; não verificado é recusado | 18 |
+| Vocabulário controlado | Termo que imputa conduta quebra o build | 60 |
+
+283 testes, cobertura de 97% no núcleo.
+
+### Pendente para concluir a Fase 0
+
+- **Revisar as ADRs 011 a 015**, tomadas durante a implementação.
+- **Cadastrar os limites de dispensa de 2021 a 2025**, conferidos nos decretos de cada ano.
+  Sem eles, as regras de fracionamento não disparam para atos anteriores a 2026 (ADR-013).
+- **Conferir o art. 125 da Lei 14.133/2021** e marcar os limites de aditivo como verificados.
+- **Esquema canônico do bloco de fato administrativo** (Contrato, Empenho, Item). Foi adiado de
+  propósito: o DOC-05 foi escrito a partir da documentação do PNCP, e o esquema canônico desse
+  bloco deve nascer de respostas reais da API, que costumam divergir da documentação.
+- **Backend de armazenamento de objetos** para a camada bronze e ambiente local com PostgreSQL.
+
+### Definições pendentes antes da publicação, conforme DOC-10
 
 - **Nome definitivo** — "Lumen" é nome de trabalho e precisa de verificação de disponibilidade
   de marca (INPI) e domínio, como foi feito para a marca Falkyria.
