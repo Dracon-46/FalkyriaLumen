@@ -354,12 +354,16 @@ def test_preparar_avisa_feeds_dentro_do_portal_e_falha_do_node(cfg, tmp_path):
 
 
 def test_preparar_parado_pelo_usuario(cfg, tmp_path):
+    # Base numa porta local fechada: o catálogo falha na hora, sem depender da rede (na CI o
+    # endereço real do TSE responde e a coleta ao vivo começaria antes da parada).
     chamadas = iter([False, False, True])
-    prep = preparacao.Preparacao(cfg, preparacao.OpcoesPreparacao(portal=False, bronze=False),
+    prep = preparacao.Preparacao(cfg, preparacao.OpcoesPreparacao(portal=False, bronze=False,
+                                                                  base="http://127.0.0.1:9"),
                                  cliente_resultados=cliente(FONTE_ID), cliente_dados=cliente(),
                                  saida=lambda m: None, parar=lambda: next(chamadas, True), dormir=lambda s: None)
     resumo = prep.executar()
     assert resumo.anos == [] and resumo.ao_vivo == []
+    assert [e for e in resumo.erros if e.startswith("catálogo do sistema de resultados")]
 
 
 def test_cli_preparar(cfg, monkeypatch, capsys):
