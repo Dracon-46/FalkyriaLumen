@@ -36,6 +36,15 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 - Documentação: ADR-026, DOC-12 1.2 (seções 9.5 e 9.6, passo a passo da
   configuração), DOC-10 1.3 (seção 9.5), DOC-04 (seção 9), README.
 
+### Correções no mesmo dia
+
+- Migração 0002: caminho de busca vazio nas três funções de gatilho do
+  domínio (`recusar_alteracao`, `validar_mudanca_de_estado`,
+  `congelar_indicio`), apontado pelo linter de segurança do Supabase. O teste
+  de banco aplica todas as migrações em ordem e confere o caminho fixo.
+- `test_preparar_parado_pelo_usuario` deixou de consultar o endereço real do
+  TSE (na CI, a coleta ao vivo começava antes da parada e o teste falhava).
+
 ## 0.4.0 — 2026-10-06
 
 ### Aba Eleições: todas as eleições, pronta num comando (ADR-025)
