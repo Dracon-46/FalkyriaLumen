@@ -1,0 +1,337 @@
+/**
+ * Tipos do contrato dos feeds da aba Eleições (versão 1).
+ *
+ * Espelho de `packages/eleicoes/lumen_eleicoes/feeds.py`. Quem muda um lado
+ * muda o outro: os testes de `validacao.test.ts` leem a amostra gerada pelo
+ * Python (`testes/fixtures/eleicoes_feed`) e falham se os dois divergirem.
+ */
+
+/**
+ * Versão do contrato que este portal entende. Arquivo com outra versão é
+ * recusado na chegada (`validacao.ts`), em vez de exibido com número errado.
+ */
+export const VERSAO_FEED = 1;
+
+/** Majoritário (vence quem tem mais votos) ou proporcional (vagas repartidas pelo quociente eleitoral). */
+export type TipoCargo = "majoritario" | "proporcional";
+/** Onde o cargo é disputado: Brasil (Presidente), UF (Governador, Senador, deputados) ou município. */
+export type Nivel = "br" | "uf" | "mu";
+/** Recorte geográfico de um arquivo de feed: Brasil, UF ou município. */
+export type TipoAbrangencia = "br" | "uf" | "mu";
+
+/** Identificação da eleição, repetida em cada feed: um pleito num turno, como o eleitor o reconhece. */
+export interface ResumoEleicao {
+  /** Ex.: "2026-1t-geral"; é o diretório dos feeds e o parâmetro `e` da URL. */
+  id: string;
+  nome: string;
+  ano: number;
+  turno: number;
+  /** "geral", "municipal", "suplementar" ou "consulta". */
+  tipo: string;
+  /** Dia da votação, "AAAA-MM-DD", sem fuso. */
+  data: string | null;
+}
+
+/** Cargo em disputa numa eleição, como aparece no índice e no cabeçalho de cada feed. */
+export interface CargoFeed {
+  /** Identificador do cargo nos caminhos dos feeds e no parâmetro `c` da URL (ex.: "presidente"). */
+  slug: string;
+  /** Código do cargo no TSE. */
+  codigo: number;
+  nome: string;
+  tipo: TipoCargo;
+  nivel: Nivel;
+  /** Cadeiras em disputa, quando a fonte informa. */
+  vagas: number | null;
+  /** UFs em que há dados do cargo (Deputado Distrital só no DF); ausente quando o índice não restringe. */
+  ufs?: string[];
+}
+
+/** Linha de uma eleição no `indice.json`: o resumo, de onde vêm os dados e os cargos disponíveis. */
+export interface EleicaoIndice extends ResumoEleicao {
+  /** "resultados" (sistema de divulgação, ao vivo) ou "dados_abertos" (Portal de Dados Abertos, eleições passadas). */
+  origem: "resultados" | "dados_abertos" | string;
+  /** Apuração em andamento: a tela relê os feeds a cada 15 s. */
+  ao_vivo: boolean;
+  atualizado_em: string | null;
+  cargos: CargoFeed[];
+  /** UFs com dados nesta eleição, em minúsculas. */
+  ufs: string[];
+  /** Números intermediários fictícios, gerados para testar a apuração ao vivo. */
+  simulacao?: boolean;
+  /** Amostra de desenvolvimento: resultados oficiais de só alguns estados e municípios. */
+  amostra?: boolean;
+  /**
+   * `false` nas eleições de 1933 a 1990, que o TSE publica só por UF: não há
+   * mapa nem resultado por município. Ausente vale como `true`.
+   */
+  municipios?: boolean;
+}
+
+/** Conteúdo de `indice.json`: as eleições publicadas no servidor. É o primeiro arquivo que a aba lê. */
+export interface Indice {
+  versao: number;
+  gerado_em: string | null;
+  eleicoes: EleicaoIndice[];
+}
+
+/** Recorte de um feed (Brasil, UF ou município), com os códigos que o ligam ao cadastro e à malha. */
+export interface AbrangenciaFeed {
+  tipo: TipoAbrangencia;
+  /** "br", sigla da UF em minúsculas ou chave do município (código IBGE; no exterior, "zz-<código TSE>"). */
+  codigo: string;
+  nome: string;
+  /** Sigla da UF em minúsculas; null no Brasil. */
+  uf: string | null;
+  /** Código IBGE (2 dígitos na UF, 7 no município); null no Brasil e no exterior. */
+  ibge: string | null;
+  /** Código TSE do município (5 dígitos); null fora do município. */
+  tse: string | null;
+}
+
+/**
+ * De onde vieram os números do feed. A tela mostra a fonte, o link para o
+ * arquivo original e o SHA-256 da cópia guardada: qualquer pessoa pode
+ * conferir o número contra o documento oficial.
+ */
+export interface Origem {
+  /** "resultados", "dados_abertos" ou outro nome de fonte, exibido como veio. */
+  fonte: string;
+  /** Endereço do arquivo original na fonte. */
+  url: string | null;
+  /** SHA-256 da cópia do arquivo original guardada pelo coletor. */
+  sha256: string | null;
+  /** Instante da coleta, ISO 8601 com fuso. */
+  coletado_em: string | null;
+  /** Identificador dessa cópia na camada bronze do Lumen. */
+  registro_bronze: string | null;
+  /** Este arquivo é de uma simulação (números intermediários fictícios). */
+  simulacao?: boolean;
+  /** Este arquivo é de uma amostra de desenvolvimento. */
+  amostra?: boolean;
+}
+
+/** Andamento da totalização na abrangência, como o TSE publica. */
+export interface Totalizacao {
+  secoes: number | null;
+  secoes_totalizadas: number | null;
+  /** Percentual de seções totalizadas (0 a 100). */
+  pct_secoes: number | null;
+  finalizada: boolean;
+  /** A fonte indica que os votos restantes já não mudam o resultado; null quando não informa. */
+  matematicamente_definida: boolean | null;
+}
+
+/** Eleitorado apto, quem compareceu e quem se absteve, com os percentuais. */
+export interface Comparecimento {
+  eleitorado: number | null;
+  comparecimento: number | null;
+  abstencao: number | null;
+  pct_comparecimento: number | null;
+  pct_abstencao: number | null;
+}
+
+/** Destino dos votos na abrangência: válidos, brancos, nulos, anulados e de legenda. */
+export interface Votos {
+  validos: number | null;
+  brancos: number | null;
+  nulos: number | null;
+  /** Votos anulados, inclusive os sub judice; não entram nos válidos. */
+  anulados: number | null;
+  /** Proporcionais: votos dados só ao número do partido. */
+  legenda: number | null;
+  pct_validos: number | null;
+  pct_brancos: number | null;
+  pct_nulos: number | null;
+}
+
+/** Um candidato no resultado; o feed traz a lista dos mais votados para os menos votados. */
+export interface Candidato {
+  /** Número de urna; identifica o candidato também nas séries do histórico. */
+  numero: string;
+  /** Nome como aparece na urna; é o que a tela exibe. */
+  nome_urna: string;
+  nome: string;
+  partido: string | null;
+  /** Coligação ou federação pela qual concorre, quando há. */
+  agremiacao: string | null;
+  /** Partidos que compõem a agremiação. */
+  composicao: string | null;
+  votos: number;
+  /** Percentual dos votos válidos; null quando os votos do candidato não são válidos. */
+  pct: number | null;
+  /** Situação como o TSE publica: "Eleito", "2º turno", "Não eleito" ou vazio. */
+  situacao: string;
+  eleito: boolean;
+  segundo_turno: boolean;
+  /** Os votos contam como válidos (falso quando a destinação é de anulação). */
+  valido: boolean;
+  /** Destinação dos votos ("Válido", "Anulado sub judice"...); null quando a fonte não informa. */
+  destinacao: string | null;
+  /** Vice (executivo) ou 1º suplente (Senado). */
+  vice: string | null;
+  /**
+   * Posição na paleta (0 a 7) ou -1 (cinza). Atribuída pela ordem de votação
+   * e fixa durante a apuração; nos proporcionais, é a do partido.
+   */
+  cor: number;
+  /** Caminho relativo da foto ("fotos/….jpg"); `urls.foto` só aceita esse formato. */
+  foto: string | null;
+  /**
+   * O candidato não tinha número de urna (eleições até os anos 1980): `numero`
+   * é só um identificador estável do feed e não é exibido.
+   */
+  sem_numero?: boolean;
+}
+
+/** Votação de partido isolado, coligação ou federação nos proporcionais, com as vagas obtidas. */
+export interface Agremiacao {
+  nome: string;
+  /** "isolado", "coligação" ou "federação". */
+  tipo: string;
+  composicao: string | null;
+  votos: number;
+  vagas: number | null;
+}
+
+/** Linha de uma abrangência filha (UF no Brasil, município na UF), para o mapa. */
+export interface Parte {
+  codigo: string;
+  nome: string;
+  ibge: string | null;
+  /** Quem está à frente: número do candidato ou, quando a parte é contada por partido, a sigla; null sem votos. */
+  lider: string | null;
+  partido?: string | null;
+  nome_urna?: string | null;
+  votos?: number | null;
+  pct?: number | null;
+  /** Vantagem do líder sobre o segundo, em pontos percentuais. */
+  margem?: number | null;
+  /** Posição na paleta de quem está à frente; o mapa só pinta as três primeiras. */
+  cor: number;
+  eleito?: boolean;
+  segundo_turno?: boolean;
+  pct_secoes: number | null;
+  finalizada: boolean;
+  eleitorado: number | null;
+  /** Panorama nacional de cargo municipal: municípios liderados pelo partido à frente na UF. */
+  liderados?: number;
+  /** Proporcionais: eleitos por partido na parte. */
+  bancada?: Record<string, number>;
+}
+
+/**
+ * Arquivo de resultado (`br.json`, `uf-<sigla>.json`, `mu-<chave>.json`):
+ * candidatos com votos, comparecimento e destino dos votos de uma
+ * abrangência, mais as `partes` filhas que pintam o mapa.
+ */
+export interface FeedResultado {
+  versao: number;
+  tipo: "resultado";
+  eleicao: ResumoEleicao;
+  cargo: CargoFeed;
+  abrangencia: AbrangenciaFeed;
+  atualizado_em: string | null;
+  ao_vivo: boolean;
+  origem: Origem;
+  totalizacao: Totalizacao;
+  comparecimento: Comparecimento;
+  votos: Votos;
+  /** Proporcionais: votos necessários para cada vaga; null quando não se aplica. */
+  quociente_eleitoral: number | null;
+  candidatos: Candidato[];
+  /** Candidatos fora do arquivo (município com lista limitada); a lista completa está no arquivo da UF. */
+  candidatos_omitidos: number;
+  agremiacoes: Agremiacao[];
+  /** Abrangências filhas (UFs no Brasil, municípios na UF), para o mapa e a tabela. */
+  partes: Parte[];
+  /** Ressalvas da fonte, exibidas antes dos números. */
+  avisos: string[];
+}
+
+/** Linha do placar por partido num panorama; o feed ordena por eleitos, depois partes lideradas e votos. */
+export interface PlacarPartido {
+  partido: string;
+  /** Partes (UFs ou municípios) em que o partido está à frente. */
+  liderados: number;
+  eleitos: number;
+  votos: number;
+  /** Posição na paleta, pela ordem do placar: nos panoramas a cor identifica o partido. */
+  cor: number;
+}
+
+/**
+ * Arquivo de panorama: o cargo visto de cima, onde não existe resultado
+ * único (cargo municipal na UF ou no Brasil, cargo estadual no Brasil).
+ * Traz o placar por partido e o líder de cada parte, em vez de candidatos.
+ */
+export interface FeedPanorama {
+  versao: number;
+  tipo: "panorama";
+  eleicao: ResumoEleicao;
+  cargo: CargoFeed;
+  abrangencia: AbrangenciaFeed;
+  atualizado_em: string | null;
+  ao_vivo: boolean;
+  origem: Origem;
+  /** Partes com totalização concluída, em número e em percentual. */
+  totalizacao: { partes: number; partes_finalizadas: number; pct_partes: number | null };
+  partidos: PlacarPartido[];
+  partes: Parte[];
+  avisos: string[];
+}
+
+/** Uma leitura da apuração no histórico: instante, seções totalizadas e votos por número de candidato. */
+export interface PontoEvolucao {
+  /** Instante da leitura, ISO 8601 com fuso. */
+  t: string | null;
+  pct_secoes: number | null;
+  /** Votos acumulados por número de candidato. */
+  votos: Record<string, number>;
+}
+
+/** Arquivo `historico-<abrangência>.json`: a sequência de leituras que desenha o gráfico de evolução. */
+export interface FeedHistorico {
+  versao: number;
+  tipo: "historico";
+  eleicao: ResumoEleicao;
+  cargo: CargoFeed;
+  abrangencia: AbrangenciaFeed;
+  origem: Origem;
+  candidatos: { numero: string; nome_urna: string; partido: string | null; cor: number }[];
+  /** Leituras em ordem cronológica. */
+  pontos: PontoEvolucao[];
+}
+
+/** Os dois tipos de arquivo que a tela principal exibe; o campo `tipo` os distingue. */
+export type Feed = FeedResultado | FeedPanorama;
+
+/** Município no cadastro TSE ↔ IBGE, usado pela busca. */
+export interface Municipio {
+  /** Sigla da UF em minúsculas ("zz" no exterior). */
+  uf: string;
+  /** Código TSE (5 dígitos). */
+  tse: string;
+  /** Código IBGE (7 dígitos); null no exterior. */
+  ibge: string | null;
+  /** Nome do IBGE, com acentos e caixa corretos; sem IBGE, o do TSE. */
+  nome: string;
+  /** Nome como o TSE publica (maiúsculas). */
+  nome_tse: string;
+  capital: boolean;
+}
+
+/** Conteúdo de `municipios.json`: o cadastro completo, baixado só quando a busca abre. */
+export interface CadastroMunicipios {
+  versao: number;
+  municipios: Municipio[];
+}
+
+/** O que está selecionado na tela; vai para a URL (ver `estado-url.ts`). */
+export interface Selecao {
+  eleicao: string | null;
+  cargo: string | null;
+  /** "br", "uf-sp" ou "mu-3550308" — o nome do arquivo do feed. */
+  abrangencia: string;
+  tv: boolean;
+}

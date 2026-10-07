@@ -1,0 +1,57 @@
+# Copie para lumen.toml e ajuste. O lumen.toml real não vai para o Git.
+
+[coleta]
+# E-mail ou URL de contato. Vai no User-Agent de toda requisição (RF-CO-09):
+# o operador de um portal público precisa saber quem coleta e como avisar.
+contato = "contato@falkyria.com.br"
+
+[dados]
+# Onde ficam bronze/ (prova) e silver/ (dados normalizados).
+raiz = "dados"
+
+[limites_rpm]
+# Requisições por minuto por fonte. O padrão é conservador; só aumente com
+# evidência de que a fonte suporta (DOC-06, seção 5).
+# pncp_contratacoes = 60
+# siconfi_extrato = 50
+
+[eleicoes]
+# Aba Eleições (DOC-12). Tudo opcional; os valores abaixo são os padrões,
+# exceto `saida`, que mostra o recomendado para a carga completa.
+# Variáveis de ambiente têm precedência: LUMEN_ELEICOES_SAIDA, LUMEN_DADOS.
+#
+# Feeds JSON que o portal lê. O padrão, "packages/portal/public/dados/eleicoes",
+# serve ao `npm run dev` com a amostra. Para a carga completa (`lumen eleicoes
+# preparar`, centenas de milhares de arquivos), use um diretório fora do
+# portal: `preparar --servir` e `servir` entregam site e feeds pela mesma
+# porta. Em produção, aponte para o diretório servido pelo CDN e defina
+# NEXT_PUBLIC_DADOS_ELEICOES no build do portal.
+# saida = "dados/eleicoes/feeds"
+# ZIPs dos dados abertos do TSE: vários GB somando todos os anos (só a
+# votação de 2022 tem 642 MB compactados — ADR-021).
+# arquivos = "dados/eleicoes/arquivos"
+# Estado do coletor ao vivo (cores, partes, evolução); permite reiniciar
+# no meio da apuração sem perder a série do gráfico.
+# estado = "dados/eleicoes/estado"
+#
+# Requisições por minuto. O sistema de resultados é servido por CDN e
+# aguenta mais; os demais são servidores comuns do TSE e do IBGE.
+# rpm_resultados = 300
+# rpm_dados_abertos = 30
+# rpm_ibge = 30
+
+[publicacao]
+# Publicação na nuvem (ADR-026): só para `preparar --nuvem`, `ao-vivo --nuvem`
+# e `publicar`. Os feeds vão para um bucket público do Cloudflare R2 (ou
+# qualquer S3 compatível), de onde o portal os lê; o estado da carga vai para
+# um bucket privado, o que permite continuar a carga em outra máquina.
+#
+# As chaves de acesso NUNCA ficam neste arquivo: use as variáveis de ambiente
+# LUMEN_S3_CHAVE_ACESSO e LUMEN_S3_CHAVE_SECRETA (no GitHub Actions, segredos).
+# Cada item abaixo também aceita variável de ambiente, que tem precedência:
+# LUMEN_PUBLICACAO_ENDPOINT, LUMEN_PUBLICACAO_BUCKET,
+# LUMEN_PUBLICACAO_BUCKET_ESTADO, LUMEN_PUBLICACAO_REGIAO.
+# endpoint = "https://<id da conta>.r2.cloudflarestorage.com"
+# bucket = "lumen-eleicoes"
+# bucket_estado = "lumen-privado"
+# regiao = "auto"

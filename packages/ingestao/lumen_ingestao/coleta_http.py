@@ -17,9 +17,9 @@ declarar quem está coletando e como entrar em contato (RF-CO-09, princípio
 P6). Um coletor anônimo é exatamente o tipo de tráfego que o operador de um
 portal público tem razão de bloquear.
 
-Fica para os conectores (fases seguintes): limite de taxa por fonte, espera
-exponencial entre tentativas e coleta incremental. Esta função faz uma única
-requisição, e faz bem.
+Limite de taxa por fonte, espera exponencial entre tentativas e suspensão da
+fonte depois de falhas seguidas ficam em ``cliente_http.ClienteHttp``, que usa
+esta função. Esta função faz uma única requisição, e faz bem.
 """
 
 from __future__ import annotations
@@ -52,6 +52,11 @@ def user_agent_lumen(versao: str, contato: str) -> str:
 
 
 def _ler_limitado(resposta, limite: int) -> bytes:
+    """Lê a resposta em blocos de 64 KiB e levanta ``ConteudoGrandeDemais`` ao passar de ``limite``.
+
+    Ler em blocos interrompe o download assim que o limite é excedido, sem carregar a
+    resposta inteira na memória.
+    """
     partes = []
     total = 0
     while True:
@@ -73,14 +78,23 @@ def baixar_http(
     timeout: float = TIMEOUT_PADRAO_S,
     limite_bytes: int = LIMITE_PADRAO_BYTES,
     abridor: urllib.request.OpenerDirector | None = None,
+    cabecalhos: dict[str, str] | None = None,
 ) -> ArtefatoBruto:
-    """Faz uma requisição GET e devolve exatamente o que a fonte respondeu."""
+    """Faz uma requisição GET e devolve exatamente o que a fonte respondeu.
+
+    ``cabecalhos`` acrescenta cabeçalhos à requisição (``Accept``,
+    ``If-None-Match``, ``Range``). Não pode substituir o ``User-Agent``: a
+    identificação é obrigatória e única.
+    """
     if not user_agent or not user_agent.strip():
         raise ValueError("user_agent é obrigatório: a coleta precisa se identificar")
+    extras = dict(cabecalhos or {})
+    if any(k.lower() == "user-agent" for k in extras):
+        raise ValueError("o User-Agent vem de user_agent; não o sobrescreva por cabecalhos")
 
     requisicao = urllib.request.Request(
         url,
-        headers={"User-Agent": user_agent, "Accept": "*/*"},
+        headers={"User-Agent": user_agent, "Accept": "*/*", **extras},
         method="GET",
     )
     abridor = abridor or urllib.request.build_opener()

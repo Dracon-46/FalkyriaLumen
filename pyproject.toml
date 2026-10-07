@@ -1,6 +1,10 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "falkyria-lumen"
-version = "0.1.0"
+version = "0.5.0"
 description = "Monitoramento de contratações e despesas públicas do Brasil. Publica indícios para análise, nunca conclusões."
 requires-python = ">=3.11"
 readme = "README.md"
@@ -9,7 +13,40 @@ readme = "README.md"
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.6"]
+# Consulta analítica da silver (ADR-016). Opcional: o pipeline grava sem ele.
+analitico = ["duckdb>=1.1"]
+
+[project.scripts]
+lumen = "lumen_orquestracao.cli:main"
+
+# Monorepo instalável: `pip install -e .` deixa todos os pacotes importáveis e
+# instala o comando `lumen`. Cada pacote continua num diretório próprio.
+[tool.setuptools.packages.find]
+where = [
+  "packages/canonico",
+  "packages/ingestao",
+  "packages/normalizacao",
+  "packages/deteccao",
+  "packages/conformidade",
+  "packages/orquestracao",
+  "packages/eleicoes",
+]
+include = ["lumen_*"]
+
+[tool.setuptools.package-data]
+lumen_deteccao = ["*.toml"]
+# Malhas do IBGE e cadastro de municípios que vêm com a aba Eleições (dados/LEIAME.md)
+lumen_eleicoes = ["dados/*.json", "dados/*.md", "dados/geo/*.json"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+# E501: linhas longas são aceitas em texto de domínio; B008/B905: padrões usados de propósito
+ignore = ["E501", "B008", "B905"]
 
 [tool.pytest.ini_options]
 # Monorepo sem empacotamento por pacote ainda (DOC-04, seção 5). Cada pacote
@@ -18,13 +55,42 @@ dev = ["pytest>=8"]
 pythonpath = [
   "packages/canonico",
   "packages/ingestao",
+  "packages/normalizacao",
   "packages/deteccao",
+  "packages/conformidade",
+  "packages/orquestracao",
+  "packages/eleicoes",
   "ferramentas/lint-vocabulario",
+  "ferramentas/referencia",
 ]
 testpaths = [
   "packages/canonico/testes",
   "packages/ingestao/testes",
+  "packages/normalizacao/testes",
   "packages/deteccao/testes",
+  "packages/conformidade/testes",
+  "packages/orquestracao/testes",
+  "packages/eleicoes/testes",
   "ferramentas/lint-vocabulario/testes",
+  "ferramentas/referencia/testes",
+  "testes/contrato",
+  "testes/integracao",
 ]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers --import-mode=importlib"
+# Marcadores (strict-markers recusa qualquer outro):
+#   contrato  consome a fonte real pela rede; só roda com LUMEN_TESTE_CONTRATO=1
+#   postgres  exige PostgreSQL acessível; só roda com LUMEN_TESTE_PG=<dsn>
+markers = [
+  "contrato: teste de contrato contra a fonte externa real (rede)",
+  "postgres: teste que exige PostgreSQL",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["lumen_canonico", "lumen_ingestao", "lumen_normalizacao", "lumen_deteccao",
+                     "lumen_conformidade", "lumen_orquestracao", "lumen_eleicoes", "lint_vocabulario", "conftest"]
+
+[tool.ruff.lint.per-file-ignores]
+# testes usam asserts, fixtures com nomes de parâmetro e imports locais
+"**/testes/**" = ["B011", "B017"]
+# o teste do verificador importa o módulo depois de ajustar o caminho de busca
+"ferramentas/lint-vocabulario/testes/test_lint_vocabulario.py" = ["E402"]

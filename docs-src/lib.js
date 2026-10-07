@@ -36,22 +36,29 @@ const italic = (t) => new TextRun({ text: t, italics: true });
 const plain = (t) => new TextRun({ text: t });
 const mono = (t) => new TextRun({ text: t, font: "Consolas", size: 18 });
 
-function h1(text) {
+// Titulos ficam presos ao paragrafo seguinte (keepNext): titulo sozinho no pe
+// da pagina e erro de diagramacao. novaPagina usa pageBreakBefore no proprio
+// titulo em vez de um paragrafo de quebra, que vira pagina em branco quando o
+// conteudo anterior termina exatamente no fim de uma pagina.
+function h1(text, opts = {}) {
   return new Paragraph({
     text, heading: HeadingLevel.HEADING_1,
     spacing: { before: 380, after: 160 },
+    keepNext: true, keepLines: true, pageBreakBefore: !!opts.novaPagina,
   });
 }
 function h2(text) {
   return new Paragraph({
     text, heading: HeadingLevel.HEADING_2,
     spacing: { before: 280, after: 120 },
+    keepNext: true, keepLines: true,
   });
 }
 function h3(text) {
   return new Paragraph({
     text, heading: HeadingLevel.HEADING_3,
     spacing: { before: 220, after: 100 },
+    keepNext: true, keepLines: true,
   });
 }
 function p(text, opts = {}) {
@@ -83,17 +90,19 @@ function bulletRuns(runs, level = 0) {
     spacing: { after: 70 },
   });
 }
-function numbered(text, level = 0) {
+// instance: listas numeradas com instancias diferentes recomecam do 1; sem
+// ela, todas as listas do documento continuam a mesma contagem.
+function numbered(text, level = 0, instance) {
   return new Paragraph({
     children: [plain(text)],
-    numbering: { reference: "steps", level },
+    numbering: { reference: "steps", level, instance },
     spacing: { after: 70 },
   });
 }
-function numberedRuns(runs, level = 0) {
+function numberedRuns(runs, level = 0, instance) {
   return new Paragraph({
     children: runs,
-    numbering: { reference: "steps", level },
+    numbering: { reference: "steps", level, instance },
     spacing: { after: 70 },
   });
 }
@@ -162,7 +171,10 @@ function callout(title, lines, tone = "red") {
       insideHorizontal: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
       insideVertical: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
     },
+    // cantSplit: a caixa inteira fica numa página; partida, o título fica
+    // sozinho no pé de uma página e o texto vai para a seguinte.
     rows: [new TableRow({
+      cantSplit: true,
       children: [new TableCell({
         width: { size: CONTENT_W, type: WidthType.DXA },
         shading: { type: ShadingType.CLEAR, fill: c.fill },
@@ -212,6 +224,7 @@ function table(headers, widths, rows, opts = {}) {
   rows.forEach((r, ri) => {
     const fill = opts.zebra === false ? "FFFFFF" : (ri % 2 === 1 ? GREY : "FFFFFF");
     trs.push(new TableRow({
+      cantSplit: true, // linha de tabela não se divide entre páginas
       children: r.map((cell, i) => bodyCell(cell, widths[i], {
         fill, bold: opts.boldFirstCol && i === 0, size: opts.size,
         monoFont: opts.monoCols && opts.monoCols.includes(i),
@@ -267,7 +280,7 @@ function figure(fileName, caption, maxW = 620, maxH = 860) {
 }
 
 // ---------- Capa ----------
-function cover(codigo, titulo, subtitulo) {
+function cover(codigo, titulo, subtitulo, meta = {}) {
   return [
     new Paragraph({
       children: [new TextRun({ text: "PROJETO LUMEN", bold: true, size: 26, color: BLACK,
@@ -275,7 +288,7 @@ function cover(codigo, titulo, subtitulo) {
       spacing: { before: 900, after: 60 },
     }),
     new Paragraph({
-      children: [new TextRun({ text: "Monitoramento de contratacoes e despesas publicas do Brasil",
+      children: [new TextRun({ text: "Monitoramento de contratações e despesas públicas do Brasil",
         size: 20, color: BLACK })],
       spacing: { after: 400 },
     }),
@@ -293,23 +306,23 @@ function cover(codigo, titulo, subtitulo) {
       border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: BLACK, space: 14 } },
     }),
     table(null, [2400, 7200], [
-      ["Projeto", "Lumen (nome de trabalho, sujeito a verificacao de disponibilidade)"],
-      ["Responsavel", "Gaspare"],
-      ["Versao", "1.0"],
-      ["Data", "18 de setembro de 2026"],
-      ["Situacao", "Documento base para inicio de desenvolvimento"],
+      ["Projeto", "Lumen (nome de trabalho, sujeito a verificação de disponibilidade)"],
+      ["Responsável", "Gaspare"],
+      ["Versão", meta.versao || "1.0"],
+      ["Data", meta.data || "18 de setembro de 2026"],
+      ["Situação", meta.situacao || "Documento base para início de desenvolvimento"],
     ], { boldFirstCol: true, zebra: true }),
     spacer(300),
-    p("Este documento integra o pacote de documentacao do Projeto Lumen. Valores legais, " +
-      "limites e endpoints citados foram verificados em fontes oficiais em setembro de 2026 e " +
-      "devem ser reconferidos antes da implementacao, pois sao atualizados periodicamente por decreto.",
+    p("Este documento integra o pacote de documentação do Projeto Lumen. Valores legais, " +
+      "limites e endpoints citados foram verificados em fontes oficiais em " + (meta.verificado || "setembro de 2026") + " e " +
+      "devem ser reconferidos antes da implementação, pois são atualizados periodicamente por decreto.",
       { italics: true, size: 18, color: BLACK }),
   ];
 }
 
 // ---------- Documento ----------
-function buildDoc({ codigo, titulo, subtitulo, body, outFile, toc = true }) {
-  const children = [...cover(codigo, titulo, subtitulo), pageBreak()];
+function buildDoc({ codigo, titulo, subtitulo, body, outFile, toc = true, meta = {} }) {
+  const children = [...cover(codigo, titulo, subtitulo, meta), pageBreak()];
   if (toc) {
     children.push(h1("Sumário"));
     // O campo TOC do Word so e preenchido quando os campos sao atualizados.

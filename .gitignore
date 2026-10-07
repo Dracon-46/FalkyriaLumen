@@ -1,5 +1,7 @@
 # Node (geração da documentação)
 node_modules/
+# Extração do código para o DOC-11: gerada por `make docs` (npm run referencia)
+docs-src/referencia.json
 
 # Python
 __pycache__/
@@ -19,11 +21,22 @@ render/
 
 # Dados locais da camada bronze — nunca vão para o repositório:
 # são prova, vivem no armazenamento de objetos, não no Git.
-dados/
-bronze/
+/dados/
+/bronze/
 
 # Sistema e segredos
 .DS_Store
 Thumbs.db
 .env
 .env.*
+
+# Configuração local do pipeline (contém o contato; o exemplo está versionado)
+lumen.toml
+
+# Portal (Next.js). Os feeds são gerados pelo coletor; só o LEIAME vai para o Git.
+packages/portal/.next/
+packages/portal/out/
+packages/portal/next-env.d.ts
+packages/portal/*.tsbuildinfo
+packages/portal/public/dados/eleicoes/*
+!packages/portal/public/dados/eleicoes/LEIAME.md

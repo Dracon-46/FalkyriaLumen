@@ -1,0 +1,4 @@
+"16/1/2014";"15:43:25";"1962";"1";"ELEIÇÃO 1962";"GB";"GB";"5";"-1";"-3";"AURÉLIO VIANNA";"#NE#";"SENADOR";"-1";"#NULO#";"2";"DEFERIDO";"1";"ELEITO";"-3";"#NULO#";"#NULO#";"-3";"ALIANÇA SOCIAL TRABALHISTA";"PTB / PSB";"509979"
+"16/1/2014";"15:43:25";"1962";"1";"ELEIÇÃO 1962";"GB";"GB";"5";"-1";"-3";"GILBERTO MARINHO";"#NE#";"SENADOR";"-1";"#NULO#";"2";"DEFERIDO";"1";"ELEITO";"-3";"#NULO#";"#NULO#";"-3";"#NULO#";"PTN";"431284"
+"16/1/2014";"15:43:25";"1962";"1";"ELEIÇÃO 1962";"GB";"GB";"5";"-1";"-3";"JURACY MAGALHÃES";"#NE#";"SENADOR";"-1";"#NULO#";"2";"DEFERIDO";"4";"NÃO ELEITO";"-3";"#NULO#";"#NULO#";"-3";"#NULO#";"UDN";"371892"
+"16/1/2014";"15:43:25";"1962";"1";"ELEIÇÃO 1962";"GB";"GB";"5";"-1";"-3";"MOURÃO FILHO";"#NE#";"SENADOR";"-1";"#NULO#";"2";"DEFERIDO";"4";"NÃO ELEITO";"-3";"#NULO#";"#NULO#";"-3";"#NULO#";"PST";"347379"

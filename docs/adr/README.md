@@ -21,9 +21,20 @@ nunca apagadas: uma ADR substituída continua aqui, marcada como tal.
 | [013](ADR-013.md) | Parâmetro legal não verificado recusado por padrão | **proposta** |
 | [014](ADR-014.md) | Vocabulário verificado no modelo, não no texto renderizado | **proposta** |
 | [015](ADR-015.md) | Fase 0 sem dependências externas de execução | **proposta** |
+| [016](ADR-016.md) | Camada silver em JSON Lines particionado na Fase 1 | **proposta** |
+| [017](ADR-017.md) | Modelo de fatos da Fase 1 a partir das respostas reais das fontes | **proposta** |
+| [018](ADR-018.md) | Cliente S3 próprio, só com a biblioteca padrão | **proposta** |
+| [019](ADR-019.md) | Aba Eleições: coletor único, feeds JSON versionados e portal estático | **proposta** |
+| [020](ADR-020.md) | Cor identifica o candidato pela ordem de votação, nunca o partido | **proposta** |
+| [021](ADR-021.md) | Arquivos grandes fora do bronze, com manifesto e download retomável | **proposta** |
+| [022](ADR-022.md) | Revisão da regra B-01 frente ao art. 75, § 1º, da Lei 14.133 | **proposta (revisão jurídica)** |
+| [023](ADR-023.md) | Referência técnica gerada do código e cobrada por teste | **proposta** |
+| [024](ADR-024.md) | Eleições é dado oficial, não indício: fronteira e integração futura | **proposta** |
+| [025](ADR-025.md) | Eleições de 1933 a 1990, referências embutidas e carga num comando | **proposta** |
+| [026](ADR-026.md) | Hospedagem gratuita: Supabase Free, Cloudflare R2 e Pages, carga no GitHub Actions | **proposta** |
 
-As ADRs 011 a 015 foram tomadas durante a implementação da Fase 0 e aguardam
-revisão. Para aceitar, troque a situação para `aceita`. Para rejeitar, marque
+As ADRs 011 a 015 foram tomadas durante a implementação da Fase 0, e as 016 a
+026 durante a Fase 1 e a criação da aba Eleições; todas aguardam revisão. Para aceitar, troque a situação para `aceita`. Para rejeitar, marque
 `rejeitada` com o motivo — não apague o arquivo.
 
 ## Nova ADR

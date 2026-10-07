@@ -2,6 +2,8 @@ const L = require("./lib");
 const { h1, h2, h3, p, bullet, numbered, table, callout, code, figure, pageBreak, spacer } = L;
 
 const body = [];
+// Versão 1.1 (outubro de 2026): seção 8 com o bloco de fatos como implementado
+// na Fase 1 (ADR-016, ADR-017) e o banco de domínio da migração 0001.
 
 function dic(entidade, descricao, campos) {
   const out = [];
@@ -277,6 +279,8 @@ body.push(table(["Entidade", "Chave preferencial", "Estratégia quando a chave f
   ["Agente público", "Nome mais ente mais período",
     "Sem unificação automática entre entes distintos; homônimos permanecem separados por decisão de projeto"],
 ]));
+body.push(p("As chaves efetivamente usadas na Fase 1, onde a fonte já entrega um identificador estável, " +
+  "estão na seção 8.2."));
 body.push(callout("Decisão deliberada sobre agentes públicos", [
   "O sistema não unifica automaticamente o mesmo nome entre entes diferentes. Unificar homônimos sem " +
   "documento identificador criaria associações incorretas entre pessoas distintas, com potencial de " +
@@ -298,16 +302,115 @@ body.push(table(["Dimensão", "Verificação", "Ação na falha"], [1900, 4400, 
 body.push(h1("7. Particionamento e retenção"));
 body.push(table(["Camada", "Particionamento", "Retenção"], [1800, 4400, 3400], [
   ["Bronze", "Por fonte, ano e mês de coleta", "Permanente; é a prova"],
-  ["Silver", "Por exercício e unidade federativa", "Regerável; retida enquanto útil"],
+  ["Silver", "Por entidade, exercício e unidade federativa (JSON Lines na Fase 1, ADR-016)", "Regerável; retida enquanto útil"],
   ["Gold", "Por exercício e tipo de agregado", "Recalculada a cada mudança de regra ou linha de base"],
   ["Domínio", "Sem particionamento na fase inicial", "Permanente, com backup testado"],
   ["Auditoria", "Por mês", "Permanente e somente-anexação"],
 ]));
 
+
+// ============================================================ 8. Fase 1
+body.push(h1("8. Implementação da Fase 1", { novaPagina: true }));
+body.push(p("As seções anteriores descrevem o modelo de destino. Esta seção registra o que a Fase 1 " +
+  "implementou ao consumir as fontes reais (PNCP, SICONFI e IBGE) e onde a implementação diverge do " +
+  "dicionário, com o motivo (ADR-017). O código está em packages/canonico e packages/normalizacao; a " +
+  "descrição função por função, no DOC-11."));
+
+body.push(h2("8.1 Do modelo conceitual às entidades implementadas"));
+body.push(table(["Entidade do dicionário", "Na Fase 1", "Observação"], [2300, 2700, 4600], [
+  ["Ente", "EnteFederativo, Orgao, UnidadeGestora", "Separados porque o PNCP identifica o órgão pelo CNPJ e a unidade pelo código; o ente vem do código IBGE"],
+  ["ProcessoContratacao", "ProcessoContratacao", "Inclui modo de disputa, registro de preço, valores estimado e homologado, situação e sistema de origem"],
+  ["ItemContratado", "ItemContratacao e ResultadoItem", "O item pertence ao processo; o resultado (fornecedor, valor homologado) é registro próprio, porque um item pode ter mais de um"],
+  ["Contrato", "Contrato", "Valores inicial, global, de parcela e acumulado, como o PNCP publica"],
+  ["AmparoLegal", "AmparoLegal", "Código do PNCP ligado ao parâmetro legal datado (parametro_limite)"],
+  ["—", "AtaRegistroPreco", "Nova: atas de registro de preço do PNCP"],
+  ["Conformidade (insumo)", "EntregaSiconfi", "Nova: o que cada ente entregou ao SICONFI, base da família I"],
+  ["AtoAutorizativo, AgentePublico", "Não preenchidas", "A API do PNCP não publica quem autorizou o ato (seção 8.3)"],
+  ["Empenho, Liquidacao, Pagamento", "Não preenchidas", "Dependem do Portal da Transparência e de fontes estaduais (fases seguintes)"],
+  ["Fornecedor", "Identificador e documento no resultado e no contrato", "A entidade completa depende da base de CNPJ da Receita (pendente)"],
+], { size: 17 }));
+
+body.push(h2("8.2 Identidade determinística"));
+body.push(p("O id de todo registro de fato é um UUID versão 5 calculado a partir de um espaço de nomes fixo do " +
+  "projeto e da chave natural do registro. O mesmo dado coletado duas vezes recebe o mesmo id, em qualquer " +
+  "máquina: a normalização é idempotente e a silver inteira pode ser reconstruída do bronze sem deixar indício " +
+  "órfão. Chave com parte nula ou vazia é recusada, porque daria o mesmo id a registros diferentes."));
+body.push(table(["Entidade", "Chave natural"], [3000, 6600], [
+  ["EnteFederativo", "Código IBGE (1 para a União, 2 dígitos para estados, 7 para municípios)"],
+  ["Orgao", "CNPJ"],
+  ["UnidadeGestora", "CNPJ do órgão e código da unidade"],
+  ["AmparoLegal", "\"pncp\" e o código do amparo"],
+  ["ProcessoContratacao", "numeroControlePNCP"],
+  ["ItemContratacao", "numeroControlePNCP do processo e número do item"],
+  ["ResultadoItem", "numeroControlePNCP, número do item e sequencial do resultado"],
+  ["Contrato, AtaRegistroPreco", "numeroControlePNCP do próprio instrumento"],
+  ["EntregaSiconfi", "Código IBGE, instituição, entregável, exercício e período"],
+  ["Fornecedor (pessoa jurídica)", "CNPJ"],
+  ["Fornecedor (pessoa física)", "CPF mascarado e nome — nunca o CPF inteiro, que seria recuperável por força bruta"],
+], { size: 18 }));
+
+body.push(h2("8.3 Divergências registradas"));
+body.push(bullet("Agente que autorizou o ato: ausente na fonte. O campo usuarioNome do PNCP é a plataforma de " +
+  "software que enviou os dados, guardada em sistema_origem. A exigência editorial de mostrar quem praticou o " +
+  "ato depende de fonte complementar (diário oficial ou portal do ente)."));
+body.push(bullet("Esfera ou poder não informados (valor N na fonte) viram nulo com marcação; o ente não é " +
+  "adivinhado a partir do CNPJ."));
+body.push(bullet("Limite de dispensa: vem do código do amparo e do parâmetro legal datado. A descrição publicada " +
+  "pelo PNCP ainda cita os valores originais da lei e nunca é lida como limite."));
+body.push(bullet("CNPJ alfanumérico: o dígito verificador já é calculado no formato alfanumérico adotado pela " +
+  "Receita Federal (valor do caractere = código ASCII − 48)."));
+body.push(bullet("Sensibilidade por campo: cada entidade declara a classe de cada campo, conferida na construção; " +
+  "CPF sai sempre mascarado."));
+
+body.push(h2("8.4 Quarentena e marcações de qualidade"));
+body.push(p("Linha que não pode virar registro canônico (campo obrigatório ausente, valor ilegível, data fora " +
+  "de qualquer exercício plausível) vai para a quarentena com fonte, artefato, chave, posição, campo e valor " +
+  "recebido (truncado); o resto do artefato segue. Linha aproveitável com ressalva entra na silver com " +
+  "marcações de qualidade, que acompanham o registro até a tela:"));
+body.push(table(["Marcação", "Quando"], [3600, 6000], [
+  ["esfera_nao_informada, poder_nao_informado", "A fonte publica N (não informado)"],
+  ["ente_nao_resolvido", "Não há como determinar o ente com segurança"],
+  ["codigo_ibge_ausente", "Registro sem código IBGE onde ele seria esperado"],
+  ["valor_estimado_zero", "Valor estimado publicado como zero"],
+  ["valor_homologado_ausente", "Sem valor homologado publicado"],
+  ["valor_total_diverge_itens", "Valor total do processo diferente da soma dos itens"],
+  ["documento_fornecedor_invalido", "CPF ou CNPJ do fornecedor com dígito verificador inválido"],
+  ["cnpj_orgao_invalido", "CNPJ do órgão inválido; o campo fica nulo"],
+  ["modalidade_desconhecida", "Código de modalidade fora do domínio oficial"],
+], { size: 18 }));
+
+body.push(h2("8.5 Armazenamento da silver"));
+body.push(p("Na Fase 1 a silver é gravada em JSON Lines, no mesmo particionamento Hive previsto para o Parquet " +
+  "(entidade/exercicio=AAAA/uf=XX/), sem dependência nova (ADR-015, ADR-016). Cada artefato do bronze vira " +
+  "exatamente um arquivo por partição, com nome derivado do identificador do artefato, regravado por troca " +
+  "atômica: reprocessar produz os mesmos bytes. Cada linha leva a versão do normalizador e o instante da coleta."));
+body.push(p("O mesmo registro aparece em mais de um artefato (coleta por publicação e por atualização, por " +
+  "exemplo); a silver guarda todas as ocorrências, cada uma com a sua proveniência. A visão consolidada escolhe " +
+  "uma por id: a de atualizado_em mais recente, depois a coleta mais recente. A regra existe em Python " +
+  "(silver.consolidar) e como macro do DuckDB (packages/normalizacao/sql/silver_consolidada.sql), e um teste " +
+  "confere que as duas escolhem as mesmas linhas. A conversão para Parquet é um passo de compactação futuro que " +
+  "não muda nenhum contrato."));
+
+body.push(h2("8.6 Banco de domínio (migração 0001)"));
+body.push(p("O PostgreSQL guarda só o que é transacional e de prova; o fato administrativo em volume fica na " +
+  "silver e na gold (ADR-005). Três garantias são impostas pelo próprio banco, além da aplicação:"));
+body.push(table(["Garantia", "Como o banco impõe"], [3400, 6200], [
+  ["Prova e auditoria somente-anexação", "Gatilhos recusam alteração e remoção em documento_fonte, evidencia, aprovacao_indicio, transicao_indicio e trilha_auditoria"],
+  ["Indício só publicado com evidência e revisores distintos", "Máquina de estados por gatilho (transições permitidas em tabela); aprovação por revisor, nunca \"sistema\", com o número mínimo pela severidade; o conteúdo do indício é imutável (só estado e protocolo mudam) e ele não pode ser apagado"],
+  ["Conformidade indeterminada exige motivo", "Restrição de verificação na tabela conformidade"],
+  ["Defesa em profundidade", "A aplicação conecta com o papel lumen_app, que não recebe UPDATE nem DELETE nas tabelas de prova"],
+], { size: 18 }));
+body.push(p("Tabelas: migracao, fonte, documento_fonte, grupo_pares, ente_federativo, orgao, regra_deteccao, " +
+  "indicio, evidencia, aprovacao_indicio, transicao_indicio, transicao_permitida, contestacao, conformidade e " +
+  "trilha_auditoria. Os testes de migração rodam contra PostgreSQL 16 no CI."));
+
 L.buildDoc({
   codigo: "DOC-05",
   titulo: "Modelo de Dados",
   subtitulo: "Esquema canônico, dicionário de dados e resolução de identidade",
+  meta: { versao: "1.1", data: "6 de outubro de 2026",
+    situacao: "Atualizado com o bloco de fatos implementado na Fase 1 (ADR-016, ADR-017)",
+    verificado: "outubro de 2026" },
   body,
   outFile: "../docs/DOC-05_Modelo_de_Dados.docx",
 });

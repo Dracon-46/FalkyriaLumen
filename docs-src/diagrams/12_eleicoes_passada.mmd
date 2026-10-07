@@ -1,0 +1,23 @@
+flowchart TB
+    classDef passo fill:#2E75B6,stroke:#1f4e79,color:#ffffff
+    classDef decisao fill:#BF8F00,stroke:#7f5f00,color:#ffffff
+    classDef saida fill:#548235,stroke:#375623,color:#ffffff
+    classDef prova fill:#A0522D,stroke:#5c2f18,color:#ffffff
+
+    Z["Primeira passada: cadastro de municípios<br/>mun-e{ele}-cm.json"]:::passo
+    A["1. Andamento do Brasil, br-e{ele}-ab.json<br/>GET condicional: 304 = nenhuma UF mudou<br/>(1ª passada ou sem andamento: todas)"]:::passo
+    B["Andamento de cada UF que mudou<br/>{uf}-e{ele}-ab.json → municípios que mudaram"]:::passo
+    C["2. Resultados de topo<br/>Brasil e UFs que mudaram, cargo a cargo"]:::passo
+    D["3. Fila de municípios<br/>até o orçamento por passada (padrão 600),<br/>os nunca baixados primeiro"]:::passo
+    E["Cada resposta 200 vai para a camada bronze<br/>(original + SHA-256)"]:::prova
+    F["4. Regrava só os feeds que mudaram<br/>mu → uf (partes) → br (partes),<br/>panoramas, evolução e índice"]:::saida
+    G["5. Grava o estado<br/>cores, partes, evolução, fotos"]:::prova
+    H{"Totalização concluída<br/>e fila vazia?"}:::decisao
+    I["Espera: o intervalo (padrão 30 s),<br/>ou no máximo 5 s com fila pendente"]:::passo
+    J["Fim: índice com ao_vivo = false"]:::saida
+
+    Z --> A --> B --> C --> D --> F --> G --> H
+    C -.-> E
+    D -.-> E
+    H -- "não" --> I --> A
+    H -- "sim" --> J

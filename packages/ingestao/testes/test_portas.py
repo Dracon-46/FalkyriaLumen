@@ -118,7 +118,8 @@ def test_recoleta_sem_mudanca_e_registrada_mas_nao_conta_como_novo(armazem):
 
 def test_prova_corrompida_interrompe_a_coleta(armazem, tmp_path):
     """Incidente no armazém não pode ser tratado como falha de um artefato."""
-    import os, stat
+    import os
+    import stat
     fonte = FonteFalsa({"https://x.gov.br/c/1": (200, b"conteudo")})
     registro = coletar_janela(fonte, JANELA, armazem).guardados[0]
     objeto = (tmp_path / "bronze" / "objetos" / registro.sha256[:2]

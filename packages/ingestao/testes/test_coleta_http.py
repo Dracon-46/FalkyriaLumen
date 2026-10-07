@@ -6,10 +6,10 @@ de rede externa.
 """
 
 import threading
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
-import urllib.request
 
 from lumen_ingestao.coleta_http import (
     ConteudoGrandeDemais,

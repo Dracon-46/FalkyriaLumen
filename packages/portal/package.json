@@ -1,0 +1,30 @@
+{
+  "name": "lumen-portal",
+  "version": "0.5.0",
+  "private": true,
+  "description": "Portal público do Falkyria Lumen: aba Eleições (resultados oficiais do TSE) e, nas próximas fases, contratações e conformidade.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "tipos": "tsc --noEmit",
+    "testes": "vitest run",
+    "verificar": "npm run tipos && npm run testes",
+    "dados:amostra": "cd ../.. && python -m lumen_eleicoes --saida packages/portal/public/dados/eleicoes amostra"
+  },
+  "dependencies": {
+    "next": "16.3.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "5.9.3",
+    "vitest": "5.0.3"
+  }
+}

@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import tomllib
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Iterable
@@ -46,6 +46,13 @@ class ConfiguracaoInvalida(ErroParametro, ValueError):
 
 @dataclass(frozen=True)
 class ParametroLegal:
+    """Um valor legal com vigência, fundamento e estado de verificação.
+
+    ``vigente_ate`` nulo significa vigência em aberto. ``verificado`` diz se alguém conferiu o valor na
+    norma original; ``ParametrosLegais.obter`` só entrega parâmetro não verificado a quem aceita isso
+    explicitamente.
+    """
+
     chave: str
     valor: Decimal
     vigente_de: date
@@ -57,6 +64,9 @@ class ParametroLegal:
     fonte_verificacao: str | None = None
 
     def vigente_em(self, dia: date) -> bool:
+        """Verdadeiro se ``dia`` está na vigência, com as duas pontas inclusivas e o fim em aberto quando não há
+        ``vigente_ate``.
+        """
         return self.vigente_de <= dia and (self.vigente_ate is None or dia <= self.vigente_ate)
 
     def citacao(self) -> str:
@@ -65,6 +75,11 @@ class ParametroLegal:
 
 
 def _para_decimal(bruto, chave: str) -> Decimal:
+    """Converte o valor lido do TOML para ``Decimal``.
+
+    Recusa ``float``: o TOML aceitaria o número sem aspas, mas ele já chegaria impreciso, e os limites
+    legais são comparados ao centavo. Valor não numérico também levanta ``ConfiguracaoInvalida``.
+    """
     if isinstance(bruto, float):
         # TOML aceitaria 65492.11 sem aspas, e o float já chegaria impreciso.
         raise ConfiguracaoInvalida(
@@ -77,7 +92,14 @@ def _para_decimal(bruto, chave: str) -> Decimal:
 
 
 class ParametrosLegais:
+    """Catálogo de parâmetros legais por chave, com as vigências de cada chave em ordem cronológica.
+
+    A validação acontece na construção: um catálogo com vigências sobrepostas ou dados incoerentes nem chega
+    a existir, e assim nenhuma consulta depende da ordem do arquivo.
+    """
+
     def __init__(self, parametros: Iterable[ParametroLegal]):
+        """Agrupa os parâmetros por chave, ordena cada grupo pelo início da vigência e valida o conjunto."""
         self._por_chave: dict[str, list[ParametroLegal]] = {}
         for p in parametros:
             self._por_chave.setdefault(p.chave, []).append(p)
@@ -87,6 +109,12 @@ class ParametrosLegais:
 
     @classmethod
     def carregar(cls, caminho: Path = ARQUIVO_PADRAO) -> "ParametrosLegais":
+        """Lê o catálogo de um arquivo TOML (por padrão, o ``parametros_legais.toml`` do pacote).
+
+        Cada chave é uma lista de tabelas (``[[chave]]``), uma por vigência, com ``valor``, ``vigente_de``,
+        ``fundamento``, ``atualizado_por`` e ``verificado`` obrigatórios. Campo ausente ou formato errado
+        levanta ``ConfiguracaoInvalida``.
+        """
         with open(caminho, "rb") as fh:
             dados = tomllib.load(fh)
         parametros = []
@@ -111,6 +139,12 @@ class ParametrosLegais:
         return cls(parametros)
 
     def _validar(self) -> None:
+        """Recusa, com ``ConfiguracaoInvalida``, o catálogo que tornaria as consultas ambíguas.
+
+        Por chave, confere três coisas: fim de vigência anterior ao início, entrada marcada como verificada sem
+        ``verificado_em`` e vigências sobrepostas (inclusive uma anterior ainda em aberto quando a seguinte
+        começa).
+        """
         for chave, lista in self._por_chave.items():
             for p in lista:
                 if p.vigente_ate is not None and p.vigente_ate < p.vigente_de:
@@ -130,6 +164,7 @@ class ParametrosLegais:
 
     @property
     def chaves(self) -> list[str]:
+        """Chaves cadastradas, em ordem alfabética."""
         return sorted(self._por_chave)
 
     def obter(self, chave: str, vigente_em: date, *, aceitar_nao_verificado: bool = False) -> ParametroLegal:
@@ -152,4 +187,43 @@ class ParametrosLegais:
         )
 
     def pendentes_de_verificacao(self) -> list[ParametroLegal]:
+        """Todas as entradas, de qualquer chave, ainda não conferidas na norma original.
+
+        São as que ``obter`` recusa por padrão: enquanto estiverem aqui, as regras que dependem delas não
+        disparam.
+        """
         return [p for lista in self._por_chave.values() for p in lista if not p.verificado]
+
+    def vigencias(self, chave: str) -> list[ParametroLegal]:
+        """Todas as entradas da chave, da mais antiga para a mais recente."""
+        if chave not in self._por_chave:
+            raise ParametroIndisponivel(f"parâmetro desconhecido: {chave}")
+        return list(self._por_chave[chave])
+
+    def lacunas(self, chave: str, desde: date, ate: date) -> list[tuple[date, date]]:
+        """Intervalos entre ``desde`` e ``ate`` em que a chave não tem valor.
+
+        Sobreposição já é recusada na carga; o que sobra de risco é o buraco:
+        esquecer de cadastrar o decreto de um ano faz a regra calar o ano
+        inteiro sem ninguém notar. Esta consulta torna o buraco visível, e o
+        teste de cobertura contínua a usa para falhar antes de chegar à
+        produção.
+        """
+        if ate < desde:
+            raise ValueError("intervalo invertido")
+        buracos: list[tuple[date, date]] = []
+        cursor = desde
+        for p in self.vigencias(chave):
+            fim_p = p.vigente_ate or date.max
+            if fim_p < cursor:
+                continue
+            if p.vigente_de > ate:
+                break
+            if p.vigente_de > cursor:
+                buracos.append((cursor, min(p.vigente_de - timedelta(days=1), ate)))
+            if fim_p >= ate:
+                return buracos
+            cursor = fim_p + timedelta(days=1)
+        if cursor <= ate:
+            buracos.append((cursor, ate))
+        return buracos

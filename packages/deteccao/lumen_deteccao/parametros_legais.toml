@@ -20,10 +20,81 @@
 # detecção que dependa dele não dispara, e o motivo fica registrado. É melhor
 # o sistema calar do que afirmar um limite legal que ninguém conferiu.
 #
-# ANOS ANTERIORES A 2026 AINDA NÃO CADASTRADOS. Os valores de 2021 a 2025
-# precisam ser conferidos no decreto de atualização de cada ano antes de
-# entrar aqui. Enquanto não entrarem, as regras da família B não disparam
-# para atos desses anos — por projeto, não por falha.
+# Como os valores da Lei 14.133/2021 mudam
+# ----------------------------------------
+# O art. 182 da lei manda o Executivo federal atualizar os valores a cada 1º
+# de janeiro pelo IPCA-E. Cada atualização vem num decreto publicado no fim do
+# ano anterior, com um anexo que lista dispositivo por dispositivo. A lei
+# entrou em vigor em 1º/04/2021 com os valores originais do próprio texto;
+# a primeira atualização vale desde 1º/01/2022.
+#
+# Conferência de 05/10/2026: todos os valores abaixo foram lidos no texto
+# oficial do Planalto (anexo de cada decreto e texto compilado da lei). As
+# URLs estão em fonte_verificacao. Ao cadastrar o decreto do ano seguinte:
+#   1. encerre a entrada vigente com vigente_ate = 31/12 do ano corrente;
+#   2. acrescente a nova entrada com vigente_de = 1º/01 do ano seguinte;
+#   3. só marque verificado = true depois de ler o anexo no Planalto.
+# O teste test_cobertura_continua_desde_a_lei falha se sobrar um buraco.
+#
+# Fora do alcance deste arquivo: atos regidos pela Lei 8.666/1993, que
+# conviveu com a Lei 14.133 até 30/12/2023 e tinha limites próprios. O PNCP
+# só recebe atos da Lei 14.133, então a família B não os encontra; se um dia
+# entrarem por outra fonte, precisam de chaves próprias, nunca destas.
+
+# --------------------------------------------------------------------------
+# Art. 75, I — dispensa por valor: obras, serviços de engenharia e
+# manutenção de veículos automotores
+# --------------------------------------------------------------------------
+
+[[dispensa_obras_engenharia]]
+valor = "100000.00"
+vigente_de = 2021-04-01
+vigente_ate = 2021-12-31
+fundamento = "Lei 14.133/2021, art. 75, I"
+atualizado_por = "Lei 14.133/2021"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, texto compilado: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm"
+
+[[dispensa_obras_engenharia]]
+valor = "108040.82"
+vigente_de = 2022-01-01
+vigente_ate = 2022-12-31
+fundamento = "Lei 14.133/2021, art. 75, I"
+atualizado_por = "Decreto 10.922/2021"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, anexo: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/decreto/D10922.htm"
+
+[[dispensa_obras_engenharia]]
+valor = "114416.65"
+vigente_de = 2023-01-01
+vigente_ate = 2023-12-31
+fundamento = "Lei 14.133/2021, art. 75, I"
+atualizado_por = "Decreto 11.317/2022"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, anexo: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2022/decreto/D11317.htm"
+
+[[dispensa_obras_engenharia]]
+valor = "119812.02"
+vigente_de = 2024-01-01
+vigente_ate = 2024-12-31
+fundamento = "Lei 14.133/2021, art. 75, I"
+atualizado_por = "Decreto 11.871/2023"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, anexo: https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2023/decreto/D11871.htm"
+
+[[dispensa_obras_engenharia]]
+valor = "125451.15"
+vigente_de = 2025-01-01
+vigente_ate = 2025-12-31
+fundamento = "Lei 14.133/2021, art. 75, I"
+atualizado_por = "Decreto 12.343/2024"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, anexo: https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2024/decreto/D12343.htm"
 
 [[dispensa_obras_engenharia]]
 valor = "130984.20"
@@ -32,7 +103,61 @@ fundamento = "Lei 14.133/2021, art. 75, I"
 atualizado_por = "Decreto 12.807/2025"
 verificado = true
 verificado_em = 2026-09-18
-fonte_verificacao = "Planalto (D12807) e cinco fontes secundárias concordantes"
+fonte_verificacao = "Planalto (D12807) e cinco fontes secundárias concordantes; anexo reconferido em 05/10/2026"
+
+# --------------------------------------------------------------------------
+# Art. 75, II — dispensa por valor: demais compras e serviços
+# --------------------------------------------------------------------------
+
+[[dispensa_compras_servicos]]
+valor = "50000.00"
+vigente_de = 2021-04-01
+vigente_ate = 2021-12-31
+fundamento = "Lei 14.133/2021, art. 75, II"
+atualizado_por = "Lei 14.133/2021"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, texto compilado: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm"
+
+[[dispensa_compras_servicos]]
+valor = "54020.41"
+vigente_de = 2022-01-01
+vigente_ate = 2022-12-31
+fundamento = "Lei 14.133/2021, art. 75, II"
+atualizado_por = "Decreto 10.922/2021"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, anexo: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/decreto/D10922.htm"
+
+[[dispensa_compras_servicos]]
+valor = "57208.33"
+vigente_de = 2023-01-01
+vigente_ate = 2023-12-31
+fundamento = "Lei 14.133/2021, art. 75, II"
+atualizado_por = "Decreto 11.317/2022"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, anexo: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2022/decreto/D11317.htm"
+
+[[dispensa_compras_servicos]]
+valor = "59906.02"
+vigente_de = 2024-01-01
+vigente_ate = 2024-12-31
+fundamento = "Lei 14.133/2021, art. 75, II"
+atualizado_por = "Decreto 11.871/2023"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, anexo: https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2023/decreto/D11871.htm"
+
+[[dispensa_compras_servicos]]
+valor = "62725.59"
+vigente_de = 2025-01-01
+vigente_ate = 2025-12-31
+fundamento = "Lei 14.133/2021, art. 75, II"
+atualizado_por = "Decreto 12.343/2024"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, anexo: https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2024/decreto/D12343.htm"
 
 [[dispensa_compras_servicos]]
 valor = "65492.11"
@@ -41,23 +166,211 @@ fundamento = "Lei 14.133/2021, art. 75, II"
 atualizado_por = "Decreto 12.807/2025"
 verificado = true
 verificado_em = 2026-09-18
-fonte_verificacao = "Planalto (D12807) e cinco fontes secundárias concordantes"
+fonte_verificacao = "Planalto (D12807) e cinco fontes secundárias concordantes; anexo reconferido em 05/10/2026"
 
-# Limites de acréscimo por aditivo. Constam do próprio texto da lei, não de
-# decreto, e por isso não variam por ano. Estão como não verificados porque
-# não foram conferidos na redação oficial durante a Fase 0 — só entram em uso
-# depois dessa conferência.
+# --------------------------------------------------------------------------
+# Art. 75, § 7º — manutenção de veículos do próprio órgão, com peças.
+#
+# Contratações até este valor NÃO entram no somatório do § 1º. Sem este
+# parâmetro a família B somaria consertos de frota que a própria lei manda
+# deixar de fora: é um falso positivo previsto em lei, não em estatística.
+# --------------------------------------------------------------------------
+
+[[dispensa_manutencao_veiculos]]
+valor = "8000.00"
+vigente_de = 2021-04-01
+vigente_ate = 2021-12-31
+fundamento = "Lei 14.133/2021, art. 75, § 7º"
+atualizado_por = "Lei 14.133/2021"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, texto compilado: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm"
+
+[[dispensa_manutencao_veiculos]]
+valor = "8643.27"
+vigente_de = 2022-01-01
+vigente_ate = 2022-12-31
+fundamento = "Lei 14.133/2021, art. 75, § 7º"
+atualizado_por = "Decreto 10.922/2021"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, anexo: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/decreto/D10922.htm"
+
+[[dispensa_manutencao_veiculos]]
+valor = "9153.34"
+vigente_de = 2023-01-01
+vigente_ate = 2023-12-31
+fundamento = "Lei 14.133/2021, art. 75, § 7º"
+atualizado_por = "Decreto 11.317/2022"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, anexo: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2022/decreto/D11317.htm"
+
+[[dispensa_manutencao_veiculos]]
+valor = "9584.97"
+vigente_de = 2024-01-01
+vigente_ate = 2024-12-31
+fundamento = "Lei 14.133/2021, art. 75, § 7º"
+atualizado_por = "Decreto 11.871/2023"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, anexo: https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2023/decreto/D11871.htm"
+
+[[dispensa_manutencao_veiculos]]
+valor = "10036.10"
+vigente_de = 2025-01-01
+vigente_ate = 2025-12-31
+fundamento = "Lei 14.133/2021, art. 75, § 7º"
+atualizado_por = "Decreto 12.343/2024"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, anexo: https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2024/decreto/D12343.htm"
+
+[[dispensa_manutencao_veiculos]]
+valor = "10478.74"
+vigente_de = 2026-01-01
+fundamento = "Lei 14.133/2021, art. 75, § 7º"
+atualizado_por = "Decreto 12.807/2025"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, anexo: https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2025/decreto/D12807.htm"
+
+# --------------------------------------------------------------------------
+# Art. 75, § 2º — limites dobrados para consórcio público e para autarquia ou
+# fundação qualificada como agência executiva.
+#
+# É um multiplicador, não um valor em reais, e vem do texto da lei: não muda
+# por decreto. Sem ele, toda dispensa de consórcio intermunicipal entre o
+# limite simples e o dobrado apareceria como acima do limite.
+# --------------------------------------------------------------------------
+
+[[dispensa_fator_consorcio_agencia]]
+valor = "2"
+vigente_de = 2021-04-01
+fundamento = "Lei 14.133/2021, art. 75, § 2º"
+atualizado_por = "Lei 14.133/2021"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, texto compilado: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm"
+
+# --------------------------------------------------------------------------
+# Art. 125 — limites de acréscimo por aditivo, sobre o valor inicial
+# atualizado do contrato. Constam do próprio texto da lei e não variam por
+# ano. Conferidos na redação oficial em 05/10/2026.
+# --------------------------------------------------------------------------
 
 [[aditivo_acrescimo_geral]]
 valor = "0.25"
 vigente_de = 2021-04-01
 fundamento = "Lei 14.133/2021, art. 125"
 atualizado_por = "Lei 14.133/2021"
-verificado = false
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, texto compilado: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm"
 
 [[aditivo_acrescimo_reforma]]
 valor = "0.50"
 vigente_de = 2021-04-01
 fundamento = "Lei 14.133/2021, art. 125 (reforma de edifício ou de equipamento)"
 atualizado_por = "Lei 14.133/2021"
-verificado = false
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, texto compilado: https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/l14133.htm"
+
+# --------------------------------------------------------------------------
+# LC 101/2000 (LRF) — prazos de envio e publicação usados pela conformidade
+# (família I e RF-CF-02). Prazos em dias são contados a partir do
+# encerramento do período; o prazo das contas anuais é uma data do ano
+# seguinte ao exercício, guardada como mês e dia porque o módulo só trabalha
+# com valores numéricos.
+#
+# --------------------------------------------------------------------------
+
+# Contas anuais (DCA): o art. 51, § 1º, tinha prazos distintos para
+# municípios (30/04) e estados (31/05). A LC 178/2021 unificou em 30/04, mas o
+# art. 32, I, da própria LC 178 adiou esse efeito "a partir de 2022". A
+# consulta usa como data de referência o 1º de janeiro do ano do envio
+# (exercício + 1), que é quando o prazo daquele envio passa a correr.
+
+[[prazo_contas_anuais_municipio_mes]]
+valor = "4"
+vigente_de = 2000-05-05
+fundamento = "LC 101/2000, art. 51, § 1º"
+atualizado_por = "LC 101/2000; mantido pela LC 178/2021"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto: https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp101.htm e https://www.planalto.gov.br/ccivil_03/leis/lcp/Lcp178.htm (art. 32, I)"
+
+[[prazo_contas_anuais_municipio_dia]]
+valor = "30"
+vigente_de = 2000-05-05
+fundamento = "LC 101/2000, art. 51, § 1º"
+atualizado_por = "LC 101/2000; mantido pela LC 178/2021"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto: https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp101.htm e https://www.planalto.gov.br/ccivil_03/leis/lcp/Lcp178.htm (art. 32, I)"
+
+[[prazo_contas_anuais_estado_mes]]
+valor = "5"
+vigente_de = 2000-05-05
+vigente_ate = 2021-12-31
+fundamento = "LC 101/2000, art. 51, § 1º, II (redação original)"
+atualizado_por = "LC 101/2000"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, texto compilado: https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp101.htm"
+
+[[prazo_contas_anuais_estado_mes]]
+valor = "4"
+vigente_de = 2022-01-01
+fundamento = "LC 101/2000, art. 51, § 1º (redação da LC 178/2021)"
+atualizado_por = "LC 178/2021, com efeito a partir de 2022 (art. 32, I)"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto: https://www.planalto.gov.br/ccivil_03/leis/lcp/Lcp178.htm"
+
+[[prazo_contas_anuais_estado_dia]]
+valor = "31"
+vigente_de = 2000-05-05
+vigente_ate = 2021-12-31
+fundamento = "LC 101/2000, art. 51, § 1º, II (redação original)"
+atualizado_por = "LC 101/2000"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, texto compilado: https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp101.htm"
+
+[[prazo_contas_anuais_estado_dia]]
+valor = "30"
+vigente_de = 2022-01-01
+fundamento = "LC 101/2000, art. 51, § 1º (redação da LC 178/2021)"
+atualizado_por = "LC 178/2021, com efeito a partir de 2022 (art. 32, I)"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto: https://www.planalto.gov.br/ccivil_03/leis/lcp/Lcp178.htm"
+
+[[prazo_rreo_dias]]
+valor = "30"
+vigente_de = 2000-05-05
+fundamento = "LC 101/2000, art. 52 (até trinta dias após o encerramento de cada bimestre)"
+atualizado_por = "LC 101/2000"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, texto compilado: https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp101.htm"
+
+[[prazo_rgf_dias]]
+valor = "30"
+vigente_de = 2000-05-05
+fundamento = "LC 101/2000, art. 55, § 2º (até trinta dias após o encerramento do período)"
+atualizado_por = "LC 101/2000"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, texto compilado: https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp101.htm"
+
+[[populacao_limite_opcao_semestral]]
+valor = "50000"
+vigente_de = 2000-05-05
+fundamento = "LC 101/2000, art. 63 (municípios com população inferior a cinquenta mil habitantes)"
+atualizado_por = "LC 101/2000"
+verificado = true
+verificado_em = 2026-10-05
+fonte_verificacao = "Planalto, texto compilado: https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp101.htm"

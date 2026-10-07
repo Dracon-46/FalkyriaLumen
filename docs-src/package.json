@@ -4,6 +4,7 @@
   "private": true,
   "description": "Geracao da documentacao do Projeto Lumen em .docx",
   "scripts": {
+    "referencia": "cd .. && python3 ferramentas/referencia/referencia.py --json docs-src/referencia.json",
     "docs": "for f in build_*.js; do node \"$f\"; done",
     "diagrams": "mkdir -p ../docs/diagramas && cd diagrams && for f in *.mmd; do mmdc -i \"$f\" -o \"../../docs/diagramas/${f%.mmd}.png\" -b white -s 2 -c mconf.json -p puppeteer.json --quiet; done"
   },

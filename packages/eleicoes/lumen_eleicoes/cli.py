@@ -1,0 +1,509 @@
+"""Linha de comando da aba Eleições (``lumen eleicoes ...``).
+
+Exemplos::
+
+    lumen eleicoes preparar --servir                # tudo: mapa, 1933 a 2026, portal no navegador
+    lumen eleicoes preparar --nuvem --limite-minutos 280 --apagar-zips   # a mesma carga no GitHub Actions
+    lumen eleicoes publicar                         # envia ao R2 os feeds que mudaram
+    lumen eleicoes catalogo                         # o que o TSE publica agora
+    lumen eleicoes municipios                       # cadastro TSE ↔ IBGE (busca e mapa)
+    lumen eleicoes mapas                            # malhas do IBGE para o mapa
+    lumen eleicoes ao-vivo --eleicao 2026-1t-geral  # noite da apuração
+    lumen eleicoes historico baixar --anos 2022,2018,1950
+    lumen eleicoes historico processar --anos 2022,2018,1950
+    lumen eleicoes simular                          # apuração fictícia para testar a tela
+    lumen eleicoes servir                           # portal + feeds em http://127.0.0.1:8080
+    lumen eleicoes verificar                        # confere o contrato dos feeds gravados
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import logging
+import signal
+import sys
+import threading
+import time
+import urllib.request
+from datetime import datetime
+from pathlib import Path
+
+from lumen_ingestao.bronze import ArmazemBronzeLocal
+from lumen_ingestao.cliente_http import ClienteHttp
+
+from . import antigas, carga, geo, referencias, tse
+from . import dados_abertos as da
+from .coletor import FONTE_ID, ColetorAoVivo, ResumoPassada, plano_padrao
+from .configuracao import ConfiguracaoAusente, ConfiguracaoEleicoes, carregar, carregar_publicacao
+from .feeds import EscritorFeeds
+from .municipios import CadastroMunicipios, nomes_do_ibge
+from .preparacao import OpcoesPreparacao, Preparacao
+from .publicacao import Nuvem
+from .simulacao import Cenario, ServidorSimulado, gerar_amostra
+from .verificacao import verificar_diretorio
+
+RAIZ_REPO = Path(__file__).resolve().parents[3]
+FIXTURES_TSE = RAIZ_REPO / "testes" / "fixtures" / "tse"
+SITE_PADRAO = RAIZ_REPO / "packages" / "portal" / "out"
+
+
+def _lista(texto: str | None) -> list[str] | None:
+    """Converte ``a, b, c`` em lista sem espaços e em minúsculas; texto ausente vira ``None`` (padrão do comando)."""
+    return [x.strip().lower() for x in texto.split(",") if x.strip()] if texto else None
+
+
+def _anos(texto: str) -> list[int]:
+    """Tipo do argparse para ``--anos``: anos sem repetição, do mais recente ao mais antigo.
+
+    ``todos`` são todos os anos dos dados abertos, de 2024 a 1933. Recusa ano sem eleição ordinária nos
+    dados abertos (fora de ``carga.anos_disponiveis``).
+    """
+    if texto.strip().lower() == "todos":
+        return carga.anos_disponiveis()
+    anos = sorted({int(x) for x in texto.split(",") if x.strip()}, reverse=True)
+    validos = set(carga.anos_disponiveis())
+    fora = [a for a in anos if a not in validos]
+    if fora:
+        raise argparse.ArgumentTypeError(f"anos sem eleição ordinária nos dados abertos: {fora}")
+    return anos
+
+
+def _cliente(cfg: ConfiguracaoEleicoes, fonte: str, rpm: int) -> ClienteHttp:
+    """Cliente HTTP da fonte, com o User-Agent da configuração e limite de ``rpm`` requisições por minuto."""
+    return ClienteHttp(fonte, user_agent=cfg.user_agent, rpm=rpm)
+
+
+def _imprimir(dados) -> None:
+    """Imprime ``dados`` como JSON indentado, com acentos e ``str`` para o que não for serializável."""
+    print(json.dumps(dados, ensure_ascii=False, indent=2, default=str))
+
+
+def _catalogo(cliente: ClienteHttp, base: str) -> list:
+    """Baixa e lê o catálogo de eleições do sistema de resultados; encerra o programa se não vier HTTP 200."""
+    art = cliente.obter(tse.url_catalogo(base))
+    if art.status_http != 200:
+        raise SystemExit(f"erro: catálogo do TSE respondeu HTTP {art.status_http}")
+    return tse.ler_catalogo(art.conteudo)
+
+
+def _nuvem(cfg: ConfiguracaoEleicoes, args) -> Nuvem:
+    """Ponte com o armazenamento da nuvem a partir do ``[publicacao]`` e das variáveis de ambiente.
+
+    Levanta ``ConfiguracaoAusente`` se faltar endpoint, bucket ou chave; ``main`` transforma isso em
+    mensagem e código 2.
+    """
+    pub = carregar_publicacao(Path(args.config) if args.config else None)
+    return Nuvem.de_configuracao(pub, cfg)
+
+
+def _cadastro(cfg: ConfiguracaoEleicoes) -> CadastroMunicipios:
+    """Cadastro de municípios do diretório dos feeds; sem ele, o que vem com o pacote (``referencias``).
+
+    O do diretório dos feeds é o mais novo: ``lumen eleicoes municipios`` grava ali a versão corrente.
+    """
+    caminho = cfg.saida / referencias.ARQUIVO_CADASTRO
+    if caminho.exists():
+        return CadastroMunicipios.carregar(caminho)
+    return referencias.cadastro_embutido()
+
+
+# ---------------------------------------------------------------- comandos
+
+def cmd_catalogo(cfg, args) -> int:
+    """Imprime as eleições do sistema de resultados (cargos e UFs de cada uma) e os anos dos dados abertos."""
+    eleicoes = _catalogo(_cliente(cfg, FONTE_ID, cfg.rpm_resultados), args.base)
+    _imprimir({
+        "sistema_de_resultados": [{"id": e.id, "nome": e.nome, "data": e.data, "ciclo": e.ciclo,
+                                   "cargos": [c.slug for c in e.cargos], "ufs": e.abrangencias}
+                                  for e in eleicoes],
+        "dados_abertos": {"gerais": list(da.ANOS_GERAIS), "municipais": list(da.ANOS_MUNICIPAIS),
+                          "por_uf_1933_a_1990": list(antigas.ANOS_ANTIGOS)},
+    })
+    return 0
+
+
+def cmd_municipios(cfg, args) -> int:
+    """Grava o ``municipios.json`` (cadastro TSE ↔ IBGE) e imprime o arquivo e as contagens.
+
+    Usa o cadastro de municípios de uma eleição do catálogo — por padrão a geral mais recente, que tem
+    todos os municípios e o exterior — e os nomes do IBGE; se o IBGE não responder, ficam os nomes do TSE.
+    """
+    cliente = _cliente(cfg, FONTE_ID, cfg.rpm_resultados)
+    eleicoes = _catalogo(cliente, args.base)
+    if args.eleicao:
+        escolhida = next((e for e in eleicoes if e.id == args.eleicao), None)
+    else:
+        # A eleição geral mais recente tem todos os municípios e o exterior
+        escolhida = next((e for e in eleicoes if e.tipo == "geral"), eleicoes[0] if eleicoes else None)
+    if escolhida is None or not escolhida.cargos:
+        print("erro: eleição não encontrada no catálogo do TSE", file=sys.stderr)
+        return 2
+    art = cliente.obter(tse.url_municipios(escolhida.ciclo, escolhida.cargos[0].eleicao_tse, args.base))
+    if art.status_http != 200:
+        print(f"erro: cadastro de municípios respondeu HTTP {art.status_http}", file=sys.stderr)
+        return 1
+    municipios_tse = tse.ler_municipios(art.conteudo)
+    nomes = {}
+    ibge = _cliente(cfg, "ibge_localidades", cfg.rpm_ibge).obter(geo.url_municipios_ibge())
+    if ibge.status_http == 200:
+        nomes = nomes_do_ibge(ibge.conteudo)
+    else:
+        print(f"aviso: IBGE respondeu HTTP {ibge.status_http}; nomes ficam como o TSE publica", file=sys.stderr)
+    cadastro = CadastroMunicipios.de_tse(municipios_tse, nomes)
+    caminho = cadastro.gravar(cfg.saida / "municipios.json")
+    _imprimir({"arquivo": caminho, "municipios": len(cadastro),
+               "sem_ibge": sum(1 for m in cadastro if not m.ibge), "fonte": escolhida.id})
+    return 0
+
+
+def cmd_mapas(cfg, args) -> int:
+    """Baixa as malhas do IBGE para o mapa (todas as UFs ou as pedidas) e imprime os arquivos gravados."""
+    bronze = None if args.sem_bronze else ArmazemBronzeLocal(cfg.bronze)
+    gravados = geo.baixar_malhas(_cliente(cfg, geo.FONTE_ID, cfg.rpm_ibge), cfg.saida, ufs=_lista(args.ufs),
+                                 qualidade=args.qualidade, bronze=bronze)
+    _imprimir({"malhas": [str(p) for p in gravados]})
+    return 0
+
+
+def _aviso_passada(r: ResumoPassada) -> None:
+    """Imprime a linha de acompanhamento de uma passada do coletor e, no stderr, até cinco dos erros dela."""
+    agora = datetime.now().strftime("%H:%M:%S")
+    print(f"{agora}  baixados {r.baixados:>4}  sem mudança {r.nao_modificados:>4}  feeds {r.feeds:>4}  "
+          f"fila {r.pendentes_municipais:>5}  erros {len(r.erros):>3}" + ("  [totalização concluída]"
+                                                                           if r.finalizada else ""),
+          flush=True)
+    for erro in r.erros[:5]:
+        print(f"          {erro}", file=sys.stderr)
+
+
+def _instalar_parada() -> list[bool]:
+    """Instala o tratamento de Ctrl+C e devolve a sinalização que o laço do coletor consulta.
+
+    O primeiro Ctrl+C só marca ``sinal[0]``, e o coletor para ao fim da passada em curso; o segundo
+    interrompe na hora. É uma lista, e não um ``bool``, para o tratador poder alterá-la.
+    """
+    sinal = [False]
+
+    def parar(*_):
+        if sinal[0]:
+            raise KeyboardInterrupt
+        sinal[0] = True
+        print("\nparando ao fim desta passada (Ctrl+C de novo para sair já)", file=sys.stderr)
+    # Só a thread principal recebe sinais; chamado de outra (testes, uso
+    # embutido), o coletor roda até o fim das passadas sem parada por Ctrl+C.
+    if threading.current_thread() is threading.main_thread():
+        signal.signal(signal.SIGINT, parar)
+    return sinal
+
+
+def cmd_ao_vivo(cfg, args) -> int:
+    """Coleta a apuração em andamento de uma eleição do catálogo, imprimindo uma linha por passada.
+
+    Roda até a totalização terminar, até Ctrl+C ou, com ``--uma-vez``, por uma passada só. Devolve 2
+    se a eleição não está no sistema de resultados. Com ``--nuvem``, restaura o estado antes, publica
+    os feeds a cada passada que gravou algo e sincroniza no fim (ADR-026).
+    """
+    cliente = _cliente(cfg, FONTE_ID, cfg.rpm_resultados)
+    eleicoes = {e.id: e for e in _catalogo(cliente, args.base)}
+    if args.eleicao not in eleicoes:
+        print(f"erro: {args.eleicao} não está no sistema de resultados. Disponíveis: {', '.join(eleicoes)}",
+              file=sys.stderr)
+        return 2
+    plano = plano_padrao(eleicoes[args.eleicao], cargos=_lista(args.cargos), ufs=_lista(args.ufs),
+                         municipios_proporcionais=args.municipios_proporcionais,
+                         fotos_municipais=args.fotos_municipais, orcamento_municipal=args.orcamento)
+    nuvem = _nuvem(cfg, args) if args.nuvem else None
+    if nuvem is not None:
+        nuvem.restaurar()
+    coletor = ColetorAoVivo(cliente, EscritorFeeds(cfg.saida), plano, cadastro=_cadastro(cfg),
+                            bronze=None if args.sem_bronze else ArmazemBronzeLocal(cfg.bronze),
+                            base=args.base, estado=cfg.estado / f"coleta-{args.eleicao}.json")
+    sinal = _instalar_parada()
+
+    def aviso(r: ResumoPassada) -> None:
+        _aviso_passada(r)
+        if nuvem is not None and r.feeds:
+            nuvem.sincronizar()
+    try:
+        coletor.executar(intervalo_s=args.intervalo, max_passadas=1 if args.uma_vez else None,
+                         parar=lambda: sinal[0], aviso=aviso)
+    finally:
+        if nuvem is not None:
+            nuvem.sincronizar()
+    return 0
+
+
+def cmd_historico_baixar(cfg, args) -> int:
+    """Baixa os ZIPs dos dados abertos de cada ano e registra o manifesto de cada um no bronze.
+
+    Imprime, por arquivo, o caminho, o SHA-256 e o tamanho. Até 1990 são os três conjuntos por UF.
+    """
+    cliente = _cliente(cfg, carga.FONTE_DADOS_ABERTOS, cfg.rpm_dados_abertos)
+    bronze = None if args.sem_bronze else ArmazemBronzeLocal(cfg.bronze)
+    feitos = []
+    for ano in args.anos:
+        for m in carga.baixar_ano(cfg, cliente, ano, bronze=bronze, atualizar=args.atualizar):
+            feitos.append({"arquivo": str(cfg.arquivos / str(ano) / m.arquivo), "sha256": m.sha256,
+                           "tamanho": m.tamanho})
+    _imprimir(feitos)
+    return 0
+
+
+def cmd_historico_processar(cfg, args) -> int:
+    """Gera os feeds de cada ano a partir dos ZIPs já baixados e imprime um resumo por ano.
+
+    Devolve 2 se faltar o ZIP de votação de algum ano; os demais conjuntos são opcionais.
+    """
+    cadastro = _cadastro(cfg)
+    escritor = EscritorFeeds(cfg.saida)
+    resumos = []
+    for ano in args.anos:
+        try:
+            r = carga.processar_ano(cfg, ano, escritor=escritor, cadastro=cadastro,
+                                    limite_municipio=args.limite_municipio)
+        except carga.ArquivoAusente as erro:
+            print(f"erro: {erro} não existe; rode `lumen eleicoes historico baixar --anos {ano}`", file=sys.stderr)
+            return 2
+        resumos.append(r.para_json())
+    _imprimir(resumos)
+    return 0
+
+
+def cmd_preparar(cfg, args) -> int:
+    """Deixa a aba pronta: mapa, portal, 2026 do sistema de resultados e os dados abertos de 1933 a 2024.
+
+    Retomável; imprime o andamento e, no fim, o resumo em JSON. Devolve 1 se alguma etapa falhou.
+    """
+    opcoes = OpcoesPreparacao(
+        anos=args.anos, ao_vivo=not args.sem_ao_vivo, historico=not args.sem_historico, portal=not args.sem_portal,
+        servir=args.servir, abrir_navegador=not args.sem_navegador, host=args.host, porta=args.porta,
+        refazer=args.refazer, atualizar=args.atualizar, municipios_proporcionais=args.municipios_proporcionais,
+        limite_municipio=args.limite_municipio, base=args.base, bronze=not args.sem_bronze,
+        limite_minutos=args.limite_minutos, apagar_arquivos=args.apagar_zips)
+    nuvem = _nuvem(cfg, args) if args.nuvem else None
+    sinal = _instalar_parada()
+    prep = Preparacao(cfg, opcoes, cliente_resultados=_cliente(cfg, FONTE_ID, cfg.rpm_resultados),
+                      cliente_dados=_cliente(cfg, carga.FONTE_DADOS_ABERTOS, cfg.rpm_dados_abertos),
+                      parar=lambda: sinal[0], nuvem=nuvem)
+    resumo = prep.executar()
+    print()
+    _imprimir(resumo.para_json())
+    prep.aguardar()
+    return 1 if resumo.erros else 0
+
+
+def _rodar_simulacao(cfg, arquivos: Path, eleicao_id: str, etapas: int, intervalo: float,
+                     ufs: list[str] | None, estado: Path | None) -> int:
+    """Roda o coletor ao vivo contra um servidor local que publica os arquivos finais em ``etapas``.
+
+    A cada intervalo entre passadas o cenário avança uma etapa, até ``etapas`` passadas. Por ser
+    local, o cliente ignora o proxy do ambiente e tem limite de taxa folgado. Devolve 2 se a eleição
+    não está no catálogo da simulação.
+    """
+    cen = Cenario(arquivos, etapas=etapas)
+    with ServidorSimulado(cen) as srv:
+        # Servidor local: sem proxy do ambiente e sem limite de taxa relevante
+        cliente = ClienteHttp(FONTE_ID, user_agent=cfg.user_agent, rpm=6000,
+                              abridor=urllib.request.build_opener(urllib.request.ProxyHandler({})))
+        eleicoes = {e.id: e for e in _catalogo(cliente, srv.base)}
+        if eleicao_id not in eleicoes:
+            print(f"erro: {eleicao_id} não está no catálogo da simulação ({', '.join(eleicoes)})",
+                  file=sys.stderr)
+            return 2
+        plano = plano_padrao(eleicoes[eleicao_id], ufs=ufs or cen.ufs(), simulacao=True)
+        coletor = ColetorAoVivo(cliente, EscritorFeeds(cfg.saida), plano, cadastro=_cadastro(cfg),
+                                base=srv.base, estado=estado)
+
+        def dormir(segundos):
+            time.sleep(segundos)
+            cen.avancar()
+        sinal = _instalar_parada()
+        coletor.executar(intervalo_s=intervalo, max_passadas=etapas, parar=lambda: sinal[0], dormir=dormir,
+                         aviso=_aviso_passada)
+    return 0
+
+
+def cmd_simular(cfg, args) -> int:
+    """Simula uma apuração a partir dos arquivos finais (as fixtures, por padrão), avisando no stderr que
+    os números intermediários são fictícios.
+    """
+    print("SIMULAÇÃO: números intermediários fictícios; o resultado final é o oficial do TSE.", file=sys.stderr)
+    return _rodar_simulacao(cfg, Path(args.arquivos), args.eleicao, args.etapas, args.intervalo,
+                            _lista(args.ufs), cfg.estado / f"simulacao-{args.eleicao}.json")
+
+
+def cmd_publicar(cfg, args) -> int:
+    """Envia ao bucket público os feeds novos ou alterados e grava o estado no privado (ADR-026)."""
+    resumo = _nuvem(cfg, args).sincronizar()
+    _imprimir({"enviados": resumo.enviados, "iguais": resumo.iguais, "bytes": resumo.bytes})
+    return 0
+
+
+def cmd_amostra(cfg, args) -> int:
+    """Feeds a partir dos arquivos reais das fixtures, para desenvolver o portal sem rede, com o mapa e o
+    cadastro de municípios que vêm com o pacote."""
+    gravados = gerar_amostra(Path(args.arquivos), cfg.saida)
+    if not args.sem_referencias:
+        referencias.instalar(cfg.saida)
+    _imprimir({"amostra": str(cfg.saida), "arquivos": len(gravados)})
+    return 0
+
+
+def cmd_servir(cfg, args) -> int:  # pragma: no cover - laço de servidor
+    """Serve o portal gerado e os feeds em HTTP local até Ctrl+C; devolve 2 se o portal não foi gerado."""
+    from .servidor import ServidorPortal
+    site = Path(args.site)
+    if not (site / "index.html").exists():
+        print(f"erro: {site} não tem o portal gerado; rode `make portal` (ou `npm run build` em "
+              "packages/portal)", file=sys.stderr)
+        return 2
+    srv = ServidorPortal(site, cfg.saida, host=args.host, porta=args.porta)
+    print(f"portal em {srv.endereco}/eleicoes/  (feeds de {cfg.saida})")
+    try:
+        srv.servir_para_sempre()
+    except KeyboardInterrupt:
+        pass
+    return 0
+
+
+def cmd_verificar(cfg, args) -> int:
+    """Confere o contrato dos feeds gravados; imprime cada problema e o total, e devolve 1 se houver algum."""
+    rel = verificar_diretorio(cfg.saida)
+    for p in rel.problemas:
+        print(p)
+    print(f"{rel.arquivos} feed(s) conferido(s), {len(rel.problemas)} problema(s).")
+    return 0 if rel.ok else 1
+
+
+# ---------------------------------------------------------------- argumentos
+
+def construir_parser() -> argparse.ArgumentParser:
+    """Monta o parser de ``lumen eleicoes``: opções globais e um subcomando por ação.
+
+    ``historico`` tem os seus próprios subcomandos, ``baixar`` e ``processar``.
+    """
+    p = argparse.ArgumentParser(prog="lumen eleicoes", description="Aba Eleições: resultados oficiais do TSE")
+    p.add_argument("--config", help="caminho do lumen.toml")
+    p.add_argument("--saida", help="diretório dos feeds (padrão: [eleicoes].saida)")
+    p.add_argument("-v", "--verboso", action="store_true")
+    sub = p.add_subparsers(dest="comando", required=True)
+
+    c = sub.add_parser("preparar", help="tudo num comando: mapa, portal e as eleições de 1933 a 2026")
+    c.add_argument("--servir", action="store_true", help="sobe o portal e abre o navegador antes da carga")
+    c.add_argument("--anos", type=_anos, help="anos dos dados abertos (padrão: todos, de 2024 a 1933)")
+    c.add_argument("--sem-ao-vivo", action="store_true", help="não coleta o sistema de resultados (2026)")
+    c.add_argument("--sem-historico", action="store_true", help="não baixa os dados abertos")
+    c.add_argument("--sem-portal", action="store_true", help="não gera o portal (Node.js)")
+    c.add_argument("--sem-navegador", action="store_true", help="com --servir, não abre o navegador")
+    c.add_argument("--refazer", action="store_true", help="ignora o registro do que já foi feito")
+    c.add_argument("--atualizar", action="store_true",
+                   help="consulta a fonte e reprocessa o que mudou desde a última vez")
+    c.add_argument("--municipios-proporcionais", action="store_true",
+                   help="em 2026, também deputados por município (muito mais arquivos)")
+    c.add_argument("--limite-municipio", type=int, default=50,
+                   help="candidatos por município nos cargos proporcionais (o da UF tem todos)")
+    c.add_argument("--sem-bronze", action="store_true", help="não guardar as respostas como prova")
+    c.add_argument("--host", default="127.0.0.1")
+    c.add_argument("--porta", type=int, default=8080)
+    c.add_argument("--base", default=tse.BASE)
+    c.add_argument("--nuvem", action="store_true",
+                   help="restaura o estado do R2 antes e publica os feeds depois de cada etapa (ADR-026)")
+    c.add_argument("--limite-minutos", type=float,
+                   help="para sozinha depois disso; a próxima execução continua (GitHub Actions)")
+    c.add_argument("--apagar-zips", action="store_true",
+                   help="apaga os ZIPs de cada ano depois de processado (máquina com pouco disco)")
+
+    c = sub.add_parser("publicar", help="envia ao R2 os feeds novos ou alterados (ADR-026)")
+
+    c = sub.add_parser("catalogo", help="eleições disponíveis no sistema de resultados")
+    c.add_argument("--base", default=tse.BASE)
+
+    c = sub.add_parser("municipios", help="grava municipios.json (TSE ↔ IBGE)")
+    c.add_argument("--eleicao", help="eleição do catálogo cujo cadastro usar (padrão: geral mais recente)")
+    c.add_argument("--base", default=tse.BASE)
+
+    c = sub.add_parser("mapas", help="baixa as malhas do IBGE")
+    c.add_argument("--ufs", help="siglas separadas por vírgula (padrão: todas)")
+    c.add_argument("--qualidade", default="minima", choices=geo.QUALIDADES)
+    c.add_argument("--sem-bronze", action="store_true")
+
+    c = sub.add_parser("ao-vivo", help="coleta a apuração em andamento")
+    c.add_argument("--eleicao", required=True, help="id do catálogo, ex.: 2026-1t-geral")
+    c.add_argument("--cargos", help="slugs separados por vírgula (padrão: todos)")
+    c.add_argument("--ufs", help="siglas separadas por vírgula (padrão: todas)")
+    c.add_argument("--intervalo", type=float, default=30, help="segundos entre passadas")
+    c.add_argument("--orcamento", type=int, default=600, help="arquivos de município por passada")
+    c.add_argument("--municipios-proporcionais", action="store_true",
+                   help="também deputados por município (muito mais arquivos)")
+    c.add_argument("--fotos-municipais", action="store_true", help="também fotos de prefeito e vereador")
+    c.add_argument("--uma-vez", action="store_true", help="uma passada só")
+    c.add_argument("--sem-bronze", action="store_true", help="não guardar as respostas como prova")
+    c.add_argument("--nuvem", action="store_true", help="publica no R2 a cada passada (ADR-026)")
+    c.add_argument("--base", default=tse.BASE)
+
+    h = sub.add_parser("historico", help="eleições passadas (dados abertos)")
+    hs = h.add_subparsers(dest="acao", required=True)
+    c = hs.add_parser("baixar", help="baixa os ZIPs do ano")
+    c.add_argument("--anos", type=_anos, required=True, help="anos separados por vírgula, ou todos")
+    c.add_argument("--atualizar", action="store_true", help="consulta o servidor mesmo se já baixado")
+    c.add_argument("--sem-bronze", action="store_true")
+    c = hs.add_parser("processar", help="gera os feeds a partir dos ZIPs baixados")
+    c.add_argument("--anos", type=_anos, required=True, help="anos separados por vírgula, ou todos")
+    c.add_argument("--limite-municipio", type=int, default=50,
+                   help="candidatos por município nos cargos proporcionais (o da UF tem todos)")
+
+    c = sub.add_parser("simular", help="apuração fictícia a partir de arquivos finais")
+    c.add_argument("--arquivos", default=str(FIXTURES_TSE))
+    c.add_argument("--eleicao", default="2026-1t-geral")
+    c.add_argument("--etapas", type=int, default=12)
+    c.add_argument("--intervalo", type=float, default=5)
+    c.add_argument("--ufs")
+
+    c = sub.add_parser("amostra", help="feeds de exemplo a partir das fixtures (sem rede)")
+    c.add_argument("--arquivos", default=str(FIXTURES_TSE))
+    c.add_argument("--sem-referencias", action="store_true",
+                   help="sem o mapa e o cadastro (para regenerar a amostra versionada nos testes)")
+
+    c = sub.add_parser("servir", help="serve o portal e os feeds localmente")
+    c.add_argument("--site", default=str(SITE_PADRAO))
+    c.add_argument("--host", default="127.0.0.1")
+    c.add_argument("--porta", type=int, default=8080)
+
+    sub.add_parser("verificar", help="confere o contrato dos feeds gravados")
+    return p
+
+
+COMANDOS = {"preparar": cmd_preparar, "publicar": cmd_publicar, "catalogo": cmd_catalogo, "municipios": cmd_municipios, "mapas": cmd_mapas, "ao-vivo": cmd_ao_vivo,
+            "simular": cmd_simular, "amostra": cmd_amostra, "servir": cmd_servir, "verificar": cmd_verificar}
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Ponto de entrada: lê argumentos e configuração e despacha para o comando; devolve o código de saída.
+
+    Os comandos que não consultam as fontes (``servir``, ``verificar``, ``amostra``, ``publicar``)
+    dispensam o contato da coleta. ``--saida`` sobrepõe o diretório dos feeds da configuração. Falta de
+    configuração da nuvem (``--nuvem``, ``publicar``) vira mensagem e código 2.
+    """
+    args = construir_parser().parse_args(argv)
+    logging.basicConfig(level=logging.INFO if args.verboso else logging.WARNING,
+                        format="%(asctime)s %(name)s %(message)s")
+    offline = args.comando in ("servir", "verificar", "amostra", "publicar")
+    try:
+        cfg = carregar(Path(args.config) if args.config else None, exigir_contato=not offline)
+    except ConfiguracaoAusente as erro:
+        print(f"erro: {erro}", file=sys.stderr)
+        return 2
+    if args.saida:
+        cfg.saida = Path(args.saida)
+    if args.comando == "historico":
+        return (cmd_historico_baixar if args.acao == "baixar" else cmd_historico_processar)(cfg, args)
+    try:
+        return COMANDOS[args.comando](cfg, args)
+    except ConfiguracaoAusente as erro:
+        print(f"erro: {erro}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":  # pragma: no cover
+    sys.exit(main())

@@ -2,6 +2,8 @@ const L = require("./lib");
 const { h1, h2, h3, p, bullet, numbered, table, callout, code, figure, pageBreak, spacer } = L;
 
 const body = [];
+// Versão 1.1 (outubro de 2026): avisos de revisão pendente registrados na Fase 1
+// (ADR-017, ADR-022, ADR-024). Nenhuma regra foi alterada antes dessas revisões.
 
 function regra({ cod, titulo, pergunta, metodo, parametros, dados, severidade, fp }) {
   const out = [];
@@ -26,6 +28,19 @@ body.push(p("Uma regra de detecção não responde à pergunta se houve irregula
 body.push(p("Essa modéstia tem consequência prática direta no desenho: toda regra precisa expor a " +
   "referência contra a qual comparou. Dizer que um preço é alto sem dizer alto em relação a quê não é " +
   "detecção, é opinião. Por isso cada regra deste catálogo declara explicitamente sua linha de base."));
+
+body.push(callout("Revisões pendentes registradas durante a Fase 1", [
+  "B-01: o critério legal de aferição do limite de dispensa (Lei 14.133/2021, art. 75, § 1º) é o exercício " +
+  "financeiro, a unidade gestora e o ramo de atividade, e não a janela de 180 dias por fornecedor desta " +
+  "versão. A proposta de separar a regra em B-01a (aderente ao texto legal) e B-01b (padrão estatístico " +
+  "complementar) aguarda revisão metodológica e jurídica (ADR-022). Nenhuma regra da família B é " +
+  "implementada antes dela.",
+  "Quem autorizou o ato: a API do PNCP não publica o agente (ADR-017). Regra cuja explicação pública dependa " +
+  "dessa informação só pode publicar com fonte complementar (diário oficial ou portal do ente).",
+  "Família K: dados eleitorais entram só como contexto factual (ADR-024). A K-01 depende da prestação de " +
+  "contas de campanha do TSE, fonte ainda não integrada.",
+], "amber"));
+body.push(spacer(100));
 
 body.push(h2("1.1 Anatomia de uma regra"));
 body.push(table(["Componente", "Papel"], [2600, 7000], [
@@ -116,6 +131,12 @@ body.push(...regra({
   fp: "Objetos genuinamente distintos com descrição textual parecida; contratações em unidades gestoras " +
     "autônomas do mesmo ente, cujos limites são contados separadamente; ata de registro de preços legítima",
 }));
+body.push(callout("B-01 em revisão (ADR-022)", [
+  "A janela móvel de 180 dias por fornecedor não é o critério do art. 75, § 1º, que soma o despendido no " +
+  "exercício financeiro pela unidade gestora com objetos do mesmo ramo de atividade, e o § 2º dobra os " +
+  "limites para consórcios públicos e agências executivas. Esta definição fica suspensa até a revisão.",
+], "amber"));
+body.push(spacer(120));
 
 body.push(...regra({
   cod: "B-02", titulo: "Concentração de valores imediatamente abaixo do limite legal",
@@ -503,6 +524,9 @@ L.buildDoc({
   codigo: "DOC-07",
   titulo: "Motor de Detecção",
   subtitulo: "Catálogo de regras, fórmulas, limiares e tratamento de falso positivo",
+  meta: { versao: "1.1", data: "6 de outubro de 2026",
+    situacao: "Catálogo da versão 1.0 com as revisões pendentes registradas na Fase 1",
+    verificado: "outubro de 2026" },
   body,
   outFile: "../docs/DOC-07_Motor_de_Deteccao.docx",
 });

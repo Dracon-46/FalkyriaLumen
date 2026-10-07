@@ -93,14 +93,21 @@ class RegistroNaoEncontrado(ErroBronze, KeyError):
 
 
 def sha256_hex(dados: bytes) -> str:
+    """SHA-256 dos bytes em hexadecimal: o endereço do conteúdo e a âncora da prova."""
     return hashlib.sha256(dados).hexdigest()
 
 
 def _agora_utc() -> datetime:
+    """Instante atual em UTC; padrão de ``ArtefatoBruto.coletado_em``."""
     return datetime.now(timezone.utc)
 
 
 def _limpar_cabecalhos(cabecalhos: Mapping[str, str]) -> dict[str, str]:
+    """Passa os nomes para minúsculas e descarta os ``CABECALHOS_SENSIVEIS``.
+
+    A prova precisa de Date, Last-Modified, ETag e Content-Type, não de credencial
+    ou sessão — e o que entra no registro de coleta não é mais sobrescrito.
+    """
     return {
         k.lower(): v
         for k, v in cabecalhos.items()
@@ -135,6 +142,11 @@ class ArtefatoBruto:
     coletado_em: datetime = field(default_factory=_agora_utc)
 
     def __post_init__(self) -> None:
+        """Valida ``fonte_id``, exige ``coletado_em`` com fuso e ``url_solicitada`` preenchida.
+
+        Data sem fuso deixaria ambígua a data da prova; por isso é recusada em vez
+        de ser tratada como UTC.
+        """
         validar_fonte_id(self.fonte_id)
         if self.coletado_em.tzinfo is None:
             raise ValueError("coletado_em precisa ter fuso horário; use UTC")
@@ -143,6 +155,7 @@ class ArtefatoBruto:
 
     @property
     def sha256(self) -> str:
+        """SHA-256 do conteúdo, calculado a partir dos bytes a cada acesso."""
         return sha256_hex(self.conteudo)
 
 
@@ -169,10 +182,15 @@ class RegistroColeta:
     mudou_desde_anterior: bool
 
     def para_json(self) -> str:
+        """Serializa o registro em JSON indentado, com chaves ordenadas e acentos preservados.
+
+        Chaves ordenadas tornam o texto estável: o mesmo registro gera sempre o mesmo arquivo.
+        """
         return json.dumps(asdict(self), ensure_ascii=False, sort_keys=True, indent=2)
 
     @classmethod
     def de_json(cls, texto: str) -> "RegistroColeta":
+        """Reconstrói o registro a partir do JSON gravado por ``para_json``."""
         return cls(**json.loads(texto))
 
 
@@ -180,15 +198,21 @@ class RegistroColeta:
 class ArmazemBronze(Protocol):
     """Porta de armazenamento da prova. Backends: local agora, objetos depois."""
 
-    def guardar(self, artefato: ArtefatoBruto) -> RegistroColeta: ...
-    def recuperar(self, registro_id: str) -> tuple[RegistroColeta, bytes]: ...
-    def historico(self, url_solicitada: str) -> list[RegistroColeta]: ...
+    def guardar(self, artefato: ArtefatoBruto) -> RegistroColeta:
+        """Preserva o artefato sem sobrescrever nada e devolve o registro do evento de coleta."""
+
+    def recuperar(self, registro_id: str) -> tuple[RegistroColeta, bytes]:
+        """Devolve o registro e o conteúdo com o hash reconferido, ou levanta ``IntegridadeViolada``."""
+
+    def historico(self, url_solicitada: str) -> list[RegistroColeta]:
+        """Todas as coletas da URL, da mais antiga para a mais recente."""
 
 
 class ArmazemBronzeLocal:
     """Backend em sistema de arquivos, para desenvolvimento e testes."""
 
     def __init__(self, raiz: Path | str):
+        """Cria, se ainda não existirem, os diretórios ``objetos``, ``registros`` e ``por_url`` sob ``raiz``."""
         self.raiz = Path(raiz)
         self._objetos = self.raiz / "objetos"
         self._registros = self.raiz / "registros"
@@ -199,12 +223,18 @@ class ArmazemBronzeLocal:
     # ------------------------------------------------------------------ caminhos
 
     def _caminho_objeto(self, sha: str) -> Path:
+        """Caminho do conteúdo, ``objetos/ab/cd/<sha256>``: dois níveis de prefixo repartem os arquivos."""
         return self._objetos / sha[:2] / sha[2:4] / sha
 
     def _caminho_registro(self, registro_id: str) -> Path:
+        """Caminho do registro, ``registros/<id[:2]>/<registro_id>.json``: acesso pelo id sem varredura."""
         return self._registros / registro_id[:2] / f"{registro_id}.json"
 
     def _dir_url(self, url: str) -> Path:
+        """Diretório do índice de versões da URL, nomeado pelo SHA-256 da própria URL.
+
+        O hash transforma qualquer URL num nome de diretório seguro e de tamanho fixo.
+        """
         h = sha256_hex(url.encode("utf-8"))
         return self._por_url / h[:2] / h
 
@@ -268,6 +298,13 @@ class ArmazemBronzeLocal:
             return proxima, mudou
 
     def guardar(self, artefato: ArtefatoBruto) -> RegistroColeta:
+        """Grava o conteúdo, reserva a próxima versão da URL e cria o registro do evento.
+
+        Segue a ordem descrita no módulo (conteúdo, reserva, registro), em que nenhum
+        passo deixa arquivo pela metade. O registro é criado com abertura exclusiva: um
+        id repetido falha em vez de sobrescrever. Os cabeçalhos sensíveis são descartados
+        e ``coletado_em`` é gravado em UTC.
+        """
         sha = artefato.sha256
         self._gravar_objeto(sha, artefato.conteudo)
 
@@ -300,6 +337,7 @@ class ArmazemBronzeLocal:
     # ------------------------------------------------------------------ leitura
 
     def obter_registro(self, registro_id: str) -> RegistroColeta:
+        """Lê só o registro, sem tocar no conteúdo; levanta ``RegistroNaoEncontrado`` se não existir."""
         caminho = self._caminho_registro(registro_id)
         if not caminho.exists():
             raise RegistroNaoEncontrado(registro_id)
@@ -337,6 +375,11 @@ class ArmazemBronzeLocal:
         return registros
 
     def listar_registros(self, fonte_id: str | None = None) -> Iterator[RegistroColeta]:
+        """Percorre os registros na ordem dos identificadores (não cronológica), opcionalmente de uma fonte só.
+
+        Lê todos os registros para filtrar: varredura aceitável no backend de
+        desenvolvimento, como explica o módulo.
+        """
         for caminho in sorted(self._registros.glob("*/*.json")):
             registro = RegistroColeta.de_json(caminho.read_text(encoding="utf-8"))
             if fonte_id is None or registro.fonte_id == fonte_id:
@@ -347,7 +390,7 @@ class ArmazemBronzeLocal:
     def verificar_integridade(self) -> list[str]:
         """Reconfere o hash de todos os objetos. Devolve os hashes corrompidos.
 
-        Deve rodar periodicamente (RNF-08): corrupção silenciosa de prova é o
+        Deve rodar periodicamente (RNF-08): prova corrompida em silêncio é o
         pior modo de falha possível para este projeto.
         """
         corrompidos = []

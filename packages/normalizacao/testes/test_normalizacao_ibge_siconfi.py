@@ -1,0 +1,108 @@
+"""Normalização das respostas reais do IBGE (localidades e população) e do SICONFI (entes e extrato)."""
+
+import json
+from datetime import date, datetime, timezone
+
+import pytest
+
+from lumen_canonico.fato import Esfera
+from lumen_canonico.identidade import id_canonico
+from lumen_canonico.porte import classificar_porte
+from lumen_canonico.ufs import UFS, sigla_da_uf
+from lumen_normalizacao import ibge, siconfi
+
+PROV = dict(fonte_id="teste", documento_fonte_id="reg1")
+
+
+def test_ufs_conferem_com_o_ibge(fixture_bytes):
+    estados = json.loads(fixture_bytes("ibge/estados.json"))
+    assert {str(e["id"]): (e["sigla"], e["nome"], e["regiao"]["sigla"]) for e in estados} == UFS
+
+
+def test_sigla_da_uf():
+    assert sigla_da_uf("4319604") == "RS" and sigla_da_uf(53) == "DF"
+    assert sigla_da_uf("1") is None and sigla_da_uf(None) is None and sigla_da_uf("99") is None
+
+
+def test_estados(fixture_bytes):
+    r = ibge.normalizar_estados(fixture_bytes("ibge/estados.json"), **PROV)
+    assert len(r.registros) == 27 and r.quarentena == []
+    df = next(e for e in r.registros if e.codigo_ibge == "53")
+    assert df.esfera is Esfera.DISTRITAL
+    assert next(e for e in r.registros if e.codigo_ibge == "43").esfera is Esfera.ESTADUAL
+
+
+def test_municipios_e_populacao(fixture_bytes):
+    r = ibge.normalizar_municipios(fixture_bytes("ibge/municipios_nivelado_amostra.json"), **PROV)
+    entes = r.registros
+    assert [e.codigo_ibge for e in entes] == ["3550308", "4319604"]
+    pop = ibge.ler_populacao(fixture_bytes("ibge/populacao_6579_amostra.json"))
+    assert pop["4319604"] == (21551, "2026")
+    ibge.aplicar_populacao(entes, pop)
+    sepe = entes[1]
+    assert sepe.populacao == 21551 and sepe.porte == "20_a_50_mil"
+    assert sepe.populacao_referencia == "IBGE estimativa 2026"
+    assert entes[0].porte == "acima_500_mil"
+
+
+def test_populacao_ignora_marcadores_de_ausencia_do_sidra():
+    bruto = json.dumps([{"resultados": [{"series": [
+        {"localidade": {"id": "1"}, "serie": {"2026": "-"}},
+        {"localidade": {"id": "2"}, "serie": {"2026": "..."}},
+        {"localidade": {"id": "3"}, "serie": {"2026": "10"}}]}]}]).encode()
+    assert ibge.ler_populacao(bruto) == {"3": (10, "2026")}
+
+
+def test_codigo_invalido_vai_para_quarentena():
+    r = ibge.normalizar_municipios(json.dumps([{"municipio-id": 12}]).encode(), **PROV)
+    assert r.registros == [] and r.quarentena[0].campo == "municipio-id"
+    r = ibge.normalizar_estados(json.dumps([{"id": 123}]).encode(), **PROV)
+    assert r.quarentena[0].campo == "id"
+
+
+@pytest.mark.parametrize("pop,faixa", [
+    (None, None), (0, "ate_5_mil"), (5000, "ate_5_mil"), (5001, "5_a_10_mil"),
+    (50000, "20_a_50_mil"), (500001, "acima_500_mil"),
+])
+def test_porte(pop, faixa):
+    assert classificar_porte(pop) == faixa
+
+
+def test_porte_negativo():
+    with pytest.raises(ValueError):
+        classificar_porte(-1)
+
+
+def test_entes_do_siconfi_e_suas_peculiaridades(fixture_bytes):
+    r = siconfi.normalizar_entes(fixture_bytes("siconfi/entes_amostra.json"), **PROV)
+    por_codigo = {e.codigo_ibge: e for e in r.registros}
+    assert set(por_codigo) == {"3550308", "4319604", "5300108", "1", "43"}
+    sp = por_codigo["3550308"]
+    assert sp.capital is True and sp.cnpj == "46395000000139" and sp.uf == "SP"
+    assert por_codigo["4319604"].capital is False
+    rs = por_codigo["43"]
+    assert rs.uf == "RS" and siconfi.UF_DIVERGENTE in rs.marcacoes_qualidade  # fonte diz "BR"
+    uniao = por_codigo["1"]
+    assert uniao.esfera is Esfera.UNIAO and siconfi.POPULACAO_INCONSISTENTE in uniao.marcacoes_qualidade
+
+
+def test_ente_com_esfera_desconhecida():
+    bruto = json.dumps({"items": [{"cod_ibge": 4319604, "esfera": "X"}]}).encode()
+    r = siconfi.normalizar_entes(bruto, **PROV)
+    assert r.quarentena[0].campo == "esfera"
+
+
+def test_resposta_ords_sem_items_vai_para_quarentena():
+    r = siconfi.normalizar_entes(b'{"erro": "x"}', **PROV)
+    assert "items" in r.quarentena[0].motivo
+
+
+def test_extrato_de_entregas(fixture_bytes):
+    r = siconfi.normalizar_extrato(fixture_bytes("siconfi/extrato_entregas_4319604_2025.json"), **PROV,
+                                   hoje=date(2026, 10, 5))
+    assert len(r.registros) == 37 and r.quarentena == []
+    dca = [e for e in r.registros if e.entregavel == "Balanço Anual (DCA)"]
+    assert len(dca) == 1
+    assert dca[0].entregue_em == datetime(2026, 4, 30, 8, 28, 58, tzinfo=timezone.utc)
+    assert dca[0].ente_id == id_canonico("ente_federativo", "4319604")
+    assert dca[0].status_relatorio == "HO"

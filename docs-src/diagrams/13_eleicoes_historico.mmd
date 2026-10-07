@@ -1,0 +1,23 @@
+flowchart TB
+    classDef arq fill:#1F3864,stroke:#0d1b33,color:#ffffff
+    classDef proc fill:#2E75B6,stroke:#1f4e79,color:#ffffff
+    classDef regra fill:#BF8F00,stroke:#7f5f00,color:#ffffff
+    classDef saida fill:#548235,stroke:#375623,color:#ffffff
+
+    Z1["detalhe_votacao_munzona_AAAA.zip<br/>aptos, comparecimento, brancos, nulos"]:::arq
+    Z2["votacao_candidato_munzona_AAAA.zip<br/>votos por candidato e zona"]:::arq
+    Z3["Historico_Totalizacao_Presidente_BR<br/>(2018 em diante)"]:::arq
+
+    L1["Lê o detalhe inteiro<br/>(pequeno) e soma os totais"]:::proc
+    R1{{"1994: totais zerados<br/>→ reconciliar pelas parcelas"}}:::regra
+    L2["Lê um CSV por vez, de dentro do ZIP<br/>primeiro _BR (Presidente), depois cada UF<br/>_BRASIL é ignorado"]:::proc
+    R2{{"2000: voto em VALIDOS<br/>2002–2014: sem destinação → aviso"}}:::regra
+    AG["Agrega zona → município → UF → Brasil<br/>conforme o nível do cargo"]:::proc
+    FE["Feeds do CSV, antes de abrir o próximo<br/>resultado, panorama e partes"]:::saida
+    EV["Evolução do Presidente<br/>historico-br.json"]:::saida
+    IX["Índice com os cargos que têm dados<br/>e as UFs de cada cargo"]:::saida
+
+    Z1 --> L1 --> R1 --> AG
+    Z2 --> L2 --> R2 --> AG
+    AG --> FE --> IX
+    Z3 --> EV --> IX

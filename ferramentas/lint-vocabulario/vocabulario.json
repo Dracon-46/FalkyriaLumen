@@ -61,14 +61,17 @@
     "versao do esquema",
     "versoes do esquema"
   ],
-  "_nota_alvos": "Tudo que pode chegar aos olhos do publico. Codigo interno que nunca e exibido fica de fora de proposito: o objetivo e a linguagem publicada, nao a conversa entre desenvolvedores.",
+  "_nota_alvos": "Tudo que pode chegar aos olhos do publico. Codigo interno que nunca e exibido fica de fora de proposito: o objetivo e a linguagem publicada, nao a conversa entre desenvolvedores. No portal, so o codigo-fonte (src/): node_modules, .next e out sao de terceiros ou gerados e nunca entram. O pacote de eleicoes entra inteiro porque os rotulos e avisos dos feeds saem dele direto para a tela.",
   "alvos": [
     "packages/canonico/lumen_canonico/rotulos.py",
-    "packages/portal/**/*.tsx",
-    "packages/portal/**/*.ts",
+    "packages/portal/src/**/*.tsx",
+    "packages/portal/src/**/*.ts",
+    "packages/portal/src/**/*.css",
+    "packages/portal/public/**/*.html",
     "packages/api/**/mensagens/**/*.ts",
     "packages/deteccao/regras/**/*.py",
     "packages/conformidade/**/*.py",
+    "packages/eleicoes/lumen_eleicoes/**/*.py",
     "conteudo/**/*.md",
     "README.md"
   ],

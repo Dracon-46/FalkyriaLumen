@@ -1,5 +1,9 @@
 const L = require("./lib");
 const { h1, h2, h3, p, bullet, numbered, table, callout, code, figure, pageBreak, spacer } = L;
+// Versão 1.1 (outubro de 2026): comportamentos reais observados nas fontes
+// integradas na Fase 1, fontes do TSE e do IBGE da aba Eleições e situação de
+// cada integração. As peculiaridades citadas têm fixture e teste próprios
+// (testes/fixtures/README.md).
 
 const body = [];
 
@@ -50,6 +54,31 @@ body.push(table(["Recurso", "Endpoint", "Uso no Lumen"], [2300, 3500, 3800], [
   ["Planos de contratação anual", "/v1/pca/", "Comparação entre o planejado e o executado"],
 ]));
 
+body.push(h3("Comportamento real observado (outubro de 2026)"));
+body.push(p("A documentação oficial não basta para coletar o PNCP. Os pontos abaixo foram observados nas " +
+  "respostas reais durante a construção dos conectores da Fase 1; cada um tem fixture e teste próprios."));
+body.push(table(["Comportamento", "Como o Lumen trata"], [4600, 5000], [
+  ["codigoModalidadeContratacao é obrigatório em /v1/contratacoes/*; sem ele, erro 400", "A coleta de contratações percorre as 19 modalidades do domínio oficial"],
+  ["tamanhoPagina aceita no máximo 50 em contratações e 500 em contratos e atas", "O conector usa o máximo de cada recurso e recusa valor fora da faixa"],
+  ["Janela de datas acima de 365 dias responde 422", "A coleta fatia por dia, o que também mantém o tamanho das páginas previsível"],
+  ["Página sem registros responde 204 sem corpo, não 200 com lista vazia", "204 é tratado como fim da listagem"],
+  ["Erro 422 traz status como texto (\"422\"); erro 400 traz número", "Leitura tolerante aos dois formatos"],
+  ["Itens, resultados e arquivos de uma contratação ficam em outra API (/api/pncp, no caminho do órgão)", "Conector próprio (pncp_itens), separado da consulta"],
+  ["usuarioNome é a plataforma de software que enviou os dados, não uma pessoa", "Guardado como plataforma; o agente que autorizou o ato fica vazio (ADR-017)"],
+  ["Descrição do amparo legal ainda cita os valores originais da lei (R$ 50 mil e R$ 100 mil)", "O limite vem do código do amparo e dos parâmetros legais datados, nunca do texto"],
+  ["Dados com erro de digitação (ata com vigência no ano 7203)", "Linha vai para a quarentena com o motivo; o resto do artefato segue"],
+  ["valorTotalEstimado = 0 com valor homologado nulo", "Aceito com marcação de qualidade; nunca usado como valor zero"],
+  ["esferaId e poderId iguais a N (não informado)", "Viram nulo, com marcação; o ente não é adivinhado"],
+  ["Órgão estadual com o código IBGE da capital", "O ente é o estado, não o município"],
+], { size: 17 }));
+body.push(p("Limite padrão do Lumen: 60 requisições por minuto em cada recurso do PNCP, ajustável em lumen.toml."));
+body.push(callout("Lacuna que afeta a política editorial", [
+  "A API do PNCP não publica quem autorizou a contratação. A exigência do DOC-08 de mostrar quem praticou o " +
+  "ato depende de fonte complementar (diário oficial ou portal do ente), e nenhum indício que dependa dessa " +
+  "informação pode ser publicado só com o PNCP.",
+], "red"));
+body.push(spacer(100));
+
 body.push(callout("Por que o PNCP é a fonte mais valiosa do projeto", [
   "Além de contratos e valores, a API traz o amparo legal como campo estruturado, e não como texto " +
   "livre. Isso permite responder de forma objetiva, e em escala nacional, com que fundamento cada " +
@@ -70,6 +99,17 @@ body.push(table(null, [2200, 7400], [
 body.push(p("O SICONFI fornece a dimensão orçamentária e fiscal que o PNCP não cobre: receita, despesa " +
   "por função, endividamento e indicadores de gestão fiscal. É a base do cálculo de gasto per capita e " +
   "da formação dos grupos de pares."));
+body.push(h3("Comportamento real observado (outubro de 2026)"));
+body.push(table(["Comportamento", "Como o Lumen trata"], [4600, 5000], [
+  ["Paginação ORDS por offset, com hasMore, até 5.000 itens por página", "Leitura por deslocamento até hasMore = false"],
+  ["/entes lista 5.598 entes, com código IBGE, CNPJ e população", "Base do cadastro de entes e do grupo de pares"],
+  ["capital vem como texto com espaços (\"1  \")", "Normalizado antes da conversão"],
+  ["Estados vêm com uf = \"BR\"; a União vem com cod_ibge = 1, uf nulo e população que não é a do país", "A UF sai do código IBGE (divergência vira marcação); a população da União fica como veio, marcada, e nunca entra em grupo de pares"],
+  ["/extrato_entregas diz o que cada ente entregou num exercício", "Origem da lista de ausentes (família I, RF-CF-01)"],
+], { size: 17 }));
+body.push(p("Limite padrão do Lumen: 50 requisições por minuto, abaixo da recomendação do Tesouro de cerca de uma " +
+  "por segundo."));
+
 body.push(callout("A lacuna do SICONFI também é dado", [
   "As consolidações do Tesouro cobrem a maior parte dos municípios brasileiros, mas não todos. Os entes " +
   "ausentes em um dado exercício são, por definição, entes que não cumpriram uma obrigação legal de " +
@@ -111,8 +151,9 @@ body.push(h2("2.5 Demais fontes federais"));
 body.push(table(["Fonte", "Conteúdo", "Prioridade"], [2600, 4600, 2400], [
   ["Compras.gov.br", "Catálogos CATMAT e CATSER, painel de preços de referência", "Alta, normaliza itens"],
   ["TCU — dados abertos", "Acórdãos, processos de fiscalização, licitantes inidôneos", "Média"],
-  ["TSE — dados abertos", "Candidaturas e doações eleitorais", "Média, uso com cautela metodológica"],
-  ["IBGE", "População, malha territorial, indicadores municipais", "Alta, base do grupo de pares"],
+  ["TSE — resultados", "Resultados eleitorais, ao vivo e desde 1933 (seção 2.6)", "Integrado na aba Eleições"],
+  ["TSE — prestação de contas", "Candidaturas e doações eleitorais", "Média, uso com cautela metodológica"],
+  ["IBGE", "População, localidades e malhas territoriais (seção 2.7)", "Alta, base do grupo de pares e do mapa"],
   ["SIOPS e SIOPE", "Aplicação mínima em saúde e educação", "Média"],
   ["Câmara e Senado", "Dados abertos legislativos federais", "Baixa na versão 1.0"],
 ]));
@@ -123,6 +164,27 @@ body.push(callout("Cautela metodológica com dados eleitorais", [
   "estatisticamente esperada em um universo grande. Esse cruzamento só é publicado como contexto " +
   "factual anexo a um indício originado por outra regra, e nunca como indício autônomo.",
 ], "red"));
+
+body.push(h2("2.6 TSE — resultados eleitorais (aba Eleições)"));
+body.push(p("A aba Eleições usa duas fontes do TSE, descritas em detalhe no DOC-12. Nenhuma delas alimenta o " +
+  "motor de detecção (ADR-024)."));
+body.push(table(["Fonte", "Endereço", "Formato e comportamento observado"], [2000, 3600, 4000], [
+  ["Sistema de divulgação de resultados", "https://resultados.tse.jus.br/oficial", "JSON estático por CDN; números como texto com vírgula decimal; data e hora em campos separados, no horário de Brasília; responde 304 a If-Modified-Since. Mantém só eleições recentes."],
+  ["Portal de Dados Abertos, 1994 a 2024", "dadosabertos.tse.jus.br (CKAN) e cdn.tse.jus.br (ZIPs)", "CSV Latin-1 com ;, 38, 44 ou 50 colunas conforme o ano; um arquivo por UF, um _BR (Presidente) e um _BRASIL que concatena todos e é ignorado. Diferenças de 1994, 2000 e 2002 a 2014 tratadas no DOC-12."],
+  ["Portal de Dados Abertos, 1933 a 1990", "cdn.tse.jus.br/estatistica/sead/odsele (votacao_candidato_uf, detalhe_votacao_uf, votacao_partido_uf)", "Só por UF; texto Latin-1 sem cabeçalho (exceto 1933 e 1934), com bytes do Windows-1252; colunas na ordem do Leia-me (26, 22 e 17); candidatos sem número até os anos 1980; UFs extintas; o arquivo de partido de 1989 não existe. Tratado no DOC-12, seção 3.2, e no ADR-025."],
+], { size: 17 }));
+body.push(p("Limites padrão: 300 requisições por minuto no sistema de resultados (servido por CDN) e 30 nos " +
+  "dados abertos. Os ZIPs (642 MB só a votação de 2022) são baixados com retomada e manifesto (ADR-021)."));
+body.push(p("A prestação de contas de campanha — doações e despesas — é outra fonte, ainda não integrada; é " +
+  "pré-requisito da regra K-01 e segue a cautela abaixo."));
+
+body.push(h2("2.7 IBGE — localidades, população e malhas"));
+body.push(table(["Recurso", "Endereço", "Uso"], [2200, 4400, 3000], [
+  ["Localidades", "servicodados.ibge.gov.br/api/v1/localidades (visão nivelado)", "Cadastro de UFs e municípios; 5.571 municípios em outubro de 2026"],
+  ["População", "SIDRA, agregado 6579, variável 9324, último período", "Gasto per capita e grupo de pares"],
+  ["Malhas v3", "servicodados.ibge.gov.br/api/v3/malhas, formato TopoJSON", "Mapa da aba Eleições; código IBGE em codarea"],
+], { size: 17 }));
+body.push(p("Sem autenticação. Limite padrão do Lumen: 30 requisições por minuto."));
 
 body.push(pageBreak());
 body.push(h1("3. Camada 2 — Estados e tribunais de contas"));
@@ -229,6 +291,8 @@ body.push(table(["Regra", "Detalhamento"], [2600, 7000], [
   ["Respeito a robots", "Observância das diretrizes publicadas pelo domínio"],
   ["Sem contorno de controle", "Nenhuma tentativa de resolver CAPTCHA, burlar autenticação ou acessar área restrita"],
   ["Cache agressivo", "Artefato já coletado e inalterado não é rebaixado novamente"],
+  ["Requisição condicional", "If-Modified-Since onde a fonte aceita: o que não mudou volta 304, sem corpo (TSE)"],
+  ["Arquivo grande retomável", "Range e If-Range: queda de conexão continua de onde parou, sem rebaixar gigabytes (ADR-021)"],
 ]));
 
 body.push(h1("6. Matriz de cobertura esperada por fase"));
@@ -245,7 +309,22 @@ body.push(table(["Fase", "Fontes integradas", "Cobertura resultante"], [1300, 43
     "Índice de conformidade publicado para todos os entes cadastrados"],
 ]));
 
-body.push(h1("7. Registro de fontes"));
+body.push(h1("7. Situação da integração (outubro de 2026)"));
+body.push(table(["Fonte", "Situação", "Observação"], [3000, 2400, 4200], [
+  ["PNCP — contratações, contratos e atas (publicação e atualização)", "Integrado", "Coleta, bronze e normalização para a silver no pipeline padrão"],
+  ["PNCP — itens e resultados", "Conector e normalizador prontos", "Fora do pipeline padrão até a Fase 2, que usa os itens nas regras de preço"],
+  ["SICONFI — entes e extrato de entregas", "Integrado", "Base do cadastro e da conformidade (família I)"],
+  ["SICONFI — RREO, RGF e DCA", "Conector pronto", "Normalização na Fase 2"],
+  ["IBGE — localidades e população", "Integrado", "Cadastro de entes, população aplicada aos municípios"],
+  ["IBGE — malhas", "Integrado (aba Eleições)", "Mapa"],
+  ["TSE — resultados e dados abertos", "Integrado (aba Eleições)", "DOC-12"],
+  ["Portal da Transparência (CGU)", "Pendente", "Exige token; previsto na Fase 1"],
+  ["Receita Federal — CNPJ", "Pendente", "Arquivos completos; base da família D"],
+  ["TSE — prestação de contas", "Pendente", "Pré-requisito da K-01; revisão editorial antes de qualquer uso"],
+  ["Compras.gov.br, estados, tribunais de contas, municípios", "Planejado", "Fases 2 a 4, conforme a seção 6"],
+], { size: 17 }));
+
+body.push(h1("8. Registro de fontes"));
 body.push(p("Toda fonte cadastrada mantém os metadados abaixo, que alimentam o painel operacional e a " +
   "avaliação de conformidade."));
 body.push(table(["Metadado", "Finalidade"], [2800, 6800], [
@@ -264,6 +343,9 @@ L.buildDoc({
   codigo: "DOC-06",
   titulo: "Catálogo de Fontes",
   subtitulo: "Fontes por esfera, estratégia de cobertura nacional e coleta responsável",
+  meta: { versao: "1.2", data: "6 de outubro de 2026",
+    situacao: "Atualizado com o comportamento real das fontes da Fase 1 e as fontes da aba Eleições (inclusive 1933 a 1990)",
+    verificado: "outubro de 2026" },
   body,
   outFile: "../docs/DOC-06_Catalogo_de_Fontes.docx",
 });

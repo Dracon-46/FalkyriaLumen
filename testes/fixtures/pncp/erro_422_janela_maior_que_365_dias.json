@@ -1,0 +1,1 @@
+{"timestamp":"2026-10-05T08:45:25.310-03:00","status":"422","error":"422 UNPROCESSABLE_ENTITY","message":"Período inicial e final maior que 365 dias.","path":"/pncp-consulta/v1/contratacoes/publicacao"}

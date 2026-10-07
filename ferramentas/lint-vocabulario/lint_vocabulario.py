@@ -42,6 +42,8 @@ def normalizar(texto: str) -> str:
 
 @dataclass(frozen=True)
 class Violacao:
+    """Uma ocorrência de termo proibido: posição, termo, sugestão da lista e a linha original."""
+
     caminho: Path
     linha: int
     coluna: int
@@ -50,6 +52,7 @@ class Violacao:
     trecho: str
 
     def __str__(self) -> str:
+        """Formata a violação para o terminal: posição e termo, o trecho da linha e o termo sugerido."""
         return (
             f"{self.caminho}:{self.linha}:{self.coluna}: termo proibido {self.termo!r}\n"
             f"    {self.trecho.strip()}\n"
@@ -58,7 +61,14 @@ class Violacao:
 
 
 class Vocabulario:
+    """Lista vigente de termos proibidos e expressões permitidas, com a verificação de textos e arquivos.
+
+    Termos e expressões ficam guardados já normalizados (sem acento e caixa), e o texto verificado passa
+    pela mesma normalização. As expressões permitidas são mascaradas antes da busca pelos termos proibidos.
+    """
+
     def __init__(self, config: dict):
+        """Prepara as listas a partir da configuração e compila as expressões regulares de busca e de máscara."""
         self.proibidos: dict[str, str] = {
             normalizar(termo): sugestao
             for termo, sugestao in config.get("proibidos", {}).items()
@@ -94,6 +104,7 @@ class Vocabulario:
 
     @classmethod
     def carregar(cls, caminho: Path = CONFIG_PADRAO) -> "Vocabulario":
+        """Lê a configuração do ``vocabulario.json`` padrão ou do caminho informado."""
         with open(caminho, encoding="utf-8") as fh:
             return cls(json.load(fh))
 
@@ -111,6 +122,11 @@ class Vocabulario:
         return resultado
 
     def verificar_texto(self, texto: str, caminho: Path = Path("<texto>")) -> list[Violacao]:
+        """Lista as violações de um texto, com linha e coluna relativas a ele.
+
+        O texto inteiro é normalizado e mascarado de uma vez, e só depois partido em linhas, para reconhecer
+        expressões permitidas quebradas entre linhas. Linhas com o marcador de exceção são puladas.
+        """
         if self._regex is None:
             return []
         originais = texto.splitlines()
@@ -142,6 +158,7 @@ class Vocabulario:
         ]
 
     def verificar_arquivo(self, caminho: Path) -> list[Violacao]:
+        """Verifica um arquivo de texto; arquivo binário ou ilegível não gera violação."""
         try:
             texto = caminho.read_text(encoding="utf-8")
         except (UnicodeDecodeError, OSError):
@@ -149,11 +166,13 @@ class Vocabulario:
         return self.verificar_texto(texto, caminho)
 
     def esta_isento(self, caminho: Path) -> bool:
+        """Verdadeiro se o caminho casa com algum padrão de ``isentos``, na forma recebida ou na forma POSIX."""
         como_posix = caminho.as_posix()
         return any(caminho.match(padrao) or Path(como_posix).match(padrao)
                    for padrao in self.isentos)
 
     def coletar_alvos(self, raiz: Path) -> list[Path]:
+        """Arquivos sob ``raiz`` que casam com os padrões de ``alvos`` e não estão isentos, em ordem e sem repetir."""
         encontrados: set[Path] = set()
         for padrao in self.alvos:
             for caminho in raiz.glob(padrao):
@@ -163,6 +182,11 @@ class Vocabulario:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Linha de comando do verificador: varre os alvos configurados ou os arquivos informados.
+
+    Devolve 0 sem violações (ou com ``--listar``) e 1 quando encontra alguma, o que interrompe o build na
+    integração contínua.
+    """
     parser = argparse.ArgumentParser(
         description="Verifica o vocabulário controlado do DOC-08 nos textos públicos."
     )

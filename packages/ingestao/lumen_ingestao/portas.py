@@ -30,6 +30,8 @@ from .bronze import (
 
 
 class Periodicidade(str, Enum):
+    """Frequência com que a fonte publica dados novos, declarada em ``CapacidadesFonte``."""
+
     TEMPO_REAL = "tempo_real"
     DIARIA = "diaria"
     SEMANAL = "semanal"
@@ -46,11 +48,13 @@ class Janela:
     fim: date
 
     def __post_init__(self) -> None:
+        """Recusa janela invertida (``fim`` antes de ``inicio``)."""
         if self.fim < self.inicio:
             raise ValueError(f"janela invertida: {self.inicio} a {self.fim}")
 
     @property
     def dias(self) -> int:
+        """Quantidade de dias da janela, contando as duas pontas."""
         return (self.fim - self.inicio).days + 1
 
 
@@ -65,6 +69,10 @@ class CapacidadesFonte:
     exige_autenticacao: bool = False
 
     def __post_init__(self) -> None:
+        """Exige ao menos um objeto canônico e um limite de taxa positivo.
+
+        Sem limite declarado não há como coletar a fonte de forma responsável (princípio P6).
+        """
         if not self.objetos:
             raise ValueError("uma fonte precisa declarar ao menos um objeto canônico")
         if self.limite_requisicoes_por_minuto < 1:
@@ -82,6 +90,12 @@ class ReferenciaArtefato:
 
 
 class ResultadoCriterio(str, Enum):
+    """Resultado da avaliação de um critério de conformidade.
+
+    ``INDETERMINADO`` é para quando não foi possível avaliar, e sempre vem com o
+    motivo (ver ``AvaliacaoConformidade``).
+    """
+
     CUMPRE = "cumpre"
     CUMPRE_PARCIALMENTE = "cumpre_parcialmente"
     NAO_CUMPRE = "nao_cumpre"
@@ -90,12 +104,20 @@ class ResultadoCriterio(str, Enum):
 
 @dataclass(frozen=True)
 class AvaliacaoConformidade:
+    """Avaliação de um critério de conformidade, amarrada ao dispositivo legal que o fundamenta."""
+
     criterio: str
     dispositivo_legal: str
     resultado: ResultadoCriterio
     motivo_indeterminado: str | None = None
 
     def __post_init__(self) -> None:
+        """Exige o dispositivo legal, e o motivo quando, e só quando, o resultado é indeterminado.
+
+        Sem dispositivo a obrigação avaliada fica sem base (RF-CF-06); sem motivo, um
+        "indeterminado" poderia atribuir ao ente uma falha que foi da fonte ou do próprio
+        sistema (RF-CF-07).
+        """
         if not self.dispositivo_legal.strip():
             raise ValueError("toda obrigação avaliada precisa citar o dispositivo legal (RF-CF-06)")
         indeterminado = self.resultado is ResultadoCriterio.INDETERMINADO
@@ -109,6 +131,8 @@ class AvaliacaoConformidade:
 
 @dataclass(frozen=True)
 class RelatorioConformidade:
+    """Avaliações que o adaptador reporta sobre a fonte, com o instante da avaliação em UTC."""
+
     fonte_id: str
     avaliacoes: tuple[AvaliacaoConformidade, ...]
     avaliado_em: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -120,13 +144,21 @@ class FonteDados(Protocol):
 
     fonte_id: str
 
-    def descrever_capacidades(self) -> CapacidadesFonte: ...
+    def descrever_capacidades(self) -> CapacidadesFonte:
+        """Declara os objetos, a periodicidade e o limite de taxa da fonte."""
 
-    def listar(self, janela: Janela) -> Iterator[ReferenciaArtefato]: ...
+    def listar(self, janela: Janela) -> Iterator[ReferenciaArtefato]:
+        """Enumera o que a fonte oferece na janela, para planejar o volume antes de baixar."""
 
-    def baixar(self, ref: ReferenciaArtefato) -> ArtefatoBruto: ...
+    def baixar(self, ref: ReferenciaArtefato) -> ArtefatoBruto:
+        """Baixa o artefato referenciado, exatamente como a fonte o entregou."""
 
-    def reportar_conformidade(self) -> RelatorioConformidade: ...
+    def reportar_conformidade(self) -> RelatorioConformidade:
+        """Relata o que o adaptador observou sobre a fonte.
+
+        É o adaptador quem distingue indisponibilidade passageira de ausência
+        persistente de publicação (ver o módulo).
+        """
 
 
 # --------------------------------------------------------------------------
@@ -135,6 +167,8 @@ class FonteDados(Protocol):
 
 @dataclass
 class ResumoColeta:
+    """Resultado de ``coletar_janela``: quantos artefatos foram listados, os registros guardados e as falhas."""
+
     fonte_id: str
     janela: Janela
     listados: int = 0
@@ -143,6 +177,7 @@ class ResumoColeta:
 
     @property
     def conteudos_novos(self) -> int:
+        """Registros cujo conteúdo é inédito para a URL: primeira coleta ou mudança desde a anterior."""
         return sum(1 for r in self.guardados if r.mudou_desde_anterior)
 
     @property

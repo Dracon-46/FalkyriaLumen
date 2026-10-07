@@ -12,9 +12,78 @@ controle, imprensa e sociedade civil.
 > órgãos de controle e ao Poder Judiciário. Essa restrição não é apenas editorial: ela é
 > imposta no código, no modelo de domínio e no pipeline de publicação.
 
-Este repositório contém a **documentação completa do projeto** e o **núcleo da Fase 0**: a
-camada de prova, a máquina de estados do indício, os parâmetros legais datados e o verificador
-de vocabulário controlado. O desenvolvimento segue o plano descrito no DOC-10.
+Este repositório contém a **documentação completa do projeto**, a **Fase 0** concluída (camada
+de prova, máquina de estados do indício, parâmetros legais datados, vocabulário controlado), o
+**núcleo da Fase 1** (coleta e normalização do PNCP, IBGE e SICONFI, conformidade da LRF) e a
+**aba Eleições** do portal, com resultados oficiais do TSE ao vivo e desde 1933. O
+desenvolvimento segue o plano descrito no DOC-10.
+
+## Ver a aba Eleições funcionando
+
+No Windows: copie `lumen.toml.exemplo` para `lumen.toml`, preencha o contato em `[coleta]` e
+dê dois cliques em **`preparar.cmd`**. Em qualquer sistema, com o Python 3.11+ e o Node.js 20.9+:
+
+```bash
+python -m pip install -e .
+lumen eleicoes preparar --servir
+```
+
+O navegador abre em `http://127.0.0.1:8080/eleicoes/` antes da carga terminar, e cada eleição
+aparece assim que fica pronta. Os resultados não vêm no repositório — são vários GB de arquivos
+oficiais do TSE, e a prova de cada número é o SHA-256 da cópia baixada da fonte —, então a
+primeira vez baixa tudo: o 1º turno de 2026 com todos os municípios, as eleições de 1933 a 1990
+(só por estado, como o TSE publica) e as de 2024 a 1994 (2,3 GB, algumas horas). O mapa e o
+cadastro de municípios já vêm com o Lumen. Pode interromper e rodar de novo: o que já foi feito
+não é refeito. Detalhes no DOC-12, seção 9.1.
+
+## Na nuvem, sem computador ligado
+
+A carga, a publicação e o portal rodam em serviços gratuitos (ADR-026): a carga no GitHub
+Actions, os feeds no Cloudflare R2 e o portal no Cloudflare Pages. A carga é retomável entre
+execuções: o estado fica num bucket privado, e cada execução só envia o que mudou.
+
+| Fluxo | Quando | O que faz |
+|---|---|---|
+| `eleicoes-carga.yml` | todo dia às 04:41 e à mão | `preparar --nuvem`: baixa, processa e publica no R2; para antes do prazo da máquina e a próxima execução continua |
+| `eleicoes-ao-vivo.yml` | à mão, na noite da eleição | `ao-vivo --nuvem`: publica a cada passada |
+| `portal-pages.yml` | a cada mudança do portal na main, e à mão | gera o portal apontando para o R2 e publica no Pages |
+
+Configuração, uma vez (passo a passo com as telas no DOC-12, seção 9.5):
+
+1. **Cloudflare:** conta gratuita; ativar o R2; criar os buckets `lumen-eleicoes` (público,
+   endereço `r2.dev` habilitado) e `lumen-privado`; um token da API S3 com Object Read & Write
+   só nesses dois buckets; um token com permissão *Cloudflare Pages: Edit*.
+2. **CORS** no `lumen-eleicoes` (Settings → CORS Policy, aba JSON), com o endereço do Pages:
+
+   ```json
+   [
+     {
+       "AllowedOrigins": ["https://lumen.pages.dev"],
+       "AllowedMethods": ["GET", "HEAD"],
+       "MaxAgeSeconds": 3600
+     }
+   ]
+   ```
+
+3. **GitHub** (Settings → Secrets and variables → Actions):
+
+   | Segredo | Valor | Variável | Valor |
+   |---|---|---|---|
+   | `LUMEN_CONTATO` | e-mail da coleta | `R2_BUCKET_FEEDS` | `lumen-eleicoes` |
+   | `R2_ENDPOINT` | `https://<conta>.r2.cloudflarestorage.com` | `R2_BUCKET_ESTADO` | `lumen-privado` |
+   | `R2_CHAVE_ACESSO` | Access Key ID | `LUMEN_URL_FEEDS` | `https://pub-….r2.dev` |
+   | `R2_CHAVE_SECRETA` | Secret Access Key | `CF_PAGES_PROJETO` | `lumen` |
+   | `CLOUDFLARE_API_TOKEN` | token do Pages | | |
+   | `CLOUDFLARE_ACCOUNT_ID` | id da conta | | |
+
+4. Actions → `eleicoes-carga` → *Run workflow* (a primeira carga leva duas ou três execuções);
+   depois Actions → `portal-pages` → *Run workflow*.
+
+Nenhuma chave vai para o repositório nem para o `lumen.toml`. Com a carga já pronta num
+computador, `lumen eleicoes publicar` envia ao R2 o que falta (variáveis de ambiente em
+`lumen.toml.exemplo`, seção `[publicacao]`). O núcleo do Lumen (indícios, revisão,
+contestação) vai para um projeto do Supabase no plano gratuito, numa organização própria do
+projeto; os dados volumosos ficam em Parquet no R2.
 
 ---
 
@@ -64,8 +133,12 @@ relativização, o sistema reproduziria o viés de atenção que existe para cor
 | [DOC-08](docs/DOC-08_Politica_Juridica_e_Editorial.docx) | Base legal, vocabulário controlado, LGPD e direito de resposta |
 | [DOC-09](docs/DOC-09_Padroes_de_Codigo.docx) | Convenções, testes, CI/CD e definição de pronto |
 | [DOC-10](docs/DOC-10_Roadmap.docx) | Fases, marcos, esforço, custos e critérios de replanejamento |
+| [DOC-11](docs/DOC-11_Referencia_Tecnica.docx) | Referência técnica: arquivo por arquivo, função por função (gerada do código) |
+| [DOC-12](docs/DOC-12_Eleicoes.docx) | Aba Eleições: idealização, fontes, arquitetura, operação e integração |
 
-Os diagramas estão em [`docs/diagramas/`](docs/diagramas/) em PNG.
+Os diagramas estão em [`docs/diagramas/`](docs/diagramas/) em PNG. As decisões
+arquiteturais estão em [`docs/adr/`](docs/adr/README.md); o histórico de versões, no
+[CHANGELOG](CHANGELOG.md).
 
 ## Princípios inegociáveis
 
@@ -84,30 +157,31 @@ descartada ou redesenhada.
 6. **Coleta responsável** — identificação em todas as requisições, respeito a limites de taxa,
    preferência pela API oficial e nenhuma tentativa de contornar controle técnico de acesso.
 
-## Stack planejada
+## Stack
 
-| Camada | Tecnologia |
-|---|---|
-| Orquestração | Dagster |
-| Ingestão, normalização e detecção | Python |
-| Camada bronze (prova) | Armazenamento de objetos com hash |
-| Camadas silver e gold | Parquet + DuckDB |
-| Domínio, indícios e auditoria | PostgreSQL |
-| Busca textual | OpenSearch |
-| API pública | Node.js + TypeScript |
-| Portal | Next.js |
+| Camada | Tecnologia | Situação |
+|---|---|---|
+| Ingestão, normalização e detecção | Python 3.11+, só biblioteca padrão (ADR-015) | em uso |
+| Camada bronze (prova) | Disco local ou armazenamento de objetos S3 com Object Lock (ADR-018) | em uso |
+| Camada silver | JSON Lines particionado, lido por DuckDB (ADR-016) | em uso |
+| Domínio, indícios e auditoria | PostgreSQL 16; na nuvem, Supabase Free (ADR-026) | migração testada |
+| Portal | Next.js com exportação estática (ADR-019) | aba Eleições |
+| Orquestração | Dagster | Fase 2 |
+| Busca textual | OpenSearch | Fase 3 |
+| API pública | Node.js + TypeScript | Fase 3 |
+| Hospedagem sem custo | Cloudflare R2 (feeds, estado, Parquet), Cloudflare Pages (portal), GitHub Actions (carga) — ADR-026 | fluxos prontos |
 
-A justificativa de cada escolha está registrada como ADR no DOC-04.
+A justificativa de cada escolha está registrada como ADR (DOC-04 e `docs/adr/`).
 
 ## Regenerar a documentação
 
 Os `.docx` são gerados por script, não editados à mão. A fonte está em `docs-src/`.
 
 ```bash
+make docs          # extrai a referência do código (DOC-11) e gera todos os .docx em docs/
+
 cd docs-src
-npm install
 npm run diagrams   # requer mermaid-cli; regenera os PNGs a partir dos .mmd
-npm run docs       # gera os 10 .docx em ../docs/
 ```
 
 Regra de estilo aplicada nos documentos: texto corrido e títulos sempre em preto; cor apenas
@@ -115,58 +189,119 @@ em tabelas e diagramas.
 
 ## Desenvolvimento
 
-Requer apenas Python 3.11 ou superior. A Fase 0 não tem dependência de execução (ADR-015).
+Requer Python 3.11 ou superior; o portal requer Node 20.9 ou superior.
 
 ```bash
-python -m pip install pytest pytest-cov
+python -m pip install -e ".[dev,analitico]"   # pacotes, comando `lumen` e DuckDB (opcional)
 
 python ferramentas/lint-vocabulario/lint_vocabulario.py   # vocabulário controlado
+python ferramentas/referencia/referencia.py --verificar   # tudo documentado (DOC-11)
 python -m pytest                                          # suíte completa
+make portal                                               # tipos, testes e build do portal
 ```
 
-Com `make`: `make verificar` roda exatamente o que a CI roda.
+Com `make`: `make verificar` roda o que a CI roda no Python; `make ambiente` sobe PostgreSQL e
+MinIO (`infra/docker-compose.yml`); `make banco` testa a migração no PostgreSQL.
+
+Configuração local: copie `lumen.toml.exemplo` para `lumen.toml` e preencha o contato (vai no
+User-Agent de toda requisição).
+
+### Pipeline de contratações (Fase 1)
+
+```bash
+lumen coletar pncp_contratacoes --de 2026-09-01 --modalidades 8
+lumen coletar ibge_localidades --de 2026-10-05
+lumen coletar siconfi_extrato --de 2026-10-05 --entes 3550308 --exercicio 2025
+lumen normalizar                 # bronze → silver, idempotente
+lumen bronze verificar           # reconfere o hash de toda a prova
+```
+
+### Aba Eleições
+
+```bash
+lumen eleicoes preparar --servir                       # tudo num comando, retomável
+lumen eleicoes preparar --nuvem --limite-minutos 280   # a mesma carga publicando no R2 (ADR-026)
+lumen eleicoes publicar                                # envia ao R2 os feeds que mudaram
+lumen eleicoes municipios                              # cadastro TSE ↔ IBGE corrente (um já vem com o Lumen)
+lumen eleicoes mapas                                   # malhas do IBGE correntes (idem)
+lumen eleicoes historico baixar --anos 2022,1950       # dados abertos, 1933 a 2024 (ou --anos todos)
+lumen eleicoes historico processar --anos 2022,1950
+lumen eleicoes ao-vivo --eleicao 2026-1t-geral         # noite da apuração
+lumen eleicoes simular                                 # apuração fictícia para testar a tela
+lumen eleicoes servir                                  # portal + feeds em http://127.0.0.1:8080
+```
+
+Sem rede, `python -m lumen_eleicoes --saida packages/portal/public/dados/eleicoes amostra` gera
+feeds de exemplo com resultados oficiais de alguns estados e municípios (e de 1945, 1950 e 1989),
+com o mapa. Detalhes no DOC-12.
 
 ### Estrutura
 
 ```
 packages/
-  ingestao/     porta FonteDados, camada bronze (prova), coleta HTTP
-  canonico/     entidade Indicio e máquina de estados, rótulos públicos
-  deteccao/     parâmetros legais datados
+  ingestao/       porta FonteDados, camada bronze (disco e S3), cliente HTTP, adaptadores PNCP, IBGE, SICONFI
+  canonico/       esquema canônico (fatos e indício), identidade, documentos, UFs, porte, migração SQL
+  normalizacao/   bronze → silver: PNCP, IBGE, SICONFI, regras de qualidade e quarentena
+  deteccao/       parâmetros legais datados e verificados
+  conformidade/   avaliação das entregas obrigatórias ao SICONFI (LRF)
+  orquestracao/   pipeline local e o comando `lumen`
+  eleicoes/       aba Eleições: coletor do TSE, dados abertos (1933 a 2024), feeds, preparar,
+                  mapa e cadastro embutidos, simulação, servidor local
+  portal/         portal Next.js (aba Eleições; Contratações e Conformidade nas próximas fases)
 ferramentas/
   lint-vocabulario/   verificador de vocabulário controlado (ADR-007)
-docs/
-  adr/          decisões arquiteturais — as 011 a 015 aguardam revisão
+  referencia/         extrai a referência técnica e cobra documentação de tudo (ADR-023)
+testes/
+  fixtures/       respostas reais das fontes, capturadas e documentadas
+  contrato/       testes do esquema da fonte contra as fontes reais (diários, não bloqueiam)
+  integracao/     migração no PostgreSQL
+infra/            docker compose com PostgreSQL e MinIO
+docs/             documentos (.docx), diagramas e ADRs
+docs-src/         fonte dos documentos
 ```
 
 ## Situação do projeto
 
-**Fase 0 — Fundação: núcleo concluído.** O marco M1 do DOC-10 está cumprido e é verificado por
-teste automatizado: um artefato é coletado, armazenado com hash verificável e recuperado a
-partir do identificador — e prova adulterada é detectada (`test_marco_m1.py`).
+**Fase 0 — Fundação: concluída.** Marco M1 cumprido e verificado por teste (`test_marco_m1.py`).
+Os limites de dispensa de 2021 a 2026, o fator de consórcios e agências executivas e os
+acréscimos do art. 125 foram conferidos no texto oficial e cadastrados; a migração do domínio
+roda no PostgreSQL; o backend de objetos (S3/MinIO) da camada bronze está implementado.
 
-| Componente | Garantia | Testes |
-|---|---|---|
-| Camada bronze | Nada sobrescrito; hash reconferido em toda leitura; alteração na fonte registrada | 33 |
-| Coleta HTTP | Identificação obrigatória; resposta de erro preservada como prova | 13 |
-| Porta FonteDados | Falha isolada por artefato; prova corrompida interrompe a coleta | 15 |
-| Marco M1, ponta a ponta | Coleta real por HTTP, armazenamento, recuperação e detecção de adulteração | 2 |
-| Máquina de estados do indício | Severidade alta só publica com dois revisores distintos e evidência | 142 |
-| Parâmetros legais | Consulta pela data do ato; não verificado é recusado | 18 |
-| Vocabulário controlado | Termo que imputa conduta quebra o build | 60 |
+**Fase 1 — Espinha dorsal nacional: núcleo pronto.** Adaptadores do PNCP (contratações,
+contratos, atas, itens e resultados), do IBGE (localidades e população) e do SICONFI (entes e
+extrato de entregas); normalização com quarentena; silver idempotente reconstruível do bronze;
+avaliação das entregas da LRF com lista de ausentes; pipeline local e testes de contrato
+diários.
 
-283 testes, cobertura de 97% no núcleo.
+**Aba Eleições: pronta para uso.** Coleta ao vivo do sistema de resultados do TSE, eleições
+passadas desde 1933 pelos dados abertos (por município de 1994 em diante; antes, por estado),
+mapa interativo por estado e município, busca, modo TV, simulação de apuração e carga completa
+num comando (`lumen eleicoes preparar`, ou `preparar.cmd` no Windows).
 
-### Pendente para concluir a Fase 0
+| Componente | Testes |
+|---|---|
+| Ingestão (bronze, S3, cliente HTTP, adaptadores) | 102 |
+| Esquema canônico e máquina de estados do indício | 194 |
+| Parâmetros legais | 39 |
+| Normalização | 116 |
+| Conformidade (SICONFI) | 14 |
+| Pipeline local | 8 |
+| Aba Eleições (Python, inclusive a publicação na nuvem) | 182 |
+| Vocabulário controlado e referência técnica | 66 |
+| Portal (TypeScript) | 79 |
 
-- **Revisar as ADRs 011 a 015**, tomadas durante a implementação.
-- **Cadastrar os limites de dispensa de 2021 a 2025**, conferidos nos decretos de cada ano.
-  Sem eles, as regras de fracionamento não disparam para atos anteriores a 2026 (ADR-013).
-- **Conferir o art. 125 da Lei 14.133/2021** e marcar os limites de aditivo como verificados.
-- **Esquema canônico do bloco de fato administrativo** (Contrato, Empenho, Item). Foi adiado de
-  propósito: o DOC-05 foi escrito a partir da documentação do PNCP, e o esquema canônico desse
-  bloco deve nascer de respostas reais da API, que costumam divergir da documentação.
-- **Backend de armazenamento de objetos** para a camada bronze e ambiente local com PostgreSQL.
+Cobertura de 96% no Python. Todo módulo, classe e função tem documentação (verificado por teste).
+
+### Pendente
+
+- **Revisar as ADRs 011 a 026** (todas propostas, tomadas durante a implementação).
+- **Contas da hospedagem gratuita** (ADR-026): Cloudflare (R2 e Pages), segredos do GitHub e
+  uma organização própria do projeto no Supabase para o núcleo (DOC-12, seção 9.5).
+- **Revisão metodológica e jurídica da regra B-01** frente ao art. 75, § 1º, da Lei 14.133
+  (ADR-022), antes da Fase 2.
+- **Fonte para "quem autorizou o ato"**: a API do PNCP não publica o agente (ADR-017).
+- Fase 1 restante: Portal da Transparência (CGU, com CEIS/CNEP/CEPIM), base de CNPJ da Receita
+  Federal, grupos de pares e painel operacional (DOC-10).
 
 ### Definições pendentes antes da publicação, conforme DOC-10
 
@@ -183,5 +318,5 @@ partir do identificador — e prova adulterada é detectada (`test_marco_m1.py`)
 
 A documentação deste repositório consolida a política interna do projeto e o entendimento que
 fundamenta suas escolhas de desenho. Não constitui parecer jurídico. Valores legais, limites e
-endpoints citados foram verificados em fontes oficiais em setembro de 2026 e são atualizados
+endpoints citados foram verificados em fontes oficiais entre setembro e outubro de 2026 e são atualizados
 periodicamente por decreto — reconfira antes de implementar.

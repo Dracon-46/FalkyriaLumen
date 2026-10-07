@@ -11,10 +11,10 @@ nada construído em cima dela vale.
 """
 
 import threading
+import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
-import urllib.request
 
 from lumen_ingestao.bronze import ArmazemBronzeLocal, IntegridadeViolada, sha256_hex
 from lumen_ingestao.coleta_http import baixar_http, user_agent_lumen
@@ -79,7 +79,8 @@ def test_marco_m1_coleta_armazena_com_hash_e_recupera(portal, tmp_path):
 def test_marco_m1_prova_adulterada_nao_e_aceita(portal, tmp_path):
     """A outra metade do critério: 'verificável' significa que a fraude no
     armazenamento é detectada, não apenas que existe um hash."""
-    import os, stat
+    import os
+    import stat
 
     abridor = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     armazem = ArmazemBronzeLocal(tmp_path / "bronze")

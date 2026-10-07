@@ -1,0 +1,28 @@
+# Testes de contrato contra as fontes reais — DOC-09, seção 4.2: "não bloqueia;
+# alarma". Rodam uma vez por dia; uma falha aqui quer dizer que uma fonte mudou
+# de formato e o normalizador precisa de revisão antes da próxima carga.
+
+name: contrato-de-fontes
+
+on:
+  schedule:
+    - cron: "17 9 * * *"   # 06:17 em Brasília
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contrato:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install pytest
+      - name: Esquema das fontes reais
+        env:
+          LUMEN_TESTE_CONTRATO: "1"
+        run: python -m pytest -m contrato -q

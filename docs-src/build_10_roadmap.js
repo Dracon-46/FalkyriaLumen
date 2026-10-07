@@ -2,6 +2,8 @@ const L = require("./lib");
 const { h1, h2, h3, p, bullet, numbered, table, callout, code, figure, pageBreak, spacer } = L;
 
 const body = [];
+// Versão 1.1 (outubro de 2026): seção 9 com a situação de cada fase e a trilha
+// paralela da aba Eleições. O plano das seções 1 a 8 fica como foi aprovado.
 
 function fase({ num, nome, periodo, objetivo, entregaveis, saida, riscos }) {
   const out = [];
@@ -33,6 +35,12 @@ body.push(callout("O marco que muda o projeto de natureza", [
   "resultado verificável, o que muda completamente sua capacidade de atrair colaboradores, parceiros " +
   "institucionais e atenção da imprensa.",
 ], "green"));
+
+body.push(callout("Situação em 6 de outubro de 2026", [
+  "Fase 0 concluída (marco M1 verificado por teste). Fase 1 com o núcleo pronto: PNCP, SICONFI e IBGE " +
+  "coletados, normalizados e reconstruíveis a partir da prova. Aba Eleições pronta como trilha paralela. " +
+  "O detalhamento, com o que falta em cada fase, está na seção 9.",
+], "blue"));
 
 body.push(h1("2. Visão geral do cronograma"));
 body.push(...figure("09_roadmap.png", "Figura 1. Cronograma de doze meses, da fundação à consolidação.", 640));
@@ -192,6 +200,8 @@ body.push(table(["Item", "Fase 1", "Regime pleno", "Observação"], [2600, 2200,
 body.push(p("A principal alavanca de custo é a política de ciclo de vida do armazenamento de objetos: " +
   "artefatos antigos migram para classes de acesso menos frequente sem perda de disponibilidade para " +
   "auditoria, o que mantém o custo da prova sob controle mesmo com crescimento permanente."));
+body.push(p("Na Fase 1, a ADR-026 leva esses itens a custo zero com planos gratuitos (seção 9.5). O primeiro " +
+  "gasto previsto é o domínio próprio; o seguinte, armazenamento de objetos além de 10 GB."));
 
 body.push(pageBreak());
 body.push(h1("7. Decisões que precisam ser tomadas antes de começar"));
@@ -228,10 +238,89 @@ body.push(callout("O erro mais provável neste plano", [
   "pior que um que cobre metade e acerta — porque o primeiro perde a confiança que é seu único ativo.",
 ], "amber"));
 
+
+// ============================================================ 9. Situação
+body.push(h1("9. Situação em 7 de outubro de 2026", { novaPagina: true }));
+body.push(p("As seções anteriores são o plano. Esta seção registra onde o projeto está, entregável por " +
+  "entregável, para que o replanejamento da seção 8 parta de fatos e não de impressão."));
+
+body.push(h2("9.1 Fase 0 — Fundação: concluída"));
+body.push(table(["Entregável", "Situação"], [5200, 4400], [
+  ["Monorepo e integração contínua", "Concluído: vocabulário, testes em Python 3.11 a 3.13 com cobertura mínima de 80%, ruff, migração no PostgreSQL e portal"],
+  ["Esquema canônico e primeira migração", "Concluído: entidades do DOC-05 (seção 8) e migração 0001 testada no PostgreSQL 16"],
+  ["Camada bronze", "Concluído: disco local e armazenamento de objetos S3 com Object Lock (ADR-018)"],
+  ["Verificador de vocabulário no CI", "Concluído; cobre também o código da aba Eleições e os textos do portal"],
+  ["ADR-001 a ADR-010", "Concluído; ADR-011 a ADR-026 registradas durante a implementação, todas como propostas"],
+  ["Ambiente local por um comando", "Concluído: make ambiente (PostgreSQL e MinIO)"],
+  ["Critério de saída (M1)", "Cumprido e verificado por teste: artefato coletado, guardado com hash e recuperado pelo identificador"],
+], { size: 17 }));
+
+body.push(h2("9.2 Fase 1 — Espinha dorsal nacional: núcleo pronto"));
+body.push(table(["Entregável", "Situação"], [5200, 4400], [
+  ["Conector PNCP (contratações, contratos, atas, amparo legal, incremental)", "Concluído, com coleta por publicação e por atualização; itens e resultados com conector e normalizador prontos"],
+  ["Conector SICONFI com lista de entes ausentes", "Entes e extrato de entregas concluídos, com a avaliação da LRF; RREO, RGF e DCA com conector pronto e normalização pendente"],
+  ["Portal da Transparência (CGU), com CEIS, CNEP e CEPIM", "Pendente (exige token)"],
+  ["Base pública de CNPJ da Receita Federal", "Pendente"],
+  ["Cadastro de entes do IBGE com população e porte", "Concluído"],
+  ["Normalização com qualidade e quarentena", "Concluída para PNCP, SICONFI e IBGE; silver idempotente, reconstruível do bronze"],
+  ["Grupos de pares", "Pendente"],
+  ["Painel operacional", "Pendente"],
+  ["Parâmetros legais verificados", "Concluído além do previsto: limites de dispensa de 2021 a 2026, fator do § 2º e acréscimos do art. 125, conferidos no Planalto"],
+  ["Critério de saída (três exercícios e relatório de cobertura)", "Não iniciado. A hospedagem está decidida (ADR-026); faltam o projeto no Supabase e levar a coleta de contratações para a nuvem"],
+], { size: 17 }));
+body.push(spacer(80));
+body.push(callout("Antes da Fase 2", [
+  "Revisar as ADRs 011 a 026. Resolver a divergência da regra B-01 com o art. 75, § 1º, da Lei 14.133 " +
+  "(ADR-022): nenhuma regra da família B deve ser implementada antes dessa revisão metodológica e jurídica.",
+  "Definir a fonte de \"quem autorizou o ato\": a API do PNCP não publica o agente (ADR-017), e o DOC-08 " +
+  "exige essa informação para publicar indício.",
+], "amber"));
+
+body.push(h2("9.3 Trilha paralela: aba Eleições"));
+body.push(p("A aba Eleições não estava no plano original. Entrou como trilha paralela porque não disputa o " +
+  "caminho crítico: usa só a camada bronze, a identificação da coleta e o cadastro de entes, e não depende do " +
+  "motor de detecção (ADR-024). O detalhamento está no DOC-12."));
+body.push(table(["Item", "Situação"], [5200, 4400], [
+  ["Coleta ao vivo do sistema de resultados do TSE", "Concluída e ensaiada em apuração simulada"],
+  ["Eleições passadas pelos dados abertos (1994 a 2024, por município)", "Processamento concluído e testado nos três layouts"],
+  ["Eleições de 1933 a 1990 (só por UF, como o TSE publica)", "Concluído: os 19 anos lidos e verificados com os dados reais completos (ADR-025)"],
+  ["Carga completa num comando (lumen eleicoes preparar; preparar.cmd no Windows)", "Concluído; retomável. A carga numa máquina leva horas na primeira vez"],
+  ["Carga, publicação e portal na nuvem, sem custo (ADR-026)", "Implementado e testado: publicação no R2 só do que mudou, carga retomável no GitHub Actions, portal no Cloudflare Pages. Faltam as contas e os segredos"],
+  ["Portal estático: mapa interativo, candidatos, panorama, evolução, busca, modo TV", "Concluído; mapa e cadastro de municípios vêm com o Lumen"],
+  ["Domínio próprio para o portal e os feeds", "Pendente: depende do nome definitivo (seção 7)"],
+  ["Ensaio em infraestrutura real antes do 2º turno de 2026", "Pendente"],
+  ["Contexto eleitoral nas telas de contratação (família K)", "Fase 2 em diante"],
+], { size: 17 }));
+
+body.push(h2("9.4 Efeito no cronograma"));
+body.push(p("Os entregáveis pendentes da Fase 1 (CGU, Receita, grupos de pares e painel) são os de menor " +
+  "risco técnico: fontes com documentação estável ou arquivos completos. O risco de prazo estava no critério " +
+  "de saída, que exige infraestrutura para a carga histórica. A ADR-026 resolve a hospedagem sem custo; o que " +
+  "resta é trabalho técnico (levar a coleta de contratações para o GitHub Actions, como a das eleições) e " +
+  "criar as contas. A decisão não técnica que sobra é o domínio, que depende do nome definitivo (seção 7)."));
+
+body.push(h2("9.5 Hospedagem sem custo (ADR-026)"));
+body.push(p("Nenhum banco gratuito comporta o Lumen inteiro: só as eleições por município passam de 500 MB em " +
+  "linhas de banco, e a base de CNPJ da Receita tem dezenas de GB. Por isso cada tipo de dado vai para o " +
+  "serviço gratuito que lhe serve. Limites verificados em 7 de outubro de 2026."));
+body.push(table(["Serviço", "O que guarda ou executa", "Limite gratuito", "Sinal para a primeira despesa"], [1900, 3200, 2400, 2100], [
+  ["Cloudflare R2", "Feeds das eleições (bucket público), estado das cargas (privado); depois, Parquet das contratações e a prova com trava de bucket", "10 GB-mês, 1 milhão de escritas e 10 milhões de leituras por mês; saída grátis", "Passar de 10 GB: US$ 0,015 por GB-mês"],
+  ["Cloudflare Pages", "Portal estático (os feeds ficam no R2)", "Até 20.000 arquivos por site e 25 MiB por arquivo", "Domínio próprio (registro pago à parte)"],
+  ["GitHub Actions", "Cargas agendadas e retomáveis", "2.000 minutos por mês em repositório privado; 6 horas por execução", "Cargas diárias longas de várias fontes"],
+  ["Supabase Free", "Núcleo transacional: entes, fontes, indícios, evidências, revisão e contestação (migração 0001)", "500 MB de banco; pausa após 1 semana sem uso", "Passar de 500 MB: plano Pro"],
+], { size: 16 }));
+body.push(spacer(80));
+body.push(p("O projeto do Supabase fica numa organização própria do Lumen, nunca na de uma empresa que o " +
+  "mantenedor atende. Os dados volumosos e só de leitura ficam em Parquet no R2, consultados com DuckDB; entra " +
+  "no banco o que uma revisão de indício precisa consultar com transação."));
+
 L.buildDoc({
   codigo: "DOC-10",
   titulo: "Roadmap",
   subtitulo: "Fases, marcos, esforço, custos e critérios de replanejamento",
+  meta: { versao: "1.3", data: "7 de outubro de 2026",
+    situacao: "Plano aprovado, com a situação de cada fase em outubro de 2026 (seção 9)",
+    verificado: "outubro de 2026" },
   body,
   outFile: "../docs/DOC-10_Roadmap.docx",
 });

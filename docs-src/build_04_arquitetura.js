@@ -282,10 +282,29 @@ body.push(callout("Alarme mais importante do sistema", [
   "de variação de volume por fonte é tratado como crítico, no mesmo nível de uma falha de coleta.",
 ], "amber"));
 
+body.push(h1("9. Implantação sem custo na Fase 1"));
+body.push(p("Os containers da seção 2 descrevem papéis, não fornecedores. Enquanto o projeto não tem " +
+  "orçamento, cada papel roda num plano gratuito (ADR-026). A troca por um serviço pago não muda o código: " +
+  "o armazenamento é S3 compatível, o banco é PostgreSQL e os dados analíticos são Parquet."));
+body.push(table(["Container", "Na Fase 1", "Limite que pede a primeira despesa"], [2400, 4200, 3000], [
+  ["Armazenamento de objetos", "Cloudflare R2: feeds públicos, estado das cargas e, quando a coleta sair do computador local, a prova com trava de bucket", "10 GB-mês somados"],
+  ["Lakehouse analítico", "Parquet no R2, consultado com DuckDB", "Os mesmos 10 GB"],
+  ["Banco de domínio", "Supabase gratuito, em organização própria do projeto, com a migração 0001", "500 MB de banco"],
+  ["Orquestrador", "GitHub Actions agendado, com cargas retomáveis e prazo por execução; o Dagster entra quando houver máquina permanente", "2.000 minutos por mês em repositório privado"],
+  ["Portal web", "Cloudflare Pages, site estático", "Domínio próprio"],
+  ["Índice de busca e API pública", "Ainda não implantados: entram nas fases seguintes (DOC-10)", "—"],
+], { size: 17 }));
+body.push(spacer(80));
+body.push(p("Os segredos ficam nos segredos do GitHub Actions e em variáveis de ambiente, nunca no repositório " +
+  "(seção 7). O passo a passo da configuração está no DOC-12, seção 9.5."));
+
 L.buildDoc({
   codigo: "DOC-04",
   titulo: "Arquitetura",
   subtitulo: "Estilo, containers, decisões registradas e estratégia de escala",
+  meta: { versao: "1.1", data: "7 de outubro de 2026",
+    situacao: "Documento base; seção 9 com a implantação da Fase 1 (ADR-026)",
+    verificado: "setembro de 2026 (os limites da seção 9, em outubro de 2026)" },
   body,
   outFile: "../docs/DOC-04_Arquitetura.docx",
 });

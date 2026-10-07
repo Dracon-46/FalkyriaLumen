@@ -1,0 +1,41 @@
+flowchart TB
+    classDef fonte fill:#1F3864,stroke:#0d1b33,color:#ffffff
+    classDef proc fill:#2E75B6,stroke:#1f4e79,color:#ffffff
+    classDef prova fill:#A0522D,stroke:#5c2f18,color:#ffffff
+    classDef feed fill:#548235,stroke:#375623,color:#ffffff
+    classDef web fill:#7F7F7F,stroke:#404040,color:#ffffff
+    classDef grp fill:#FAFAFA,stroke:#BFBFBF,color:#404040
+
+    subgraph F["Fontes oficiais"]
+        direction LR
+        F1["Sistema de resultados do TSE<br/>resultados.tse.jus.br/oficial<br/>(eleição em andamento e recentes)"]:::fonte
+        F2["Dados abertos do TSE<br/>CKAN + CDN de ZIPs<br/>(1933 em diante; até 1990, só por UF)"]:::fonte
+        F3["IBGE<br/>malhas v3 e localidades"]:::fonte
+        F1 ~~~ F2 ~~~ F3
+    end
+
+    subgraph C["lumen eleicoes (Python, só biblioteca padrão)"]
+        direction LR
+        C0["preparar<br/>tudo em ordem, retomável:<br/>referências, portal, ao-vivo, histórico"]:::proc
+        C1["ao-vivo<br/>coletor com GET condicional,<br/>fila de municípios e orçamento"]:::proc
+        C2["historico baixar / processar<br/>download retomável; 1994+: zona → município<br/>→ UF → Brasil; 1933 a 1990: por UF"]:::proc
+        C3["municipios / mapas<br/>cadastro TSE ↔ IBGE e TopoJSON<br/>(cópias embutidas no pacote)"]:::proc
+        C0 ~~~ C1 ~~~ C2 ~~~ C3
+    end
+
+    B[("Camada bronze<br/>resposta original + SHA-256<br/>e manifesto dos ZIPs")]:::prova
+    D[("Feeds JSON versão 1<br/>indice, resultado, panorama,<br/>historico, municipios, geo")]:::feed
+
+    subgraph P["Portal estático (Next.js export)"]
+        direction LR
+        P1["CDN ou servidor de arquivos<br/>Cache-Control: no-cache"]:::web
+        P2["Aba Eleições no navegador<br/>relê o feed a cada 15 s"]:::web
+    end
+
+    P1 --> P2
+    F -- "uma fonte por comando" --> C
+    C -- "cada resposta, com hash" --> B
+    C -- "só o que mudou" --> D
+    D -- "arquivos estáticos" --> P
+
+    class F,C,P grp
