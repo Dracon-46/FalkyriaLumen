@@ -1,8 +1,8 @@
-"""A migração 0001 aplicada num PostgreSQL de verdade.
+"""As migrações do domínio aplicadas num PostgreSQL de verdade, em ordem.
 
 Roda só com ``LUMEN_TESTE_PG`` apontando para um servidor onde o usuário pode
 criar bancos (o da CI é um serviço descartável). Cada execução cria um banco
-novo, aplica a migração e o apaga ao final.
+novo, aplica todas as migrações e o apaga ao final.
 
 O que se verifica aqui são as garantias que o banco impõe por conta própria,
 independentemente da aplicação: somente-anexação, máquina de estados e
@@ -22,7 +22,7 @@ import pytest
 pytestmark = pytest.mark.postgres
 
 DSN = os.environ.get("LUMEN_TESTE_PG")
-MIGRACAO = Path(__file__).resolve().parents[2] / "packages" / "canonico" / "migrations" / "0001_dominio.sql"
+MIGRACOES = sorted((Path(__file__).resolve().parents[2] / "packages" / "canonico" / "migrations").glob("*.sql"))
 
 if not DSN or not shutil.which("psql"):
     pytest.skip("defina LUMEN_TESTE_PG (e tenha psql) para rodar os testes de banco", allow_module_level=True)
@@ -64,8 +64,9 @@ def banco():
     r = _psql(DSN, f"CREATE DATABASE {nome}")
     assert r.returncode == 0, r.stderr
     dsn = _com_banco(DSN, nome)
-    r = _psql(dsn, arquivo=MIGRACAO)
-    assert r.returncode == 0, r.stderr
+    for migracao in MIGRACOES:
+        r = _psql(dsn, arquivo=migracao)
+        assert r.returncode == 0, f"{migracao.name}: {r.stderr}"
     r = _psql(dsn, SEMENTE)
     assert r.returncode == 0, r.stderr
     yield dsn
@@ -94,8 +95,17 @@ def _indicio(dsn, iid, score, severidade):
         'f1', {score}, '{severidade}', '{{}}', '{{"soma": "75000.00"}}', 'texto');""")
 
 
-def test_migracao_registrada(banco):
-    assert ok(banco, "SELECT versao FROM lumen.migracao") == "0001"
+def test_migracoes_registradas(banco):
+    versoes = ok(banco, "SELECT string_agg(versao, ',' ORDER BY versao) FROM lumen.migracao")
+    assert versoes == ",".join(m.name.split("_")[0] for m in MIGRACOES)
+
+
+def test_funcoes_de_gatilho_com_caminho_de_busca_fixo(banco):
+    # 0002: o search_path de quem dispara o gatilho não muda o que a função enxerga
+    sem_caminho = ok(banco, """SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'lumen' AND p.prorettype = 'trigger'::regtype
+        AND NOT coalesce(p.proconfig @> ARRAY['search_path=""'], false)""")
+    assert sem_caminho == "0"
 
 
 def test_prova_e_somente_anexacao(banco):
