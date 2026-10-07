@@ -213,6 +213,7 @@ body.push(table(["Arquivo", "Papel"], [3600, 6000], [
   [".github/workflows/eleicoes-ao-vivo.yml", "Noite da eleição, disparo manual com o id: ao-vivo --nuvem, publicando a cada passada."],
   [".github/workflows/portal-pages.yml", "Gera o portal com NEXT_PUBLIC_DADOS_ELEICOES apontando para o R2 e o publica no Cloudflare Pages, criando o projeto na primeira vez."],
   ["packages/canonico/migrations/0001_dominio.sql", "Esquema lumen no PostgreSQL: tabelas de prova somente-anexação, máquina de estados do indício por gatilho, aprovação por revisores distintos, papel lumen_app sem UPDATE/DELETE na prova."],
+  ["packages/canonico/migrations/0002_search_path.sql", "Caminho de busca vazio nas três funções de gatilho da 0001: o search_path de quem dispara o gatilho não muda o que a função enxerga (linter de segurança do Supabase)."],
   ["packages/deteccao/lumen_deteccao/parametros_legais.toml", "Parâmetros legais com vigência, fonte e data de verificação (limites de dispensa, acréscimos, prazos da LRF)."],
   ["packages/normalizacao/sql/silver_consolidada.sql", "Consolidação da silver no DuckDB: uma linha por id, a mais recente."],
   ["ferramentas/lint-vocabulario/vocabulario.json", "Lista normativa de termos proibidos, expressões técnicas permitidas, alvos e isenções."],
