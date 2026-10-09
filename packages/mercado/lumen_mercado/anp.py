@@ -6,11 +6,12 @@ municípios e publica o resultado como dado aberto, posto a posto, em arquivos s
     https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/arquivos/shpc/dsas/ca/ca-AAAA-0S.zip
 
 (até 2021, ``.csv`` direto; o primeiro semestre de 2022 tem nome próprio, ``precos-semestrais-ca.zip``).
-O gás de cozinha (GLP no botijão de 13 kg) tem série própria, no mesmo formato, na pasta ``glp``.
+O gás de cozinha (GLP no botijão de 13 kg) tem série própria, no mesmo formato, na pasta ``glp``, sempre em
+``.csv`` (``glp-AAAA-0S.csv``).
 
 A série semestral só sai depois que o semestre fecha. Para o presente, a ANP publica na página do
-levantamento das últimas semanas uma planilha por semana (``revendas_lpc_<início>_<fim>.xlsx``), também posto
-a posto, com combustíveis e GLP. Os nomes dos arquivos não seguem um padrão fixo, então os endereços são
+levantamento semanal uma planilha por semana (``revendas_lpc_<início>_<fim>.xlsx``), também posto a posto,
+com combustíveis e GLP; em outubro de 2026 a página citava 192 semanas, de setembro de 2022 em diante. Os nomes dos arquivos não seguem um padrão fixo, então os endereços são
 tirados da própria página (``links_semanais``), e a planilha é lida sem dependências (``xlsx``).
 
 É a melhor régua de mercado que existe para um item público: é oficial, independente de quem compra, tem
@@ -57,6 +58,7 @@ from .especificacao import (
 from .referencia import Evidencia, ReferenciaMercado
 
 BASE_SERIES = "https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/arquivos/shpc/dsas"
+PAGINA_SERIES = "https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/serie-historica-de-precos-de-combustiveis"
 PAGINA_SEMANAS = ("https://www.gov.br/anp/pt-br/assuntos/precos-e-defesa-da-concorrencia/precos/"
                   "levantamento-de-precos-de-combustiveis-ultimas-semanas-pesquisadas")
 FONTE_ID = "anp_precos_combustiveis"
@@ -78,20 +80,30 @@ _COLUNAS = {
 _MAX_LINHAS_ANTES_DO_CABECALHO = 30
 
 
+# Nomes fora do padrão, tirados da página da série histórica (conferidos em 9/10/2026).
+_NOMES_SEMESTRAIS = {
+    ("ca", 2022, 1): "precos-semestrais-ca.zip",
+    ("glp", 2022, 1): "precos-semestrais-glp-2022-01.csv",
+    ("glp", 2021, 1): "precos-semestrais-glp2021-01.csv",
+}
+
+
 def url_semestre(ano: int, semestre: int, serie: str = "ca") -> str:
     """Endereço do arquivo semestral de uma série da ANP: ``ca`` (combustíveis) ou ``glp`` (gás de cozinha).
 
-    A série de combustíveis tem o caso conhecido de 2022-1 (``precos-semestrais-ca.zip``); a de GLP segue o
-    mesmo padrão de nome (``glp-AAAA-0S``), a conferir pelo teste de contrato.
+    Combustíveis: ``ca-AAAA-0S.zip`` desde 2022 e ``.csv`` antes. Gás de cozinha: sempre ``.csv``
+    (``glp-AAAA-0S.csv``). Os semestres com nome próprio estão em ``_NOMES_SEMESTRAIS``; o teste de contrato
+    confere que a página da série continua citando o endereço montado aqui.
     """
     if semestre not in (1, 2):
         raise ValueError(f"semestre deve ser 1 ou 2: {semestre}")
     if serie not in SERIES:
         raise ValueError(f"série desconhecida: {serie!r}; use {sorted(SERIES)}")
-    if (ano, semestre) == (2022, 1):
-        return f"{BASE_SERIES}/{serie}/precos-semestrais-{serie}.zip"
-    extensao = "zip" if ano >= 2022 else "csv"
-    return f"{BASE_SERIES}/{serie}/{serie}-{ano}-{semestre:02d}.{extensao}"
+    nome = _NOMES_SEMESTRAIS.get((serie, ano, semestre))
+    if nome is None:
+        extensao = "zip" if serie == "ca" and ano >= 2022 else "csv"
+        nome = f"{serie}-{ano}-{semestre:02d}.{extensao}"
+    return f"{BASE_SERIES}/{serie}/{nome}"
 
 
 @dataclass(frozen=True)
@@ -219,6 +231,12 @@ def _uf(texto: str) -> str | None:
     return _UF_POR_NOME.get(re.sub(r"[^a-z]", "", sem_acento(texto)))
 
 
+def _cnpj(texto: str) -> str:
+    """CNPJ só com dígitos e com os zeros à esquerda que a planilha semanal perde (``198451000185``)."""
+    digitos = re.sub(r"\D", "", texto or "")
+    return digitos.zfill(14) if 8 <= len(digitos) <= 14 else digitos
+
+
 def _unidade_confere(produto: str, texto: str | None) -> bool:
     """A unidade de medida da linha é compatível com a do produto? Vazia ou desconhecida, aceita.
 
@@ -323,7 +341,7 @@ def _ler_linhas(linhas: Iterable[list[str]], resumo: ResumoLeitura) -> Iterator[
             resumo.descartar("unidade de outro produto")
             continue
         resumo.aproveitadas += 1
-        cnpj = re.sub(r"\D", "", linha[pos["cnpj"]]) if "cnpj" in pos else ""
+        cnpj = _cnpj(linha[pos["cnpj"]]) if "cnpj" in pos else ""
         yield Coleta(uf=uf, municipio=chave_municipio(linha[pos["municipio"]]), produto=produto, data=quando,
                      valor=valor, cnpj=cnpj or None,
                      revenda=linha[pos["revenda"]].strip() or None if "revenda" in pos else None)
