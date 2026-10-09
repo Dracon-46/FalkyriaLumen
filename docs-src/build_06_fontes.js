@@ -184,7 +184,10 @@ body.push(table(["Recurso", "Endereço", "Uso"], [2200, 4400, 3000], [
   ["População", "SIDRA, agregado 6579, variável 9324, último período", "Gasto per capita e grupo de pares"],
   ["Malhas v3", "servicodados.ibge.gov.br/api/v3/malhas, formato TopoJSON", "Mapa da aba Eleições; código IBGE em codarea"],
 ], { size: 17 }));
-body.push(p("Sem autenticação. Limite padrão do Lumen: 30 requisições por minuto."));
+body.push(p("Sem autenticação. Limite padrão do Lumen: 30 requisições por minuto. A API responde comprimida " +
+  "(Content-Encoding: gzip) mesmo quando o pedido não pede compressão, como o teste de contrato diário mostrou em " +
+  "outubro de 2026; a coleta desfaz a compressão de transporte antes de guardar no bronze e registra a codificação " +
+  "recebida no cabeçalho X-Lumen-Codificacao-Recebida."));
 
 body.push(h2("2.8 Referência de mercado de fora do governo (regra A-05)"));
 body.push(p("Fontes que não são compras públicas e servem de régua para o preço que o governo pagou (ADR-027). " +
