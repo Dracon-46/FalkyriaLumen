@@ -22,8 +22,25 @@ import sys
 from pathlib import Path
 
 from lumen_ingestao.bronze import ArmazemBronzeLocal
+from lumen_ingestao.coleta_http import ErroColeta
 
 from . import configuracao, etapas
+
+# Atributos que todo LogRecord tem; o que sobra veio em ``extra=`` e vai para a linha do log.
+_CAMPOS_PADRAO = set(vars(logging.LogRecord("", 0, "", 0, "", None, None))) | {"message", "asctime"}
+
+
+class FormatoComCampos(logging.Formatter):
+    """Formato do log que acrescenta os campos de ``extra=`` (fonte, url, status, tentativa) à mensagem.
+
+    Sem isso, ``tentativa_com_erro`` aparece no registro da CI sem dizer qual status a fonte respondeu.
+    """
+
+    def format(self, record: logging.LogRecord) -> str:
+        """A linha padrão seguida de ``campo=valor`` para cada campo extra, em ordem alfabética."""
+        linha = super().format(record)
+        extras = {k: v for k, v in vars(record).items() if k not in _CAMPOS_PADRAO}
+        return linha + "".join(f" {k}={v}" for k, v in sorted(extras.items()))
 
 
 def _lista_int(texto: str) -> tuple[int, ...]:
@@ -70,8 +87,9 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("mercado", help="referência de mercado (repassa para lumen_mercado)", add_help=False)
 
     args, resto = parser.parse_known_args(argv)
-    logging.basicConfig(level=logging.INFO if args.verboso else logging.WARNING,
-                        format="%(asctime)s %(name)s %(message)s")
+    saida_log = logging.StreamHandler()
+    saida_log.setFormatter(FormatoComCampos("%(asctime)s %(name)s %(message)s"))
+    logging.basicConfig(level=logging.INFO if args.verboso else logging.WARNING, handlers=[saida_log])
 
     if args.comando == "eleicoes":
         from lumen_eleicoes.cli import main as main_eleicoes
@@ -107,7 +125,14 @@ def main(argv: list[str] | None = None) -> int:
                 print("erro: siconfi_extrato exige --entes e --exercicio", file=sys.stderr)
                 return 2
             opcoes.update(entes=args.entes, exercicio=args.exercicio)
-        resumo = etapas.coletar(cfg, args.fonte, etapas.janela_de(args.de, args.ate), **opcoes)
+        try:
+            resumo = etapas.coletar(cfg, args.fonte, etapas.janela_de(args.de, args.ate), **opcoes)
+        except ErroColeta as erro:
+            # FonteSuspensa é um ErroColeta: a fonte falhou seguidas vezes e a coleta parou. O que já foi
+            # guardado continua no bronze; o detalhe de cada tentativa sai no log com -v.
+            print(json.dumps({"fonte": args.fonte, "interrompida": f"{type(erro).__name__}: {erro}"},
+                             ensure_ascii=False, indent=2))
+            return 1
         print(json.dumps({"fonte": args.fonte, "listados": resumo.listados,
                           "guardados": len(resumo.guardados), "conteudos_novos": resumo.conteudos_novos,
                           "respostas_de_erro": resumo.respostas_de_erro, "falhas": resumo.falhas},
