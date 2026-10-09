@@ -6,9 +6,11 @@ Exemplos::
     lumen coletar pncp_contratos --de 2026-09-01 --ate 2026-09-07
     lumen coletar ibge_localidades --de 2026-10-05
     lumen coletar siconfi_extrato --de 2026-10-05 --entes 4319604,3550308 --exercicio 2025
+    lumen coletar pncp_itens --de 2026-03-01 --ate 2026-03-31 --objeto "combust|gasolina|diesel"
     lumen normalizar                      # bronze inteiro → silver
     lumen bronze verificar                # reconfere o hash de toda a prova
     lumen eleicoes ...                    # aba Eleições (ver lumen_eleicoes)
+    lumen mercado ...                     # referência de mercado fora do governo (ver lumen_mercado)
 """
 
 from __future__ import annotations
@@ -37,7 +39,9 @@ def _lista_str(texto: str) -> tuple[str, ...]:
 def main(argv: list[str] | None = None) -> int:
     """Ponto de entrada do comando ``lumen``: interpreta os argumentos e despacha para a etapa pedida.
 
-    O subcomando ``eleicoes`` é repassado inteiro ao CLI de ``lumen_eleicoes``; os demais leem a
+    Os subcomandos ``eleicoes`` e ``mercado`` são repassados inteiros aos CLIs de ``lumen_eleicoes`` e
+    ``lumen_mercado``; ``coletar pncp_itens`` busca os itens dos processos da silver publicados na janela
+    (e cujo objeto casa com ``--objeto``, quando dado). Os demais leem a
     configuração e imprimem o resumo em JSON. O código de saída é 2 para configuração ou argumento ausente e
     1 quando a coleta tem falhas ou o bronze tem conteúdo corrompido, para que scripts e a CI percebam.
     """
@@ -47,12 +51,14 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="comando", required=True)
 
     p = sub.add_parser("coletar", help="coleta uma fonte para o bronze")
-    p.add_argument("fonte", choices=sorted(etapas.FABRICAS))
+    p.add_argument("fonte", choices=sorted([*etapas.FABRICAS, "pncp_itens"]))
     p.add_argument("--de", required=True, help="AAAA-MM-DD")
     p.add_argument("--ate", help="AAAA-MM-DD (padrão: igual a --de)")
     p.add_argument("--modalidades", type=_lista_int, help="só PNCP contratações: códigos separados por vírgula")
     p.add_argument("--entes", type=_lista_str, help="só SICONFI extrato: códigos IBGE")
     p.add_argument("--exercicio", type=int, help="só SICONFI extrato")
+    p.add_argument("--objeto", help="só PNCP itens: expressão procurada no objeto dos processos da silver")
+    p.add_argument("--sem-resultados", action="store_true", help="só PNCP itens: não busca os resultados")
 
     p = sub.add_parser("normalizar", help="bronze → silver (idempotente)")
     p.add_argument("--fontes", type=_lista_str)
@@ -61,6 +67,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("acao", choices=["verificar", "listar"])
 
     sub.add_parser("eleicoes", help="aba Eleições (repassa para lumen_eleicoes)", add_help=False)
+    sub.add_parser("mercado", help="referência de mercado (repassa para lumen_mercado)", add_help=False)
 
     args, resto = parser.parse_known_args(argv)
     logging.basicConfig(level=logging.INFO if args.verboso else logging.WARNING,
@@ -69,6 +76,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.comando == "eleicoes":
         from lumen_eleicoes.cli import main as main_eleicoes
         return main_eleicoes(resto)
+    if args.comando == "mercado":
+        from lumen_mercado.cli import main as main_mercado
+        return main_mercado(["--config", args.config, *resto] if args.config else resto)
     if resto:
         parser.error(f"argumentos não reconhecidos: {' '.join(resto)}")
 
@@ -77,6 +87,16 @@ def main(argv: list[str] | None = None) -> int:
     except configuracao.ConfiguracaoAusente as erro:
         print(f"erro: {erro}", file=sys.stderr)
         return 2
+
+    if args.comando == "coletar" and args.fonte == "pncp_itens":
+        janela = etapas.janela_de(args.de, args.ate)
+        processos = etapas.processos_da_silver(cfg, de=janela.inicio, ate=janela.fim, objeto=args.objeto)
+        resumo = etapas.coletar_itens(cfg, processos, com_resultados=not args.sem_resultados)
+        print(json.dumps({"fonte": "pncp_itens", "processos": len(processos), "listados": resumo.listados,
+                          "guardados": len(resumo.guardados), "conteudos_novos": resumo.conteudos_novos,
+                          "respostas_de_erro": resumo.respostas_de_erro, "falhas": resumo.falhas},
+                         ensure_ascii=False, indent=2))
+        return 1 if resumo.falhas else 0
 
     if args.comando == "coletar":
         opcoes: dict = {}

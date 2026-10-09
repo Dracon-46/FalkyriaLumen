@@ -3,16 +3,21 @@
 from __future__ import annotations
 
 import logging
+import re
+import unicodedata
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Callable, Iterable
 
 from lumen_ingestao.adaptadores.api.ibge import FonteIbgeLocalidades, FonteIbgePopulacao
 from lumen_ingestao.adaptadores.api.pncp import (
+    BASE_PNCP,
     MODALIDADES_PNCP,
+    ChaveCompra,
     FontePncpAtas,
     FontePncpContratacoes,
     FontePncpContratos,
+    FontePncpItens,
 )
 from lumen_ingestao.adaptadores.api.siconfi import FonteSiconfiEntes, FonteSiconfiExtrato
 from lumen_ingestao.bronze import ArmazemBronze, ArmazemBronzeLocal, RegistroColeta
@@ -23,7 +28,7 @@ from lumen_normalizacao import ibge as n_ibge
 from lumen_normalizacao import pncp as n_pncp
 from lumen_normalizacao import siconfi as n_siconfi
 from lumen_normalizacao.qualidade import ResultadoNormalizacao
-from lumen_normalizacao.silver import EscritorSilver
+from lumen_normalizacao.silver import EscritorSilver, consolidar, ler_entidade
 
 from .configuracao import VERSAO_LUMEN, Configuracao
 
@@ -70,6 +75,68 @@ def coletar(cfg: Configuracao, fonte_id: str, janela: Janela, armazem: ArmazemBr
     return resumo
 
 
+# ------------------------------------------------------------------ itens das contratações
+
+def sem_acento(texto: str) -> str:
+    """Texto em minúsculas e sem acentos, para comparar descrições escritas de jeitos diferentes."""
+    decomposto = unicodedata.normalize("NFKD", texto or "")
+    return "".join(c for c in decomposto if not unicodedata.combining(c)).lower()
+
+
+def processos_da_silver(cfg: Configuracao, *, de: date | None = None, ate: date | None = None,
+                        objeto: str | None = None) -> list[dict]:
+    """Processos de contratação já normalizados, consolidados (um por id), filtrados por data e objeto.
+
+    ``de`` e ``ate`` comparam a data de publicação no PNCP, com as duas pontas inclusivas. ``objeto`` é uma
+    expressão regular procurada no objeto da compra sem acento e sem caixa (``combust|gasolina``).
+    """
+    padrao = re.compile(sem_acento(objeto)) if objeto else None
+    escolhidos = []
+    for p in consolidar(ler_entidade(cfg.silver, "processo_contratacao")):
+        publicado = date.fromisoformat(p["data_publicacao"])
+        if (de and publicado < de) or (ate and publicado > ate):
+            continue
+        if padrao and not padrao.search(sem_acento(p.get("objeto") or "")):
+            continue
+        escolhidos.append(p)
+    return escolhidos
+
+
+def coletar_itens(cfg: Configuracao, processos: Iterable[dict], armazem: ArmazemBronze | None = None,
+                  *, com_resultados: bool = True, base: str = BASE_PNCP) -> ResumoColeta:
+    """Coleta para o bronze os itens (e os resultados) dos processos dados, lidos da silver.
+
+    É a coleta sob demanda da família A: as contratações chegam primeiro pela janela de publicação, e só
+    as que interessam (por exemplo, as de combustível) têm os itens buscados. Processo cuja chave não é um
+    ``numeroControlePNCP`` de contratação fica de fora.
+    """
+    compras = []
+    for p in processos:
+        try:
+            compras.append(ChaveCompra.de_numero_controle(p["chave_origem"]))
+        except (KeyError, ValueError):
+            continue
+    armazem = armazem or ArmazemBronzeLocal(cfg.bronze)
+    fonte = FontePncpItens(cliente(cfg, FontePncpItens.fonte_id), compras, com_resultados=com_resultados, base=base)
+    hoje = date.today()
+    return coletar_janela(fonte, Janela(hoje, hoje), armazem)
+
+
+# Itens e resultados vêm de /orgaos/<cnpj>/compras/<ano>/<sequencial>/itens[/<n>/resultados]: o processo
+# a que pertencem só aparece no caminho da URL.
+_URL_ITENS = re.compile(r"/orgaos/(?P<cnpj>[0-9A-Z]{14})/compras/(?P<ano>\d{4})/(?P<seq>\d+)/itens"
+                        r"(?P<resultados>/\d+/resultados)?/?(?:\?.*)?$")
+
+
+def chave_da_url_itens(url: str) -> tuple[str, bool] | None:
+    """``numeroControlePNCP`` do processo e se a URL é de resultados; None se não for URL de itens."""
+    m = _URL_ITENS.search(url or "")
+    if not m:
+        return None
+    chave = ChaveCompra(cnpj=m.group("cnpj"), ano=int(m.group("ano")), sequencial=int(m.group("seq")))
+    return chave.numero_controle, bool(m.group("resultados"))
+
+
 # ------------------------------------------------------------------ normalização
 
 def _normalizador_de(registro: RegistroColeta) -> Callable[[bytes, str], ResultadoNormalizacao] | None:
@@ -87,6 +154,13 @@ def _normalizador_de(registro: RegistroColeta) -> Callable[[bytes, str], Resulta
         return lambda c: n_pncp.normalizar_contratos(c, **kw())
     if f.startswith("pncp_atas"):
         return lambda c: n_pncp.normalizar_atas(c, **kw())
+    if f == "pncp_itens":
+        achado = chave_da_url_itens(url)
+        if achado is None:
+            return None
+        chave, de_resultados = achado
+        funcao = n_pncp.normalizar_resultados if de_resultados else n_pncp.normalizar_itens
+        return lambda c: funcao(c, processo_chave_origem=chave, **kw())
     if f == "ibge_localidades" and "/estados" in url:
         return lambda c: n_ibge.normalizar_estados(c, **kw())
     if f == "ibge_localidades" and "/municipios" in url:
@@ -154,4 +228,5 @@ def janela_de(de: str, ate: str | None = None) -> Janela:
     return Janela(inicio, date.fromisoformat(ate) if ate else inicio)
 
 
-__all__ = ["coletar", "normalizar", "janela_de", "cliente", "FABRICAS", "MODALIDADES_PNCP"]
+__all__ = ["coletar", "coletar_itens", "processos_da_silver", "chave_da_url_itens", "normalizar", "janela_de",
+           "cliente", "sem_acento", "FABRICAS", "MODALIDADES_PNCP"]

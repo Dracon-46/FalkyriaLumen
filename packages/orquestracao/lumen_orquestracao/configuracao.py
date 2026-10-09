@@ -42,6 +42,8 @@ LIMITES_PADRAO = {
     "siconfi_rreo": 50,
     "siconfi_rgf": 50,
     "siconfi_dca": 50,
+    "anp_precos_combustiveis": 10,
+    "varejo_mercadolivre": 30,
 }
 
 
