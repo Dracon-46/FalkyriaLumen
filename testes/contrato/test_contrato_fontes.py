@@ -22,6 +22,7 @@ from pathlib import Path
 import pytest
 
 from lumen_canonico import VERSAO_LUMEN
+from lumen_ingestao.coleta_http import decodificar_corpo
 
 pytestmark = pytest.mark.contrato
 
@@ -36,7 +37,7 @@ ONTEM = (date.today() - timedelta(days=1)).strftime("%Y%m%d")
 def _obter(url: str):
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
     with urllib.request.urlopen(req, timeout=60) as r:
-        corpo = r.read()
+        corpo, _ = decodificar_corpo(r.read(), dict(r.headers.items()))
         return r.status, (json.loads(corpo) if corpo.strip() else None)
 
 
@@ -99,7 +100,7 @@ def test_tse_resultados_mantem_esquema():
 def _obter_bytes(url: str, cabecalhos: dict | None = None) -> bytes:
     req = urllib.request.Request(url, headers={"User-Agent": UA, **(cabecalhos or {})})
     with urllib.request.urlopen(req, timeout=60) as r:
-        return r.read()
+        return decodificar_corpo(r.read(), dict(r.headers.items()))[0]
 
 
 def _primeiras_linhas_do_zip(url: str, n: int = 2) -> list[str]:
