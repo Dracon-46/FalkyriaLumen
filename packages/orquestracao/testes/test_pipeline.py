@@ -205,3 +205,31 @@ def test_cli_repassa_mercado(capsys):
     """`lumen mercado ...` vai inteiro para o CLI da referência de mercado."""
     assert main(["mercado", "reconhecer", "GASOLINA COMUM", "--unidade", "Litro"]) == 0
     assert json.loads(capsys.readouterr().out)["produto"] == "GASOLINA"
+
+
+def test_coleta_interrompida_pela_fonte(tmp_path, monkeypatch, capsys):
+    """Fonte suspensa depois de falhas seguidas: o comando diz que parou e sai com 1, sem rastro de exceção."""
+    from lumen_ingestao.cliente_http import FonteSuspensa
+
+    monkeypatch.setenv("LUMEN_CONTATO", "a@b.org")
+    monkeypatch.setenv("LUMEN_DADOS", str(tmp_path / "d"))
+
+    def suspender(*a, **k):
+        raise FonteSuspensa("pncp_contratacoes em recuo após 5 falhas seguidas")
+
+    monkeypatch.setattr(etapas, "coletar", suspender)
+    assert main(["coletar", "pncp_contratacoes", "--de", "2026-09-14"]) == 1
+    saida = json.loads(capsys.readouterr().out)
+    assert saida["interrompida"].startswith("FonteSuspensa: pncp_contratacoes em recuo")
+
+
+def test_log_mostra_os_campos_extras():
+    import logging
+
+    from lumen_orquestracao.cli import FormatoComCampos
+
+    registro = logging.LogRecord("lumen.coleta", logging.INFO, "x.py", 1, "tentativa_com_erro", None, None)
+    registro.status = 503
+    registro.url = "https://pncp.gov.br/x"
+    linha = FormatoComCampos("%(name)s %(message)s").format(registro)
+    assert linha == "lumen.coleta tentativa_com_erro status=503 url=https://pncp.gov.br/x"
