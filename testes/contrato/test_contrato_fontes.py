@@ -170,18 +170,22 @@ def test_totais_de_2022_conferem_com_o_tse(tmp_path):
 def test_mercado_livre_busca_mantem_os_campos_lidos():
     """Busca do varejo (ADR-027): a resposta tem ``results`` com os campos que ``varejo.ler_ofertas`` lê.
 
-    Com ``LUMEN_ML_TOKEN``, o pedido leva o token. Resposta 401/403 falha com a mensagem da loja, que diz se
-    o acesso passou a exigir outro tipo de credencial.
+    Sem credencial a busca responde 403 (visto em 9/10/2026): o teste fica pulado, com a mensagem da loja,
+    até o segredo ``LUMEN_ML_TOKEN`` existir. Com o token, 401/403 falha: a credencial venceu ou não basta.
     """
     url = "https://api.mercadolibre.com/sites/MLB/search?q=notebook%20i5%208gb%20ssd%20256gb&limit=5"
     cabecalhos = {"User-Agent": UA, "Accept": "application/json"}
-    if os.environ.get("LUMEN_ML_TOKEN"):
-        cabecalhos["Authorization"] = f"Bearer {os.environ['LUMEN_ML_TOKEN']}"
+    token = os.environ.get("LUMEN_ML_TOKEN")
+    if token:
+        cabecalhos["Authorization"] = f"Bearer {token}"
     try:
         with urllib.request.urlopen(urllib.request.Request(url, headers=cabecalhos), timeout=60) as r:
             corpo = json.loads(r.read())
     except urllib.error.HTTPError as e:
-        pytest.fail(f"a busca respondeu {e.code}: {e.read()[:300]!r} — revisar a credencial do varejo")
+        mensagem = f"a busca respondeu {e.code}: {e.read()[:300]!r}"
+        if e.code in (401, 403) and not token:
+            pytest.skip(f"{mensagem}; a busca exige credencial: defina o segredo LUMEN_ML_TOKEN")
+        pytest.fail(f"{mensagem} — revisar a credencial do varejo")
     assert corpo.get("results"), "a busca não trouxe resultados"
     faltando = {"id", "title", "price", "currency_id", "condition", "permalink"} - set(corpo["results"][0])
     assert not faltando, f"campos sumiram da busca: {sorted(faltando)}"
@@ -189,11 +193,13 @@ def test_mercado_livre_busca_mantem_os_campos_lidos():
 
 @pytest.mark.parametrize("serie", ["ca", "glp"])
 def test_anp_serie_semestral_continua_publicada(serie):
-    """O arquivo semestral mais recente previsto continua no endereço que ``anp.url_semestre`` monta.
+    """A página da série histórica continua citando o arquivo semestral que ``anp.url_semestre`` monta.
 
-    A série ``glp`` (gás de cozinha) usa o padrão de nome da ``ca``; este teste é a conferência.
+    Lê a página em vez de pedir o arquivo: o servidor do gov.br recusa ``HEAD`` com 403, e o arquivo de
+    combustíveis tem perto de 9 MB. Os nomes fora do padrão (``precos-semestrais-glp2021-01.csv``) foram
+    tirados desta mesma página.
     """
-    from lumen_mercado.anp import url_semestre
+    from lumen_mercado.anp import PAGINA_SERIES, url_semestre
     hoje = date.today()
     # folga de dois meses depois do fim do semestre para a publicação
     if hoje.month >= 9:
@@ -202,12 +208,10 @@ def test_anp_serie_semestral_continua_publicada(serie):
         ano, semestre = hoje.year - 1, 2
     else:
         ano, semestre = hoje.year - 1, 1
-    req = urllib.request.Request(url_semestre(ano, semestre, serie), headers={"User-Agent": UA}, method="HEAD")
-    try:
-        with urllib.request.urlopen(req, timeout=60) as r:
-            assert r.status == 200
-    except urllib.error.HTTPError as e:
-        pytest.fail(f"série {serie} da ANP {ano}-{semestre} respondeu {e.code}: revisar url_semestre")
+    html = _obter_bytes(PAGINA_SERIES).decode("utf-8", errors="replace")
+    for a, s in ((ano, semestre), (2022, 1), (2021, 2)):
+        caminho = url_semestre(a, s, serie).split("/arquivos/", 1)[1]
+        assert caminho in html, f"a página da série não cita {caminho}: revisar url_semestre"
 
 
 def test_anp_pagina_semanal_lista_planilhas_recentes():
