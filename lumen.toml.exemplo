@@ -14,6 +14,8 @@ raiz = "dados"
 # evidência de que a fonte suporta (DOC-06, seção 5).
 # pncp_contratacoes = 60
 # siconfi_extrato = 50
+# anp_precos_combustiveis = 10
+# varejo_mercadolivre = 30
 
 [eleicoes]
 # Aba Eleições (DOC-12). Tudo opcional; os valores abaixo são os padrões,
@@ -55,3 +57,9 @@ raiz = "dados"
 # bucket = "lumen-eleicoes"
 # bucket_estado = "lumen-privado"
 # regiao = "auto"
+
+# Referência de mercado (regra A-05, ADR-027). Nada a configurar aqui: os
+# limiares estão em packages/mercado/lumen_mercado/parametros_mercado.toml. A
+# busca do varejo, quando a loja exigir credencial, usa a variável de ambiente
+# LUMEN_ML_TOKEN (nunca este arquivo). Os limites de requisição das duas fontes
+# ficam em [limites_rpm], acima.

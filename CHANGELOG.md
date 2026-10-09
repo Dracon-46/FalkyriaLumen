@@ -3,6 +3,57 @@
 Formato: o que mudou para quem usa e para quem desenvolve, por versão. As
 decisões que justificam cada mudança estão nas ADRs citadas.
 
+## 0.6.0 — 2026-10-09
+
+### Preço comparado com o mercado de fora do governo (regra A-05, ADR-027)
+
+- Pacote novo, `lumen_mercado`, com a regra A-05 em **modo silencioso**: para
+  cada item de compra pública reconhecido, a razão entre o preço homologado e a
+  mediana de uma referência de mercado no mesmo lugar e na mesma época. Nada é
+  publicado nem vira indício; o resultado é um relatório interno (`.jsonl`,
+  `.csv` e `resumo.md`) para calibração.
+- Combustível contra a série histórica de preços da ANP (posto a posto, por
+  semana e município, desde 2006): `lumen mercado anp baixar|resumo`. Município
+  sem amostra recua para a UF, marcado no relatório.
+- O presente também: `lumen mercado anp semanas --de --ate` acha na página do
+  levantamento as planilhas semanais (`revendas_lpc_*.xlsx`) e baixa as da
+  janela; a planilha é lida sem dependências (`lumen_mercado/xlsx.py`). A mesma
+  coleta lida no arquivo semanal e no semestral conta uma vez só, e arquivo
+  ilegível fica registrado no resumo sem parar a carga.
+- Gás de cozinha (GLP no botijão de 13 kg) contra o preço de revenda da ANP,
+  com limiar próprio (1,25, não calibrado); `anp baixar --series ca,glp`.
+  Vasilhame, botijão completo, outros tamanhos, granel e preço por quilo ficam
+  de fora.
+- Distribuição da razão para calibrar (`distribuicao.json` e tabela no
+  resumo): quantis por categoria, tipo de preço e escopo da referência, e a
+  fração dos itens acima de cada limiar candidato (1,10 a 2,00).
+- Informática padronizada (notebook, monitor, impressora) contra ofertas do
+  varejo pela API oficial do Mercado Livre, com coleta diária guardada no
+  bronze e data e hora do acesso (art. 23, § 1º, III, da Lei 14.133):
+  `lumen mercado varejo coletar|testar`. O formato e o acesso real ainda
+  precisam ser conferidos pela primeira coleta e pelo teste de contrato.
+- Reconhecimento conservador dos itens (`lumen mercado reconhecer`): unidade
+  coerente, atributos que definem o preço, exclusão de acessórios, serviços,
+  lubrificante, álcool 70%, cartão de abastecimento e gestão de frota.
+- Leitura da ANP mais estrita: UF pela sigla ou pelo nome do estado, unidade de
+  medida conferida com o produto (GLP por 45 kg não entra como P13), milésimo de
+  real arredondado em vez de truncado.
+- Itens do PNCP sob demanda: `lumen coletar pncp_itens --objeto` busca os itens
+  e resultados só dos processos da silver cujo objeto interessa, e a
+  normalização acha o processo pela URL do item.
+- Lojas sem API pública (Magazine Luiza, KaBuM, Pichau, comparadores de preço)
+  ficam de fora por decisão.
+- Fluxo `mercado-referencia.yml` (manual) roda a regra com dados reais, com a
+  série semestral, as planilhas semanais ou as duas, e guarda o relatório como
+  artefato privado; testes de contrato da busca do varejo, das séries ca e glp
+  e da página semanal da ANP.
+- Fluxos do GitHub Actions em `ubuntu-24.04` e nas versões das ações que rodam
+  em Node 24 (checkout v5, setup-python v6, setup-node v5, upload-artifact v6);
+  cobertura do `lumen_mercado` no CI; token opcional do varejo no teste de
+  contrato.
+- Documentação: ADR-027, DOC-07 1.2 (A-05), DOC-06 1.3 (seção 2.8), DOC-10 1.4,
+  DOC-11 1.3, README.
+
 ## 0.5.0 — 2026-10-07
 
 ### Na nuvem, sem custo e sem computador ligado (ADR-026)

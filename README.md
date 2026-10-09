@@ -235,6 +235,31 @@ Sem rede, `python -m lumen_eleicoes --saida packages/portal/public/dados/eleicoe
 feeds de exemplo com resultados oficiais de alguns estados e municípios (e de 1945, 1950 e 1989),
 com o mapa. Detalhes no DOC-12.
 
+### Referência de mercado (regra A-05, em modo silencioso)
+
+Compara o preço pago com uma régua de fora do governo (ADR-027): o preço de revenda
+da ANP para combustíveis e gás de cozinha (GLP P13) e ofertas do varejo, pela API
+oficial da loja, para informática padronizada. Nada é publicado: o resultado é um
+relatório interno até a calibração.
+
+```bash
+lumen coletar pncp_contratacoes --de 2026-05-04 --ate 2026-05-15 --modalidades 6,8
+lumen coletar ibge_localidades --de 2026-10-09        # nomes dos municípios
+lumen normalizar
+lumen coletar pncp_itens --de 2026-05-04 --ate 2026-05-15 --objeto "combust|gasolina|diesel|etanol|glp"
+lumen normalizar --fontes pncp_itens
+lumen mercado anp baixar --semestres 2026-1 --series ca,glp   # série histórica da ANP
+lumen mercado anp semanas --de 2026-09-01 --ate 2026-10-03    # ou as planilhas das últimas semanas
+lumen mercado comparar --de 2026-05-04 --ate 2026-05-15
+lumen mercado varejo testar --consulta "notebook i5 8gb ssd 256gb"
+lumen mercado reconhecer "ÓLEO DIESEL S10" --unidade Litro
+```
+
+O relatório fica em `dados/mercado/relatorio/` (`comparacoes.csv`, `.jsonl`,
+`distribuicao.json` com a razão por grupo para calibrar e `resumo.md`). Na nuvem, o fluxo `mercado-referencia.yml` faz o mesmo e guarda o
+relatório como artefato da execução. Lojas sem API pública (Magazine Luiza, KaBuM,
+Pichau, comparadores) ficam de fora por decisão: ver a ADR-027.
+
 ### Estrutura
 
 ```
@@ -245,6 +270,8 @@ packages/
   deteccao/       parâmetros legais datados e verificados
   conformidade/   avaliação das entregas obrigatórias ao SICONFI (LRF)
   orquestracao/   pipeline local e o comando `lumen`
+  mercado/        regra A-05: itens comparáveis, preço da ANP (semestral e semanal), varejo por API oficial,
+                  leitor de .xlsx sem dependências, relatório e distribuição para calibrar
   eleicoes/       aba Eleições: coletor do TSE, dados abertos (1933 a 2024), feeds, preparar,
                   mapa e cadastro embutidos, simulação, servidor local
   portal/         portal Next.js (aba Eleições; Contratações e Conformidade nas próximas fases)
@@ -294,7 +321,8 @@ Cobertura de 96% no Python. Todo módulo, classe e função tem documentação (
 
 ### Pendente
 
-- **Revisar as ADRs 011 a 026** (todas propostas, tomadas durante a implementação).
+- **Revisar as ADRs 011 a 027** (todas propostas, tomadas durante a implementação).
+- **Calibrar a regra A-05** sobre o relatório silencioso antes de qualquer publicação (ADR-027).
 - **Contas da hospedagem gratuita** (ADR-026): Cloudflare (R2 e Pages), segredos do GitHub e
   uma organização própria do projeto no Supabase para o núcleo (DOC-12, seção 9.5).
 - **Revisão metodológica e jurídica da regra B-01** frente ao art. 75, § 1º, da Lei 14.133

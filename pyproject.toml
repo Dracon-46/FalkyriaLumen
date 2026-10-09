@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "falkyria-lumen"
-version = "0.5.0"
+version = "0.6.0"
 description = "Monitoramento de contratações e despesas públicas do Brasil. Publica indícios para análise, nunca conclusões."
 requires-python = ">=3.11"
 readme = "README.md"
@@ -31,11 +31,14 @@ where = [
   "packages/conformidade",
   "packages/orquestracao",
   "packages/eleicoes",
+  "packages/mercado",
 ]
 include = ["lumen_*"]
 
 [tool.setuptools.package-data]
 lumen_deteccao = ["*.toml"]
+# Parâmetros da regra A-05 (ADR-027)
+lumen_mercado = ["*.toml"]
 # Malhas do IBGE e cadastro de municípios que vêm com a aba Eleições (dados/LEIAME.md)
 lumen_eleicoes = ["dados/*.json", "dados/*.md", "dados/geo/*.json"]
 
@@ -60,6 +63,7 @@ pythonpath = [
   "packages/conformidade",
   "packages/orquestracao",
   "packages/eleicoes",
+  "packages/mercado",
   "ferramentas/lint-vocabulario",
   "ferramentas/referencia",
 ]
@@ -71,6 +75,7 @@ testpaths = [
   "packages/conformidade/testes",
   "packages/orquestracao/testes",
   "packages/eleicoes/testes",
+  "packages/mercado/testes",
   "ferramentas/lint-vocabulario/testes",
   "ferramentas/referencia/testes",
   "testes/contrato",
