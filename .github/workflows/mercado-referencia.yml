@@ -10,8 +10,12 @@
 # - semestral: a série histórica, que sai depois do fim do semestre (em
 #   outubro de 2026, a mais recente é 2026-1). A janela precisa caber nos
 #   semestres informados.
-# - semanal: as planilhas das últimas semanas, tiradas da página do
-#   levantamento. Cobre o presente; a página guarda só as semanas recentes.
+# - semanal: as planilhas semanais, tiradas da página do levantamento. Cobre
+#   o presente e o passado recente (em outubro de 2026 a página citava 192
+#   semanas, de setembro de 2022 em diante), com combustíveis e GLP.
+#
+# A coleta do PNCP roda com -v: cada tentativa com erro sai no registro com o
+# status e a URL.
 #
 # Usa só o segredo LUMEN_CONTATO (User-Agent). Repositório privado: cada
 # execução consome minutos do plano (uma janela de duas semanas leva por volta
@@ -24,15 +28,15 @@ on:
     inputs:
       de:
         description: "Início da janela de publicação (AAAA-MM-DD)"
-        default: "2026-05-04"
+        default: "2026-09-14"
       ate:
         description: "Fim da janela (AAAA-MM-DD)"
-        default: "2026-05-15"
+        default: "2026-09-25"
       fonte_anp:
         description: "Preços da ANP: série semestral, planilhas semanais ou ambas"
         type: choice
         options: [semestral, semanal, ambas]
-        default: semestral
+        default: semanal
       semestres:
         description: "Semestres da ANP (AAAA-S, separados por vírgula; só na série semestral)"
         default: "2026-1"
@@ -85,13 +89,13 @@ jobs:
       - name: Municípios do IBGE (nomes)
         run: lumen coletar ibge_localidades --de "$(date +%F)"
       - name: Contratações do PNCP na janela
-        run: lumen coletar pncp_contratacoes --de "$DE" --ate "$ATE" --modalidades 6,8
+        run: lumen -v coletar pncp_contratacoes --de "$DE" --ate "$ATE" --modalidades 6,8
       - name: Normalizar
         run: lumen normalizar
       - name: Itens e resultados das compras do objeto
         continue-on-error: true
         run: |
-          lumen coletar pncp_itens --de "$DE" --ate "$ATE" --objeto "$OBJETO"
+          lumen -v coletar pncp_itens --de "$DE" --ate "$ATE" --objeto "$OBJETO"
           lumen normalizar --fontes pncp_itens
       - name: Comparar (regra A-05, modo silencioso)
         continue-on-error: true
