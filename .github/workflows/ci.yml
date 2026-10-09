@@ -6,6 +6,10 @@
 #
 # O repositório é privado: cada execução consome minutos do plano do GitHub.
 # A suíte inteira roda em poucos segundos, então o custo é baixo.
+#
+# Máquina fixa (ubuntu-24.04), não "latest": a troca de imagem do GitHub não
+# muda a versão do PostgreSQL, do Python ou do Node no meio de um ciclo. As
+# ações estão nas versões que rodam em Node 24.
 
 name: ci
 
@@ -24,11 +28,11 @@ concurrency:
 jobs:
   vocabulario:
     name: vocabulário controlado
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Verificar termos proibidos nos textos públicos
@@ -36,15 +40,15 @@ jobs:
 
   testes:
     name: testes (python ${{ matrix.python }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
         python: ["3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       - name: Dependências de desenvolvimento
@@ -54,17 +58,17 @@ jobs:
         run: >
           python -m pytest
           --cov=lumen_ingestao --cov=lumen_canonico --cov=lumen_deteccao --cov=lint_vocabulario
-          --cov=lumen_normalizacao --cov=lumen_conformidade --cov=lumen_orquestracao --cov=lumen_eleicoes --cov=referencia
+          --cov=lumen_normalizacao --cov=lumen_conformidade --cov=lumen_orquestracao --cov=lumen_eleicoes --cov=lumen_mercado --cov=referencia
           --cov-report=term-missing
           --cov-fail-under=80
 
   estilo:
     name: análise estática (ruff)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - run: python -m pip install ruff
@@ -72,7 +76,7 @@ jobs:
 
   banco:
     name: migrações no PostgreSQL
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     services:
       postgres:
@@ -85,8 +89,8 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U lumen" --health-interval 5s --health-retries 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - run: python -m pip install pytest
@@ -97,14 +101,14 @@ jobs:
 
   portal:
     name: portal (Next.js)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
       run:
         working-directory: packages/portal
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm

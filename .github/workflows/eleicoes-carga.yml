@@ -1,0 +1,77 @@
+# Carga das eleições na nuvem — ADR-026.
+#
+# Baixa e processa as eleições (sistema de resultados do TSE e dados abertos,
+# 1933 a 2024) numa máquina do GitHub, sem nenhum computador pessoal ligado,
+# e publica os feeds no Cloudflare R2, de onde o portal os lê.
+#
+# Retomável: o estado da carga fica no bucket privado. A primeira carga leva
+# mais que uma execução (2,3 GB de arquivos do TSE); --limite-minutos para a
+# carga antes do prazo da máquina (6 horas), com folga para terminar o ano em
+# andamento, e a execução seguinte continua de onde esta parou. Depois de tudo
+# pronto, cada execução só confere e termina em poucos minutos.
+#
+# Repositório privado: cada execução consome minutos do plano do GitHub
+# (2.000 por mês no gratuito). A primeira carga deve gastar algumas horas,
+# em duas ou três execuções; as diárias seguintes, poucos minutos.
+#
+# Configuração (Settings → Secrets and variables → Actions):
+#   secrets  LUMEN_CONTATO       e-mail do responsável pela coleta (User-Agent)
+#            R2_ENDPOINT         https://<id da conta>.r2.cloudflarestorage.com
+#            R2_CHAVE_ACESSO     chave de acesso da API S3 do R2
+#            R2_CHAVE_SECRETA    chave secreta da API S3 do R2
+#   variables R2_BUCKET_FEEDS    bucket público dos feeds (ex.: lumen-eleicoes)
+#             R2_BUCKET_ESTADO   bucket privado do estado (ex.: lumen-privado)
+
+name: eleicoes-carga
+
+on:
+  schedule:
+    - cron: "41 7 * * *"   # 04:41 em Brasília, todo dia
+  workflow_dispatch:
+    inputs:
+      anos:
+        description: "Anos dos dados abertos, separados por vírgula (vazio = todos)"
+        required: false
+        default: ""
+      sem_ao_vivo:
+        description: "Pular o sistema de resultados (eleição corrente)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Duas cargas ao mesmo tempo disputariam o índice publicado
+concurrency:
+  group: eleicoes-carga
+  cancel-in-progress: false
+
+jobs:
+  carga:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+    env:
+      LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
+      LUMEN_PUBLICACAO_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      LUMEN_PUBLICACAO_BUCKET: ${{ vars.R2_BUCKET_FEEDS }}
+      LUMEN_PUBLICACAO_BUCKET_ESTADO: ${{ vars.R2_BUCKET_ESTADO }}
+      LUMEN_S3_CHAVE_ACESSO: ${{ secrets.R2_CHAVE_ACESSO }}
+      LUMEN_S3_CHAVE_SECRETA: ${{ secrets.R2_CHAVE_SECRETA }}
+      LUMEN_ELEICOES_SAIDA: dados/eleicoes/feeds
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      - name: Carga (para sozinha antes do prazo; a próxima execução continua)
+        env:
+          ANOS: ${{ inputs.anos }}
+          SEM_AO_VIVO: ${{ inputs.sem_ao_vivo }}
+        run: |
+          set -- preparar --nuvem --sem-portal --sem-bronze --apagar-zips --limite-minutos 280
+          if [ -n "$ANOS" ]; then set -- "$@" --anos "$ANOS"; fi
+          if [ "$SEM_AO_VIVO" = "true" ]; then set -- "$@" --sem-ao-vivo; fi
+          python -m lumen_eleicoes "$@"

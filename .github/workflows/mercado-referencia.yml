@@ -1,0 +1,153 @@
+# Regra A-05 com dados reais, em modo silencioso — ADR-027.
+#
+# Disparo manual. Coleta as contratações do PNCP publicadas na janela
+# (pregão eletrônico e dispensa), os itens das que tratam de combustível e gás
+# de cozinha, o preço de revenda da ANP e grava o relatório de comparação como
+# artefato do fluxo (privado, sete dias) e no resumo da execução. Nada é
+# publicado.
+#
+# Duas fontes da ANP, escolhidas em "fonte_anp":
+# - semestral: a série histórica, que sai depois do fim do semestre (em
+#   outubro de 2026, a mais recente é 2026-1). A janela precisa caber nos
+#   semestres informados.
+# - semanal: as planilhas das últimas semanas, tiradas da página do
+#   levantamento. Cobre o presente; a página guarda só as semanas recentes.
+#
+# Usa só o segredo LUMEN_CONTATO (User-Agent). Repositório privado: cada
+# execução consome minutos do plano (uma janela de duas semanas leva por volta
+# de meia hora).
+
+name: mercado-referencia
+
+on:
+  workflow_dispatch:
+    inputs:
+      de:
+        description: "Início da janela de publicação (AAAA-MM-DD)"
+        default: "2026-05-04"
+      ate:
+        description: "Fim da janela (AAAA-MM-DD)"
+        default: "2026-05-15"
+      fonte_anp:
+        description: "Preços da ANP: série semestral, planilhas semanais ou ambas"
+        type: choice
+        options: [semestral, semanal, ambas]
+        default: semestral
+      semestres:
+        description: "Semestres da ANP (AAAA-S, separados por vírgula; só na série semestral)"
+        default: "2026-1"
+      series:
+        description: "Séries semestrais: ca (combustíveis) e/ou glp (gás de cozinha)"
+        default: "ca,glp"
+      objeto:
+        description: "Expressão procurada no objeto das compras"
+        default: "combust|gasolina|diesel|etanol|glp|gas de cozinha|botij"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mercado-referencia
+  cancel-in-progress: false
+
+jobs:
+  referencia:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    env:
+      LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
+      LUMEN_DADOS: dados
+      DE: ${{ inputs.de }}
+      ATE: ${{ inputs.ate }}
+      FONTE_ANP: ${{ inputs.fonte_anp }}
+      SEMESTRES: ${{ inputs.semestres }}
+      SERIES: ${{ inputs.series }}
+      OBJETO: ${{ inputs.objeto }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      - name: ANP — série semestral
+        if: inputs.fonte_anp != 'semanal'
+        continue-on-error: true
+        run: lumen mercado anp baixar --semestres "$SEMESTRES" --series "$SERIES"
+      - name: ANP — planilhas semanais da janela
+        if: inputs.fonte_anp != 'semestral'
+        continue-on-error: true
+        run: lumen mercado anp semanas --de "$DE" --ate "$ATE"
+      - name: ANP — o que foi lido
+        continue-on-error: true
+        run: lumen mercado anp resumo
+      - name: Municípios do IBGE (nomes)
+        run: lumen coletar ibge_localidades --de "$(date +%F)"
+      - name: Contratações do PNCP na janela
+        run: lumen coletar pncp_contratacoes --de "$DE" --ate "$ATE" --modalidades 6,8
+      - name: Normalizar
+        run: lumen normalizar
+      - name: Itens e resultados das compras do objeto
+        continue-on-error: true
+        run: |
+          lumen coletar pncp_itens --de "$DE" --ate "$ATE" --objeto "$OBJETO"
+          lumen normalizar --fontes pncp_itens
+      - name: Comparar (regra A-05, modo silencioso)
+        continue-on-error: true
+        run: lumen mercado comparar --de "$DE" --ate "$ATE" --saida relatorio
+      - name: Amostras para conferência do formato
+        if: always()
+        run: |
+          python - <<'EOF'
+          import io, zipfile
+          from pathlib import Path
+          from lumen_ingestao.bronze import ArmazemBronzeLocal
+          from lumen_mercado import xlsx
+          b = ArmazemBronzeLocal(Path("dados/bronze"))
+          vistos = set()
+          for r in b.listar_registros("anp_precos_combustiveis"):
+              _, c = b.recuperar(r.registro_id)
+              print("ANP", r.url_solicitada, r.status_http, len(c))
+              tipo = "xlsx" if xlsx.eh_xlsx(c) else "zip" if c[:2] == b"PK" else "csv"
+              if r.status_http != 200 or tipo in vistos:
+                  continue
+              vistos.add(tipo)
+              if tipo == "xlsx":
+                  for i, linha in enumerate(xlsx.linhas(c)):
+                      if i < 12 or 2000 <= i < 2003:
+                          print("XLSX", i, linha[:16])
+                      if i > 2003:
+                          break
+                  continue
+              if tipo == "zip":
+                  z = zipfile.ZipFile(io.BytesIO(c))
+                  print("ZIP", z.namelist())
+                  c = z.read(z.namelist()[0])
+              linhas = c.split(b"\n")
+              print("PRIMEIRAS LINHAS")
+              for l in linhas[:3]:
+                  print(repr(l[:400]))
+              print("LINHAS 2000-2003")
+              for l in linhas[2000:2004]:
+                  print(repr(l[:400]))
+          n = 0
+          for r in b.listar_registros("pncp_itens"):
+              if r.status_http == 200 and r.url_solicitada.endswith("/itens") and n < 2:
+                  _, c = b.recuperar(r.registro_id)
+                  print("ITENS", r.url_solicitada, c[:1500].decode("utf-8", "replace"))
+                  n += 1
+          EOF
+          head -c 3000 relatorio/comparacoes.csv || true
+      - name: Resumo
+        if: always()
+        run: |
+          if [ -f relatorio/resumo.md ]; then cat relatorio/resumo.md >> "$GITHUB_STEP_SUMMARY"; fi
+          if [ -f relatorio/distribuicao.json ]; then cat relatorio/distribuicao.json; fi
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: relatorio-a05
+          path: relatorio/
+          retention-days: 7
+          if-no-files-found: ignore

@@ -1,0 +1,62 @@
+# Publicação do portal no Cloudflare Pages — ADR-026.
+#
+# Gera o site estático (packages/portal) apontando para os feeds no R2 e o
+# publica no Cloudflare Pages a cada mudança do portal na main (ou à mão).
+#
+# Configuração (Settings → Secrets and variables → Actions):
+#   secrets   CLOUDFLARE_API_TOKEN   token com permissão "Cloudflare Pages: Edit"
+#             CLOUDFLARE_ACCOUNT_ID  id da conta Cloudflare
+#   variables LUMEN_URL_FEEDS        endereço público do bucket dos feeds
+#                                    (ex.: https://pub-xxxx.r2.dev, ou um domínio próprio)
+#             CF_PAGES_PROJETO       nome do projeto no Pages (ex.: lumen); o site
+#                                    fica em https://<nome>.pages.dev
+#
+# O projeto no Pages é criado na primeira execução. O bucket dos feeds precisa
+# liberar leitura (CORS, GET e HEAD) para o endereço do Pages; o passo a passo
+# está no README e no DOC-12, seção 9.5.
+
+name: portal-pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/portal/**"
+      - ".github/workflows/portal-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: portal-pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: packages/portal/package-lock.json
+      - name: Verificar e gerar o portal
+        working-directory: packages/portal
+        env:
+          NEXT_PUBLIC_DADOS_ELEICOES: ${{ vars.LUMEN_URL_FEEDS }}
+        run: |
+          npm ci
+          npm run verificar
+          npm run build
+      - name: Publicar no Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PROJETO: ${{ vars.CF_PAGES_PROJETO }}
+        run: |
+          # Na primeira vez cria o projeto; depois o comando só avisa que ele já existe
+          npx --yes wrangler@4 pages project create "$PROJETO" --production-branch=main || true
+          npx --yes wrangler@4 pages deploy packages/portal/out --project-name="$PROJETO" --branch=main
