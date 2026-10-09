@@ -105,6 +105,30 @@ body.push(...regra({
   fp: "Diferença real de volume contratado; custo logístico entre regiões distantes; prazos de entrega diferentes",
 }));
 
+body.push(...regra({
+  cod: "A-05", titulo: "Preço acima da referência de mercado de fora do governo",
+  pergunta: "O preço unitário pago está muito acima do que o mercado cobrava, no mesmo lugar e na mesma época, por um produto inequivocamente igual?",
+  metodo: "Razão entre o preço unitário homologado e a mediana de uma referência que não nasce de compra pública: o preço de revenda da ANP " +
+    "no município (ou, sem amostra, na UF) até 7 dias da data do resultado, para combustíveis e para o gás de cozinha no botijão de 13 kg; " +
+    "ofertas novas do varejo online, obtidas pela " +
+    "API oficial da loja, cujo título contém todos os atributos da especificação, para informática padronizada. O item só entra se a " +
+    "descrição e a unidade o identificam sem ambiguidade (ADR-027).",
+  parametros: "Limiar de 1,20 × a mediana em combustível, 1,25 × no gás de cozinha e 1,50 × no varejo; mínimo de 5 revendas no " +
+    "município, 10 na UF e 8 ofertas. Valores iniciais, não calibrados; a regra roda em modo silencioso, e o relatório traz a " +
+    "distribuição da razão por categoria, tipo de preço e escopo, com a fração acima de cada limiar candidato, para a calibração",
+  dados: "Itens e resultados do PNCP; série histórica e planilhas semanais de preços da ANP; ofertas do varejo guardadas no bronze com " +
+    "data e hora do acesso",
+  severidade: "A definir na calibração; enquanto silenciosa, não gera indício",
+  fp: "Entrega no local de uso (diesel no canteiro, combustível no tanque da frota, botijão na unidade); cartão de abastecimento e prazo de pagamento; " +
+    "município pequeno comparado com a mediana da UF; especificação superior à do anúncio; garantia, assistência técnica ou instalação " +
+    "embutidas no preço; variação brusca de preço entre a proposta e o resultado",
+}));
+body.push(callout("Por que uma régua de fora do governo", [
+  "A-01 a A-04 comparam o preço com o que o próprio poder público pagou ou tabelou. Quando quase todos pagam caro pelo mesmo item, " +
+  "a mediana entre órgãos sobe junto e nada destoa. A-05 traz a régua do mercado, que a Lei 14.133 também aceita como parâmetro de " +
+  "pesquisa de preços (art. 23, § 1º, III e V). Começa pelo combustível, cuja referência é oficial, histórica e sem ambiguidade de produto.",
+], "blue"));
+
 body.push(pageBreak());
 body.push(h1("3. Família B — Fracionamento e padrões de valor pequeno"));
 body.push(callout("A família mais importante deste catálogo", [
@@ -524,8 +548,8 @@ L.buildDoc({
   codigo: "DOC-07",
   titulo: "Motor de Detecção",
   subtitulo: "Catálogo de regras, fórmulas, limiares e tratamento de falso positivo",
-  meta: { versao: "1.1", data: "6 de outubro de 2026",
-    situacao: "Catálogo da versão 1.0 com as revisões pendentes registradas na Fase 1",
+  meta: { versao: "1.2", data: "9 de outubro de 2026",
+    situacao: "Catálogo da versão 1.0 com as revisões pendentes da Fase 1 e a regra A-05 (ADR-027)",
     verificado: "outubro de 2026" },
   body,
   outFile: "../docs/DOC-07_Motor_de_Deteccao.docx",

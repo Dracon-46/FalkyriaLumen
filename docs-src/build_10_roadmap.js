@@ -240,7 +240,7 @@ body.push(callout("O erro mais provável neste plano", [
 
 
 // ============================================================ 9. Situação
-body.push(h1("9. Situação em 7 de outubro de 2026", { novaPagina: true }));
+body.push(h1("9. Situação em 9 de outubro de 2026", { novaPagina: true }));
 body.push(p("As seções anteriores são o plano. Esta seção registra onde o projeto está, entregável por " +
   "entregável, para que o replanejamento da seção 8 parta de fatos e não de impressão."));
 
@@ -266,6 +266,8 @@ body.push(table(["Entregável", "Situação"], [5200, 4400], [
   ["Grupos de pares", "Pendente"],
   ["Painel operacional", "Pendente"],
   ["Parâmetros legais verificados", "Concluído além do previsto: limites de dispensa de 2021 a 2026, fator do § 2º e acréscimos do art. 125, conferidos no Planalto"],
+  ["Itens e resultados do PNCP no pipeline", "Concluído: coleta sob demanda dos processos da silver por objeto (lumen coletar pncp_itens)"],
+  ["Regra A-05: preço comparado com o mercado de fora do governo (antecipada da Fase 2)", "Em modo silencioso (ADR-027): combustível contra a série da ANP; informática contra o varejo pela API oficial, a validar; limiares não calibrados"],
   ["Critério de saída (três exercícios e relatório de cobertura)", "Não iniciado. A hospedagem está decidida (ADR-026); faltam o projeto no Supabase e levar a coleta de contratações para a nuvem"],
 ], { size: 17 }));
 body.push(spacer(80));
@@ -318,7 +320,7 @@ L.buildDoc({
   codigo: "DOC-10",
   titulo: "Roadmap",
   subtitulo: "Fases, marcos, esforço, custos e critérios de replanejamento",
-  meta: { versao: "1.3", data: "7 de outubro de 2026",
+  meta: { versao: "1.4", data: "9 de outubro de 2026",
     situacao: "Plano aprovado, com a situação de cada fase em outubro de 2026 (seção 9)",
     verificado: "outubro de 2026" },
   body,

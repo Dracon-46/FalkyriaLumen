@@ -186,6 +186,22 @@ body.push(table(["Recurso", "Endereço", "Uso"], [2200, 4400, 3000], [
 ], { size: 17 }));
 body.push(p("Sem autenticação. Limite padrão do Lumen: 30 requisições por minuto."));
 
+body.push(h2("2.8 Referência de mercado de fora do governo (regra A-05)"));
+body.push(p("Fontes que não são compras públicas e servem de régua para o preço que o governo pagou (ADR-027). " +
+  "Nenhuma delas é usada para afirmar nada sobre um ente: a regra A-05 roda em modo silencioso até a calibração."));
+body.push(table(["Fonte", "Endereço", "Formato e comportamento"], [2200, 3800, 3600], [
+  ["ANP — série histórica de preços de combustíveis", "gov.br/anp/.../dados-abertos/arquivos/shpc/dsas/ca/ca-AAAA-0S.zip (até 2021, .csv; o 1º semestre de 2022 é precos-semestrais-ca.zip)", "CSV com ;, uma linha por posto, produto e semana: UF, município, revenda e CNPJ, produto, data da coleta, valor de venda com vírgula decimal. Arquivo semestral, publicado depois do fim do semestre; desde 2006. Leitura tolerante a nome de coluna, separador e codificação."],
+  ["ANP — série histórica do gás de cozinha", "mesma pasta, série glp (glp-AAAA-0S), padrão de endereço a conferir pelo teste de contrato", "Mesmo formato da série de combustíveis, com o preço do botijão de 13 kg (R$ / 13 kg)."],
+  ["ANP — levantamento das últimas semanas", "gov.br/anp/.../precos/levantamento-de-precos-de-combustiveis-ultimas-semanas-pesquisadas; planilhas em arquivos-lpc/AAAA/revendas_lpc_<início>_<fim>.xlsx", "Planilha .xlsx por semana, posto a posto, com combustíveis e GLP: título antes do cabeçalho, UF pelo nome do estado, data como número de série do Excel, nomes de produto próprios (GASOLINA COMUM, ETANOL HIDRATADO, OLEO DIESEL S10). O nome do arquivo não segue padrão fixo (2026-08-30-2026-09-5): os endereços são tirados da página. A página guarda só as semanas recentes, por isso a planilha vai para o bronze ao ser baixada. Lida sem dependências (lumen_mercado/xlsx.py)."],
+  ["Mercado Livre — busca", "api.mercadolibre.com/sites/MLB/search?q=…", "JSON com results (id, title, price, currency_id, condition, permalink, seller, shipping). API oficial; a credencial, quando exigida, vem de LUMEN_ML_TOKEN. Só o preço de hoje: coleta diária guardada no bronze."],
+  ["Notas fiscais ao consumidor (Menor Preço/PR, Preço da Hora/BA)", "menorpreco.notaparana.pr.gov.br; precodahora.ba.gov.br", "Preço de venda real por código de barras e lugar; sem API pública. Pedido de acesso pela Lei de Acesso à Informação, a fazer."],
+], { size: 17 }));
+body.push(p("Fora por decisão: Magazine Luiza, KaBuM, Pichau e comparadores de preço (Zoom, Buscapé) não têm API " +
+  "pública de preços, e extrair o site contraria os termos de uso e as barreiras contra robôs (seção 5). " +
+  "Amazon (Creators API), AliExpress e Shopee (programas de afiliados) entram quando houver credencial."));
+body.push(p("Limites padrão: 10 requisições por minuto na ANP (arquivos grandes, poucas requisições) e 30 no " +
+  "varejo."));
+
 body.push(pageBreak());
 body.push(h1("3. Camada 2 — Estados e tribunais de contas"));
 body.push(p("As 27 unidades federativas possuem portais próprios com maturidade desigual. Os tribunais " +
@@ -312,7 +328,7 @@ body.push(table(["Fase", "Fontes integradas", "Cobertura resultante"], [1300, 43
 body.push(h1("7. Situação da integração (outubro de 2026)"));
 body.push(table(["Fonte", "Situação", "Observação"], [3000, 2400, 4200], [
   ["PNCP — contratações, contratos e atas (publicação e atualização)", "Integrado", "Coleta, bronze e normalização para a silver no pipeline padrão"],
-  ["PNCP — itens e resultados", "Conector e normalizador prontos", "Fora do pipeline padrão até a Fase 2, que usa os itens nas regras de preço"],
+  ["PNCP — itens e resultados", "Integrado sob demanda", "lumen coletar pncp_itens --objeto busca os itens só dos processos da silver que interessam (regra A-05)"],
   ["SICONFI — entes e extrato de entregas", "Integrado", "Base do cadastro e da conformidade (família I)"],
   ["SICONFI — RREO, RGF e DCA", "Conector pronto", "Normalização na Fase 2"],
   ["IBGE — localidades e população", "Integrado", "Cadastro de entes, população aplicada aos municípios"],
@@ -321,6 +337,9 @@ body.push(table(["Fonte", "Situação", "Observação"], [3000, 2400, 4200], [
   ["Portal da Transparência (CGU)", "Pendente", "Exige token; previsto na Fase 1"],
   ["Receita Federal — CNPJ", "Pendente", "Arquivos completos; base da família D"],
   ["TSE — prestação de contas", "Pendente", "Pré-requisito da K-01; revisão editorial antes de qualquer uso"],
+  ["ANP — preços de combustíveis e GLP", "Integrado (regra A-05)", "Série semestral (ca e glp) e planilhas semanais das últimas semanas; formato real a conferir pela primeira execução do fluxo mercado-referencia"],
+  ["Mercado Livre — busca", "Conector pronto, a validar", "Formato e acesso conferidos pela primeira coleta real e pelo teste de contrato"],
+  ["Notas fiscais ao consumidor (estados)", "Pendente", "Pedido pela Lei de Acesso à Informação"],
   ["Compras.gov.br, estados, tribunais de contas, municípios", "Planejado", "Fases 2 a 4, conforme a seção 6"],
 ], { size: 17 }));
 
@@ -343,8 +362,8 @@ L.buildDoc({
   codigo: "DOC-06",
   titulo: "Catálogo de Fontes",
   subtitulo: "Fontes por esfera, estratégia de cobertura nacional e coleta responsável",
-  meta: { versao: "1.2", data: "6 de outubro de 2026",
-    situacao: "Atualizado com o comportamento real das fontes da Fase 1 e as fontes da aba Eleições (inclusive 1933 a 1990)",
+  meta: { versao: "1.3", data: "9 de outubro de 2026",
+    situacao: "Atualizado com o comportamento real das fontes da Fase 1, as da aba Eleições e as de referência de mercado (seção 2.8)",
     verificado: "outubro de 2026" },
   body,
   outFile: "../docs/DOC-06_Catalogo_de_Fontes.docx",
