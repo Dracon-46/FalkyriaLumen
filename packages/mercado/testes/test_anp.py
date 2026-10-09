@@ -6,8 +6,9 @@ a UF pela sigla ou pelo nome, a unidade de cada produto, a mesma coleta lida em 
 de cada semestre, os links da página semanal e a referência por município com recuo para a UF.
 
 A planilha ``fixtures/revendas_lpc_amostra.xlsx`` foi gravada com openpyxl 3.1.5 no leiaute das planilhas
-semanais (título antes do cabeçalho, textos compartilhados, datas como número de série do Excel, UF pelo
-nome); a conferência contra a planilha real é o fluxo ``mercado-referencia.yml``.
+semanais reais, conferido na primeira execução do fluxo ``mercado-referencia.yml`` (9/10/2026): sete linhas
+de título antes do cabeçalho, CNPJ só com dígitos (às vezes como número, sem o zero à esquerda), UF pelo
+nome do estado, preço como número (``4.1900000000000004``) e data como número de série do Excel.
 """
 
 import io
@@ -26,7 +27,10 @@ def test_url_de_cada_semestre():
     assert anp.url_semestre(2026, 1).endswith("/ca/ca-2026-01.zip")
     assert anp.url_semestre(2021, 2).endswith("/ca/ca-2021-02.csv")
     assert anp.url_semestre(2022, 1).endswith("/ca/precos-semestrais-ca.zip")
-    assert anp.url_semestre(2026, 1, "glp").endswith("/glp/glp-2026-01.zip")
+    assert anp.url_semestre(2026, 1, "glp").endswith("/glp/glp-2026-01.csv")
+    assert anp.url_semestre(2022, 1, "glp").endswith("/glp/precos-semestrais-glp-2022-01.csv")
+    assert anp.url_semestre(2021, 1, "glp").endswith("/glp/precos-semestrais-glp2021-01.csv")
+    assert anp.url_semestre(2004, 2, "glp").endswith("/glp/glp-2004-02.csv")
     with pytest.raises(ValueError):
         anp.url_semestre(2026, 3)
     with pytest.raises(ValueError, match="série desconhecida"):
@@ -93,6 +97,8 @@ def test_planilha_semanal():
                                             "GNV", "GLP", "GLP"]
     primeira = coletas[0]
     assert (primeira.uf, primeira.municipio, primeira.data) == ("SP", "SAO PAULO", date(2026, 9, 29))
+    assert anp._cnpj("198451000185") == "00198451000185" == anp._cnpj(" 00.198.451/0001-85")
+    assert anp._cnpj("") == "" and anp._cnpj("123") == "123"
     assert primeira.cnpj == "11111111000101" and primeira.revenda == "AUTO POSTO UM LTDA"
     assert coletas[3].valor == Decimal("6.490")                  # 6.4899999999999993 da planilha
     glp = coletas[6:]
@@ -101,7 +107,8 @@ def test_planilha_semanal():
     assert resumo.cabecalho[0] == "CNPJ" and resumo.cabecalho[-1] == "DATA DA COLETA"
     assert resumo.descartadas == {"unidade de outro produto": 1, "valor ausente ou não positivo": 1,
                                   "UF ilegível": 1}
-    assert resumo.produtos["GLP"] == 3 and resumo.produtos["OLEO DIESEL S10"] == 1
+    assert resumo.produtos["GLP"] == 3 and resumo.produtos["DIESEL S10"] == 1 and resumo.produtos["ETANOL"] == 1
+    assert glp[1].cnpj == "04444444000104"          # número no Excel: o zero à esquerda volta
 
 
 def test_mesma_coleta_em_dois_arquivos(apoio):
