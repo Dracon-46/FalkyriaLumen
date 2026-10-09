@@ -15,8 +15,11 @@ import type { Topologia } from "./topojson";
 import type { CadastroMunicipios, Feed, FeedHistorico, Indice } from "./tipos";
 import { ErroFeed, validarFeed, validarHistorico, validarIndice, validarMunicipios } from "./validacao";
 
-/** Raiz dos feeds, sem barra final; fixada no build (site estático). */
-export const BASE_DADOS = (process.env.NEXT_PUBLIC_DADOS_ELEICOES ?? "/dados/eleicoes").replace(/\/$/, "");
+/**
+ * Raiz dos feeds, sem barra final; fixada no build (site estático). Variável vazia vale como ausente: o
+ * fluxo de publicação passa a variável do repositório mesmo quando ela não foi definida.
+ */
+export const BASE_DADOS = (process.env.NEXT_PUBLIC_DADOS_ELEICOES || "/dados/eleicoes").replace(/\/$/, "");
 
 const SEGURO = /^[a-z0-9][a-z0-9-]{0,80}$/;
 
