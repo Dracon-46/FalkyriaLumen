@@ -249,7 +249,7 @@ lumen normalizar
 lumen coletar pncp_itens --de 2026-05-04 --ate 2026-05-15 --objeto "combust|gasolina|diesel|etanol|glp"
 lumen normalizar --fontes pncp_itens
 lumen mercado anp baixar --semestres 2026-1 --series ca,glp   # série histórica da ANP
-lumen mercado anp semanas --de 2026-09-01 --ate 2026-10-03    # ou as planilhas das últimas semanas
+lumen mercado anp semanas --de 2026-09-01 --ate 2026-10-03    # ou as planilhas semanais (desde 2022-09)
 lumen mercado comparar --de 2026-05-04 --ate 2026-05-15
 lumen mercado varejo testar --consulta "notebook i5 8gb ssd 256gb"
 lumen mercado reconhecer "ÓLEO DIESEL S10" --unidade Litro
@@ -257,7 +257,8 @@ lumen mercado reconhecer "ÓLEO DIESEL S10" --unidade Litro
 
 O relatório fica em `dados/mercado/relatorio/` (`comparacoes.csv`, `.jsonl`,
 `distribuicao.json` com a razão por grupo para calibrar e `resumo.md`). Na nuvem, o fluxo `mercado-referencia.yml` faz o mesmo e guarda o
-relatório como artefato da execução. Lojas sem API pública (Magazine Luiza, KaBuM,
+relatório como artefato da execução. O varejo só funciona com o segredo
+`LUMEN_ML_TOKEN` (sem credencial, a busca do Mercado Livre responde 403). Lojas sem API pública (Magazine Luiza, KaBuM,
 Pichau, comparadores) ficam de fora por decisão: ver a ADR-027.
 
 ### Estrutura

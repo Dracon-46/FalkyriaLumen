@@ -62,6 +62,20 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   carga de municípios e das malhas guardaria bytes comprimidos. O limite de
   tamanho vale para o documento descomprimido, e a codificação recebida fica
   em `X-Lumen-Codificacao-Recebida`.
+- Primeira execução de `mercado-referencia.yml` com dados reais: o arquivo
+  semestral de combustíveis e as planilhas semanais foram lidos sem nenhuma linha
+  descartada. Ajustes a partir dela: a série de GLP é sempre `.csv`, com dois
+  semestres de nome próprio; o CNPJ da planilha semanal recupera os zeros à
+  esquerda (para a mesma coleta contar uma vez só); a planilha de teste segue o
+  leiaute real. A busca do Mercado Livre responde 403 sem credencial, e o teste
+  de contrato do varejo fica pulado até o segredo `LUMEN_ML_TOKEN` existir.
+- O teste de contrato da série da ANP lê a página da série em vez de pedir o
+  arquivo com `HEAD`, que o gov.br recusa com 403.
+- `lumen coletar` interrompida por fonte suspensa diz que parou, em JSON, e sai
+  com 1, sem rastro de exceção; com `-v`, o log de cada tentativa traz o status,
+  a URL e o número da tentativa. O fluxo `mercado-referencia` coleta o PNCP com
+  `-v`, porque a primeira execução parou com o PNCP em recuo depois de cinco
+  respostas de erro.
 - Portal: endereço dos feeds vazio (variável `LUMEN_URL_FEEDS` não definida no
   repositório) volta a valer `/dados/eleicoes`, em vez de gerar um site com os
   feeds na raiz. O fluxo `portal-pages` testa o portal sem a variável, gera com
