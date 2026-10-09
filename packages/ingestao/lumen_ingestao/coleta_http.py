@@ -17,6 +17,15 @@ declarar quem está coletando e como entrar em contato (RF-CO-09, princípio
 P6). Um coletor anônimo é exatamente o tipo de tráfego que o operador de um
 portal público tem razão de bloquear.
 
+**Compressão de transporte é desfeita.** Algumas fontes (a API de serviços do
+IBGE, por exemplo) respondem com ``Content-Encoding: gzip`` mesmo sem o pedido
+pedir. A compressão é do transporte, não do documento: o bronze guarda o
+documento descomprimido, sem o ``Content-Encoding``, e registra a codificação
+recebida em ``X-Lumen-Codificacao-Recebida``. O limite de tamanho vale para o
+documento descomprimido, o que barra uma resposta pequena que se expande sem
+fim. Corpo que diz estar comprimido e não descomprime fica como veio, com o
+cabeçalho original.
+
 Limite de taxa por fonte, espera exponencial entre tentativas e suspensão da
 fonte depois de falhas seguidas ficam em ``cliente_http.ClienteHttp``, que usa
 esta função. Esta função faz uma única requisição, e faz bem.
@@ -26,6 +35,7 @@ from __future__ import annotations
 
 import urllib.error
 import urllib.request
+import zlib
 from datetime import datetime, timezone
 
 from .bronze import ArtefatoBruto
@@ -70,6 +80,45 @@ def _ler_limitado(resposta, limite: int) -> bytes:
     return b"".join(partes)
 
 
+CABECALHO_CODIFICACAO_RECEBIDA = "X-Lumen-Codificacao-Recebida"
+_JANELAS = {"gzip": (16 + zlib.MAX_WBITS,), "x-gzip": (16 + zlib.MAX_WBITS,),
+            "deflate": (zlib.MAX_WBITS, -zlib.MAX_WBITS)}   # deflate: com cabeçalho zlib ou cru
+
+
+def _descomprimir(conteudo: bytes, janela: int, limite: int) -> bytes:
+    """Descomprime com a janela dada, levantando ``ConteudoGrandeDemais`` se passar de ``limite``."""
+    d = zlib.decompressobj(janela)
+    saida = d.decompress(conteudo, limite + 1)
+    if len(saida) > limite or d.unconsumed_tail:
+        raise ConteudoGrandeDemais(f"resposta descomprimida excedeu {limite} bytes")
+    saida += d.flush()
+    if len(saida) > limite:
+        raise ConteudoGrandeDemais(f"resposta descomprimida excedeu {limite} bytes")
+    return saida
+
+
+def decodificar_corpo(conteudo: bytes, cabecalhos: dict[str, str],
+                      limite: int = LIMITE_PADRAO_BYTES) -> tuple[bytes, dict[str, str]]:
+    """Desfaz ``Content-Encoding`` gzip ou deflate; devolve o corpo e os cabeçalhos ajustados.
+
+    Sem codificação (ou com uma desconhecida, ou com um corpo que não descomprime), devolve
+    tudo como veio.
+    """
+    chave = next((k for k in cabecalhos if k.lower() == "content-encoding"), None)
+    codificacao = (cabecalhos.get(chave) or "").strip().lower() if chave else ""
+    if codificacao not in _JANELAS or not conteudo:
+        return conteudo, cabecalhos
+    for janela in _JANELAS[codificacao]:
+        try:
+            corpo = _descomprimir(conteudo, janela, limite)
+        except zlib.error:
+            continue
+        ajustados = {k: v for k, v in cabecalhos.items() if k.lower() not in ("content-encoding", "content-length")}
+        ajustados[CABECALHO_CODIFICACAO_RECEBIDA] = codificacao
+        return corpo, ajustados
+    return conteudo, cabecalhos
+
+
 def baixar_http(
     url: str,
     fonte_id: str,
@@ -80,7 +129,7 @@ def baixar_http(
     abridor: urllib.request.OpenerDirector | None = None,
     cabecalhos: dict[str, str] | None = None,
 ) -> ArtefatoBruto:
-    """Faz uma requisição GET e devolve exatamente o que a fonte respondeu.
+    """Faz uma requisição GET e devolve o que a fonte respondeu (sem a compressão de transporte).
 
     ``cabecalhos`` acrescenta cabeçalhos à requisição (``Accept``,
     ``If-None-Match``, ``Range``). Não pode substituir o ``User-Agent``: a
@@ -112,6 +161,7 @@ def baixar_http(
     try:
         conteudo = _ler_limitado(resposta, limite_bytes)
         cabecalhos = {k: v for k, v in resposta.headers.items()}
+        conteudo, cabecalhos = decodificar_corpo(conteudo, cabecalhos, limite_bytes)
         status = getattr(resposta, "status", None) or resposta.getcode()
         url_efetiva = resposta.geturl() or url
         tipo_midia = resposta.headers.get_content_type() if resposta.headers else "application/octet-stream"
