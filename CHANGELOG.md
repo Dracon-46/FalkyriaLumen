@@ -54,6 +54,20 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 - Documentação: ADR-027, DOC-07 1.2 (A-05), DOC-06 1.3 (seção 2.8), DOC-10 1.4,
   DOC-11 1.3, README.
 
+### Correções
+
+- A coleta HTTP desfaz a compressão de transporte (`Content-Encoding` gzip ou
+  deflate) antes de guardar no bronze. A API do IBGE responde comprimida mesmo
+  sem pedir, e o teste de contrato diário falhou por isso; sem a correção, a
+  carga de municípios e das malhas guardaria bytes comprimidos. O limite de
+  tamanho vale para o documento descomprimido, e a codificação recebida fica
+  em `X-Lumen-Codificacao-Recebida`.
+- Portal: endereço dos feeds vazio (variável `LUMEN_URL_FEEDS` não definida no
+  repositório) volta a valer `/dados/eleicoes`, em vez de gerar um site com os
+  feeds na raiz. O fluxo `portal-pages` testa o portal sem a variável, gera com
+  ela, e, sem o token do Cloudflare ou o nome do projeto, avisa que não publicou
+  em vez de falhar.
+
 ## 0.5.0 — 2026-10-07
 
 ### Na nuvem, sem custo e sem computador ligado (ADR-026)
