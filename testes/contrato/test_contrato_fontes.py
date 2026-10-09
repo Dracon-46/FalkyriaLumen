@@ -164,3 +164,57 @@ def test_totais_de_2022_conferem_com_o_tse(tmp_path):
     t = totais[("2022-1t-geral", 1, ("br",))]
     assert t.aptos == 156_454_011
     assert 0.9 < t.validos / t.comparecimento < 1.0
+
+
+def test_mercado_livre_busca_mantem_os_campos_lidos():
+    """Busca do varejo (ADR-027): a resposta tem ``results`` com os campos que ``varejo.ler_ofertas`` lê.
+
+    Com ``LUMEN_ML_TOKEN``, o pedido leva o token. Resposta 401/403 falha com a mensagem da loja, que diz se
+    o acesso passou a exigir outro tipo de credencial.
+    """
+    url = "https://api.mercadolibre.com/sites/MLB/search?q=notebook%20i5%208gb%20ssd%20256gb&limit=5"
+    cabecalhos = {"User-Agent": UA, "Accept": "application/json"}
+    if os.environ.get("LUMEN_ML_TOKEN"):
+        cabecalhos["Authorization"] = f"Bearer {os.environ['LUMEN_ML_TOKEN']}"
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers=cabecalhos), timeout=60) as r:
+            corpo = json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        pytest.fail(f"a busca respondeu {e.code}: {e.read()[:300]!r} — revisar a credencial do varejo")
+    assert corpo.get("results"), "a busca não trouxe resultados"
+    faltando = {"id", "title", "price", "currency_id", "condition", "permalink"} - set(corpo["results"][0])
+    assert not faltando, f"campos sumiram da busca: {sorted(faltando)}"
+
+
+@pytest.mark.parametrize("serie", ["ca", "glp"])
+def test_anp_serie_semestral_continua_publicada(serie):
+    """O arquivo semestral mais recente previsto continua no endereço que ``anp.url_semestre`` monta.
+
+    A série ``glp`` (gás de cozinha) usa o padrão de nome da ``ca``; este teste é a conferência.
+    """
+    from lumen_mercado.anp import url_semestre
+    hoje = date.today()
+    # folga de dois meses depois do fim do semestre para a publicação
+    if hoje.month >= 9:
+        ano, semestre = hoje.year, 1
+    elif hoje.month >= 3:
+        ano, semestre = hoje.year - 1, 2
+    else:
+        ano, semestre = hoje.year - 1, 1
+    req = urllib.request.Request(url_semestre(ano, semestre, serie), headers={"User-Agent": UA}, method="HEAD")
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            assert r.status == 200
+    except urllib.error.HTTPError as e:
+        pytest.fail(f"série {serie} da ANP {ano}-{semestre} respondeu {e.code}: revisar url_semestre")
+
+
+def test_anp_pagina_semanal_lista_planilhas_recentes():
+    """A página do levantamento semanal cita planilhas ``revendas_lpc`` e a mais nova é das últimas semanas."""
+    from lumen_mercado.anp import PAGINA_SEMANAS, links_semanais
+    req = urllib.request.Request(PAGINA_SEMANAS, headers={"User-Agent": UA})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        html = r.read().decode("utf-8", errors="replace")
+    semanas = links_semanais(html)
+    assert semanas, "nenhuma planilha revendas_lpc na página: revisar o padrão de links_semanais"
+    assert semanas[-1].fim >= date.today() - timedelta(days=35), f"planilha mais nova termina em {semanas[-1].fim}"
