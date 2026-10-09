@@ -1,0 +1,62 @@
+# Parâmetros da regra A-05 (preço acima da referência de mercado, ADR-027).
+#
+# Nenhum valor abaixo está calibrado: a regra roda em modo silencioso e só pode
+# publicar depois que a calibração sobre o histórico (DOC-07, seção 1) medir a
+# taxa de falso positivo de cada limiar. Mudar um valor aqui é mudar a regra:
+# a versão sobe junto (VERSAO_REGRA em lumen_mercado/__init__.py).
+
+[geral]
+modo = "silencioso"
+# Itens com valor total menor que este não entram na lista de destaques do
+# resumo (continuam no relatório completo): o custo de analisar não compensa.
+valor_total_minimo_destaque = "1000.00"
+
+[combustivel]
+# Razão entre o preço pago e a mediana do preço de bomba a partir da qual o
+# item aparece como acima da referência. Compra pública de combustível costuma
+# incluir entrega no tanque, prazo de pagamento e cartão de abastecimento: 20%
+# acima da mediana de bomba já é distância que merece um olhar, não conclusão.
+limiar_razao = "1.20"
+janela_dias = 7
+minimo_municipio = 5
+minimo_uf = 10
+calibrado = false
+
+[gas_de_cozinha]
+# GLP no botijão de 13 kg, contra o preço de revenda da ANP (botijão cheio com
+# a troca do vazio). A compra pública costuma incluir entrega na unidade, que a
+# revenda cobra à parte ou embute no preço; a dispersão entre revendas da mesma
+# cidade também é maior que a do combustível. Janela e amostra mínima são as do
+# combustível.
+limiar_razao = "1.25"
+calibrado = false
+
+[varejo]
+# A distância legítima é maior no varejo: frete até o município, nota fiscal,
+# garantia, prazo de pagamento de 30 dias ou mais, e o preço da loja é o de um
+# modelo, enquanto o edital descreve uma especificação.
+limiar_razao = "1.50"
+janela_dias = 7
+minimo_ofertas = 8
+calibrado = false
+
+# Buscas feitas todo dia mesmo sem compra a comparar, para que o histórico já
+# exista quando a compra acontecer. A especificação de cada uma é a mesma que o
+# reconhecimento de itens produz (lumen mercado reconhecer "<descrição>").
+[varejo.consultas_padrao]
+consultas = [
+  "notebook i3 8gb ssd 256gb",
+  "notebook i5 8gb ssd 256gb",
+  "notebook i5 8gb ssd 512gb",
+  "notebook i5 16gb ssd 512gb",
+  "notebook i7 16gb ssd 512gb",
+  "notebook ryzen 5 8gb ssd 256gb",
+  "notebook ryzen 5 16gb ssd 512gb",
+  "monitor 21.5 polegadas full hd",
+  "monitor 24 polegadas full hd",
+  "monitor 27 polegadas full hd",
+  "multifuncional laser monocromatica",
+  "impressora laser monocromatica",
+  "multifuncional tanque de tinta colorida",
+  "impressora tanque de tinta colorida",
+]
