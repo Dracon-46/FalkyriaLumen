@@ -135,3 +135,73 @@ def test_cli_recusa_argumento_desconhecido(tmp_path, monkeypatch):
     monkeypatch.setenv("LUMEN_CONTATO", "c@exemplo.org")
     with pytest.raises(SystemExit):
         main(["--config", str(tmp_path / "x.toml"), "normalizar", "--nao-existe"])
+
+
+class _PncpItens(BaseHTTPRequestHandler):
+    """Itens e resultados reais da compra 97229181000164-1-000406/2026 (só o item 1 tem resultado gravado)."""
+
+    def log_message(self, *a):
+        pass
+
+    def do_GET(self):
+        caminho = urllib.parse.urlparse(self.path).path
+        if caminho.endswith("/compras/2026/406/itens"):
+            corpo = (FIX / "compra_97229181000164_2026_406_itens.json").read_bytes()
+        elif caminho.endswith("/compras/2026/406/itens/1/resultados"):
+            corpo = (FIX / "compra_97229181000164_2026_406_item1_resultados.json").read_bytes()
+        else:
+            corpo = b"[]"
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(corpo)
+
+
+def test_chave_da_url_de_itens():
+    base = "https://pncp.gov.br/api/pncp/v1/orgaos/97229181000164/compras/2026/406"
+    assert etapas.chave_da_url_itens(f"{base}/itens") == ("97229181000164-1-000406/2026", False)
+    assert etapas.chave_da_url_itens(f"{base}/itens/3/resultados") == ("97229181000164-1-000406/2026", True)
+    assert etapas.chave_da_url_itens(f"{base}/arquivos") is None and etapas.chave_da_url_itens("") is None
+
+
+def test_itens_dos_processos_da_silver(cfg, srv, sem_proxy, monkeypatch, capsys):
+    """Contratações → silver → itens e resultados só dos processos do objeto pedido → silver."""
+    s = ThreadingHTTPServer(("127.0.0.1", 0), _PncpItens)
+    threading.Thread(target=lambda: s.serve_forever(poll_interval=0.05), daemon=True).start()
+    itens_srv = f"http://127.0.0.1:{s.server_address[1]}"
+
+    def cliente_local(c, fonte_id):
+        return ClienteHttp(fonte_id, user_agent="Lumen/teste (+contato@exemplo.org)", rpm=6000,
+                           abridor=sem_proxy, dormir=lambda s: None)
+    monkeypatch.setattr(etapas, "cliente", cliente_local)
+    etapas.coletar(cfg, "pncp_contratacoes", etapas.janela_de("2026-09-01"), modalidades=(8,), base=f"{srv}/consulta")
+    etapas.normalizar(cfg)
+    assert len(etapas.processos_da_silver(cfg)) == 4
+    assert len(etapas.processos_da_silver(cfg, de=etapas.janela_de("2026-09-02").inicio)) == 0
+    processos = etapas.processos_da_silver(cfg, objeto="VEÍCULO")       # sem acento e sem caixa
+    assert [p["chave_origem"] for p in processos] == ["97229181000164-1-000406/2026"]
+
+    resumo = etapas.coletar_itens(cfg, processos + [{"chave_origem": "invalida"}], base=f"{itens_srv}/pncp")
+    assert resumo.listados == 4 and not resumo.falhas                  # itens + resultados dos 3 itens
+    r = etapas.normalizar(cfg, ["pncp_itens"])
+    assert r.por_fonte == {"pncp_itens": 4}
+    itens = consolidar(ler_entidade(cfg.silver, "item_contratacao"))
+    assert len(itens) == 3 and itens[0]["processo_id"] == processos[0]["id"]
+    resultados = consolidar(ler_entidade(cfg.silver, "resultado_item"))
+    assert len(resultados) == 1 and resultados[0]["valor_unitario_homologado"] == "40.0000"
+
+    monkeypatch.setenv("LUMEN_CONTATO", "a@b.org")
+    monkeypatch.setenv("LUMEN_DADOS", str(cfg.raiz_dados))
+    original = etapas.coletar_itens
+    monkeypatch.setattr(etapas, "coletar_itens",
+                        lambda c, p, **kw: original(c, p, base=f"{itens_srv}/pncp", **kw))
+    assert main(["coletar", "pncp_itens", "--de", "2026-09-01", "--objeto", "veiculo", "--sem-resultados"]) == 0
+    saida = json.loads(capsys.readouterr().out)
+    assert saida["processos"] == 1 and saida["listados"] == 1
+    s.shutdown()
+
+
+def test_cli_repassa_mercado(capsys):
+    """`lumen mercado ...` vai inteiro para o CLI da referência de mercado."""
+    assert main(["mercado", "reconhecer", "GASOLINA COMUM", "--unidade", "Litro"]) == 0
+    assert json.loads(capsys.readouterr().out)["produto"] == "GASOLINA"
