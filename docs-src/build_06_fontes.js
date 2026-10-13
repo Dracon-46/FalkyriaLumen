@@ -307,6 +307,8 @@ body.push(table(["Regra", "Detalhamento"], [2600, 7000], [
   ["Janela preferencial", "Coletas volumosas em horário de menor uso quando a fonte publicar essa informação"],
   ["Coleta incremental", "Uso de endpoints por data de atualização em vez de varredura completa recorrente"],
   ["Recuo em erro", "Espera exponencial e suspensão temporária da fonte após falhas sucessivas"],
+  ["Limite da fonte (429)", "Resposta 429 reduz a vazão da fonte pela metade pelo resto da sessão e espera ao menos 30 s antes de repetir; só conta como falha quando a última tentativa também recebe 429. O PNCP respondeu 429 a 60 requisições por minuto a partir do GitHub Actions em outubro de 2026"],
+  ["Compressão de transporte", "Resposta com Content-Encoding gzip ou deflate é descomprimida antes do bronze, com o limite de tamanho aplicado ao documento descomprimido (a API do IBGE comprime mesmo sem pedido)"],
   ["Respeito a robots", "Observância das diretrizes publicadas pelo domínio"],
   ["Sem contorno de controle", "Nenhuma tentativa de resolver CAPTCHA, burlar autenticação ou acessar área restrita"],
   ["Cache agressivo", "Artefato já coletado e inalterado não é rebaixado novamente"],
