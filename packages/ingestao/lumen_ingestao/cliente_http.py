@@ -13,6 +13,14 @@ vezes** fazê-la:
 - **Recuo** (DOC-06, "suspensão temporária da fonte após falhas sucessivas"):
   depois de N falhas seguidas a fonte fica suspensa por um período, e as
   chamadas seguintes falham na hora com ``FonteSuspensa``, sem tocar a rede.
+- **429 é pedido para ir mais devagar, não falha.** A fonte que responde 429
+  (excesso de requisições) está funcionando e avisando do limite dela: a vazão
+  da fonte cai pela metade pelo resto da sessão (até ``rpm_minimo_429``), a
+  espera antes de repetir é de pelo menos ``espera_429_s`` (a janela de limite
+  costuma ser de um minuto) e o 429 só conta para o recuo quando a última
+  tentativa também recebe 429. O PNCP respondeu 429 a 60 requisições por
+  minuto numa execução do GitHub Actions (outubro de 2026); sem isso, a coleta
+  parava em recuo depois de cinco 429 seguidos.
 
 A resposta final, mesmo de erro, é devolvida como artefato (ADR-012): quem
 decide se um 503 persistente é ausência de publicação é o avaliador de
@@ -85,6 +93,13 @@ class LimitadorTaxa:
         self._fichas -= 1.0
         return esperado
 
+    def reduzir(self, minimo: int) -> bool:
+        """Corta a vazão pela metade, sem passar de ``minimo``; devolve se mudou alguma coisa."""
+        novo = max(minimo, self.rpm // 2)
+        mudou = novo < self.rpm
+        self.rpm = novo
+        return mudou
+
 
 @dataclass(frozen=True)
 class PoliticaRetentativa:
@@ -92,7 +107,9 @@ class PoliticaRetentativa:
 
     ``max_tentativas`` inclui a primeira requisição. A espera entre tentativas parte de
     ``espera_base_s`` e não passa de ``espera_teto_s``; ``falhas_para_suspender`` falhas
-    seguidas suspendem a fonte por ``suspensao_s`` segundos.
+    seguidas suspendem a fonte por ``suspensao_s`` segundos. Depois de um 429 sem ``Retry-After``,
+    a espera é de pelo menos ``espera_429_s`` (dobrando a cada tentativa, até o teto), e a vazão
+    não desce abaixo de ``rpm_minimo_429``.
     """
 
     max_tentativas: int = 4
@@ -100,6 +117,8 @@ class PoliticaRetentativa:
     espera_teto_s: float = 120.0
     falhas_para_suspender: int = 5
     suspensao_s: float = 900.0
+    espera_429_s: float = 30.0
+    rpm_minimo_429: int = 6
 
     def __post_init__(self) -> None:
         """Exige ao menos uma tentativa."""
@@ -217,14 +236,20 @@ class ClienteHttp:
                 self.dormir(self.politica.espera(tentativa, self.sorteio()))
                 continue
             if artefato.status_http in STATUS_RETENTAVEIS:
-                self._registrar_falha()
+                excesso = artefato.status_http == 429
+                if not excesso or ultima:
+                    self._registrar_falha()
                 log.info("tentativa_com_erro", extra={"fonte": self.fonte_id, "url": url,
                                                      "tentativa": tentativa, "status": artefato.status_http})
+                if excesso and self.limitador.reduzir(self.politica.rpm_minimo_429):
+                    log.warning("vazao_reduzida", extra={"fonte": self.fonte_id, "rpm": self.limitador.rpm})
                 if ultima or self.suspensa:
                     return artefato
                 pedida = interpretar_retry_after(artefato.cabecalhos.get("Retry-After")
                                                  or artefato.cabecalhos.get("retry-after"))
                 calculada = self.politica.espera(tentativa, self.sorteio())
+                if excesso:
+                    calculada = max(calculada, self.politica.espera_429_s * (2 ** (tentativa - 1)))
                 self.dormir(min(self.politica.espera_teto_s, pedida if pedida is not None else calculada))
                 continue
             self.falhas_seguidas = 0
