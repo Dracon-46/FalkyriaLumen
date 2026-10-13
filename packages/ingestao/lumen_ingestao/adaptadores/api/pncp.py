@@ -26,7 +26,7 @@ import re
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date
-from typing import Iterable, Iterator
+from typing import Callable, Iterable, Iterator
 
 from ...bronze import ArtefatoBruto
 from ...cliente_http import ClienteHttp
@@ -270,10 +270,14 @@ class FontePncpItens:
     objeto = "ItemContratacao"
 
     def __init__(self, cliente: ClienteHttp, compras: Iterable[ChaveCompra], *,
-                 com_resultados: bool = True, base: str = BASE_PNCP):
+                 com_resultados: bool = True, base: str = BASE_PNCP,
+                 filtro_resultados: Callable[[dict], bool] | None = None):
         """Confere o ``fonte_id`` do cliente e fixa as contratações a consultar.
 
-        ``com_resultados`` decide se os resultados dos itens que os têm também são listados.
+        ``com_resultados`` decide se os resultados dos itens que os têm também são listados;
+        ``filtro_resultados``, quando dado, restringe os resultados aos itens (o dicionário da API) para os
+        quais ele devolve verdadeiro. Cada resultado é uma requisição por item: buscar só os que interessam
+        (os itens comparáveis da regra A-05, por exemplo) poupa a fonte e o tempo da coleta.
         """
         if cliente.fonte_id != self.fonte_id:
             raise ValueError(f"cliente da fonte {cliente.fonte_id!r} usado em {self.fonte_id!r}")
@@ -281,6 +285,7 @@ class FontePncpItens:
         self.compras = tuple(compras)
         self.com_resultados = com_resultados
         self.base = base
+        self.filtro_resultados = filtro_resultados
         self._cache = CacheDePlanejamento()
 
     def descrever_capacidades(self) -> CapacidadesFonte:
@@ -317,7 +322,9 @@ class FontePncpItens:
             except (ValueError, UnicodeDecodeError):
                 continue
             for item in lista if isinstance(lista, list) else []:
-                if item.get("temResultado") and item.get("numeroItem") is not None:
+                if not isinstance(item, dict) or not item.get("temResultado") or item.get("numeroItem") is None:
+                    continue
+                if self.filtro_resultados is None or self.filtro_resultados(item):
                     yield ReferenciaArtefato(
                         url=self._url(c, f"itens/{int(item['numeroItem'])}/resultados"),
                         objeto="ResultadoItem",
