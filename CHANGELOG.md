@@ -54,6 +54,25 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 - Documentação: ADR-027, DOC-07 1.2 (A-05), DOC-06 1.3 (seção 2.8), DOC-10 1.4,
   DOC-11 1.3, README.
 
+### Feeds de 2026 sem cartão: Supabase Storage no lugar do R2 (adendo do ADR-026)
+
+- A publicação das eleições funciona também com o Supabase Storage, que fala o
+  protocolo S3 e não pede meio de pagamento. Cabe só 2026 (1 GB no plano
+  gratuito); as eleições de 1933 a 2024 continuam pedindo o R2. Os nomes dos
+  segredos e das variáveis no GitHub não mudam.
+- Variável `R2_REGIAO` nos fluxos `eleicoes-carga` e `eleicoes-ao-vivo` (região
+  da assinatura S3; o R2 usa `auto`). A configuração recusa endpoint do
+  Supabase sem a região do projeto, que o Supabase exige na assinatura.
+- Variável `ELEICOES_SEM_HISTORICO`: com `true`, a carga diária não baixa os
+  dados abertos de 1933 a 2024.
+- `lumen eleicoes medir`: tamanho dos feeds gravados (total, por grupo, com
+  gzip, maiores arquivos), se cabem no R2 e no Supabase gratuitos e o pior caso
+  de saída por visitante e hora de apuração, que no Supabase gratuito tem cota
+  de 5 GB por mês.
+- Fluxo `eleicoes-medir.yml` (manual): gera os feeds de 2026 numa máquina do
+  GitHub, sem publicar, e mede.
+- Documentação: adendo do ADR-026, DOC-12 1.3 (seção 9.7), DOC-11, README.
+
 ### Correções
 
 - A coleta HTTP desfaz a compressão de transporte (`Content-Encoding` gzip ou

@@ -57,6 +57,11 @@ raiz = "dados"
 # bucket = "lumen-eleicoes"
 # bucket_estado = "lumen-privado"
 # regiao = "auto"
+#
+# Supabase Storage (só 2026, adendo do ADR-026): o endpoint S3 do projeto e a
+# região dele, obrigatória:
+# endpoint = "https://<ref>.storage.supabase.co/storage/v1/s3"
+# regiao = "sa-east-1"
 
 # Referência de mercado (regra A-05, ADR-027). Nada a configurar aqui: os
 # limiares estão em packages/mercado/lumen_mercado/parametros_mercado.toml. A

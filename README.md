@@ -79,6 +79,14 @@ Configuração, uma vez (passo a passo com as telas no DOC-12, seção 9.5):
 4. Actions → `eleicoes-carga` → *Run workflow* (a primeira carga leva duas ou três execuções);
    depois Actions → `portal-pages` → *Run workflow*.
 
+**Sem cartão, só 2026:** o Supabase Storage gratuito (1 GB, 5 GB de saída por mês) recebe os
+feeds de 2026 com os mesmos nomes acima: `R2_ENDPOINT` com o endereço S3 do projeto, as chaves S3
+do painel, as variáveis `R2_REGIAO` (a região do projeto, ex.: `sa-east-1`) e
+`ELEICOES_SEM_HISTORICO=true`, e `LUMEN_URL_FEEDS` com
+`https://<ref>.supabase.co/storage/v1/object/public/lumen-eleicoes`. Antes de escolher,
+Actions → `eleicoes-medir` mede o tamanho dos feeds de 2026 e o pior caso de saída por visitante
+(DOC-12, seção 9.7).
+
 Nenhuma chave vai para o repositório nem para o `lumen.toml`. Com a carga já pronta num
 computador, `lumen eleicoes publicar` envia ao R2 o que falta (variáveis de ambiente em
 `lumen.toml.exemplo`, seção `[publicacao]`). O núcleo do Lumen (indícios, revisão,
@@ -221,7 +229,8 @@ lumen bronze verificar           # reconfere o hash de toda a prova
 ```bash
 lumen eleicoes preparar --servir                       # tudo num comando, retomável
 lumen eleicoes preparar --nuvem --limite-minutos 280   # a mesma carga publicando no R2 (ADR-026)
-lumen eleicoes publicar                                # envia ao R2 os feeds que mudaram
+lumen eleicoes publicar                                # envia ao bucket os feeds que mudaram
+lumen eleicoes medir                                   # tamanho dos feeds contra os limites gratuitos
 lumen eleicoes municipios                              # cadastro TSE ↔ IBGE corrente (um já vem com o Lumen)
 lumen eleicoes mapas                                   # malhas do IBGE correntes (idem)
 lumen eleicoes historico baixar --anos 2022,1950       # dados abertos, 1933 a 2024 (ou --anos todos)
@@ -314,18 +323,19 @@ num comando (`lumen eleicoes preparar`, ou `preparar.cmd` no Windows).
 | Normalização | 116 |
 | Conformidade (SICONFI) | 14 |
 | Pipeline local | 8 |
-| Aba Eleições (Python, inclusive a publicação na nuvem) | 182 |
+| Aba Eleições (Python, inclusive a publicação na nuvem) | 190 |
 | Vocabulário controlado e referência técnica | 66 |
 | Portal (TypeScript) | 79 |
 
-Cobertura de 96% no Python. Todo módulo, classe e função tem documentação (verificado por teste).
+Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (verificado por teste).
 
 ### Pendente
 
 - **Revisar as ADRs 011 a 027** (todas propostas, tomadas durante a implementação).
 - **Calibrar a regra A-05** sobre o relatório silencioso antes de qualquer publicação (ADR-027).
 - **Contas da hospedagem gratuita** (ADR-026): Cloudflare (R2 e Pages), segredos do GitHub e
-  uma organização própria do projeto no Supabase para o núcleo (DOC-12, seção 9.5).
+  uma organização própria do projeto no Supabase para o núcleo (DOC-12, seção 9.5). Para o
+  2º turno de 2026 (25/10): R2 com cartão ou Supabase Storage sem cartão, só 2026 (seção 9.7).
 - **Revisão metodológica e jurídica da regra B-01** frente ao art. 75, § 1º, da Lei 14.133
   (ADR-022), antes da Fase 2.
 - **Fonte para "quem autorizou o ato"**: a API do PNCP não publica o agente (ADR-017).
