@@ -1,0 +1,73 @@
+# Tamanho real dos feeds das eleições — adendo do ADR-026.
+#
+# Para escolher onde publicar o 2º turno de 2026 (Cloudflare R2 ou Supabase
+# Storage gratuito): gera os feeds numa máquina do GitHub, sem publicar nada,
+# e mede o total, cada grupo, os maiores arquivos e o pior caso de saída por
+# visitante durante a apuração (`lumen eleicoes medir`). O resultado sai no
+# resumo da execução e num artefato com o JSON (sete dias, privado).
+#
+# "so_2026" (padrão) gera só o que o Supabase gratuito comportaria: o sistema
+# de resultados de 2026 (1º turno completo e o 2º turno já cadastrado), o mapa
+# e o cadastro de municípios. Desmarcado, também os anos dos dados abertos em
+# "anos", para medir quanto ocupam.
+#
+# Usa só o segredo LUMEN_CONTATO (User-Agent). Repositório privado: cada
+# execução consome minutos do plano; o 1º turno de 2026 completo leva da ordem
+# de uma a duas horas (todos os municípios, todos os cargos).
+
+name: eleicoes-medir
+
+on:
+  workflow_dispatch:
+    inputs:
+      so_2026:
+        description: "Só 2026 (sistema de resultados), sem os dados abertos"
+        type: boolean
+        default: true
+      anos:
+        description: "Com so_2026 desmarcado: anos dos dados abertos (ex.: 2022,2018)"
+        default: "2022"
+      limite_minutos:
+        description: "Para a coleta depois deste tempo e mede o que houver"
+        default: "200"
+
+permissions:
+  contents: read
+
+jobs:
+  medir:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    env:
+      LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
+      LUMEN_DADOS: dados
+      LUMEN_ELEICOES_SAIDA: dados/eleicoes/feeds
+      SO_2026: ${{ inputs.so_2026 }}
+      ANOS: ${{ inputs.anos }}
+      LIMITE: ${{ inputs.limite_minutos }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      - name: Gerar os feeds (sem publicar)
+        run: |
+          set -- preparar --sem-portal --sem-bronze --apagar-zips --limite-minutos "$LIMITE"
+          if [ "$SO_2026" = "true" ]; then set -- "$@" --sem-historico; else set -- "$@" --anos "$ANOS"; fi
+          python -m lumen_eleicoes "$@"
+      - name: Medir
+        if: always()
+        run: |
+          python -m lumen_eleicoes verificar || echo "::warning::a conferência dos feeds apontou problemas (ver o registro)"
+          python -m lumen_eleicoes medir --resumo "$GITHUB_STEP_SUMMARY" > medicao.json
+      - name: Guardar a medição
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: medicao-feeds
+          path: medicao.json
+          retention-days: 7
+          if-no-files-found: ignore

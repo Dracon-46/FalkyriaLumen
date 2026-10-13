@@ -21,6 +21,15 @@
 #            R2_CHAVE_SECRETA    chave secreta da API S3 do R2
 #   variables R2_BUCKET_FEEDS    bucket público dos feeds (ex.: lumen-eleicoes)
 #             R2_BUCKET_ESTADO   bucket privado do estado (ex.: lumen-privado)
+#             R2_REGIAO          região da assinatura S3 (opcional; padrão auto, a do R2)
+#             ELEICOES_SEM_HISTORICO  "true" para carregar só 2026, sem os dados
+#                                abertos de 1933 a 2024 (opcional)
+#
+# Supabase Storage no lugar do R2 (adendo do ADR-026; só 2026, que cabe no
+# 1 GB gratuito): os nomes continuam os mesmos. R2_ENDPOINT recebe
+# https://<ref>.storage.supabase.co/storage/v1/s3, as chaves são as de
+# Storage → S3 do painel, R2_REGIAO a região do projeto (ex.: sa-east-1) e
+# ELEICOES_SEM_HISTORICO = true. Passo a passo no DOC-12, seção 9.7.
 
 name: eleicoes-carga
 
@@ -57,6 +66,7 @@ jobs:
       LUMEN_PUBLICACAO_BUCKET_ESTADO: ${{ vars.R2_BUCKET_ESTADO }}
       LUMEN_S3_CHAVE_ACESSO: ${{ secrets.R2_CHAVE_ACESSO }}
       LUMEN_S3_CHAVE_SECRETA: ${{ secrets.R2_CHAVE_SECRETA }}
+      LUMEN_PUBLICACAO_REGIAO: ${{ vars.R2_REGIAO }}
       LUMEN_ELEICOES_SAIDA: dados/eleicoes/feeds
       PYTHONUNBUFFERED: "1"
     steps:
@@ -78,8 +88,10 @@ jobs:
         env:
           ANOS: ${{ inputs.anos }}
           SEM_AO_VIVO: ${{ inputs.sem_ao_vivo }}
+          SEM_HISTORICO: ${{ vars.ELEICOES_SEM_HISTORICO }}
         run: |
           set -- preparar --nuvem --sem-portal --sem-bronze --apagar-zips --limite-minutos 280
-          if [ -n "$ANOS" ]; then set -- "$@" --anos "$ANOS"; fi
+          if [ "$SEM_HISTORICO" = "true" ]; then set -- "$@" --sem-historico
+          elif [ -n "$ANOS" ]; then set -- "$@" --anos "$ANOS"; fi
           if [ "$SEM_AO_VIVO" = "true" ]; then set -- "$@" --sem-ao-vivo; fi
           python -m lumen_eleicoes "$@"

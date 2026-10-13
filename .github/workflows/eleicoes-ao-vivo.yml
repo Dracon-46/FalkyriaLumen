@@ -1,12 +1,14 @@
 # Apuração ao vivo na nuvem — ADR-026.
 #
 # Para a noite da eleição: acompanha a totalização no sistema de resultados do
-# TSE e publica no R2 a cada passada, até a totalização terminar (ou o prazo
-# de 6 horas da máquina; nesse caso, dispare de novo: o estado continua).
+# TSE e publica no bucket dos feeds a cada passada, até a totalização
+# terminar (ou o prazo de 6 horas da máquina; nesse caso, dispare de novo: o
+# estado continua).
 # Dispare manualmente pouco antes da divulgação dos primeiros resultados, com o
 # id da eleição como aparece em `lumen eleicoes catalogo` (ex.: 2026-2t-geral).
 #
-# Usa os mesmos segredos e variáveis do eleicoes-carga.yml.
+# Usa os mesmos segredos e variáveis do eleicoes-carga.yml (R2 ou Supabase
+# Storage; com o Supabase, R2_REGIAO é obrigatória).
 
 name: eleicoes-ao-vivo
 
@@ -38,6 +40,7 @@ jobs:
       LUMEN_PUBLICACAO_BUCKET_ESTADO: ${{ vars.R2_BUCKET_ESTADO }}
       LUMEN_S3_CHAVE_ACESSO: ${{ secrets.R2_CHAVE_ACESSO }}
       LUMEN_S3_CHAVE_SECRETA: ${{ secrets.R2_CHAVE_SECRETA }}
+      LUMEN_PUBLICACAO_REGIAO: ${{ vars.R2_REGIAO }}
       LUMEN_ELEICOES_SAIDA: dados/eleicoes/feeds
       PYTHONUNBUFFERED: "1"
     steps:
