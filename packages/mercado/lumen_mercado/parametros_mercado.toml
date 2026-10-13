@@ -10,6 +10,15 @@ modo = "silencioso"
 # Itens com valor total menor que este não entram na lista de destaques do
 # resumo (continuam no relatório completo): o custo de analisar não compensa.
 valor_total_minimo_destaque = "1000.00"
+# Abaixo desta razão o preço não é de mercado nenhum: é preço simbólico (R$ 0,01,
+# R$ 1,28 o litro), orçamento sigiloso gravado como zero ou erro de unidade. O
+# item sai da distribuição e aparece como "fora de escala" no relatório. A
+# primeira execução com dados reais (setembro de 2026) teve estimados assim.
+razao_minima_plausivel = "0.50"
+# A partir desta razão o item continua acima da referência, mas ganha a marca
+# para conferir unidade e quantidade antes de qualquer análise (preço do galão
+# de 20 litros comparado com o litro, por exemplo).
+razao_extrema = "3.00"
 
 [combustivel]
 # Razão entre o preço pago e a mediana do preço de bomba a partir da qual o

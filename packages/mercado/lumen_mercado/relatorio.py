@@ -17,7 +17,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Iterable
 
-from .comparacao import ACIMA, NAO_COMPARAVEL, Comparacao, ParametrosMercado
+from .comparacao import ACIMA, FORA_DE_ESCALA, NAO_COMPARAVEL, Comparacao, ParametrosMercado
 from .referencia import quantil
 
 # Limiares candidatos: para cada um, a fração dos itens com referência que ficaria acima dele.
@@ -60,11 +60,14 @@ def distribuicao(comparacoes: Iterable[Comparacao]) -> list[dict]:
     """Distribuição da razão por (categoria, tipo de preço, escopo da referência), com a sensibilidade ao limiar.
 
     Para cada grupo: quantidade, quantis (10, 25, 50, 75 e 90%) e máximo da razão, e, para cada limiar de
-    ``LIMIARES_SENSIBILIDADE``, quantos itens e que fração ficariam acima dele. Só entram itens com referência.
+    ``LIMIARES_SENSIBILIDADE``, quantos itens e que fração ficariam acima dele. Só entram itens com referência;
+    os fora de escala (preço simbólico ou erro de unidade) ficam de fora, porque deslocariam os quantis de baixo.
     """
     grupos: dict[tuple[str, str, str], list[Decimal]] = {}
     for c in comparacoes:
         if c.razao is None or c.especificacao is None or c.referencia is None:
+            continue
+        if getattr(c, "situacao", None) == FORA_DE_ESCALA:
             continue
         grupos.setdefault((c.especificacao.categoria, c.tipo_preco, c.referencia.escopo), []).append(c.razao)
     saida = []
@@ -105,6 +108,8 @@ def resumo_markdown(comparacoes: list[Comparacao], parametros: ParametrosMercado
         f"- Com referência de mercado: {por_situacao[ACIMA] + por_situacao['dentro_da_referencia']}",
         f"- Acima do limiar: {por_situacao[ACIMA]}",
         f"- Sem referência na época e no lugar: {por_situacao['sem_referencia']}",
+        f"- Fora de escala (abaixo de {parametros.razao_minima_plausivel}× a mediana: preço simbólico ou erro de "
+        f"unidade; fora da distribuição): {por_situacao[FORA_DE_ESCALA]}",
         f"- Limiar: combustível {parametros.combustivel_limiar}×, gás de cozinha "
         f"{parametros.gas_de_cozinha_limiar}× e varejo {parametros.varejo_limiar}× a mediana "
         f"({'calibrado' if parametros.calibrado else 'ainda não calibrado'})",
@@ -136,19 +141,33 @@ def resumo_markdown(comparacoes: list[Comparacao], parametros: ParametrosMercado
         key=lambda c: (c.razao or Decimal(0)), reverse=True)[:limite]
     linhas += ["", f"## Maiores distâncias (preço homologado, valor total a partir de "
                    f"{_real(parametros.valor_total_minimo_destaque)})", ""]
-    if not destaques:
-        linhas.append("Nenhum item.")
-    else:
-        linhas += ["| Razão | Produto | Local | Data | Pago | Mediana (n) | Máximo | Valor total | Processo |",
-                   "|---|---|---|---|---|---|---|---|---|"]
-        for c in destaques:
-            ref = c.referencia
-            local = f"{c.municipio or c.municipio_codigo_ibge or '?'}/{c.uf or '?'}"
-            linhas.append(
-                f"| {c.razao}× | {c.especificacao.produto} | {local} | {c.data_referencia.isoformat()} | "
-                f"{_real(c.preco_unitario)} | {_real(ref.mediana)} ({ref.quantidade}, {ref.escopo}) | "
-                f"{_real(ref.maximo)} | {_real(c.valor_total)} | {c.processo} |")
+    linhas += _tabela_destaques(destaques, "Pago")
+    estimados = sorted(
+        (c for c in comparacoes if c.situacao == ACIMA and c.tipo_preco == "estimado"
+         and (c.valor_total or Decimal(0)) >= parametros.valor_total_minimo_destaque),
+        key=lambda c: (c.razao or Decimal(0)), reverse=True)[:limite]
+    linhas += ["", "## Maiores distâncias no preço estimado (pesquisa de preços da compra, antes do resultado)", "",
+               "Outro fato, separado do homologado: a estimativa acima do mercado pode vir de orçamentos altos na "
+               "pesquisa de preços, e o preço contratado ainda pode sair menor.", ""]
+    linhas += _tabela_destaques(estimados, "Estimado")
     return "\n".join(linhas) + "\n"
+
+
+def _tabela_destaques(comparacoes: list[Comparacao], rotulo_preco: str) -> list[str]:
+    """Linhas de uma tabela Markdown de itens acima da referência, ou "Nenhum item."."""
+    if not comparacoes:
+        return ["Nenhum item."]
+    linhas = [f"| Razão | Produto | Local | Data | {rotulo_preco} | Mediana (n) | Máximo | Valor total | Marcas | "
+              "Processo |", "|---|---|---|---|---|---|---|---|---|---|"]
+    for c in comparacoes:
+        ref = c.referencia
+        local = f"{c.municipio or c.municipio_codigo_ibge or '?'}/{c.uf or '?'}"
+        marcas = ", ".join(m for m in c.marcacoes if m != "preco_estimado") or "—"
+        linhas.append(
+            f"| {c.razao}× | {c.especificacao.produto} | {local} | {c.data_referencia.isoformat()} | "
+            f"{_real(c.preco_unitario)} | {_real(ref.mediana)} ({ref.quantidade}, {ref.escopo}) | "
+            f"{_real(ref.maximo)} | {_real(c.valor_total)} | {marcas} | {c.processo} |")
+    return linhas
 
 
 def escrever(comparacoes: Iterable[Comparacao], destino: Path | str, parametros: ParametrosMercado) -> dict:

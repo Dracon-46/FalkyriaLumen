@@ -34,6 +34,7 @@ ACIMA = "acima_da_referencia"
 DENTRO = "dentro_da_referencia"
 SEM_REFERENCIA = "sem_referencia"
 NAO_COMPARAVEL = "nao_comparavel"
+FORA_DE_ESCALA = "fora_de_escala"
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,8 @@ class ParametrosMercado:
 
     modo: str
     valor_total_minimo_destaque: Decimal
+    razao_minima_plausivel: Decimal
+    razao_extrema: Decimal
     combustivel_limiar: Decimal
     combustivel_janela: int
     combustivel_minimo_municipio: int
@@ -64,6 +67,8 @@ class ParametrosMercado:
         g, c, v = d["geral"], d["combustivel"], d["varejo"]
         gas = d.get("gas_de_cozinha", {})   # sem a seção, o gás usa o limiar do combustível
         return cls(modo=g["modo"], valor_total_minimo_destaque=Decimal(g["valor_total_minimo_destaque"]),
+                   razao_minima_plausivel=Decimal(g.get("razao_minima_plausivel", "0")),
+                   razao_extrema=Decimal(g.get("razao_extrema", "1000000")),
                    combustivel_limiar=Decimal(c["limiar_razao"]), combustivel_janela=int(c["janela_dias"]),
                    combustivel_minimo_municipio=int(c["minimo_municipio"]), combustivel_minimo_uf=int(c["minimo_uf"]),
                    gas_de_cozinha_limiar=Decimal(gas.get("limiar_razao", c["limiar_razao"])),
@@ -88,8 +93,9 @@ class Comparacao:
     """Resultado da regra A-05 para um item: o que foi pago, contra qual referência, e a distância.
 
     ``situacao`` é ``acima_da_referencia`` (razão no limiar ou acima), ``dentro_da_referencia``,
-    ``sem_referencia`` (o item é comparável, mas faltou amostra de mercado na época e no lugar) ou
-    ``nao_comparavel`` (o item não foi reconhecido; só aparece nas contagens).
+    ``sem_referencia`` (o item é comparável, mas faltou amostra de mercado na época e no lugar),
+    ``fora_de_escala`` (razão abaixo da mínima plausível: preço simbólico, zero ou erro de unidade; fica fora
+    da distribuição) ou ``nao_comparavel`` (o item não foi reconhecido; só aparece nas contagens).
     """
 
     item_id: str
@@ -162,14 +168,24 @@ def itens_da_silver(processos: Iterable[dict], itens: Iterable[dict], resultados
 
 
 def _preco(entrada: ItemParaComparar) -> tuple[Decimal | None, str, Decimal | None, date]:
-    """(preço unitário, tipo, quantidade, data de referência): homologado se houver resultado, senão estimado."""
+    """(preço unitário, tipo, quantidade, data de referência): homologado se houver resultado, senão estimado.
+
+    Preço zero ou negativo conta como ausente.
+    """
     i, r, p = entrada.item, entrada.resultado, entrada.processo
     data_publicacao = date.fromisoformat(p["data_publicacao"])
-    if r and _decimal(r.get("valor_unitario_homologado")) is not None:
+    homologado = _positivo(r.get("valor_unitario_homologado")) if r else None
+    if homologado is not None:
         quando = date.fromisoformat(r["data_resultado"]) if r.get("data_resultado") else data_publicacao
-        return (_decimal(r["valor_unitario_homologado"]), "homologado",
+        return (homologado, "homologado",
                 _decimal(r.get("quantidade_homologada")) or _decimal(i.get("quantidade")), quando)
-    return _decimal(i.get("valor_unitario_estimado")), "estimado", _decimal(i.get("quantidade")), data_publicacao
+    return _positivo(i.get("valor_unitario_estimado")), "estimado", _decimal(i.get("quantidade")), data_publicacao
+
+
+def _positivo(valor) -> Decimal | None:
+    """Preço em ``Decimal`` só quando positivo: zero é como o PNCP grava o orçamento sigiloso, não um preço."""
+    d = _decimal(valor)
+    return d if d is not None and d > 0 else None
 
 
 def comparar(entradas: Iterable[ItemParaComparar], parametros: ParametrosMercado, *,
@@ -224,6 +240,12 @@ def comparar(entradas: Iterable[ItemParaComparar], parametros: ParametrosMercado
             yield Comparacao(**base, situacao=SEM_REFERENCIA, motivo=motivo, limiar=limiar)
             continue
         razao = (preco / ref.mediana).quantize(Decimal("0.001"), rounding=ROUND_HALF_EVEN)
+        if razao < parametros.razao_minima_plausivel:
+            yield Comparacao(**base, situacao=FORA_DE_ESCALA, referencia=ref, razao=razao, limiar=limiar,
+                             motivo=f"preço unitário {razao}× a mediana da referência: abaixo de "
+                                    f"{parametros.razao_minima_plausivel}×, provável preço simbólico ou erro de "
+                                    "unidade ou de quantidade")
+            continue
         marcas = []
         if preco > ref.maximo:
             marcas.append("acima_do_maior_preco_observado")
@@ -231,6 +253,8 @@ def comparar(entradas: Iterable[ItemParaComparar], parametros: ParametrosMercado
             marcas.append(f"referencia_da_{ref.escopo}")
         if tipo == "estimado":
             marcas.append("preco_estimado")
+        if razao >= parametros.razao_extrema:
+            marcas.append("razao_extrema_conferir_unidade")
         if razao >= limiar:
             situacao = ACIMA
             motivo = f"preço unitário {razao}× a mediana da referência (limiar {limiar}×)"
