@@ -203,3 +203,12 @@ def test_estilo_virtual_hosted():
     assert c._url("x/y") == "https://b.s3.sa-east-1.amazonaws.com/x/y"
     assert ClienteS3(endpoint="http://localhost:9000", bucket="b", chave_acesso="a",
                      chave_secreta="s")._url("x") == "http://localhost:9000/b/x"
+
+
+def test_endpoint_com_caminho():
+    """Endpoints S3 que vivem num caminho (o do Supabase Storage) mantêm o prefixo antes do bucket."""
+    c = ClienteS3(endpoint="https://ref.supabase.co/storage/v1/s3/", bucket="feeds", chave_acesso="a",
+                  chave_secreta="s", regiao="sa-east-1")
+    assert c._url("2026/indice.json") == "https://ref.supabase.co/storage/v1/s3/feeds/2026/indice.json"
+    assert c._url("", {"prefix": "2026/", "list-type": "2"}) == (
+        "https://ref.supabase.co/storage/v1/s3/feeds?list-type=2&prefix=2026%2F")
