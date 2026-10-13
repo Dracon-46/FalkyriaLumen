@@ -7,9 +7,11 @@ apuração consome de tráfego de saída, que no Supabase gratuito tem cota (no 
   da raiz (``indice.json``, ``municipios.json``);
 - o tamanho comprimido com gzip, perto do que o navegador baixa quando o servidor comprime JSON;
 - os maiores arquivos, contra o limite por arquivo;
-- o pior caso de saída por visitante e por hora de apuração: o portal relê o feed nacional e a evolução
-  a cada 15 s e o índice a cada minuto (``packages/portal/src/lib/feeds.ts``). "Pior caso" porque supõe
-  que o feed mudou entre duas leituras; quando não mudou, o navegador revalida e recebe só um 304.
+- o pior caso de saída por visitante e por hora de apuração, em duas visões: Brasil e o estado de feed
+  mais pesado (o de um estado grande chega a dez vezes o nacional). O portal relê o feed aberto e a
+  evolução a cada 15 s e o índice a cada minuto (``packages/portal/src/lib/feeds.ts``). "Pior caso"
+  porque supõe que o feed mudou entre duas leituras; quando não mudou, o navegador revalida e recebe
+  só um 304.
 
 Não lê nem interpreta o conteúdo dos feeds: só o tamanho.
 """
@@ -32,14 +34,23 @@ LIMITES = {
 LEITURAS_FEED_POR_HORA = 3600 // 15
 LEITURAS_INDICE_POR_HORA = 3600 // 60
 
-NACIONAL = "br.json"
-EVOLUCAO_NACIONAL = "historico-br.json"
 INDICE = "indice.json"
+PREFIXO_EVOLUCAO = "historico-"
+VISOES = ("brasil", "estado")
 
 
 def _gzip(conteudo: bytes) -> int:
     """Tamanho do conteúdo comprimido com gzip no nível padrão dos servidores (6)."""
     return len(gzip.compress(conteudo, compresslevel=6, mtime=0))
+
+
+def visao_de(abrangencia: str) -> str | None:
+    """Visão do portal a que a abrangência do arquivo pertence: ``brasil`` (``br``), ``estado`` (``uf-xx``)."""
+    if abrangencia == "br":
+        return "brasil"
+    if abrangencia.startswith("uf-"):
+        return "estado"
+    return None
 
 
 def grupo_de(relativo: str) -> str:
@@ -75,16 +86,17 @@ class Medicao:
     total: Tamanho = field(default_factory=Tamanho)
     grupos: dict[str, Tamanho] = field(default_factory=dict)
     maiores: list[dict] = field(default_factory=list)
-    # Por eleição: o cargo com o maior par feed nacional + evolução, que é o que o portal relê ao vivo
-    nacionais: dict[str, dict] = field(default_factory=dict)
+    # Por eleição e visão (brasil, estado): o par feed + evolução mais pesado, que é o que o portal relê ao vivo
+    visoes: dict[str, dict[str, dict]] = field(default_factory=dict)
     indice_gzip: int = 0
 
-    def saida_por_visitante_hora(self, eleicao: str) -> int | None:
-        """Pior caso, em bytes com gzip, de um visitante acompanhando ``eleicao`` por uma hora."""
-        n = self.nacionais.get(eleicao)
+    def saida_por_visitante_hora(self, eleicao: str, visao: str = "brasil") -> int | None:
+        """Pior caso, em bytes com gzip, de um visitante acompanhando ``eleicao`` na ``visao`` por uma hora."""
+        n = self.visoes.get(eleicao, {}).get(visao)
         if n is None:
             return None
-        return LEITURAS_FEED_POR_HORA * (n["bytes_gzip"] + n["evolucao_gzip"]) + LEITURAS_INDICE_POR_HORA * self.indice_gzip
+        feed = n["bytes_gzip"] + n["evolucao_gzip"]
+        return LEITURAS_FEED_POR_HORA * feed + LEITURAS_INDICE_POR_HORA * self.indice_gzip
 
     def cabe(self, plano: str) -> dict[str, bool | None]:
         """Se o total e o maior arquivo cabem nos limites do plano (``None`` quando o plano não tem limite)."""
@@ -102,9 +114,10 @@ class Medicao:
             "total": self.total.para_json(),
             "grupos": {g: t.para_json() for g, t in sorted(self.grupos.items())},
             "maiores": self.maiores,
-            "nacionais": {
-                e: {**n, "saida_pior_caso_por_visitante_hora": self.saida_por_visitante_hora(e)}
-                for e, n in sorted(self.nacionais.items())
+            "visoes": {
+                e: {v: {**n, "saida_pior_caso_por_visitante_hora": self.saida_por_visitante_hora(e, v)}
+                    for v, n in sorted(por_visao.items())}
+                for e, por_visao in sorted(self.visoes.items())
             },
             "indice_gzip": self.indice_gzip,
             "cabe": {p: self.cabe(p) for p in LIMITES},
@@ -119,7 +132,7 @@ def medir(pasta: Path | str, *, maiores: int = 10) -> Medicao:
     if not pasta.is_dir():
         return m
     todos: list[dict] = []
-    por_cargo: dict[tuple[str, str], dict] = {}
+    pares: dict[tuple[str, str, str], dict] = {}   # (eleição, cargo, abrangência) → feed e evolução
     for caminho in sorted(pasta.rglob("*")):
         if not caminho.is_file() or caminho.name.endswith(".tmp") or caminho.name.startswith("."):
             continue
@@ -132,17 +145,26 @@ def medir(pasta: Path | str, *, maiores: int = 10) -> Medicao:
         if rel == INDICE:
             m.indice_gzip = bz
         partes = rel.split("/")
-        if len(partes) == 3 and partes[2] in (NACIONAL, EVOLUCAO_NACIONAL):
-            item = por_cargo.setdefault((partes[0], partes[1]), {"cargo": partes[1], "bytes": 0, "bytes_gzip": 0,
-                                                                  "evolucao_gzip": 0})
-            if partes[2] == NACIONAL:
-                item["bytes"], item["bytes_gzip"] = b, bz
-            else:
-                item["evolucao_gzip"] = bz
-    for (eleicao, _), item in por_cargo.items():
-        atual = m.nacionais.get(eleicao)
+        if len(partes) == 3 and partes[2].endswith(".json"):
+            nome = partes[2][: -len(".json")]
+            evolucao = nome.startswith(PREFIXO_EVOLUCAO)
+            abrangencia = nome[len(PREFIXO_EVOLUCAO):] if evolucao else nome
+            if visao_de(abrangencia):
+                item = pares.setdefault((partes[0], partes[1], abrangencia),
+                                        {"cargo": partes[1], "abrangencia": abrangencia, "bytes": 0, "bytes_gzip": 0,
+                                         "evolucao_gzip": 0})
+                if evolucao:
+                    item["evolucao_gzip"] = bz
+                else:
+                    item["bytes"], item["bytes_gzip"] = b, bz
+    for (eleicao, _, abrangencia), item in sorted(pares.items()):
+        if not item["bytes"]:
+            continue                      # evolução sem o feed: o portal não chega a abrir
+        por_visao = m.visoes.setdefault(eleicao, {})
+        visao = visao_de(abrangencia)
+        atual = por_visao.get(visao)
         if atual is None or item["bytes_gzip"] + item["evolucao_gzip"] > atual["bytes_gzip"] + atual["evolucao_gzip"]:
-            m.nacionais[eleicao] = item
+            por_visao[visao] = item
     m.maiores = sorted(todos, key=lambda x: (-x["bytes"], x["arquivo"]))[:maiores]
     return m
 
@@ -178,18 +200,24 @@ def resumo_markdown(m: Medicao) -> str:
     for plano in LIMITES:
         c = m.cabe(plano)
         linhas.append(f"| {plano.replace('_', ' ')} | {_sim_nao(c['armazenamento'])} | {_sim_nao(c['arquivo'])} |")
-    if m.nacionais:
+    if m.visoes:
         cota = LIMITES["supabase_gratuito"]["saida"]
         linhas += ["", "### Saída durante a apuração (pior caso, com gzip)", "",
-                   "| Eleição | Cargo | Feed nacional | Por visitante e hora | Horas-visitante na cota do Supabase |",
-                   "|---|---|---:|---:|---:|"]
-        for e, n in sorted(m.nacionais.items()):
-            hora = m.saida_por_visitante_hora(e) or 0
-            horas = f"{cota // hora:,}".replace(",", ".") if hora else "—"
-            linhas.append(f"| {e} | {n['cargo']} | {_legivel(n['bytes_gzip'])} | {_legivel(hora)} | {horas} |")
+                   "| Eleição | Visão | Feed mais pesado | Feed + evolução | Por visitante e hora | "
+                   "Horas-visitante na cota do Supabase |",
+                   "|---|---|---|---:|---:|---:|"]
+        for e, por_visao in sorted(m.visoes.items()):
+            for v in VISOES:
+                n = por_visao.get(v)
+                if n is None:
+                    continue
+                hora = m.saida_por_visitante_hora(e, v) or 0
+                horas = f"{cota // hora:,}".replace(",", ".") if hora else "—"
+                linhas.append(f"| {e} | {v} | `{n['cargo']}/{n['abrangencia']}` | "
+                              f"{_legivel(n['bytes_gzip'] + n['evolucao_gzip'])} | {_legivel(hora)} | {horas} |")
         linhas += ["", "Pior caso: o feed muda entre duas leituras de 15 s. Quando não muda, o navegador recebe "
-                   "só um 304. A cota do Supabase gratuito é de 5 GB de saída sem cache por mês; no R2, a saída "
-                   "é grátis."]
+                   "só um 304. A cota do Supabase gratuito é de 5 GB de saída sem cache por mês, somada a todo o "
+                   "uso da organização; no R2, a saída é grátis."]
     linhas += ["", "### Maiores arquivos", "", "| Arquivo | Tamanho | Com gzip |", "|---|---:|---:|"]
     linhas += [f"| `{x['arquivo']}` | {_legivel(x['bytes'])} | {_legivel(x['bytes_gzip'])} |" for x in m.maiores]
     return "\n".join(linhas) + "\n"
