@@ -735,6 +735,18 @@ body.push(t("A saída é o ponto a medir antes de escolher. Durante a apuração
   "se cabe em 1 GB, o maior arquivo e o pior caso de saída por visitante e por hora (o feed mudando entre duas " +
   "leituras). Dividir 5 GB por esse número dá quantas horas-visitante a cota comporta; quando o feed não muda, " +
   "o navegador recebe só uma resposta 304, e o consumo real fica abaixo do pior caso."));
+body.push(t("A primeira medição (13 de outubro de 2026, 1h06 de execução) deu o tamanho do 1º turno de 2026 completo:"));
+body.push(table(["Medida", "Valor"], [4800, 4800], [
+  ["Arquivos", "17.653 (17.127 feeds do 1º turno, 496 fotos, 28 malhas, índice e cadastro)"],
+  ["Tamanho", "112,9 MB (35,4 MB com gzip): 11% do 1 GB gratuito"],
+  ["Maior arquivo", "municipios.json, 615 kB (125 kB com gzip), abaixo do limite de 50 MB"],
+  ["Visão Brasil, pior caso", "Feed de presidente de 3,3 kB com gzip: cerca de 1 MB por visitante e hora, perto de 5.000 horas-visitante na cota"],
+  ["Visão de um estado grande, pior caso", "Feed de presidente em MG de 34 kB com gzip: cerca de 9 MB por visitante e hora, perto de 550 horas-visitante"],
+], { boldFirstCol: true, size: 17 }));
+body.push(spacer(80));
+body.push(t("Recomendação para o 2º turno de 2026: o Supabase, gratuito sem meio de pagamento, que ao fim da cota para " +
+  "de servir em vez de cobrar. O R2 fica para quando o portal for divulgado ou precisar das eleições antigas. " +
+  "`lumen eleicoes medir` passou a estimar também a visão do estado mais pesado."));
 body.push(h3("Configuração, uma vez"));
 novaLista();
 body.push(n("Num projeto do Supabase da conta do mantenedor (nunca na organização de uma empresa que ele atende), " +
@@ -771,9 +783,9 @@ body.push(callout("O que o Supabase não faz", [
 body.push(h1("10. Verificação"));
 body.push(h2("10.1 Testes automatizados"));
 body.push(table(["Conjunto", "Quantidade", "O que cobre"], [3000, 1400, 5200], [
-  ["packages/eleicoes/testes", "190", "Leitores do TSE com arquivos reais, dados abertos com CSV sintético nos cabeçalhos reais dos três layouts, eleições de 1933 a 1990 com linhas reais recortadas de seis anos, download retomável, coletor contra servidor local, feeds (amostra byte a byte), cadastro, malhas e referências embutidas, servidor, preparar de ponta a ponta (com retomada e erro num ano), publicação na nuvem contra um S3 em memória (só o que mudou, índice por último, retomada em outra máquina, prazo, falhas de restauração e de publicação), configuração (inclusive a região exigida pelo Supabase), medição dos feeds contra os limites gratuitos e CLI"],
+  ["packages/eleicoes/testes", "192", "Leitores do TSE com arquivos reais, dados abertos com CSV sintético nos cabeçalhos reais dos três layouts, eleições de 1933 a 1990 com linhas reais recortadas de seis anos, download retomável, coletor contra servidor local, feeds (amostra byte a byte), cadastro, malhas e referências embutidas, servidor, preparar de ponta a ponta (com retomada e erro num ano), publicação na nuvem contra um S3 em memória (só o que mudou, índice por último, retomada em outra máquina, prazo, falhas de restauração e de publicação), configuração (inclusive a região exigida pelo Supabase), medição dos feeds contra os limites gratuitos e CLI"],
   ["packages/portal (vitest)", "79", "Decodificador TopoJSON, validação dos feeds lendo a amostra do Python (inclusive as eleições antigas), formatação, cores, busca, estado na URL, grupos do seletor, área do mapa ↔ parte e as contas do zoom"],
-  ["Suíte Python inteira", "844", "Eleições e o resto do Lumen; cobertura mínima de 80% exigida no CI (97% na data deste documento)"],
+  ["Suíte Python inteira", "846", "Eleições e o resto do Lumen; cobertura mínima de 80% exigida no CI (97% na data deste documento)"],
 ], { size: 17 }));
 body.push(spacer(80));
 body.push(t("Além dos testes: verificação de tipos do portal (`tsc`), build da exportação estática, ruff, o verificador " +

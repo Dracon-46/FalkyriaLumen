@@ -131,6 +131,25 @@ body.push(callout("Por que uma régua de fora do governo", [
   "a mediana entre órgãos sobe junto e nada destoa. A-05 traz a régua do mercado, que a Lei 14.133 também aceita como parâmetro de " +
   "pesquisa de preços (art. 23, § 1º, III e V). Começa pelo combustível, cuja referência é oficial, histórica e sem ambiguidade de produto.",
 ], "blue"));
+body.push(h3("A-05 com dados reais: o que as primeiras amostras mostram"));
+body.push(p("O fluxo mercado-referencia roda a regra em modo silencioso sobre compras reais do PNCP. Com a série " +
+  "semestral 2026-1 da ANP, o preço homologado com referência na UF se distribuiu assim (razão = preço pago ÷ " +
+  "mediana de revenda; * = menos de 20 itens):"));
+body.push(table(["Compras", "Combustível", "Mediana", "p90", "≥ 1,2", "Gás", "Mediana", "p90", "≥ 1,2", "≥ 2,0"],
+  [1850, 1450, 950, 750, 750, 650, 950, 750, 750, 750], [
+  ["14 e 15/4", "43", "1,014", "1,090", "0%", "9*", "1,101", "1,177", "11,1%", "0%"],
+  ["19 e 20/5", "43", "1,045", "1,123", "0%", "7*", "1,091", "1,189", "14,3%", "0%"],
+  ["16 e 17/6", "26", "1,026", "1,134", "3,8%", "—", "—", "—", "—", "—"],
+  ["7 janelas, janeiro a junho", "324", "0,989", "1,111", "3,1%", "86", "1,053", "1,300", "16,3%", "4,7%"],
+], { size: 16 }));
+body.push(spacer(80));
+body.push(callout("Observação, não calibração", [
+  "No combustível, o homologado fica perto da mediana da UF e o limiar de 1,20 separa uma cauda de cerca de 3%. " +
+  "No gás de cozinha, a cauda é longa e os maiores casos sugerem outro produto, não outro preço: R$ 785,00 \"o " +
+  "botijão\" (provável cilindro de 45 kg, marcado para conferir unidade) e R$ 260,00 a R$ 335,00 (perto do botijão " +
+  "completo, com o vasilhame). O reconhecimento do gás precisa ser conferido nesses itens antes de qualquer limiar. " +
+  "Os limiares da tabela de parâmetros continuam os iniciais (ADR-027).",
+], "amber"));
 
 body.push(pageBreak());
 body.push(h1("3. Família B — Fracionamento e padrões de valor pequeno"));
@@ -551,7 +570,7 @@ L.buildDoc({
   codigo: "DOC-07",
   titulo: "Motor de Detecção",
   subtitulo: "Catálogo de regras, fórmulas, limiares e tratamento de falso positivo",
-  meta: { versao: "1.2", data: "9 de outubro de 2026",
+  meta: { versao: "1.3", data: "13 de outubro de 2026",
     situacao: "Catálogo da versão 1.0 com as revisões pendentes da Fase 1 e a regra A-05 (ADR-027)",
     verificado: "outubro de 2026" },
   body,
