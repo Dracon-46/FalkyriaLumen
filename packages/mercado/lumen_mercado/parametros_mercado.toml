@@ -19,6 +19,11 @@ razao_minima_plausivel = "0.50"
 # para conferir unidade e quantidade antes de qualquer análise (preço do galão
 # de 20 litros comparado com o litro, por exemplo).
 razao_extrema = "3.00"
+# Acima desta razão também não é preço de mercado nenhum: é o valor total da
+# compra lançado como unitário (quantidade 1, "R$ 7.640.000,00 o litro de
+# diesel"), visto na execução com compras de junho de 2026. Vira "fora de
+# escala", como os preços simbólicos.
+razao_maxima_plausivel = "10.00"
 
 [combustivel]
 # Razão entre o preço pago e a mediana do preço de bomba a partir da qual o

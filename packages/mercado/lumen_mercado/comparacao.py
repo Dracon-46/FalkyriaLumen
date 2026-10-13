@@ -45,6 +45,7 @@ class ParametrosMercado:
     valor_total_minimo_destaque: Decimal
     razao_minima_plausivel: Decimal
     razao_extrema: Decimal
+    razao_maxima_plausivel: Decimal
     combustivel_limiar: Decimal
     combustivel_janela: int
     combustivel_minimo_municipio: int
@@ -69,6 +70,7 @@ class ParametrosMercado:
         return cls(modo=g["modo"], valor_total_minimo_destaque=Decimal(g["valor_total_minimo_destaque"]),
                    razao_minima_plausivel=Decimal(g.get("razao_minima_plausivel", "0")),
                    razao_extrema=Decimal(g.get("razao_extrema", "1000000")),
+                   razao_maxima_plausivel=Decimal(g.get("razao_maxima_plausivel", "1000000")),
                    combustivel_limiar=Decimal(c["limiar_razao"]), combustivel_janela=int(c["janela_dias"]),
                    combustivel_minimo_municipio=int(c["minimo_municipio"]), combustivel_minimo_uf=int(c["minimo_uf"]),
                    gas_de_cozinha_limiar=Decimal(gas.get("limiar_razao", c["limiar_razao"])),
@@ -94,8 +96,8 @@ class Comparacao:
 
     ``situacao`` é ``acima_da_referencia`` (razão no limiar ou acima), ``dentro_da_referencia``,
     ``sem_referencia`` (o item é comparável, mas faltou amostra de mercado na época e no lugar),
-    ``fora_de_escala`` (razão abaixo da mínima plausível: preço simbólico, zero ou erro de unidade; fica fora
-    da distribuição) ou ``nao_comparavel`` (o item não foi reconhecido; só aparece nas contagens).
+    ``fora_de_escala`` (razão abaixo da mínima ou acima da máxima plausível: preço simbólico, valor total
+    lançado como unitário ou erro de unidade; fica fora da distribuição) ou ``nao_comparavel`` (o item não foi reconhecido; só aparece nas contagens).
     """
 
     item_id: str
@@ -245,6 +247,12 @@ def comparar(entradas: Iterable[ItemParaComparar], parametros: ParametrosMercado
                              motivo=f"preço unitário {razao}× a mediana da referência: abaixo de "
                                     f"{parametros.razao_minima_plausivel}×, provável preço simbólico ou erro de "
                                     "unidade ou de quantidade")
+            continue
+        if razao > parametros.razao_maxima_plausivel:
+            yield Comparacao(**base, situacao=FORA_DE_ESCALA, referencia=ref, razao=razao, limiar=limiar,
+                             motivo=f"preço unitário {razao}× a mediana da referência: acima de "
+                                    f"{parametros.razao_maxima_plausivel}×, provável valor total lançado como "
+                                    "unitário ou erro de unidade")
             continue
         marcas = []
         if preco > ref.maximo:

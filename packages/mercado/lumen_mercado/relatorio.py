@@ -108,8 +108,9 @@ def resumo_markdown(comparacoes: list[Comparacao], parametros: ParametrosMercado
         f"- Com referência de mercado: {por_situacao[ACIMA] + por_situacao['dentro_da_referencia']}",
         f"- Acima do limiar: {por_situacao[ACIMA]}",
         f"- Sem referência na época e no lugar: {por_situacao['sem_referencia']}",
-        f"- Fora de escala (abaixo de {parametros.razao_minima_plausivel}× a mediana: preço simbólico ou erro de "
-        f"unidade; fora da distribuição): {por_situacao[FORA_DE_ESCALA]}",
+        f"- Fora de escala (abaixo de {parametros.razao_minima_plausivel}× ou acima de "
+        f"{parametros.razao_maxima_plausivel}× a mediana: preço simbólico, valor total lançado como unitário ou "
+        f"erro de unidade; fora da distribuição): {por_situacao[FORA_DE_ESCALA]}",
         f"- Limiar: combustível {parametros.combustivel_limiar}×, gás de cozinha "
         f"{parametros.gas_de_cozinha_limiar}× e varejo {parametros.varejo_limiar}× a mediana "
         f"({'calibrado' if parametros.calibrado else 'ainda não calibrado'})",
