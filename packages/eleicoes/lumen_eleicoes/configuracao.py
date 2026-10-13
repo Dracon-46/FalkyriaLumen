@@ -23,6 +23,12 @@ Publicação na nuvem (ADR-026), seção ``[publicacao]``, só para quem usa
     bucket_estado = "lumen-privado"    # privado: estado da carga (padrão: o mesmo bucket)
     regiao = "auto"
 
+O Supabase Storage também serve (adendo do ADR-026): o endpoint é o S3 do
+projeto (``https://<ref>.storage.supabase.co/storage/v1/s3``) e a região é a
+do projeto, como aparece na página de configuração S3 do painel (ex.:
+``sa-east-1``). Com ``auto``, o Supabase recusa a assinatura; por isso a
+configuração recusa endpoint do Supabase sem região.
+
 As chaves de acesso nunca ficam no arquivo: ``LUMEN_S3_CHAVE_ACESSO`` e
 ``LUMEN_S3_CHAVE_SECRETA``. Cada item também aceita variável de ambiente
 (``LUMEN_PUBLICACAO_ENDPOINT``, ``LUMEN_PUBLICACAO_BUCKET``,
@@ -33,6 +39,7 @@ from __future__ import annotations
 
 import os
 import tomllib
+import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -109,7 +116,7 @@ def carregar(caminho: Path | None = None, *, exigir_contato: bool = True) -> Con
 
 @dataclass
 class ConfiguracaoPublicacao:
-    """Onde publicar os feeds e guardar o estado da carga: um armazenamento compatível com S3 (R2).
+    """Onde publicar os feeds e guardar o estado da carga: um armazenamento compatível com S3 (R2 ou Supabase).
 
     ``bucket`` é o público, lido pelo portal; ``bucket_estado``, o privado, com o registro do que a carga
     já fez — sem ele, uma máquina que começa vazia a cada execução (GitHub Actions) refaria tudo.
@@ -149,8 +156,19 @@ def carregar_publicacao(caminho: Path | None = None) -> ConfiguracaoPublicacao:
         raise ConfiguracaoAusente(
             "publicação na nuvem sem " + ", ".join(faltando) + ": defina [publicacao] no lumen.toml (endpoint e "
             "bucket) e as chaves nas variáveis LUMEN_S3_CHAVE_ACESSO e LUMEN_S3_CHAVE_SECRETA")
+    regiao = valor("regiao", "LUMEN_PUBLICACAO_REGIAO", "auto")
+    if eh_supabase(endpoint) and regiao == "auto":
+        raise ConfiguracaoAusente(
+            "o S3 do Supabase assina com a região do projeto, não com \"auto\": defina [publicacao].regiao "
+            "ou LUMEN_PUBLICACAO_REGIAO com a região mostrada na configuração S3 do painel (ex.: sa-east-1)")
     return ConfiguracaoPublicacao(
         endpoint=endpoint, bucket=bucket, chave_acesso=acesso, chave_secreta=segredo,
         bucket_estado=valor("bucket_estado", "LUMEN_PUBLICACAO_BUCKET_ESTADO") or bucket,
-        regiao=valor("regiao", "LUMEN_PUBLICACAO_REGIAO", "auto"),
+        regiao=regiao,
     )
+
+
+def eh_supabase(endpoint: str) -> bool:
+    """Se o endpoint é o S3 de um projeto do Supabase (``<ref>.supabase.co`` ou ``<ref>.storage.supabase.co``)."""
+    host = urllib.parse.urlsplit(endpoint).hostname or ""
+    return host == "supabase.co" or host.endswith(".supabase.co")

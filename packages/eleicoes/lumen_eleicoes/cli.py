@@ -14,6 +14,7 @@ Exemplos::
     lumen eleicoes simular                          # apuração fictícia para testar a tela
     lumen eleicoes servir                           # portal + feeds em http://127.0.0.1:8080
     lumen eleicoes verificar                        # confere o contrato dos feeds gravados
+    lumen eleicoes medir --resumo resumo.md         # tamanho dos feeds contra os limites gratuitos
 """
 
 from __future__ import annotations
@@ -32,7 +33,7 @@ from pathlib import Path
 from lumen_ingestao.bronze import ArmazemBronzeLocal
 from lumen_ingestao.cliente_http import ClienteHttp
 
-from . import antigas, carga, geo, referencias, tse
+from . import antigas, carga, geo, medicao, referencias, tse
 from . import dados_abertos as da
 from .coletor import FONTE_ID, ColetorAoVivo, ResumoPassada, plano_padrao
 from .configuracao import ConfiguracaoAusente, ConfiguracaoEleicoes, carregar, carregar_publicacao
@@ -376,6 +377,20 @@ def cmd_verificar(cfg, args) -> int:
     return 0 if rel.ok else 1
 
 
+def cmd_medir(cfg, args) -> int:
+    """Mede os feeds gravados contra os limites do R2 e do Supabase gratuitos; imprime JSON.
+
+    ``--resumo`` também grava o resumo em Markdown (no GitHub Actions, o ``$GITHUB_STEP_SUMMARY``).
+    Devolve 1 se não houver nenhum feed para medir.
+    """
+    m = medicao.medir(cfg.saida, maiores=args.maiores)
+    _imprimir(m.para_json())
+    if args.resumo:
+        with open(args.resumo, "a", encoding="utf-8") as fh:
+            fh.write(medicao.resumo_markdown(m))
+    return 0 if m.total.arquivos else 1
+
+
 # ---------------------------------------------------------------- argumentos
 
 def construir_parser() -> argparse.ArgumentParser:
@@ -471,24 +486,29 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--porta", type=int, default=8080)
 
     sub.add_parser("verificar", help="confere o contrato dos feeds gravados")
+
+    c = sub.add_parser("medir", help="tamanho dos feeds contra os limites gratuitos do R2 e do Supabase")
+    c.add_argument("--resumo", help="acrescenta o resumo em Markdown a este arquivo")
+    c.add_argument("--maiores", type=int, default=10, help="quantos dos maiores arquivos listar")
     return p
 
 
 COMANDOS = {"preparar": cmd_preparar, "publicar": cmd_publicar, "catalogo": cmd_catalogo, "municipios": cmd_municipios, "mapas": cmd_mapas, "ao-vivo": cmd_ao_vivo,
-            "simular": cmd_simular, "amostra": cmd_amostra, "servir": cmd_servir, "verificar": cmd_verificar}
+            "simular": cmd_simular, "amostra": cmd_amostra, "servir": cmd_servir, "verificar": cmd_verificar,
+            "medir": cmd_medir}
 
 
 def main(argv: list[str] | None = None) -> int:
     """Ponto de entrada: lê argumentos e configuração e despacha para o comando; devolve o código de saída.
 
-    Os comandos que não consultam as fontes (``servir``, ``verificar``, ``amostra``, ``publicar``)
+    Os comandos que não consultam as fontes (``servir``, ``verificar``, ``amostra``, ``publicar``, ``medir``)
     dispensam o contato da coleta. ``--saida`` sobrepõe o diretório dos feeds da configuração. Falta de
     configuração da nuvem (``--nuvem``, ``publicar``) vira mensagem e código 2.
     """
     args = construir_parser().parse_args(argv)
     logging.basicConfig(level=logging.INFO if args.verboso else logging.WARNING,
                         format="%(asctime)s %(name)s %(message)s")
-    offline = args.comando in ("servir", "verificar", "amostra", "publicar")
+    offline = args.comando in ("servir", "verificar", "amostra", "publicar", "medir")
     try:
         cfg = carregar(Path(args.config) if args.config else None, exigir_contato=not offline)
     except ConfiguracaoAusente as erro:
