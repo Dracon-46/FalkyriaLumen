@@ -364,9 +364,11 @@ def test_preco_fora_de_escala_zero_e_razao_extrema(cfg, apoio, tmp_path):
         (1, "Diesel S10", "Litro", "1", "1.28", None),                   # 1,28 / 6,10: simbólico
         (2, "GASOLINA COMUM", "Litro", "100", "0", None),               # sigiloso: sem preço
         (3, "GASOLINA COMUM", "Litro", "500", "20.00", None),           # 20 / 6,19 = 3,23: conferir unidade
+        (4, "Diesel S10", "Litro", "2", "7640000.00", None),             # valor total lançado como unitário
     ])
     p = ParametrosMercado.carregar()
     assert p.razao_minima_plausivel == Decimal("0.50") and p.razao_extrema == Decimal("3.00")
+    assert p.razao_maxima_plausivel == Decimal("10.00")
     lista = list(comparar(itens_da_silver(consolidar(ler_entidade(cfg.silver, "processo_contratacao")),
                                           consolidar(ler_entidade(cfg.silver, "item_contratacao")),
                                           consolidar(ler_entidade(cfg.silver, "resultado_item"))),
@@ -377,8 +379,10 @@ def test_preco_fora_de_escala_zero_e_razao_extrema(cfg, apoio, tmp_path):
     assert "provável preço simbólico" in simbolico.motivo
     assert sigiloso.situacao == SEM_REFERENCIA and sigiloso.motivo == "item sem preço unitário publicado"
     assert extremo.situacao == ACIMA and "razao_extrema_conferir_unidade" in extremo.marcacoes
+    total = r[Decimal("2")]
+    assert total.situacao == FORA_DE_ESCALA and "valor total lançado como unitário" in total.motivo
     contagem = relatorio.escrever(lista, tmp_path / "rel", p)
-    assert contagem[FORA_DE_ESCALA] == 1
+    assert contagem[FORA_DE_ESCALA] == 2
     assert [g["itens"] for g in contagem["distribuicao"]] == [1]            # o fora de escala não entra
     resumo = (tmp_path / "rel" / "resumo.md").read_text(encoding="utf-8")
     assert "Fora de escala" in resumo and "preço estimado (pesquisa de preços" in resumo
@@ -388,7 +392,7 @@ def test_preco_fora_de_escala_zero_e_razao_extrema(cfg, apoio, tmp_path):
 def test_parametros_antigos_sem_os_limites_de_escala(tmp_path):
     texto = (Path(__file__).parents[1] / "lumen_mercado" / "parametros_mercado.toml").read_text(encoding="utf-8")
     sem = "\n".join(linha for linha in texto.splitlines()
-                    if not linha.startswith(("razao_minima_plausivel", "razao_extrema")))
+                    if not linha.startswith(("razao_minima_plausivel", "razao_extrema", "razao_maxima_plausivel")))
     (tmp_path / "p.toml").write_text(sem, encoding="utf-8")
     p = ParametrosMercado.carregar(tmp_path / "p.toml")
-    assert p.razao_minima_plausivel == 0 and p.razao_extrema > 1000
+    assert p.razao_minima_plausivel == 0 and p.razao_extrema > 1000 and p.razao_maxima_plausivel > 1000
