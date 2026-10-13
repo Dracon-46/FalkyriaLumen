@@ -198,6 +198,13 @@ def test_itens_dos_processos_da_silver(cfg, srv, sem_proxy, monkeypatch, capsys)
     assert main(["coletar", "pncp_itens", "--de", "2026-09-01", "--objeto", "veiculo", "--sem-resultados"]) == 0
     saida = json.loads(capsys.readouterr().out)
     assert saida["processos"] == 1 and saida["listados"] == 1
+    # só os resultados dos itens comparáveis: chicote e peças de veículo não são, então nenhum resultado
+    assert main(["coletar", "pncp_itens", "--de", "2026-09-01", "--objeto", "veiculo", "--so-comparaveis"]) == 0
+    assert json.loads(capsys.readouterr().out)["listados"] == 1
+    vistos = []
+    resumo = original(cfg, processos, base=f"{itens_srv}/pncp",
+                      filtro_resultados=lambda item: vistos.append(item["numeroItem"]) or item["numeroItem"] == 1)
+    assert resumo.listados == 2 and vistos == [1, 2, 3]
     s.shutdown()
 
 
