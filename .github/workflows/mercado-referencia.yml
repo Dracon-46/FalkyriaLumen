@@ -24,6 +24,13 @@
 # Compras recentes quase não têm resultado publicado ainda: para comparar preço
 # homologado, use uma janela de meses atrás com a série semestral.
 #
+# Para calibrar, "janelas" junta várias janelas curtas numa execução só (ex.:
+# 2026-01-20..2026-01-21,2026-03-17..2026-03-18): a coleta passa por cada uma
+# e a comparação e a distribuição saem do conjunto, com amostras maiores do
+# que as de uma janela só. Preenchida, ela substitui "de" e "ate"; os
+# semestres precisam cobrir todas. Cada janela de dois dias leva perto de 17
+# minutos.
+#
 # Usa só o segredo LUMEN_CONTATO (User-Agent). Repositório privado: cada
 # execução consome minutos do plano (uma janela de duas semanas leva por volta
 # de meia hora).
@@ -53,6 +60,9 @@ on:
       objeto:
         description: "Expressão procurada no objeto das compras"
         default: "combust|gasolina|diesel|etanol|glp|gas de cozinha|botij"
+      janelas:
+        description: "Várias janelas AAAA-MM-DD..AAAA-MM-DD, separadas por vírgula (substitui de e ate)"
+        default: ""
 
 permissions:
   contents: read
@@ -74,6 +84,7 @@ jobs:
       SEMESTRES: ${{ inputs.semestres }}
       SERIES: ${{ inputs.series }}
       OBJETO: ${{ inputs.objeto }}
+      JANELAS: ${{ inputs.janelas }}
       PYTHONUNBUFFERED: "1"
     steps:
       - uses: actions/checkout@v5
@@ -82,6 +93,18 @@ jobs:
           python-version: "3.12"
       - name: Instalar o Lumen
         run: python -m pip install -e .
+      # Uma linha por janela em janelas.txt; INICIO e FIM cobrem todas, para a comparação
+      - name: Janelas da coleta
+        run: |
+          if [ -n "$JANELAS" ]; then printf '%s\n' "$JANELAS" | tr ',' '\n' | tr -d ' ' | grep -v '^$' > janelas.txt
+          else echo "$DE..$ATE" > janelas.txt; fi
+          if grep -qvE '^[0-9]{4}-[0-9]{2}-[0-9]{2}\.\.[0-9]{4}-[0-9]{2}-[0-9]{2}$' janelas.txt; then
+            echo "::error::janela fora do formato AAAA-MM-DD..AAAA-MM-DD: $(grep -vE '^[0-9]{4}-[0-9]{2}-[0-9]{2}\.\.[0-9]{4}-[0-9]{2}-[0-9]{2}$' janelas.txt | head -1)"
+            exit 1
+          fi
+          cat janelas.txt
+          echo "INICIO=$(cut -c1-10 janelas.txt | sort | head -1)" >> "$GITHUB_ENV"
+          echo "FIM=$(cut -c13-22 janelas.txt | sort | tail -1)" >> "$GITHUB_ENV"
       - name: ANP — série semestral
         if: inputs.fonte_anp != 'semanal'
         continue-on-error: true
@@ -89,24 +112,34 @@ jobs:
       - name: ANP — planilhas semanais da janela
         if: inputs.fonte_anp != 'semestral'
         continue-on-error: true
-        run: lumen mercado anp semanas --de "$DE" --ate "$ATE"
+        run: |
+          while IFS= read -r j; do lumen mercado anp semanas --de "${j%%..*}" --ate "${j##*..}"; done < janelas.txt
       - name: ANP — o que foi lido
         continue-on-error: true
         run: lumen mercado anp resumo
       - name: Municípios do IBGE (nomes)
         run: lumen coletar ibge_localidades --de "$(date +%F)"
-      - name: Contratações do PNCP na janela
-        run: lumen -v coletar pncp_contratacoes --de "$DE" --ate "$ATE" --modalidades 6,8
+      - name: Contratações do PNCP nas janelas
+        run: |
+          while IFS= read -r j; do
+            echo "::group::compras de ${j%%..*} a ${j##*..}"
+            lumen -v coletar pncp_contratacoes --de "${j%%..*}" --ate "${j##*..}" --modalidades 6,8
+            echo "::endgroup::"
+          done < janelas.txt
       - name: Normalizar
         run: lumen normalizar
       - name: Itens e resultados das compras do objeto
         continue-on-error: true
         run: |
-          lumen -v coletar pncp_itens --de "$DE" --ate "$ATE" --objeto "$OBJETO" --so-comparaveis
+          while IFS= read -r j; do
+            echo "::group::itens de ${j%%..*} a ${j##*..}"
+            lumen -v coletar pncp_itens --de "${j%%..*}" --ate "${j##*..}" --objeto "$OBJETO" --so-comparaveis || echo "::warning::itens de $j interrompidos"
+            echo "::endgroup::"
+          done < janelas.txt
           lumen normalizar --fontes pncp_itens
       - name: Comparar (regra A-05, modo silencioso)
         continue-on-error: true
-        run: lumen mercado comparar --de "$DE" --ate "$ATE" --saida relatorio
+        run: lumen mercado comparar --de "$INICIO" --ate "$FIM" --saida relatorio
       - name: Amostras para conferência do formato
         if: always()
         run: |
