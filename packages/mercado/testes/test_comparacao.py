@@ -21,6 +21,7 @@ from lumen_mercado import anp, cli, relatorio, varejo
 from lumen_mercado.comparacao import (
     ACIMA,
     DENTRO,
+    FORA_DE_ESCALA,
     NAO_COMPARAVEL,
     SEM_REFERENCIA,
     ItemParaComparar,
@@ -353,3 +354,41 @@ def test_distribuicao_e_sensibilidade_ao_limiar():
     assert g["acima_de"]["1.50"] == {"itens": 2, "fracao": "0.200"}
     assert g["acima_de"]["2.00"] == {"itens": 1, "fracao": "0.100"} and g["amostra_pequena"]
     assert relatorio.distribuicao([]) == []
+
+
+def test_preco_fora_de_escala_zero_e_razao_extrema(cfg, apoio, tmp_path):
+    """Dados da primeira execução real: estimado de R$ 1,28 o litro, orçamento sigiloso gravado como zero."""
+    apoio.guardar_no_bronze(cfg, anp.FONTE_ID, URL_ANP, _precos_sp(apoio), tipo="text/csv")
+    apoio.municipio(cfg)
+    apoio.compra(cfg, itens=[
+        (1, "Diesel S10", "Litro", "1", "1.28", None),                   # 1,28 / 6,10: simbólico
+        (2, "GASOLINA COMUM", "Litro", "100", "0", None),               # sigiloso: sem preço
+        (3, "GASOLINA COMUM", "Litro", "500", "20.00", None),           # 20 / 6,19 = 3,23: conferir unidade
+    ])
+    p = ParametrosMercado.carregar()
+    assert p.razao_minima_plausivel == Decimal("0.50") and p.razao_extrema == Decimal("3.00")
+    lista = list(comparar(itens_da_silver(consolidar(ler_entidade(cfg.silver, "processo_contratacao")),
+                                          consolidar(ler_entidade(cfg.silver, "item_contratacao")),
+                                          consolidar(ler_entidade(cfg.silver, "resultado_item"))),
+                          p, anp=cli.carregar_anp(ArmazemBronzeLocal(cfg.bronze)), municipios={"3550308": "São Paulo"}))
+    r = {c.quantidade: c for c in lista}
+    simbolico, sigiloso, extremo = r[Decimal("1")], r[Decimal("100")], r[Decimal("500")]
+    assert simbolico.situacao == FORA_DE_ESCALA and simbolico.razao == Decimal("0.210")
+    assert "provável preço simbólico" in simbolico.motivo
+    assert sigiloso.situacao == SEM_REFERENCIA and sigiloso.motivo == "item sem preço unitário publicado"
+    assert extremo.situacao == ACIMA and "razao_extrema_conferir_unidade" in extremo.marcacoes
+    contagem = relatorio.escrever(lista, tmp_path / "rel", p)
+    assert contagem[FORA_DE_ESCALA] == 1
+    assert [g["itens"] for g in contagem["distribuicao"]] == [1]            # o fora de escala não entra
+    resumo = (tmp_path / "rel" / "resumo.md").read_text(encoding="utf-8")
+    assert "Fora de escala" in resumo and "preço estimado (pesquisa de preços" in resumo
+    assert "| 3.231× | GASOLINA |" in resumo and "razao_extrema_conferir_unidade" in resumo
+
+
+def test_parametros_antigos_sem_os_limites_de_escala(tmp_path):
+    texto = (Path(__file__).parents[1] / "lumen_mercado" / "parametros_mercado.toml").read_text(encoding="utf-8")
+    sem = "\n".join(linha for linha in texto.splitlines()
+                    if not linha.startswith(("razao_minima_plausivel", "razao_extrema")))
+    (tmp_path / "p.toml").write_text(sem, encoding="utf-8")
+    p = ParametrosMercado.carregar(tmp_path / "p.toml")
+    assert p.razao_minima_plausivel == 0 and p.razao_extrema > 1000
