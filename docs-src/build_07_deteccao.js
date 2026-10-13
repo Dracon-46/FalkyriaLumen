@@ -114,8 +114,9 @@ body.push(...regra({
     "API oficial da loja, cujo título contém todos os atributos da especificação, para informática padronizada. O item só entra se a " +
     "descrição e a unidade o identificam sem ambiguidade (ADR-027).",
   parametros: "Limiar de 1,20 × a mediana em combustível, 1,25 × no gás de cozinha e 1,50 × no varejo; mínimo de 5 revendas no " +
-    "município, 10 na UF e 8 ofertas. Razão abaixo de 0,50 é \"fora de escala\" (preço simbólico, orçamento sigiloso gravado " +
-    "como zero ou erro de unidade) e sai da distribuição; a partir de 3,00 o item recebe a marca para conferir unidade. " +
+    "município, 10 na UF e 8 ofertas. Razão abaixo de 0,50 ou acima de 10,00 é \"fora de escala\" (preço simbólico, orçamento " +
+    "sigiloso gravado como zero, valor total lançado como unitário ou erro de unidade) e sai da distribuição; de 3,00 a 10,00 o " +
+    "item recebe a marca para conferir unidade. " +
     "Valores iniciais, não calibrados; a regra roda em modo silencioso, e o relatório traz a " +
     "distribuição da razão por categoria, tipo de preço e escopo, com a fração acima de cada limiar candidato, para a calibração",
   dados: "Itens e resultados do PNCP; série histórica e planilhas semanais de preços da ANP; ofertas do varejo guardadas no bronze com " +
