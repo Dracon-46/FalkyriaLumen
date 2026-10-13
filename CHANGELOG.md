@@ -71,6 +71,12 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   de contrato do varejo fica pulado até o segredo `LUMEN_ML_TOKEN` existir.
 - O teste de contrato da série da ANP lê a página da série em vez de pedir o
   arquivo com `HEAD`, que o gov.br recusa com 403.
+- Resposta 429 (excesso de requisições) passa a ser tratada como pedido para ir
+  mais devagar: a vazão da fonte cai pela metade pelo resto da sessão, a espera
+  antes de repetir é de pelo menos 30 s, e o 429 só conta para o recuo quando a
+  última tentativa também o recebe. A segunda execução do `mercado-referencia`
+  mostrou que o PNCP respondia 429 na oitava página seguida a 60 requisições
+  por minuto, e cinco 429 seguidos suspendiam a fonte.
 - `lumen coletar` interrompida por fonte suspensa diz que parou, em JSON, e sai
   com 1, sem rastro de exceção; com `-v`, o log de cada tentativa traz o status,
   a URL e o número da tentativa. O fluxo `mercado-referencia` coleta o PNCP com
