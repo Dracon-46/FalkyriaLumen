@@ -66,7 +66,15 @@ jobs:
           python-version: "3.12"
       - name: Instalar o Lumen
         run: python -m pip install -e .
+      # Sem o bucket configurado, a execução agendada só avisa (em vez de falhar todo dia); a disparada à
+      # mão falha, para quem disparou ver o motivo.
+      - name: Nuvem não configurada
+        if: env.LUMEN_S3_CHAVE_ACESSO == '' || env.LUMEN_S3_CHAVE_SECRETA == '' || env.LUMEN_PUBLICACAO_ENDPOINT == ''
+        run: |
+          echo "::notice::Carga não executada: faltam os segredos R2_ENDPOINT, R2_CHAVE_ACESSO e R2_CHAVE_SECRETA (ver o cabeçalho deste arquivo)."
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then exit 1; fi
       - name: Carga (para sozinha antes do prazo; a próxima execução continua)
+        if: env.LUMEN_S3_CHAVE_ACESSO != '' && env.LUMEN_S3_CHAVE_SECRETA != '' && env.LUMEN_PUBLICACAO_ENDPOINT != ''
         env:
           ANOS: ${{ inputs.anos }}
           SEM_AO_VIVO: ${{ inputs.sem_ao_vivo }}
