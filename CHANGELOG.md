@@ -82,6 +82,10 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   que a totalização começa; o teste passou a exigir o campo só nesse caso.
 - `eleicoes-carga` agendado, sem os segredos do bucket, só avisa em vez de
   falhar todo dia; disparado à mão, continua falhando com o motivo.
+- `lumen coletar pncp_itens --so-comparaveis` busca os resultados só dos itens
+  que a regra A-05 reconhece; cada resultado é uma requisição por item, e o
+  PNCP limita a vazão. O fluxo `mercado-referencia` usa a opção e tem prazo de
+  4 horas.
 - O cliente S3 aceita endpoint com caminho (o S3 do Supabase Storage fica em
   `/storage/v1/s3`), mantendo o prefixo antes do bucket.
 - `lumen coletar` interrompida por fonte suspensa diz que parou, em JSON, e sai
