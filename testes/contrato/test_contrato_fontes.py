@@ -116,6 +116,12 @@ def _primeiras_linhas_do_zip(url: str, n: int = 2) -> list[str]:
 
 
 def test_tse_resultado_mantem_os_campos_lidos():
+    """O arquivo de resultado do presidente traz os campos lidos por ``tse.ler_resultado``.
+
+    Antes da totalização começar o TSE já publica o arquivo do turno seguinte, com os candidatos e votos
+    zerados, mas sem data (``dt`` vazio) e sem a destinação do voto (``dvt``), como o do 2º turno de 2026
+    em outubro: a destinação só é exigida depois que a totalização começa.
+    """
     from lumen_eleicoes import tse
     eleicoes = tse.ler_catalogo(_obter_bytes(tse.url_catalogo()))
     geral = next(e for e in eleicoes if e.tipo == "geral")
@@ -123,7 +129,8 @@ def test_tse_resultado_mantem_os_campos_lidos():
     bruto = json.loads(_obter_bytes(tse.url_resultado(geral.ciclo, pres.eleicao_tse, 1, "br")))
     assert {"carg", "s", "e", "v", "dt", "ht", "tf"} <= _campos(bruto)
     cand = bruto["carg"][0]["agr"][0]["par"][0]["cand"][0]
-    assert {"n", "sqcand", "nmu", "vap", "dvt", "st"} <= _campos(cand)
+    lidos = {"n", "sqcand", "nmu", "vap", "st"} | ({"dvt"} if bruto.get("dt") else set())
+    assert lidos <= _campos(cand)
     r = tse.ler_resultado(bruto)
     assert sum(c.votos for c in r.candidatos if c.valido) == r.votos.validos
     ab = tse.ler_andamento(_obter_bytes(tse.url_andamento(geral.ciclo, pres.eleicao_tse, "br")))
