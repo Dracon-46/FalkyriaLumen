@@ -82,6 +82,13 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   que a totalização começa; o teste passou a exigir o campo só nesse caso.
 - `eleicoes-carga` agendado, sem os segredos do bucket, só avisa em vez de
   falhar todo dia; disparado à mão, continua falhando com o motivo.
+- Primeira comparação de ponta a ponta com dados reais (compras de 22 e 23/9
+  contra a planilha semanal da ANP): 473 itens, 130 comparáveis, 104 com
+  referência. A partir dela: preço zero (orçamento sigiloso) conta como sem
+  preço; razão abaixo de 0,50 vira "fora de escala" (preço simbólico ou erro de
+  unidade) e sai da distribuição; razão a partir de 3,00 ganha a marca para
+  conferir unidade; o resumo ganha a tabela dos estimados acima do limiar, à
+  parte dos homologados. Janela padrão do fluxo: dois dias.
 - `lumen coletar pncp_itens --so-comparaveis` busca os resultados só dos itens
   que a regra A-05 reconhece; cada resultado é uma requisição por item, e o
   PNCP limita a vazão. O fluxo `mercado-referencia` usa a opção e tem prazo de
