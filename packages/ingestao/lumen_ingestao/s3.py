@@ -134,7 +134,7 @@ class ClienteS3:
     substituir o transporte, por exemplo nos testes.
     """
 
-    endpoint: str              # ex.: http://localhost:9000
+    endpoint: str              # ex.: http://localhost:9000 ou https://<ref>.supabase.co/storage/v1/s3
     bucket: str
     chave_acesso: str
     chave_secreta: str
@@ -146,12 +146,13 @@ class ClienteS3:
     def _url(self, chave: str = "", consulta: dict[str, str] | None = None) -> str:
         """Monta a URL da chave no estilo configurado, com caminho codificado e consulta em ordem fixa."""
         base = urllib.parse.urlsplit(self.endpoint)
+        prefixo = base.path.rstrip("/")   # endpoint com caminho, como o S3 do Supabase (/storage/v1/s3)
         if self.estilo_caminho:
             host = base.netloc
-            caminho = f"/{self.bucket}" + (f"/{chave}" if chave else "")
+            caminho = f"{prefixo}/{self.bucket}" + (f"/{chave}" if chave else "")
         else:
             host = f"{self.bucket}.{base.netloc}"
-            caminho = f"/{chave}"
+            caminho = f"{prefixo}/{chave}"
         q = urllib.parse.urlencode(sorted((consulta or {}).items()))
         return urllib.parse.urlunsplit((base.scheme, host, _codificar_caminho(caminho), q, ""))
 
