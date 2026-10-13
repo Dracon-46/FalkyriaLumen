@@ -94,6 +94,15 @@ class _Instavel(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b"ocupado")
             return
+        if self.path.startswith("/limite") and n < 3:
+            self.send_response(429)
+            self.end_headers()
+            self.wfile.write(b"devagar")
+            return
+        if self.path.startswith("/sempre429"):
+            self.send_response(429)
+            self.end_headers()
+            return
         if self.path.startswith("/sempre503"):
             self.send_response(503)
             self.end_headers()
@@ -172,3 +181,23 @@ def test_cabecalhos_extras_chegam_mas_nao_trocam_o_user_agent(servidor, sem_prox
     with pytest.raises(ValueError, match="User-Agent"):
         baixar_http(f"{servidor}/eco", "fonte_teste", user_agent=UA, abridor=sem_proxy,
                     cabecalhos={"user-agent": "outro"})
+
+
+def test_429_reduz_a_vazao_espera_mais_e_nao_suspende(servidor, sem_proxy):
+    """429 é a fonte pedindo calma: vazão pela metade, espera de 30 s, 60 s..., sem contar como falha."""
+    c, r = _cliente(sem_proxy, politica=PoliticaRetentativa(falhas_para_suspender=2))
+    art = c.obter(f"{servidor}/limite")
+    assert art.status_http == 200 and c.requisicoes == 3
+    assert 30.0 in r.dormidas and 60.0 in r.dormidas
+    assert c.limitador.rpm == 150 and c.falhas_seguidas == 0 and not c.suspensa
+
+
+def test_429_persistente_conta_so_a_ultima_tentativa(servidor, sem_proxy):
+    c, r = _cliente(sem_proxy, politica=PoliticaRetentativa(max_tentativas=3, falhas_para_suspender=2,
+                                                             rpm_minimo_429=200, espera_teto_s=45))
+    art = c.obter(f"{servidor}/sempre429")
+    assert art.status_http == 429 and c.falhas_seguidas == 1 and not c.suspensa
+    assert c.limitador.rpm == 200                   # não desce abaixo do mínimo
+    assert max(r.dormidas) == 45                    # e a espera respeita o teto
+    c.obter(f"{servidor}/sempre429")
+    assert c.suspensa                               # dois 429 finais seguidos suspendem
