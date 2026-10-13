@@ -324,7 +324,7 @@ num comando (`lumen eleicoes preparar`, ou `preparar.cmd` no Windows).
 | Normalização | 116 |
 | Conformidade (SICONFI) | 14 |
 | Pipeline local | 8 |
-| Aba Eleições (Python, inclusive a publicação na nuvem) | 190 |
+| Aba Eleições (Python, inclusive a publicação na nuvem) | 192 |
 | Vocabulário controlado e referência técnica | 66 |
 | Portal (TypeScript) | 79 |
 

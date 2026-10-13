@@ -72,8 +72,13 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   de saída por visitante e hora de apuração, que no Supabase gratuito tem cota
   de 5 GB por mês.
 - Fluxo `eleicoes-medir.yml` (manual): gera os feeds de 2026 numa máquina do
-  GitHub, sem publicar, e mede.
-- Documentação: adendo do ADR-026, DOC-12 1.3 (seção 9.7), DOC-11, README.
+  GitHub, sem publicar, e mede. Primeira medição: o 1º turno de 2026 completo
+  tem 17.653 arquivos e 112,9 MB (35,4 MB com gzip); no pior caso, um
+  visitante consome cerca de 1 MB por hora na visão Brasil e 9 MB na de um
+  estado grande. A medição passou a estimar também a visão do estado mais
+  pesado, que chega a dez vezes a nacional.
+- Documentação: adendo do ADR-026 (com a medição e a recomendação para 25/10),
+  DOC-12 1.3 (seção 9.7), DOC-11, README.
 
 ### Correções
 
@@ -103,6 +108,13 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   que a totalização começa; o teste passou a exigir o campo só nesse caso.
 - `eleicoes-carga` agendado, sem os segredos do bucket, só avisa em vez de
   falhar todo dia; disparado à mão, continua falhando com o motivo.
+- Amostras para calibrar a A-05 (série semestral 2026-1, preço homologado com
+  referência na UF), com a entrada `janelas` juntando sete janelas de janeiro a
+  junho: combustível com 324 itens, mediana 0,989 e 3,1% a partir de 1,20; gás
+  de cozinha com 86 itens, mediana 1,053 e cauda longa (4,7% a partir de 2,00),
+  em que os maiores casos sugerem outro produto (cilindro de 45 kg, botijão
+  com vasilhame). Observação, não calibração: os limiares continuam os
+  iniciais (ADR-027, DOC-07 1.3).
 - Segunda comparação (compras de junho contra a série semestral): 33
   homologados de combustível com referência na UF, mediana 1,03. Razão acima de
   10,00 também vira "fora de escala": é o valor total da compra lançado como
