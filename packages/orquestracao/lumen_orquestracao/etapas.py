@@ -103,12 +103,14 @@ def processos_da_silver(cfg: Configuracao, *, de: date | None = None, ate: date 
 
 
 def coletar_itens(cfg: Configuracao, processos: Iterable[dict], armazem: ArmazemBronze | None = None,
-                  *, com_resultados: bool = True, base: str = BASE_PNCP) -> ResumoColeta:
+                  *, com_resultados: bool = True, base: str = BASE_PNCP,
+                  filtro_resultados: Callable[[dict], bool] | None = None) -> ResumoColeta:
     """Coleta para o bronze os itens (e os resultados) dos processos dados, lidos da silver.
 
     É a coleta sob demanda da família A: as contratações chegam primeiro pela janela de publicação, e só
     as que interessam (por exemplo, as de combustível) têm os itens buscados. Processo cuja chave não é um
-    ``numeroControlePNCP`` de contratação fica de fora.
+    ``numeroControlePNCP`` de contratação fica de fora. ``filtro_resultados`` restringe os resultados aos
+    itens que ele aceita (ver ``FontePncpItens``).
     """
     compras = []
     for p in processos:
@@ -117,7 +119,8 @@ def coletar_itens(cfg: Configuracao, processos: Iterable[dict], armazem: Armazem
         except (KeyError, ValueError):
             continue
     armazem = armazem or ArmazemBronzeLocal(cfg.bronze)
-    fonte = FontePncpItens(cliente(cfg, FontePncpItens.fonte_id), compras, com_resultados=com_resultados, base=base)
+    fonte = FontePncpItens(cliente(cfg, FontePncpItens.fonte_id), compras, com_resultados=com_resultados, base=base,
+                           filtro_resultados=filtro_resultados)
     hoje = date.today()
     return coletar_janela(fonte, Janela(hoje, hoje), armazem)
 

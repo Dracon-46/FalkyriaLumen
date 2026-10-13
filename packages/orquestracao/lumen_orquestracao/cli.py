@@ -6,7 +6,7 @@ Exemplos::
     lumen coletar pncp_contratos --de 2026-09-01 --ate 2026-09-07
     lumen coletar ibge_localidades --de 2026-10-05
     lumen coletar siconfi_extrato --de 2026-10-05 --entes 4319604,3550308 --exercicio 2025
-    lumen coletar pncp_itens --de 2026-03-01 --ate 2026-03-31 --objeto "combust|gasolina|diesel"
+    lumen coletar pncp_itens --de 2026-03-01 --ate 2026-03-31 --objeto "combust|gasolina|diesel" --so-comparaveis
     lumen normalizar                      # bronze inteiro → silver
     lumen bronze verificar                # reconfere o hash de toda a prova
     lumen eleicoes ...                    # aba Eleições (ver lumen_eleicoes)
@@ -76,6 +76,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--exercicio", type=int, help="só SICONFI extrato")
     p.add_argument("--objeto", help="só PNCP itens: expressão procurada no objeto dos processos da silver")
     p.add_argument("--sem-resultados", action="store_true", help="só PNCP itens: não busca os resultados")
+    p.add_argument("--so-comparaveis", action="store_true",
+                   help="só PNCP itens: resultados só dos itens que a regra A-05 compara com o mercado")
 
     p = sub.add_parser("normalizar", help="bronze → silver (idempotente)")
     p.add_argument("--fontes", type=_lista_str)
@@ -109,7 +111,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.comando == "coletar" and args.fonte == "pncp_itens":
         janela = etapas.janela_de(args.de, args.ate)
         processos = etapas.processos_da_silver(cfg, de=janela.inicio, ate=janela.fim, objeto=args.objeto)
-        resumo = etapas.coletar_itens(cfg, processos, com_resultados=not args.sem_resultados)
+        filtro = None
+        if args.so_comparaveis:
+            from lumen_mercado.especificacao import reconhecer
+
+            def filtro(item: dict) -> bool:
+                """O item é um dos que a regra A-05 sabe comparar?"""
+                return reconhecer(item.get("descricao"), item.get("unidadeMedida")) is not None
+        resumo = etapas.coletar_itens(cfg, processos, com_resultados=not args.sem_resultados, filtro_resultados=filtro)
         print(json.dumps({"fonte": "pncp_itens", "processos": len(processos), "listados": resumo.listados,
                           "guardados": len(resumo.guardados), "conteudos_novos": resumo.conteudos_novos,
                           "respostas_de_erro": resumo.respostas_de_erro, "falhas": resumo.falhas},
