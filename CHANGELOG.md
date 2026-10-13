@@ -46,7 +46,9 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 - Fluxo `mercado-referencia.yml` (manual) roda a regra com dados reais, com a
   série semestral, as planilhas semanais ou as duas, e guarda o relatório como
   artefato privado; testes de contrato da busca do varejo, das séries ca e glp
-  e da página semanal da ANP.
+  e da página semanal da ANP. A entrada `janelas` junta várias janelas curtas
+  numa execução: a distribuição sai do conjunto, com amostras maiores para
+  calibrar.
 - Fluxos do GitHub Actions em `ubuntu-24.04` e nas versões das ações que rodam
   em Node 24 (checkout v5, setup-python v6, setup-node v5, upload-artifact v6);
   cobertura do `lumen_mercado` no CI; token opcional do varejo no teste de

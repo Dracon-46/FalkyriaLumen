@@ -266,7 +266,8 @@ lumen mercado reconhecer "ÓLEO DIESEL S10" --unidade Litro
 
 O relatório fica em `dados/mercado/relatorio/` (`comparacoes.csv`, `.jsonl`,
 `distribuicao.json` com a razão por grupo para calibrar e `resumo.md`). Na nuvem, o fluxo `mercado-referencia.yml` faz o mesmo e guarda o
-relatório como artefato da execução. O varejo só funciona com o segredo
+relatório como artefato da execução; a entrada `janelas` junta várias janelas curtas numa execução, para
+calibrar com amostras maiores. O varejo só funciona com o segredo
 `LUMEN_ML_TOKEN` (sem credencial, a busca do Mercado Livre responde 403). Lojas sem API pública (Magazine Luiza, KaBuM,
 Pichau, comparadores) ficam de fora por decisão: ver a ADR-027.
 
