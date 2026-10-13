@@ -16,8 +16,13 @@
 #
 # A coleta do PNCP roda com -v: cada tentativa com erro sai no registro com o
 # status e a URL. O PNCP limita a vazão (429): a coleta cai para 30 e depois 15
-# requisições por minuto, e uma janela de duas semanas leva mais de uma hora.
-# Dos itens, só os resultados dos que a regra compara são buscados.
+# requisições por minuto. Um dia útil tem perto de 90 páginas de pregões e
+# dispensas (4.400 compras); a janela padrão, de dois dias, levou 16 minutos
+# (13/10/2026), e duas semanas passariam de uma hora. Dos itens, só os
+# resultados dos que a regra compara são buscados.
+#
+# Compras recentes quase não têm resultado publicado ainda: para comparar preço
+# homologado, use uma janela de meses atrás com a série semestral.
 #
 # Usa só o segredo LUMEN_CONTATO (User-Agent). Repositório privado: cada
 # execução consome minutos do plano (uma janela de duas semanas leva por volta
@@ -30,10 +35,10 @@ on:
     inputs:
       de:
         description: "Início da janela de publicação (AAAA-MM-DD)"
-        default: "2026-09-14"
+        default: "2026-09-22"
       ate:
         description: "Fim da janela (AAAA-MM-DD)"
-        default: "2026-09-25"
+        default: "2026-09-23"
       fonte_anp:
         description: "Preços da ANP: série semestral, planilhas semanais ou ambas"
         type: choice
