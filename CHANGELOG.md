@@ -82,6 +82,10 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   que a totalização começa; o teste passou a exigir o campo só nesse caso.
 - `eleicoes-carga` agendado, sem os segredos do bucket, só avisa em vez de
   falhar todo dia; disparado à mão, continua falhando com o motivo.
+- Segunda comparação (compras de junho contra a série semestral): 33
+  homologados de combustível com referência na UF, mediana 1,03. Razão acima de
+  10,00 também vira "fora de escala": é o valor total da compra lançado como
+  preço unitário (quantidade 1).
 - Primeira comparação de ponta a ponta com dados reais (compras de 22 e 23/9
   contra a planilha semanal da ANP): 473 itens, 130 comparáveis, 104 com
   referência. A partir dela: preço zero (orçamento sigiloso) conta como sem
