@@ -77,6 +77,13 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   última tentativa também o recebe. A segunda execução do `mercado-referencia`
   mostrou que o PNCP respondia 429 na oitava página seguida a 60 requisições
   por minuto, e cinco 429 seguidos suspendiam a fonte.
+- Teste de contrato do TSE: o arquivo do 2º turno de 2026 já está publicado,
+  com votos zerados e sem a destinação do voto (`dvt`), que só aparece depois
+  que a totalização começa; o teste passou a exigir o campo só nesse caso.
+- `eleicoes-carga` agendado, sem os segredos do bucket, só avisa em vez de
+  falhar todo dia; disparado à mão, continua falhando com o motivo.
+- O cliente S3 aceita endpoint com caminho (o S3 do Supabase Storage fica em
+  `/storage/v1/s3`), mantendo o prefixo antes do bucket.
 - `lumen coletar` interrompida por fonte suspensa diz que parou, em JSON, e sai
   com 1, sem rastro de exceção; com `-v`, o log de cada tentativa traz o status,
   a URL e o número da tentativa. O fluxo `mercado-referencia` coleta o PNCP com
