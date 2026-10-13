@@ -15,7 +15,9 @@
 #   semanas, de setembro de 2022 em diante), com combustíveis e GLP.
 #
 # A coleta do PNCP roda com -v: cada tentativa com erro sai no registro com o
-# status e a URL.
+# status e a URL. O PNCP limita a vazão (429): a coleta cai para 30 e depois 15
+# requisições por minuto, e uma janela de duas semanas leva mais de uma hora.
+# Dos itens, só os resultados dos que a regra compara são buscados.
 #
 # Usa só o segredo LUMEN_CONTATO (User-Agent). Repositório privado: cada
 # execução consome minutos do plano (uma janela de duas semanas leva por volta
@@ -57,7 +59,7 @@ concurrency:
 jobs:
   referencia:
     runs-on: ubuntu-24.04
-    timeout-minutes: 150
+    timeout-minutes: 240
     env:
       LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
       LUMEN_DADOS: dados
@@ -95,7 +97,7 @@ jobs:
       - name: Itens e resultados das compras do objeto
         continue-on-error: true
         run: |
-          lumen -v coletar pncp_itens --de "$DE" --ate "$ATE" --objeto "$OBJETO"
+          lumen -v coletar pncp_itens --de "$DE" --ate "$ATE" --objeto "$OBJETO" --so-comparaveis
           lumen normalizar --fontes pncp_itens
       - name: Comparar (regra A-05, modo silencioso)
         continue-on-error: true
