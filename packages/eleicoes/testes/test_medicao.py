@@ -17,7 +17,7 @@ def _arquivo(raiz, rel: str, conteudo: bytes) -> None:
     caminho.write_bytes(conteudo)
 
 
-def test_medir_grupos_nacionais_e_maiores(tmp_path):
+def test_medir_grupos_visoes_e_maiores(tmp_path):
     grande = b'{"x":"' + b"a" * 5000 + b'"}'
     _arquivo(tmp_path, "indice.json", b'{"versao":1}')
     _arquivo(tmp_path, "municipios.json", b"[]")
@@ -25,31 +25,48 @@ def test_medir_grupos_nacionais_e_maiores(tmp_path):
     _arquivo(tmp_path, "2026-1t-geral/presidente/br.json", b'{"c":[' + b"1," * 300 + b"1]}")
     _arquivo(tmp_path, "2026-1t-geral/presidente/historico-br.json", b"[" + b"2," * 50 + b"2]")
     _arquivo(tmp_path, "2026-1t-geral/presidente/uf-sp.json", b"{}")
+    _arquivo(tmp_path, "2026-1t-geral/presidente/uf-mg.json", bytes(range(256)) * 8)   # pouco compressível
+    _arquivo(tmp_path, "2026-1t-geral/presidente/historico-uf-mg.json", b"[3]")
+    _arquivo(tmp_path, "2026-1t-geral/presidente/mu-3550308.json", bytes(range(256)) * 20)  # município: fora
     _arquivo(tmp_path, "2026-1t-geral/senador/br.json", b"{}")
+    _arquivo(tmp_path, "2026-1t-geral/senador/historico-uf-rj.json", b"[1]")        # evolução sem o feed
     _arquivo(tmp_path, "2026-1t-geral/senador/.br.json.1.tmp", b"{")
     _arquivo(tmp_path, "2026-1t-geral/senador/br.json.tmp", b"{")
 
     m = medicao.medir(tmp_path, maiores=2)
 
-    assert m.total.arquivos == 7
+    assert m.total.arquivos == 11
     assert m.total.bytes == sum(p.stat().st_size for p in tmp_path.rglob("*")
                                 if p.is_file() and not p.name.endswith(".tmp"))
-    assert {g: t.arquivos for g, t in m.grupos.items()} == {"raiz": 2, "geo": 1, "2026-1t-geral": 4}
-    assert [x["arquivo"] for x in m.maiores] == ["geo/br-uf.json", "2026-1t-geral/presidente/br.json"]
-    assert m.maiores[0]["bytes_gzip"] == len(gzip.compress(grande, compresslevel=6, mtime=0))
-    # O cargo com o maior par feed nacional + evolução é o que entra na estimativa
-    nac = m.nacionais["2026-1t-geral"]
-    assert nac["cargo"] == "presidente" and nac["evolucao_gzip"] > 0
-    esperado = 240 * (nac["bytes_gzip"] + nac["evolucao_gzip"]) + 60 * m.indice_gzip
+    assert {g: t.arquivos for g, t in m.grupos.items()} == {"raiz": 2, "geo": 1, "2026-1t-geral": 8}
+    assert [x["arquivo"] for x in m.maiores] == ["2026-1t-geral/presidente/mu-3550308.json",
+                                                 "geo/br-uf.json"]
+    assert m.maiores[1]["bytes_gzip"] == len(gzip.compress(grande, compresslevel=6, mtime=0))
+    # Em cada visão, o par feed + evolução mais pesado é o que entra na estimativa
+    br = m.visoes["2026-1t-geral"]["brasil"]
+    uf = m.visoes["2026-1t-geral"]["estado"]
+    assert (br["cargo"], br["abrangencia"]) == ("presidente", "br") and br["evolucao_gzip"] > 0
+    assert (uf["cargo"], uf["abrangencia"]) == ("presidente", "uf-mg") and uf["evolucao_gzip"] > 0
+    assert set(m.visoes["2026-1t-geral"]) == {"brasil", "estado"}
+    esperado = 240 * (br["bytes_gzip"] + br["evolucao_gzip"]) + 60 * m.indice_gzip
     assert m.saida_por_visitante_hora("2026-1t-geral") == esperado
+    assert m.saida_por_visitante_hora("2026-1t-geral", "estado") > esperado
     assert m.saida_por_visitante_hora("1950-geral") is None
     assert m.cabe("supabase_gratuito") == {"armazenamento": True, "arquivo": True}
     assert m.cabe("r2_gratuito") == {"armazenamento": True, "arquivo": None}
 
     j = m.para_json()
-    assert j["nacionais"]["2026-1t-geral"]["saida_pior_caso_por_visitante_hora"] == esperado
+    assert j["visoes"]["2026-1t-geral"]["brasil"]["saida_pior_caso_por_visitante_hora"] == esperado
     assert list(j["grupos"]) == ["2026-1t-geral", "geo", "raiz"]
     json.dumps(j)  # serializável
+    md = medicao.resumo_markdown(m)
+    assert "`presidente/br`" in md and "`presidente/uf-mg`" in md
+
+
+def test_visao_de():
+    assert medicao.visao_de("br") == "brasil"
+    assert medicao.visao_de("uf-sp") == "estado"
+    assert medicao.visao_de("mu-3550308") is None
 
 
 def test_limites_estourados(tmp_path, monkeypatch):
@@ -64,7 +81,7 @@ def test_limites_estourados(tmp_path, monkeypatch):
 def test_pasta_inexistente_e_vazia(tmp_path):
     assert medicao.medir(tmp_path / "nao-existe").total.arquivos == 0
     m = medicao.medir(tmp_path)
-    assert m.total.arquivos == 0 and m.maiores == [] and m.nacionais == {}
+    assert m.total.arquivos == 0 and m.maiores == [] and m.visoes == {}
     assert "0 arquivo(s)" in medicao.resumo_markdown(m)
     assert m.cabe("supabase_gratuito") == {"armazenamento": True, "arquivo": True}
 
@@ -91,7 +108,7 @@ def test_cli_medir_sobre_a_amostra(tmp_path, capsys):
     j = json.loads(texto[texto.index("{"):])
     assert j["total"]["arquivos"] > 0 and len(j["maiores"]) == 3
     assert "geo" in j["grupos"] and "raiz" in j["grupos"]
-    assert j["nacionais"], "a amostra tem feed nacional"
+    assert j["visoes"], "a amostra tem feed nacional"
     md = resumo.read_text(encoding="utf-8")
     assert md.startswith("antes\n## Tamanho dos feeds")
     assert "Saída durante a apuração" in md and "Maiores arquivos" in md
@@ -125,3 +142,12 @@ def test_eh_supabase():
     assert not eh_supabase("https://conta.r2.cloudflarestorage.com")
     assert not eh_supabase("https://supabase.co.exemplo.org/s3")
     assert not eh_supabase("")
+
+
+def test_eleicao_so_com_a_visao_brasil(tmp_path):
+    _arquivo(tmp_path, "1950-1t-geral/presidente/br.json", b"{}")
+    m = medicao.medir(tmp_path)
+    assert set(m.visoes["1950-1t-geral"]) == {"brasil"}
+    assert m.saida_por_visitante_hora("1950-1t-geral", "estado") is None
+    md = medicao.resumo_markdown(m)
+    assert "| 1950-1t-geral | brasil |" in md and "| 1950-1t-geral | estado |" not in md
