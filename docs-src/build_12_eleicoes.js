@@ -635,7 +635,8 @@ body.push(n("`restaurar`: traz do bucket privado tudo o que está em `estado/` e
   "sobrescreveria o índice publicado."));
 body.push(n("A carga roda como numa máquina local e pula o que o estado registra como pronto."));
 body.push(n("Depois de cada ano e de cada passada do sistema de resultados que gravou feeds, `sincronizar` envia só " +
-  "os arquivos cujo SHA-256 difere do manifesto `publicacao.json`, o índice por último (o portal nunca aponta para " +
+  "os arquivos cujo SHA-256 difere do manifesto `publicacao.json`, 16 de cada vez, o índice por último, depois de " +
+  "todos (o portal nunca aponta para " +
   "um feed que ainda não subiu), e grava o estado. O manifesto é regravado a cada 1.000 envios: uma interrupção " +
   "no meio não obriga a reenviar o que já subiu."));
 body.push(n("Vencido `--limite-minutos`, nada novo começa; o ano em curso termina, o estado sobe e o resumo marca " +
@@ -787,9 +788,9 @@ body.push(callout("O que o Supabase não faz", [
 body.push(h1("10. Verificação"));
 body.push(h2("10.1 Testes automatizados"));
 body.push(table(["Conjunto", "Quantidade", "O que cobre"], [3000, 1400, 5200], [
-  ["packages/eleicoes/testes", "192", "Leitores do TSE com arquivos reais, dados abertos com CSV sintético nos cabeçalhos reais dos três layouts, eleições de 1933 a 1990 com linhas reais recortadas de seis anos, download retomável, coletor contra servidor local, feeds (amostra byte a byte), cadastro, malhas e referências embutidas, servidor, preparar de ponta a ponta (com retomada e erro num ano), publicação na nuvem contra um S3 em memória (só o que mudou, índice por último, retomada em outra máquina, prazo, falhas de restauração e de publicação), configuração (inclusive a região exigida pelo Supabase), medição dos feeds contra os limites gratuitos e CLI"],
+  ["packages/eleicoes/testes", "194", "Leitores do TSE com arquivos reais, dados abertos com CSV sintético nos cabeçalhos reais dos três layouts, eleições de 1933 a 1990 com linhas reais recortadas de seis anos, download retomável, coletor contra servidor local, feeds (amostra byte a byte), cadastro, malhas e referências embutidas, servidor, preparar de ponta a ponta (com retomada e erro num ano), publicação na nuvem contra um S3 em memória (só o que mudou, índice por último, retomada em outra máquina, prazo, falhas de restauração e de publicação), configuração (inclusive a região exigida pelo Supabase), medição dos feeds contra os limites gratuitos e CLI"],
   ["packages/portal (vitest)", "84", "Leitura dos feeds (404 e o 400 de inexistente do Supabase), decodificador TopoJSON, validação dos feeds lendo a amostra do Python (inclusive as eleições antigas), formatação, cores, busca, estado na URL, grupos do seletor, área do mapa ↔ parte e as contas do zoom"],
-  ["Suíte Python inteira", "850", "Eleições e o resto do Lumen; cobertura mínima de 80% exigida no CI (97% na data deste documento)"],
+  ["Suíte Python inteira", "852", "Eleições e o resto do Lumen; cobertura mínima de 80% exigida no CI (97% na data deste documento)"],
 ], { size: 17 }));
 body.push(spacer(80));
 body.push(t("Além dos testes: verificação de tipos do portal (`tsc`), build da exportação estática, ruff, o verificador " +
