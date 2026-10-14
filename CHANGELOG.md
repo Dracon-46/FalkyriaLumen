@@ -81,6 +81,11 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   a arquivo inexistente em parte das rotas: o cliente S3 e o portal tratam essa
   resposta como "não existe". Sem isso, a primeira carga, com o bucket vazio,
   não começaria, e o portal mostraria erro em vez de "ainda não publicado".
+- A publicação envia 16 arquivos ao mesmo tempo (o índice continua por último,
+  depois de todos). Na primeira carga real no Supabase, um a um, subia pouco
+  mais de um arquivo por segundo: cada passada do coletor, com mil feeds, levava
+  mais de dez minutos, lento demais para a noite da apuração. Uma falha no meio
+  guarda no manifesto o que subiu e segura o índice.
 - Portal na Vercel (plano Hobby, gratuito) como alternativa ao Cloudflare Pages,
   sem token no GitHub: `packages/portal/vercel.json` gera de novo só quando o
   portal muda.

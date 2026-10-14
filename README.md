@@ -329,7 +329,7 @@ num comando (`lumen eleicoes preparar`, ou `preparar.cmd` no Windows).
 | Normalização | 116 |
 | Conformidade (SICONFI) | 14 |
 | Pipeline local | 8 |
-| Aba Eleições (Python, inclusive a publicação na nuvem) | 192 |
+| Aba Eleições (Python, inclusive a publicação na nuvem) | 194 |
 | Vocabulário controlado e referência técnica | 66 |
 | Portal (TypeScript) | 84 |
 
