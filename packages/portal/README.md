@@ -69,7 +69,16 @@ Configuração de build: `NEXT_PUBLIC_DADOS_ELEICOES` muda a base dos feeds
 
 ## Publicação
 
-O fluxo `.github/workflows/portal-pages.yml` gera este portal com
+**Vercel (em uso desde 14/10/2026).** O projeto `falkyria-lumen` da Vercel (plano
+Hobby, gratuito) importa este repositório com *Root Directory* `packages/portal`
+e gera o site a cada push na main que mexe nesta pasta: o `vercel.json` daqui
+roda `git diff --quiet HEAD^ HEAD -- .` e cancela a geração quando o portal não
+mudou. A variável `NEXT_PUBLIC_DADOS_ELEICOES` fica no projeto da Vercel, com o
+endereço público do bucket `lumen-eleicoes` no Supabase Storage
+(`https://<ref>.supabase.co/storage/v1/object/public/lumen-eleicoes`), que libera
+leitura de qualquer origem. Nenhum token fica no GitHub.
+
+**Cloudflare Pages (alternativa).** O fluxo `.github/workflows/portal-pages.yml` gera este portal com
 `NEXT_PUBLIC_DADOS_ELEICOES` apontando para o bucket público do Cloudflare R2
 (variável `LUMEN_URL_FEEDS` do repositório) e publica `out/` no Cloudflare
 Pages a cada mudança em `packages/portal` na main (ADR-026). O bucket precisa
