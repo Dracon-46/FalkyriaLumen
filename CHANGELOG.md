@@ -56,12 +56,12 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 - Documentação: ADR-027, DOC-07 1.2 (A-05), DOC-06 1.3 (seção 2.8), DOC-10 1.4,
   DOC-11 1.3, README.
 
-### Feeds de 2026 sem cartão: Supabase Storage no lugar do R2 (adendo do ADR-026)
+### Eleições sem cartão: Supabase Storage no lugar do R2 (adendo do ADR-026)
 
 - A publicação das eleições funciona também com o Supabase Storage, que fala o
-  protocolo S3 e não pede meio de pagamento. Cabe só 2026 (1 GB no plano
-  gratuito); as eleições de 1933 a 2024 continuam pedindo o R2. Os nomes dos
-  segredos e das variáveis no GitHub não mudam.
+  protocolo S3 e não pede meio de pagamento. Com os JSON comprimidos, 1933 a
+  2026 cabem no 1 GB gratuito (perto de 850 MB). Os nomes dos segredos e das
+  variáveis no GitHub não mudam.
 - Variável `R2_REGIAO` nos fluxos `eleicoes-carga` e `eleicoes-ao-vivo` (região
   da assinatura S3; o R2 usa `auto`). A configuração recusa endpoint do
   Supabase sem a região do projeto, que o Supabase exige na assinatura.
@@ -99,8 +99,26 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 - Portal na Vercel (plano Hobby, gratuito) como alternativa ao Cloudflare Pages,
   sem token no GitHub: `packages/portal/vercel.json` gera de novo só quando o
   portal muda.
-- Documentação: adendo do ADR-026 (com a medição e a recomendação para 25/10),
-  DOC-12 1.3 (seção 9.7), DOC-11, README.
+- Medição por anos (14/10/2026): o histórico de 1933 a 2024 soma perto de 362
+  mil arquivos e 812 MB com gzip (3,9 GB sem). Com 2026, perto de 850 MB: a
+  carga passa a incluir o histórico também no Supabase.
+- Manifesto da publicação dividido por grupo (`publicacao/<grupo>.json`,
+  comprimido, com a assinatura e o tamanho de cada arquivo) e lido só quando a
+  carga tem arquivo do grupo para enviar; um manifesto único do histórico
+  passaria de 50 MB, o limite por arquivo do Supabase. A assinatura encurta
+  para 24 dígitos do SHA-256 e o manifesto antigo deixa de ser lido: 2026 sobe
+  de novo uma vez, comprimido.
+- Teto do bucket público (`LUMEN_PUBLICACAO_LIMITE_MB`, 900 MB por padrão no
+  Supabase): a publicação para antes de passar dele, sem enviar o índice.
+- A publicação tem 50 minutos de folga depois de `--limite-minutos` e então
+  para entre dois lotes, sem gravar o estado, em vez de ser derrubada pelo
+  prazo da máquina; falha passageira de envio (408, 429, 5xx, rede) é tentada
+  de novo; envios simultâneos configuráveis (`LUMEN_PUBLICACAO_PARALELOS`, 32
+  no GitHub Actions).
+- O coletor ao vivo não para mais quando uma publicação falha: a passada
+  seguinte publica de novo.
+- Documentação: adendo do ADR-026 (com as medições e a recomendação para 25/10),
+  DOC-12 1.4 (seções 9.5 e 9.7), DOC-11, README.
 
 ### Correções
 

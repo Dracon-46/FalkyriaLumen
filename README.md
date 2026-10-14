@@ -79,13 +79,14 @@ Configuração, uma vez (passo a passo com as telas no DOC-12, seção 9.5):
 4. Actions → `eleicoes-carga` → *Run workflow* (a primeira carga leva duas ou três execuções);
    depois Actions → `portal-pages` → *Run workflow*.
 
-**Sem cartão, só 2026:** o Supabase Storage gratuito (1 GB, 5 GB de saída por mês) recebe os
-feeds de 2026 com os mesmos nomes acima: `R2_ENDPOINT` com o endereço S3 do projeto, as chaves S3
-do painel, as variáveis `R2_REGIAO` (a região do projeto, ex.: `sa-east-1`) e
-`ELEICOES_SEM_HISTORICO=true`, e `LUMEN_URL_FEEDS` com
-`https://<ref>.supabase.co/storage/v1/object/public/lumen-eleicoes`. Antes de escolher,
-Actions → `eleicoes-medir` mede o tamanho dos feeds de 2026 e o pior caso de saída por visitante
-(DOC-12, seção 9.7). É a configuração escolhida para o 2º turno de 2026.
+**Sem cartão:** o Supabase Storage gratuito (1 GB, 5 GB de saída por mês) recebe os feeds com os
+mesmos nomes acima: `R2_ENDPOINT` com o endereço S3 do projeto, as chaves S3 do painel, a variável
+`R2_REGIAO` (a região do projeto, ex.: `sa-east-1`) e `LUMEN_URL_FEEDS` com
+`https://<ref>.supabase.co/storage/v1/object/public/lumen-eleicoes`. Com os JSON comprimidos,
+1933 a 2026 somam perto de 850 MB e cabem; a publicação para antes de 900 MB
+(`PUBLICACAO_LIMITE_MB`). `ELEICOES_SEM_HISTORICO=true` deixa só 2026. Actions → `eleicoes-medir`
+mede o tamanho dos feeds e o pior caso de saída por visitante (DOC-12, seção 9.7). É a configuração
+escolhida para o 2º turno de 2026.
 
 **Portal na Vercel, sem token:** o projeto da Vercel (plano Hobby, gratuito) importa este
 repositório com *Root Directory* `packages/portal` e a variável `NEXT_PUBLIC_DADOS_ELEICOES` igual a
@@ -340,8 +341,8 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
 - **Revisar as ADRs 011 a 027** (todas propostas, tomadas durante a implementação).
 - **Calibrar a regra A-05** sobre o relatório silencioso antes de qualquer publicação (ADR-027).
 - **Contas da hospedagem gratuita** (ADR-026): Cloudflare (R2 e Pages), segredos do GitHub e
-  uma organização própria do projeto no Supabase para o núcleo (DOC-12, seção 9.5). Para o
-  2º turno de 2026 (25/10): R2 com cartão ou Supabase Storage sem cartão, só 2026 (seção 9.7).
+  uma organização própria do projeto no Supabase para o núcleo (DOC-12, seção 9.5). Feeds das
+  eleições no Supabase Storage desde 14/10/2026, com o histórico (seção 9.7).
 - **Revisão metodológica e jurídica da regra B-01** frente ao art. 75, § 1º, da Lei 14.133
   (ADR-022), antes da Fase 2.
 - **Fonte para "quem autorizou o ato"**: a API do PNCP não publica o agente (ADR-017).
