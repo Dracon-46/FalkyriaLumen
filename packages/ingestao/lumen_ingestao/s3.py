@@ -212,9 +212,13 @@ class ClienteS3:
             raise ErroS3(status, resposta[:300].decode("utf-8", "replace"))
 
     def ler(self, chave: str) -> bytes:
-        """Lê o conteúdo da chave; 404 levanta ``ChaveInexistente`` e outro erro, ``ErroS3``."""
+        """Lê o conteúdo da chave; chave inexistente levanta ``ChaveInexistente`` e outro erro, ``ErroS3``.
+
+        Inexistente é o 404 do S3 e também o 400 com ``NoSuchKey`` ou ``not_found`` no corpo, a forma
+        como o Supabase Storage responde em parte das rotas.
+        """
         status, _, corpo = self._enviar("GET", self._url(chave))
-        if status == 404:
+        if status == 404 or (status == 400 and (b"NoSuchKey" in corpo or b"not_found" in corpo)):
             raise ChaveInexistente(status, chave)
         if status >= 300:
             raise ErroS3(status, corpo[:300].decode("utf-8", "replace"))
