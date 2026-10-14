@@ -8,8 +8,10 @@ assinado e não enviado (ou o contrário) quebra o teste.
 """
 
 import hashlib
+import io
 import re
 import threading
+import urllib.error
 import urllib.parse
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -212,3 +214,34 @@ def test_endpoint_com_caminho():
     assert c._url("2026/indice.json") == "https://ref.supabase.co/storage/v1/s3/feeds/2026/indice.json"
     assert c._url("", {"prefix": "2026/", "list-type": "2"}) == (
         "https://ref.supabase.co/storage/v1/s3/feeds?list-type=2&prefix=2026%2F")
+
+
+class _AbridorComErro:
+    """Abridor que responde sempre com o mesmo erro HTTP e corpo."""
+
+    def __init__(self, status: int, corpo: bytes):
+        self.status, self.corpo = status, corpo
+
+    def open(self, req, timeout=None):
+        raise urllib.error.HTTPError(req.full_url, self.status, "erro", {}, io.BytesIO(self.corpo))
+
+
+@pytest.mark.parametrize("status,corpo", [
+    (404, b"<Error><Code>NoSuchKey</Code></Error>"),
+    (400, b"<Error><Code>NoSuchKey</Code></Error>"),
+    (400, b'{"statusCode":"404","error":"not_found","message":"Object not found"}'),
+])
+def test_chave_inexistente_nas_formas_do_supabase(status, corpo):
+    c = ClienteS3(endpoint="https://ref.storage.supabase.co/storage/v1/s3", bucket="b", chave_acesso="a",
+                  chave_secreta="s", regiao="sa-east-1", abridor=_AbridorComErro(status, corpo))
+    with pytest.raises(ChaveInexistente):
+        c.ler("estado/preparar.json")
+
+
+def test_outro_400_continua_erro():
+    c = ClienteS3(endpoint="https://ref.storage.supabase.co/storage/v1/s3", bucket="b", chave_acesso="a",
+                  chave_secreta="s", regiao="sa-east-1",
+                  abridor=_AbridorComErro(400, b"<Error><Code>InvalidRequest</Code></Error>"))
+    with pytest.raises(ErroS3) as e:
+        c.ler("x")
+    assert not isinstance(e.value, ChaveInexistente) and e.value.status == 400
