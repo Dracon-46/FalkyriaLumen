@@ -3,8 +3,9 @@
 # Disparo manual. Coleta as contratações do PNCP publicadas na janela
 # (pregão eletrônico e dispensa), os itens das que tratam de combustível e gás
 # de cozinha, o preço de revenda da ANP e grava o relatório de comparação como
-# artefato do fluxo (privado, sete dias) e no resumo da execução. Nada é
-# publicado.
+# artefato do fluxo (sete dias) e no resumo da execução. Não vai para o
+# portal; com o repositório público desde 14/10/2026, o resumo e o artefato
+# ficam visíveis a quem abre a execução no GitHub.
 #
 # Duas fontes da ANP, escolhidas em "fonte_anp":
 # - semestral: a série histórica, que sai depois do fim do semestre (em
@@ -31,9 +32,7 @@
 # semestres precisam cobrir todas. Cada janela de dois dias leva perto de 17
 # minutos.
 #
-# Usa só o segredo LUMEN_CONTATO (User-Agent). Repositório privado: cada
-# execução consome minutos do plano (uma janela de duas semanas leva por volta
-# de meia hora).
+# Usa só o segredo LUMEN_CONTATO (User-Agent).
 
 name: mercado-referencia
 

@@ -4,8 +4,8 @@
 #   1. vocabulário controlado — nenhum texto público imputa conduta (ADR-007)
 #   2. testes com cobertura mínima de 80% no núcleo (RNF-28)
 #
-# O repositório é privado: cada execução consome minutos do plano do GitHub.
-# A suíte inteira roda em poucos segundos, então o custo é baixo.
+# Repositório público desde 14/10/2026: os minutos das máquinas padrão do
+# GitHub Actions não são cobrados.
 #
 # Máquina fixa (ubuntu-24.04), não "latest": a troca de imagem do GitHub não
 # muda a versão do PostgreSQL, do Python ou do Node no meio de um ciclo. As

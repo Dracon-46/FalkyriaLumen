@@ -4,16 +4,16 @@
 # Storage gratuito): gera os feeds numa máquina do GitHub, sem publicar nada,
 # e mede o total, cada grupo, os maiores arquivos e o pior caso de saída por
 # visitante durante a apuração (`lumen eleicoes medir`). O resultado sai no
-# resumo da execução e num artefato com o JSON (sete dias, privado).
+# resumo da execução e num artefato com o JSON (sete dias).
 #
 # "so_2026" (padrão) gera só o que o Supabase gratuito comportaria: o sistema
 # de resultados de 2026 (1º turno completo e o 2º turno já cadastrado), o mapa
-# e o cadastro de municípios. Desmarcado, também os anos dos dados abertos em
-# "anos", para medir quanto ocupam.
+# e o cadastro de municípios. Desmarcado, só os anos dos dados abertos em
+# "anos", sem 2026: várias execuções ao mesmo tempo, cada uma com alguns anos,
+# medem o histórico inteiro em pouco tempo.
 #
-# Usa só o segredo LUMEN_CONTATO (User-Agent). Repositório privado: cada
-# execução consome minutos do plano; o 1º turno de 2026 completo leva da ordem
-# de uma a duas horas (todos os municípios, todos os cargos).
+# Usa só o segredo LUMEN_CONTATO (User-Agent). O 1º turno de 2026 completo
+# levou 1h06 (todos os municípios, todos os cargos).
 
 name: eleicoes-medir
 
@@ -25,11 +25,11 @@ on:
         type: boolean
         default: true
       anos:
-        description: "Com so_2026 desmarcado: anos dos dados abertos (ex.: 2022,2018)"
+        description: "Com so_2026 desmarcado: anos dos dados abertos (ex.: 2022,2018), sem 2026"
         default: "2022"
       limite_minutos:
         description: "Para a coleta depois deste tempo e mede o que houver"
-        default: "200"
+        default: "300"
 
 permissions:
   contents: read
@@ -37,7 +37,7 @@ permissions:
 jobs:
   medir:
     runs-on: ubuntu-24.04
-    timeout-minutes: 240
+    timeout-minutes: 350
     env:
       LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
       LUMEN_DADOS: dados
@@ -56,7 +56,7 @@ jobs:
       - name: Gerar os feeds (sem publicar)
         run: |
           set -- preparar --sem-portal --sem-bronze --apagar-zips --limite-minutos "$LIMITE"
-          if [ "$SO_2026" = "true" ]; then set -- "$@" --sem-historico; else set -- "$@" --anos "$ANOS"; fi
+          if [ "$SO_2026" = "true" ]; then set -- "$@" --sem-historico; else set -- "$@" --sem-ao-vivo --anos "$ANOS"; fi
           python -m lumen_eleicoes "$@"
       - name: Medir
         if: always()

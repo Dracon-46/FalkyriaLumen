@@ -10,9 +10,9 @@
 # andamento, e a execução seguinte continua de onde esta parou. Depois de tudo
 # pronto, cada execução só confere e termina em poucos minutos.
 #
-# Repositório privado: cada execução consome minutos do plano do GitHub
-# (2.000 por mês no gratuito). A primeira carga deve gastar algumas horas,
-# em duas ou três execuções; as diárias seguintes, poucos minutos.
+# Repositório público desde 14/10/2026: os minutos não são cobrados. A
+# primeira carga de todos os anos leva algumas horas, em duas ou três
+# execuções; as diárias seguintes, poucos minutos.
 #
 # Configuração (Settings → Secrets and variables → Actions):
 #   secrets  LUMEN_CONTATO       e-mail do responsável pela coleta (User-Agent)

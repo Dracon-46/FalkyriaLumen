@@ -1,0 +1,67 @@
+# Diagnóstico do armazenamento dos feeds — adendo do ADR-026.
+#
+# Disparo manual. Grava dois objetos pequenos no bucket público, em
+# `_diagnostico/`: um JSON comum e o mesmo JSON comprimido com gzip e
+# `Content-Encoding: gzip`. Depois lê os dois pelo endereço público e mostra
+# os cabeçalhos e se o conteúdo chega íntegro, com e sem pedir compressão.
+# Serve para saber se o armazenamento devolve o `Content-Encoding` que
+# recebeu (o navegador então descomprime sozinho) antes de guardar os feeds
+# comprimidos, o que divide o espaço ocupado e o tráfego por três.
+#
+# Usa os mesmos segredos e variáveis do eleicoes-carga.yml e a variável
+# LUMEN_URL_FEEDS (endereço público do bucket).
+
+name: nuvem-diagnostico
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostico:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      LUMEN_PUBLICACAO_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      LUMEN_PUBLICACAO_BUCKET: ${{ vars.R2_BUCKET_FEEDS }}
+      LUMEN_PUBLICACAO_REGIAO: ${{ vars.R2_REGIAO }}
+      LUMEN_S3_CHAVE_ACESSO: ${{ secrets.R2_CHAVE_ACESSO }}
+      LUMEN_S3_CHAVE_SECRETA: ${{ secrets.R2_CHAVE_SECRETA }}
+      URL_FEEDS: ${{ vars.LUMEN_URL_FEEDS }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      - name: Gravar os objetos de teste
+        run: |
+          python - <<'PY'
+          import gzip, json, os
+          from lumen_eleicoes.configuracao import carregar_publicacao
+          from lumen_ingestao.s3 import ClienteS3
+          pub = carregar_publicacao()
+          c = ClienteS3(endpoint=pub.endpoint, bucket=pub.bucket, chave_acesso=pub.chave_acesso,
+                        chave_secreta=pub.chave_secreta, regiao=pub.regiao)
+          corpo = json.dumps({"diagnostico": True, "texto": "conteúdo de teste " * 200}).encode()
+          c.gravar("_diagnostico/comum.json", corpo, sem_sobrescrever=False,
+                   tipo="application/json; charset=utf-8", cache="no-cache")
+          c.gravar("_diagnostico/gzip.json", gzip.compress(corpo, mtime=0), sem_sobrescrever=False,
+                   tipo="application/json; charset=utf-8", cache="no-cache", codificacao="gzip")
+          print("gravados:", len(corpo), "bytes;", len(gzip.compress(corpo, mtime=0)), "comprimidos")
+          PY
+      - name: Ler pelo endereço público
+        run: |
+          for nome in comum gzip; do
+            for modo in "sem compressão" "com compressão"; do
+              echo "== $nome.json, $modo"
+              opcao=""; if [ "$modo" = "com compressão" ]; then opcao="--compressed"; fi
+              curl -sS $opcao -D cab.txt -o corpo.bin "$URL_FEEDS/_diagnostico/$nome.json"
+              grep -iE "^(HTTP|content-type|content-encoding|content-length|cache-control|cf-cache-status|access-control-allow-origin)" cab.txt
+              python -c "import json,sys; d=json.load(open('corpo.bin','rb')); print('JSON íntegro:', d['diagnostico'])" \
+                || echo "JSON NÃO legível ($(head -c 2 corpo.bin | od -An -tx1))"
+            done
+          done
