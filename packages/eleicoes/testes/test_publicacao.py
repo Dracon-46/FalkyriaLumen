@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from lumen_eleicoes import antigas, carga, cli, publicacao
+from lumen_eleicoes import antigas, carga, cli, preparacao, publicacao
 from lumen_eleicoes.coletor import FONTE_ID
 from lumen_eleicoes.configuracao import ConfiguracaoAusente, carregar, carregar_publicacao
 from lumen_eleicoes.preparacao import OpcoesPreparacao, Preparacao
@@ -27,9 +27,14 @@ def _cliente_s3(srv, bucket: str) -> ClienteS3:
                      abridor=SEM_PROXY)
 
 
-def _nuvem(srv, saida: Path, estado: Path, avisos: list | None = None) -> Nuvem:
+def _nuvem(srv, saida: Path, estado: Path, avisos: list | None = None, **kw) -> Nuvem:
     return Nuvem(_cliente_s3(srv, PUB), _cliente_s3(srv, PRIV), saida, estado,
-                 aviso=(avisos.append if avisos is not None else lambda m: None))
+                 aviso=(avisos.append if avisos is not None else lambda m: None), **kw)
+
+
+def _manifesto(srv, grupo: str) -> dict:
+    """Parte do manifesto de um grupo, como está no bucket privado (comprimida)."""
+    return json.loads(gzip.decompress(srv.corpo(PRIV, f"publicacao/{grupo}.json")))
 
 
 @pytest.fixture
@@ -37,7 +42,7 @@ def cfg(tmp_path, monkeypatch):
     monkeypatch.setenv("LUMEN_CONTATO", "c@exemplo.org")
     for v in ("LUMEN_ELEICOES_SAIDA", "LUMEN_PUBLICACAO_ENDPOINT", "LUMEN_PUBLICACAO_BUCKET",
               "LUMEN_PUBLICACAO_BUCKET_ESTADO", "LUMEN_PUBLICACAO_REGIAO", "LUMEN_S3_CHAVE_ACESSO",
-              "LUMEN_S3_CHAVE_SECRETA"):
+              "LUMEN_S3_CHAVE_SECRETA", "LUMEN_PUBLICACAO_PARALELOS", "LUMEN_PUBLICACAO_LIMITE_MB"):
         monkeypatch.delenv(v, raising=False)
     toml = tmp_path / "lumen.toml"
     toml.write_text(f'[dados]\nraiz = "{(tmp_path / "dados").as_posix()}"\n[eleicoes]\n'
@@ -95,6 +100,29 @@ def test_configuracao_da_publicacao(tmp_path, monkeypatch):
     monkeypatch.setenv("LUMEN_PUBLICACAO_BUCKET", "outro")
     pub = carregar_publicacao(toml)
     assert (pub.bucket, pub.bucket_estado) == ("outro", "priv")
+    assert (pub.paralelos, pub.limite_bytes) == (16, None)           # R2: sem limite
+
+
+def test_paralelos_e_limite_da_publicacao(tmp_path, monkeypatch):
+    for v in ("LUMEN_PUBLICACAO_BUCKET_ESTADO", "LUMEN_PUBLICACAO_PARALELOS", "LUMEN_PUBLICACAO_LIMITE_MB"):
+        monkeypatch.delenv(v, raising=False)
+    monkeypatch.setenv("LUMEN_PUBLICACAO_ENDPOINT", "https://abc.storage.supabase.co/storage/v1/s3")
+    monkeypatch.setenv("LUMEN_PUBLICACAO_BUCKET", "pub")
+    monkeypatch.setenv("LUMEN_PUBLICACAO_REGIAO", "sa-east-1")
+    monkeypatch.setenv("LUMEN_S3_CHAVE_ACESSO", "a")
+    monkeypatch.setenv("LUMEN_S3_CHAVE_SECRETA", "s")
+    toml = tmp_path / "x.toml"
+    pub = carregar_publicacao(toml)
+    assert pub.limite_bytes == 900_000_000                           # Supabase: limite padrão
+    monkeypatch.setenv("LUMEN_PUBLICACAO_PARALELOS", "32")
+    monkeypatch.setenv("LUMEN_PUBLICACAO_LIMITE_MB", "0")
+    pub = carregar_publicacao(toml)
+    assert (pub.paralelos, pub.limite_bytes) == (32, None)
+    monkeypatch.setenv("LUMEN_PUBLICACAO_PARALELOS", "0")
+    assert carregar_publicacao(toml).paralelos == 1
+    monkeypatch.setenv("LUMEN_PUBLICACAO_LIMITE_MB", "muito")
+    with pytest.raises(ConfiguracaoAusente, match="limite_mb"):
+        carregar_publicacao(toml)
 
 
 # ------------------------------------------------------------------ Nuvem
@@ -116,9 +144,15 @@ def test_publica_so_o_que_mudou_com_o_indice_por_ultimo(tmp_path, s3_memoria):
     _, cab = s3_memoria.objetos[(PUB, "geo/br-uf.json")]
     assert cab["cache-control"].startswith("public") and cab["content-type"].startswith("application/json")
     assert s3_memoria.objetos[(PUB, "indice.json")][1]["cache-control"] == "no-cache"
-    manifesto = json.loads(s3_memoria.corpo(PRIV, "publicacao.json"))["arquivos"]
-    assert set(manifesto) == {"indice.json", "geo/br-uf.json", "2026-1t-geral/presidente/br.json"}
-    assert s3_memoria.chaves(PRIV) == ["estado/preparar.json", "publicacao.json"]
+    assert set(_manifesto(s3_memoria, "raiz")["arquivos"]) == {"indice.json"}
+    assert set(_manifesto(s3_memoria, "geo")["arquivos"]) == {"geo/br-uf.json"}
+    eleicao = _manifesto(s3_memoria, "2026-1t-geral")
+    assert set(eleicao["arquivos"]) == {"2026-1t-geral/presidente/br.json"}
+    assert eleicao["bytes"]["2026-1t-geral/presidente/br.json"] == len(gzip.compress(b'{"v":1}', 6, mtime=0))
+    assert s3_memoria.chaves(PRIV) == ["estado/preparar.json", "publicacao/2026-1t-geral.json",
+                                       "publicacao/_totais.json", "publicacao/geo.json", "publicacao/raiz.json"]
+    totais = json.loads(s3_memoria.corpo(PRIV, "publicacao/_totais.json"))["bytes"]
+    assert set(totais) == {"2026-1t-geral", "geo", "raiz"} and nuvem.ocupado() == sum(totais.values())
 
     # Nada mudou: nada sobe. Um feed mudou: só ele (o manifesto é lido do bucket, numa Nuvem nova).
     s3_memoria.puts.clear()
@@ -138,7 +172,7 @@ def test_manifesto_regravado_em_lotes(tmp_path, s3_memoria, monkeypatch):
     for i in range(5):
         (saida / f"f{i}.json").write_text(str(i))
     _nuvem(s3_memoria, saida, tmp_path / "estado").publicar()
-    assert sum(1 for b, c in s3_memoria.puts if c == "publicacao.json") == 3   # 2, 4 e o fim
+    assert sum(1 for b, c in s3_memoria.puts if c == "publicacao/raiz.json") == 3   # 2, 4 e o fim
 
 
 def test_json_sobe_comprimido_e_volta_descomprimido(tmp_path, s3_memoria):
@@ -153,26 +187,116 @@ def test_json_sobe_comprimido_e_volta_descomprimido(tmp_path, s3_memoria):
     assert gzip.decompress(corpo) == b'{"versao":1,"eleicoes":[]}'
     foto, cab_foto = s3_memoria.objetos[(PUB, "fotos/a.jpg")]
     assert foto == b"\xff\xd8jpeg" and "content-encoding" not in cab_foto
-    manifesto = json.loads(s3_memoria.corpo(PRIV, "publicacao.json"))["arquivos"]
-    assert manifesto["indice.json"].endswith(publicacao.MARCA_GZIP)
-    assert not manifesto["fotos/a.jpg"].endswith(publicacao.MARCA_GZIP)
+    assert _manifesto(s3_memoria, "raiz")["arquivos"]["indice.json"].endswith(publicacao.MARCA_GZIP)
+    assert not _manifesto(s3_memoria, "fotos")["arquivos"]["fotos/a.jpg"].endswith(publicacao.MARCA_GZIP)
+    assert len(_manifesto(s3_memoria, "fotos")["arquivos"]["fotos/a.jpg"]) == publicacao.DIGITOS_ASSINATURA
     # Outra máquina restaura o índice descomprimido
     outra = tmp_path / "outra"
     _nuvem(s3_memoria, outra / "feeds", outra / "estado").restaurar()
     assert (outra / "feeds" / "indice.json").read_text() == '{"versao":1,"eleicoes":[]}'
 
 
-def test_publicado_sem_compressao_e_reenviado_comprimido(tmp_path, s3_memoria):
-    """O manifesto de antes da compressão (SHA-256 sem a marca) faz o JSON subir de novo, comprimido."""
+def test_manifesto_unico_de_antes_e_ignorado(tmp_path, s3_memoria):
+    """O manifesto único da versão anterior (``publicacao.json``, SHA-256 inteiro) não vale mais: o que ele
+    listava sobe de novo, comprimido, e entra no manifesto por grupo."""
     saida, estado = tmp_path / "feeds", tmp_path / "estado"
     saida.mkdir()
     (saida / "indice.json").write_text("{}")
     sha = publicacao.sha256_de(saida / "indice.json")
     _cliente_s3(s3_memoria, PRIV).gravar("publicacao.json", json.dumps(
-        {"versao": 1, "arquivos": {"indice.json": sha}}).encode(), sem_sobrescrever=False)
+        {"versao": 1, "arquivos": {"indice.json": sha + publicacao.MARCA_GZIP}}).encode(), sem_sobrescrever=False)
     r = _nuvem(s3_memoria, saida, estado).publicar()
     assert (r.enviados, r.iguais) == (1, 0)
     assert publicacao.descomprimir_se_gzip(b"sem gzip") == b"sem gzip"
+
+
+def test_manifesto_lido_so_dos_grupos_com_arquivo(tmp_path, s3_memoria):
+    """Uma carga que só gerou 2026 não lê o manifesto dos anos antigos; o total deles vem de _totais.json."""
+    saida = tmp_path / "feeds"
+    for eleicao in ("1950-1t-geral", "2026-1t-geral"):
+        (saida / eleicao / "presidente").mkdir(parents=True)
+        (saida / eleicao / "presidente" / "br.json").write_text('{"x":"' + "a" * 300 + '"}')
+    _nuvem(s3_memoria, saida, tmp_path / "estado").publicar()
+    ocupado = _nuvem(s3_memoria, saida, tmp_path / "estado").ocupado()
+    # Outra máquina, só com 2026 (mudado)
+    outra = tmp_path / "outra" / "feeds"
+    (outra / "2026-1t-geral" / "presidente").mkdir(parents=True)
+    (outra / "2026-1t-geral" / "presidente" / "br.json").write_text('{"x":"' + "b" * 300 + '"}')
+    lidos = []
+    priv = _cliente_s3(s3_memoria, PRIV)
+    ler = priv.ler
+    priv.ler = lambda chave: lidos.append(chave) or ler(chave)
+    nuvem = Nuvem(_cliente_s3(s3_memoria, PUB), priv, outra, tmp_path / "outra" / "estado", aviso=lambda m: None)
+    assert nuvem.publicar().enviados == 1
+    assert "publicacao/1950-1t-geral.json" not in lidos and "publicacao/2026-1t-geral.json" in lidos
+    assert nuvem.ocupado() == ocupado          # mesmo tamanho: o conteúdo trocou uma letra
+    assert set(nuvem.totais()) == {"1950-1t-geral", "2026-1t-geral"}
+
+
+def test_limite_do_armazenamento(tmp_path, s3_memoria, monkeypatch):
+    monkeypatch.setattr(publicacao, "LOTE_MANIFESTO", 2)
+    saida = tmp_path / "feeds"
+    (saida / "e").mkdir(parents=True)
+    for i in range(6):
+        (saida / "e" / f"f{i}.json").write_bytes(json.dumps({"r": i, "a": "x" * 200}).encode())
+    (saida / "indice.json").write_text("{}")
+    um = len(gzip.compress((saida / "e" / "f0.json").read_bytes(), 6, mtime=0))
+    nuvem = _nuvem(s3_memoria, saida, tmp_path / "estado", limite_bytes=3 * um)
+    with pytest.raises(publicacao.LimiteDoArmazenamento, match="limite configurado"):
+        nuvem.publicar()
+    # Dois lotes de dois subiram (o segundo passou do limite); o índice não
+    assert len(s3_memoria.chaves(PUB)) == 4 and "indice.json" not in s3_memoria.chaves(PUB)
+    assert len(_manifesto(s3_memoria, "e")["arquivos"]) == 4
+
+
+def test_prazo_interrompe_entre_lotes_e_nao_grava_o_estado(tmp_path, s3_memoria, monkeypatch):
+    monkeypatch.setattr(publicacao, "LOTE_MANIFESTO", 2)
+    saida, estado = tmp_path / "feeds", tmp_path / "estado"
+    saida.mkdir()
+    for i in range(5):
+        (saida / f"f{i}.json").write_text(str(i))
+    estado.mkdir()
+    (estado / "preparar.json").write_text("{}")
+    chamadas = iter([False, True])
+    avisos = []
+    r = _nuvem(s3_memoria, saida, estado, avisos).sincronizar(lambda: next(chamadas))
+    assert (r.enviados, r.pendentes) == (2, 3)
+    assert "estado/preparar.json" not in s3_memoria.chaves(PRIV)
+    assert any("prazo atingido" in a for a in avisos)
+    r = _nuvem(s3_memoria, saida, estado).sincronizar(lambda: False)
+    assert (r.enviados, r.iguais, r.pendentes) == (3, 2, 0)
+    assert "estado/preparar.json" in s3_memoria.chaves(PRIV)
+
+
+def test_envio_tenta_de_novo_falha_passageira(tmp_path, s3_memoria):
+    from lumen_ingestao.s3 import ErroS3
+    saida = tmp_path / "feeds"
+    saida.mkdir()
+    (saida / "a.json").write_text("{}")
+    (saida / "b.json").write_text("{}")
+    pub = _cliente_s3(s3_memoria, PUB)
+    original = pub.gravar
+    falhas = {"a.json": [ErroS3(503, "ocupado"), TimeoutError("lento")], "b.json": [ErroS3(403, "proibido")]}
+
+    def gravar(chave, corpo, **kw):
+        if falhas.get(chave):
+            raise falhas[chave].pop(0)
+        return original(chave, corpo, **kw)
+
+    pub.gravar = gravar
+    esperas = []
+    nuvem = Nuvem(pub, _cliente_s3(s3_memoria, PRIV), saida, tmp_path / "estado", aviso=lambda m: None,
+                  dormir=esperas.append, paralelos=1)
+    with pytest.raises(ErroS3, match="403"):          # 403 não é passageiro: sem nova tentativa
+        nuvem.publicar()
+    assert s3_memoria.chaves(PUB) == ["a.json"] and esperas == list(publicacao.ESPERAS_ENVIO)
+    # Passageiro em todas as tentativas: desiste depois da última
+    falhas["b.json"] = [ErroS3(429, "devagar")] * 3
+    esperas.clear()
+    with pytest.raises(ErroS3, match="429"):
+        nuvem.publicar()
+    assert esperas == list(publicacao.ESPERAS_ENVIO)
+    assert not publicacao.transitorio(ValueError("x"))
 
 
 def test_publica_em_paralelo_com_o_indice_por_ultimo(tmp_path, s3_memoria):
@@ -207,8 +331,7 @@ def test_falha_num_envio_guarda_o_que_subiu_e_segura_o_indice(tmp_path, s3_memor
     with pytest.raises(RuntimeError, match="falha de rede"):
         nuvem.publicar()
     assert s3_memoria.chaves(PUB) == ["a.json", "c.json"]          # o índice não subiu
-    manifesto = json.loads(s3_memoria.corpo(PRIV, "publicacao.json"))["arquivos"]
-    assert set(manifesto) == {"a.json", "c.json"}
+    assert set(_manifesto(s3_memoria, "raiz")["arquivos"]) == {"a.json", "c.json"}
     pub.gravar = original                                           # a próxima publicação completa
     r = Nuvem(pub, _cliente_s3(s3_memoria, PRIV), saida, tmp_path / "estado", aviso=lambda m: None).publicar()
     assert (r.enviados, r.iguais) == (2, 2)
@@ -309,12 +432,49 @@ def test_carga_na_nuvem_retomada_em_outra_maquina(cfg, s3_memoria, cdn_1950, tmp
 
 def test_carga_para_no_prazo(cfg, s3_memoria, cdn_1950, tmp_path):
     # Relógio: criação, início do bloco de 1933 a 1990, 1950 dentro do prazo; em 1989 o prazo já venceu
-    instantes = iter([0.0, 0.0, 0.0] + [10_000.0] * 100)
+    # (dentro da folga da publicação: 1950 sobe inteiro)
+    instantes = iter([0.0, 0.0, 0.0] + [61.0] * 100)
     prep, linhas = _preparacao(cfg, s3_memoria, tmp_path / "m", [1989, 1950], limite_minutos=1,
                                extra={"relogio": lambda: next(instantes)})
     r = prep.executar()
     assert r.prazo_atingido and [a["ano"] for a in r.anos] == [1950]
     assert any("prazo atingido" in linha for linha in linhas)
+    assert "1950-1t-geral/presidente/br.json" in s3_memoria.chaves(PUB) and r.erros == []
+
+
+def test_carga_para_no_prazo_da_publicacao(cfg, s3_memoria, cdn_1950, tmp_path):
+    # Muito depois do prazo: 1950 é gerado, mas a publicação não começa e o estado não é gravado
+    instantes = iter([0.0, 0.0, 0.0] + [100_000.0] * 100)
+    prep, linhas = _preparacao(cfg, s3_memoria, tmp_path / "m", [1989, 1950], limite_minutos=1,
+                               extra={"relogio": lambda: next(instantes)})
+    r = prep.executar()
+    assert r.prazo_atingido and r.publicados == 0
+    assert any("prazo atingido na publicação" in linha for linha in linhas)
+    assert "estado/preparar.json" not in s3_memoria.chaves(PRIV)
+
+
+def test_publicacao_para_depois_da_folga(cfg, tmp_path, monkeypatch):
+    agora = [0.0]
+    cfg.saida, cfg.estado = tmp_path / "f", tmp_path / "e"
+    prep = Preparacao(cfg, OpcoesPreparacao(portal=False, bronze=False, limite_minutos=10), saida=lambda m: None,
+                      cliente_resultados=_cliente_http(FONTE_ID), cliente_dados=_cliente_http(carga.FONTE_DADOS_ABERTOS),
+                      relogio=lambda: agora[0])
+    agora[0] = 10 * 60 + 1
+    assert prep.parar() and not prep.prazo_da_publicacao()       # a carga para; a publicação ainda não
+    agora[0] = 10 * 60 + preparacao.FOLGA_PUBLICACAO
+    assert prep.prazo_da_publicacao()
+
+    class Pendente:
+        def sincronizar(self, parar):
+            return ResumoPublicacao(enviados=5, pendentes=7)
+    prep.resumo.prazo_atingido = False
+    prep.nuvem = Pendente()
+    prep.sincronizar()
+    assert prep.resumo.publicados == 5 and prep.resumo.prazo_atingido and prep.resumo.erros == []
+    sem_prazo = Preparacao(cfg, OpcoesPreparacao(portal=False, bronze=False), saida=lambda m: None,
+                           cliente_resultados=_cliente_http(FONTE_ID),
+                           cliente_dados=_cliente_http(carga.FONTE_DADOS_ABERTOS))
+    assert not sem_prazo.prazo_da_publicacao()
 
 
 def test_falha_ao_restaurar_nao_carrega_nada(cfg, tmp_path):
@@ -331,7 +491,7 @@ def test_falha_ao_restaurar_nao_carrega_nada(cfg, tmp_path):
 
 def test_falha_ao_publicar_vira_erro_do_resumo(cfg, tmp_path):
     class Quebrada:
-        def sincronizar(self):
+        def sincronizar(self, parar=None):
             raise OSError("R2 fora do ar")
     cfg.saida, cfg.estado = tmp_path / "f", tmp_path / "e"
     prep = Preparacao(cfg, OpcoesPreparacao(portal=False, bronze=False), saida=lambda m: None,
@@ -363,7 +523,15 @@ def test_cli_publicar_e_falta_de_configuracao(cfg, s3_memoria, monkeypatch, caps
     tamanho = len(gzip.compress(b'{"versao":1,"eleicoes":[]}', compresslevel=6, mtime=0))
     assert json.loads(texto[texto.index("{"):]) == {"enviados": 1, "iguais": 0, "bytes": tamanho}
     assert s3_memoria.chaves(PUB) == ["indice.json"]
+    # Limite de 1 MB já ocupado: a publicação para com código 1
+    (cfg.saida / "a.json").write_text("{}")
+    priv = ClienteS3(endpoint=s3_memoria.endpoint, bucket=PRIV, chave_acesso="a", chave_secreta="s",
+                     abridor=SEM_PROXY)
+    priv.gravar("publicacao/_totais.json", b'{"bytes":{"1950-1t-geral":2000000}}', sem_sobrescrever=False)
+    monkeypatch.setenv("LUMEN_PUBLICACAO_LIMITE_MB", "1")
+    assert cli.main(["--config", str(cfg.toml), "publicar"]) == 1
+    assert "limite configurado" in capsys.readouterr().err
 
 
 def test_resumo_publicacao_padrao():
-    assert ResumoPublicacao() == ResumoPublicacao(0, 0, 0)
+    assert ResumoPublicacao() == ResumoPublicacao(0, 0, 0, 0)
