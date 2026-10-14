@@ -50,7 +50,21 @@ export const urls = {
   foto: (relativo: string) => (/^fotos\/[\w/.-]+\.jpe?g$/.test(relativo) ? `${BASE_DADOS}/${relativo}` : null),
 };
 
-/** JSON da URL; `null` quando o arquivo não existe (404). Outros erros viram `ErroFeed`. */
+/**
+ * Se a resposta 400 é o "arquivo não existe" do Supabase Storage, que responde assim nos buckets públicos
+ * (`{"statusCode":"404","error":"not_found"}`), em vez de 404.
+ */
+export async function inexistenteNoSupabase(resposta: Response): Promise<boolean> {
+  if (resposta.status !== 400) return false;
+  try {
+    const corpo = await resposta.text();
+    return /"statusCode"\s*:\s*"?404|not_found|NoSuchKey/.test(corpo);
+  } catch {
+    return false;
+  }
+}
+
+/** JSON da URL; `null` quando o arquivo não existe (404, ou o 400 equivalente do Supabase). Outros erros viram `ErroFeed`. */
 export async function obterJson(url: string, opcoes: { sinal?: AbortSignal; cache?: RequestCache } = {}) {
   let resposta: Response;
   try {
@@ -59,7 +73,7 @@ export async function obterJson(url: string, opcoes: { sinal?: AbortSignal; cach
     if ((erro as Error).name === "AbortError") throw erro;
     throw new ErroFeed(`sem resposta de ${url}`);
   }
-  if (resposta.status === 404) return null;
+  if (resposta.status === 404 || (await inexistenteNoSupabase(resposta))) return null;
   if (!resposta.ok) throw new ErroFeed(`${url}: HTTP ${resposta.status}`);
   try {
     return (await resposta.json()) as unknown;
