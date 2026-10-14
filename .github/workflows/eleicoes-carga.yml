@@ -25,7 +25,8 @@
 #             R2_BUCKET_ESTADO   bucket privado do estado (ex.: lumen-privado)
 #             R2_REGIAO          região da assinatura S3 (opcional; padrão auto, a do R2)
 #             ELEICOES_SEM_HISTORICO  "true" para carregar só 2026, sem os dados
-#                                abertos de 1933 a 2024 (opcional)
+#                                abertos de 1933 a 2024 (opcional; a entrada
+#                                "historico" da execução manual passa por cima)
 #             PUBLICACAO_PARALELOS    envios simultâneos (opcional; padrão 32)
 #             PUBLICACAO_LIMITE_MB    teto do bucket público em MB (opcional; no
 #                                Supabase, 900; 0 tira o teto)
@@ -50,6 +51,10 @@ on:
         default: ""
       sem_ao_vivo:
         description: "Pular o sistema de resultados (eleição corrente)"
+        type: boolean
+        default: false
+      historico:
+        description: "Incluir 1933 a 2024 mesmo com ELEICOES_SEM_HISTORICO=true"
         type: boolean
         default: false
 
@@ -97,9 +102,10 @@ jobs:
           ANOS: ${{ inputs.anos }}
           SEM_AO_VIVO: ${{ inputs.sem_ao_vivo }}
           SEM_HISTORICO: ${{ vars.ELEICOES_SEM_HISTORICO }}
+          HISTORICO: ${{ inputs.historico }}
         run: |
           set -- preparar --nuvem --sem-portal --sem-bronze --apagar-zips --limite-minutos 280
-          if [ "$SEM_HISTORICO" = "true" ]; then set -- "$@" --sem-historico
+          if [ "$SEM_HISTORICO" = "true" ] && [ "$HISTORICO" != "true" ]; then set -- "$@" --sem-historico
           elif [ -n "$ANOS" ]; then set -- "$@" --anos "$ANOS"; fi
           if [ "$SEM_AO_VIVO" = "true" ]; then set -- "$@" --sem-ao-vivo; fi
           python -m lumen_eleicoes "$@"
