@@ -81,6 +81,16 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   a arquivo inexistente em parte das rotas: o cliente S3 e o portal tratam essa
   resposta como "não existe". Sem isso, a primeira carga, com o bucket vazio,
   não começaria, e o portal mostraria erro em vez de "ainda não publicado".
+- Os JSON sobem comprimidos com gzip (`Content-Encoding: gzip`) e ocupam um
+  terço no bucket. O diagnóstico `nuvem-diagnostico.yml` confirmou que o
+  Supabase entrega o arquivo comprimido a quem aceita gzip e descomprimido a
+  quem não aceita. O manifesto marca o que subiu comprimido: a primeira
+  publicação depois da mudança reenvia, comprimido, o que tinha subido sem.
+  `lumen eleicoes medir` compara o tamanho comprimido com o limite do plano.
+- Repositório público desde 14/10/2026: os minutos do GitHub Actions deixam de
+  contar, e o histórico das eleições e a coleta de contratações cabem nos
+  fluxos. `eleicoes-medir` mede anos dos dados abertos sem 2026, em execuções
+  paralelas.
 - A publicação envia 16 arquivos ao mesmo tempo (o índice continua por último,
   depois de todos). Na primeira carga real no Supabase, um a um, subia pouco
   mais de um arquivo por segundo: cada passada do coletor, com mil feeds, levava

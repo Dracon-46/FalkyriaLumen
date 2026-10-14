@@ -323,13 +323,13 @@ num comando (`lumen eleicoes preparar`, ou `preparar.cmd` no Windows).
 
 | Componente | Testes |
 |---|---|
-| Ingestão (bronze, S3, cliente HTTP, adaptadores) | 113 |
+| Ingestão (bronze, S3, cliente HTTP, adaptadores) | 114 |
 | Esquema canônico e máquina de estados do indício | 194 |
 | Parâmetros legais | 39 |
 | Normalização | 116 |
 | Conformidade (SICONFI) | 14 |
 | Pipeline local | 8 |
-| Aba Eleições (Python, inclusive a publicação na nuvem) | 194 |
+| Aba Eleições (Python, inclusive a publicação na nuvem) | 196 |
 | Vocabulário controlado e referência técnica | 66 |
 | Portal (TypeScript) | 84 |
 
