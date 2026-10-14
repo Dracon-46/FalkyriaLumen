@@ -64,6 +64,9 @@ FONTES_DO_PORTAL = ("src", "package.json", "package-lock.json", "next.config.ts"
                     "next.config.js", "tsconfig.json")
 TIPOS_AO_VIVO = ("geral", "municipal")
 ORCAMENTO_MUNICIPAL = 1000
+# Depois do prazo da carga (``limite_minutos``), a publicação ainda tem esta folga para terminar o que gerou;
+# passou dela, para entre dois lotes. No GitHub Actions: prazo de 280 minutos, publicação até 330, máquina 355.
+FOLGA_PUBLICACAO = 50 * 60
 MAX_PASSADAS = 500
 
 
@@ -285,15 +288,25 @@ class Preparacao:
             return True
         return False
 
+    def prazo_da_publicacao(self) -> bool:
+        """Se a publicação deve parar: ``FOLGA_PUBLICACAO`` depois do prazo da carga, para a máquina não ser
+        derrubada no meio de um envio (o que faltar sobe na execução seguinte)."""
+        return self._fim is not None and self.relogio() >= self._fim + FOLGA_PUBLICACAO
+
     def sincronizar(self) -> None:
         """Na nuvem, publica o que mudou e guarda o estado; falha vira erro do resumo, sem derrubar a carga."""
         if self.nuvem is None:
             return
         try:
-            self.resumo.publicados += self.nuvem.sincronizar().enviados
+            r = self.nuvem.sincronizar(self.prazo_da_publicacao)
         except Exception as erro:  # noqa: BLE001 - a próxima sincronização tenta de novo
             self.resumo.erros.append(f"publicação na nuvem: {erro}")
             self.saida(f"erro ao publicar na nuvem: {erro}")
+            return
+        self.resumo.publicados += r.enviados
+        if r.pendentes:
+            self.resumo.prazo_atingido = True
+            self.saida(f"prazo atingido na publicação: {r.pendentes} arquivo(s) sobem na próxima execução")
 
     def _etapa(self, titulo: str) -> None:
         """Título de etapa no andamento."""

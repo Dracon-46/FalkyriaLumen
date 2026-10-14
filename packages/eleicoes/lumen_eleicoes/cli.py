@@ -40,7 +40,7 @@ from .configuracao import ConfiguracaoAusente, ConfiguracaoEleicoes, carregar, c
 from .feeds import EscritorFeeds
 from .municipios import CadastroMunicipios, nomes_do_ibge
 from .preparacao import OpcoesPreparacao, Preparacao
-from .publicacao import Nuvem
+from .publicacao import LimiteDoArmazenamento, Nuvem
 from .simulacao import Cenario, ServidorSimulado, gerar_amostra
 from .verificacao import verificar_diretorio
 
@@ -222,16 +222,23 @@ def cmd_ao_vivo(cfg, args) -> int:
                             base=args.base, estado=cfg.estado / f"coleta-{args.eleicao}.json")
     sinal = _instalar_parada()
 
+    def publicar() -> None:
+        # Falha ao publicar não derruba a apuração: a próxima passada publica de novo o que ficou
+        try:
+            nuvem.sincronizar()
+        except Exception as erro:  # noqa: BLE001
+            print(f"erro ao publicar na nuvem: {erro}", file=sys.stderr, flush=True)
+
     def aviso(r: ResumoPassada) -> None:
         _aviso_passada(r)
         if nuvem is not None and r.feeds:
-            nuvem.sincronizar()
+            publicar()
     try:
         coletor.executar(intervalo_s=args.intervalo, max_passadas=1 if args.uma_vez else None,
                          parar=lambda: sinal[0], aviso=aviso)
     finally:
         if nuvem is not None:
-            nuvem.sincronizar()
+            publicar()
     return 0
 
 
@@ -336,7 +343,11 @@ def cmd_simular(cfg, args) -> int:
 
 def cmd_publicar(cfg, args) -> int:
     """Envia ao bucket público os feeds novos ou alterados e grava o estado no privado (ADR-026)."""
-    resumo = _nuvem(cfg, args).sincronizar()
+    try:
+        resumo = _nuvem(cfg, args).sincronizar()
+    except LimiteDoArmazenamento as erro:
+        print(f"erro: {erro}", file=sys.stderr)
+        return 1
     _imprimir({"enviados": resumo.enviados, "iguais": resumo.iguais, "bytes": resumo.bytes})
     return 0
 

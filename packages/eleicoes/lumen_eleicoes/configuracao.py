@@ -128,6 +128,13 @@ class ConfiguracaoPublicacao:
     chave_secreta: str
     bucket_estado: str
     regiao: str = "auto"
+    paralelos: int = 16
+    limite_bytes: int | None = None
+
+
+# Limite padrão do bucket público no Supabase gratuito (1 GB por organização, somando os dois buckets): deixa
+# perto de 100 MB para o estado da carga no bucket privado. ``LUMEN_PUBLICACAO_LIMITE_MB`` = 0 tira o limite.
+LIMITE_SUPABASE_MB = 900
 
 
 def carregar_publicacao(caminho: Path | None = None) -> ConfiguracaoPublicacao:
@@ -161,11 +168,22 @@ def carregar_publicacao(caminho: Path | None = None) -> ConfiguracaoPublicacao:
         raise ConfiguracaoAusente(
             "o S3 do Supabase assina com a região do projeto, não com \"auto\": defina [publicacao].regiao "
             "ou LUMEN_PUBLICACAO_REGIAO com a região mostrada na configuração S3 do painel (ex.: sa-east-1)")
+    paralelos = _inteiro(valor("paralelos", "LUMEN_PUBLICACAO_PARALELOS", "16"), "paralelos")
+    limite_mb = _inteiro(valor("limite_mb", "LUMEN_PUBLICACAO_LIMITE_MB",
+                               str(LIMITE_SUPABASE_MB) if eh_supabase(endpoint) else "0"), "limite_mb")
     return ConfiguracaoPublicacao(
         endpoint=endpoint, bucket=bucket, chave_acesso=acesso, chave_secreta=segredo,
         bucket_estado=valor("bucket_estado", "LUMEN_PUBLICACAO_BUCKET_ESTADO") or bucket,
-        regiao=regiao,
+        regiao=regiao, paralelos=max(1, paralelos), limite_bytes=limite_mb * 1_000_000 if limite_mb > 0 else None,
     )
+
+
+def _inteiro(texto: str, nome: str) -> int:
+    """Número inteiro de uma opção da publicação; texto que não é número vira ``ConfiguracaoAusente``."""
+    try:
+        return int(texto.strip())
+    except ValueError:
+        raise ConfiguracaoAusente(f"[publicacao].{nome} precisa ser um número inteiro, não {texto!r}") from None
 
 
 def eh_supabase(endpoint: str) -> bool:
