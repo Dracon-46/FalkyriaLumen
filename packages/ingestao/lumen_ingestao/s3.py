@@ -184,13 +184,14 @@ class ClienteS3:
 
     def gravar(self, chave: str, corpo: bytes, *, sem_sobrescrever: bool = True,
                tipo: str = "application/octet-stream", retencao_dias: int | None = None,
-               cache: str | None = None) -> None:
+               cache: str | None = None, codificacao: str | None = None) -> None:
         """Grava o objeto; por padrão, só se a chave ainda não existir (``If-None-Match: *``).
 
         412 levanta ``ChaveJaExiste`` sem que nada tenha mudado; outro erro levanta ``ErroS3``.
         Envia ``Content-MD5``, exigido pelo Object Lock, e, com ``retencao_dias``, grava em
         modo COMPLIANCE até a data calculada a partir de agora. ``cache`` vira o ``Cache-Control``
-        que o armazenamento devolve a quem lê o objeto (feeds publicados, ADR-026).
+        que o armazenamento devolve a quem lê o objeto (feeds publicados, ADR-026); ``codificacao``, o
+        ``Content-Encoding`` (``gzip`` para um corpo já comprimido, que o navegador descomprime).
         """
         extras = {
             "content-type": tipo,
@@ -201,6 +202,8 @@ class ClienteS3:
             extras["if-none-match"] = "*"
         if cache:
             extras["cache-control"] = cache
+        if codificacao:
+            extras["content-encoding"] = codificacao
         if retencao_dias:
             ate = datetime.now(timezone.utc) + timedelta(days=retencao_dias)
             extras["x-amz-object-lock-mode"] = "COMPLIANCE"
