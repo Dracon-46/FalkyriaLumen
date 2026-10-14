@@ -41,6 +41,7 @@ jobs:
       LUMEN_S3_CHAVE_ACESSO: ${{ secrets.R2_CHAVE_ACESSO }}
       LUMEN_S3_CHAVE_SECRETA: ${{ secrets.R2_CHAVE_SECRETA }}
       LUMEN_PUBLICACAO_REGIAO: ${{ vars.R2_REGIAO }}
+      LUMEN_PUBLICACAO_LIMITE_MB: ${{ vars.PUBLICACAO_LIMITE_MB }}
       LUMEN_ELEICOES_SAIDA: dados/eleicoes/feeds
       PYTHONUNBUFFERED: "1"
     steps:

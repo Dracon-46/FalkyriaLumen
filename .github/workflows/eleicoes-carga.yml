@@ -5,10 +5,12 @@
 # e publica os feeds no Cloudflare R2, de onde o portal os lê.
 #
 # Retomável: o estado da carga fica no bucket privado. A primeira carga leva
-# mais que uma execução (2,3 GB de arquivos do TSE); --limite-minutos para a
-# carga antes do prazo da máquina (6 horas), com folga para terminar o ano em
-# andamento, e a execução seguinte continua de onde esta parou. Depois de tudo
-# pronto, cada execução só confere e termina em poucos minutos.
+# mais que uma execução (2,3 GB de arquivos do TSE, perto de 450 mil feeds);
+# --limite-minutos para a carga antes do prazo da máquina (6 horas), a
+# publicação tem 50 minutos de folga para terminar o ano em andamento e para
+# entre dois lotes se não der, e a execução seguinte continua de onde esta
+# parou. Depois de tudo pronto, cada execução só confere e termina em poucos
+# minutos.
 #
 # Repositório público desde 14/10/2026: os minutos não são cobrados. A
 # primeira carga de todos os anos leva algumas horas, em duas ou três
@@ -24,12 +26,16 @@
 #             R2_REGIAO          região da assinatura S3 (opcional; padrão auto, a do R2)
 #             ELEICOES_SEM_HISTORICO  "true" para carregar só 2026, sem os dados
 #                                abertos de 1933 a 2024 (opcional)
+#             PUBLICACAO_PARALELOS    envios simultâneos (opcional; padrão 32)
+#             PUBLICACAO_LIMITE_MB    teto do bucket público em MB (opcional; no
+#                                Supabase, 900; 0 tira o teto)
 #
-# Supabase Storage no lugar do R2 (adendo do ADR-026; só 2026, que cabe no
-# 1 GB gratuito): os nomes continuam os mesmos. R2_ENDPOINT recebe
-# https://<ref>.storage.supabase.co/storage/v1/s3, as chaves são as de
-# Storage → S3 do painel, R2_REGIAO a região do projeto (ex.: sa-east-1) e
-# ELEICOES_SEM_HISTORICO = true. Passo a passo no DOC-12, seção 9.7.
+# Supabase Storage no lugar do R2 (adendo do ADR-026): os nomes continuam os
+# mesmos. R2_ENDPOINT recebe https://<ref>.storage.supabase.co/storage/v1/s3,
+# as chaves são as de Storage → S3 do painel e R2_REGIAO a região do projeto
+# (ex.: sa-east-1). Com o JSON comprimido, 1933 a 2026 somam perto de 850 MB
+# (medição de 14/10/2026) e cabem no 1 GB gratuito; a publicação para antes
+# de passar de PUBLICACAO_LIMITE_MB. Passo a passo no DOC-12, seção 9.7.
 
 name: eleicoes-carga
 
@@ -67,6 +73,8 @@ jobs:
       LUMEN_S3_CHAVE_ACESSO: ${{ secrets.R2_CHAVE_ACESSO }}
       LUMEN_S3_CHAVE_SECRETA: ${{ secrets.R2_CHAVE_SECRETA }}
       LUMEN_PUBLICACAO_REGIAO: ${{ vars.R2_REGIAO }}
+      LUMEN_PUBLICACAO_PARALELOS: ${{ vars.PUBLICACAO_PARALELOS || '32' }}
+      LUMEN_PUBLICACAO_LIMITE_MB: ${{ vars.PUBLICACAO_LIMITE_MB }}
       LUMEN_ELEICOES_SAIDA: dados/eleicoes/feeds
       PYTHONUNBUFFERED: "1"
     steps:
