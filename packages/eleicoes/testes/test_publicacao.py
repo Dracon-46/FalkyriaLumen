@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gzip
 import json
 import urllib.request
 from datetime import date
@@ -126,7 +127,7 @@ def test_publica_so_o_que_mudou_com_o_indice_por_ultimo(tmp_path, s3_memoria):
     avisos = []
     r = _nuvem(s3_memoria, saida, estado, avisos).publicar()
     assert (r.enviados, r.iguais) == (1, 2)
-    assert s3_memoria.corpo(PUB, "2026-1t-geral/presidente/br.json") == b'{"v":2}'
+    assert publicacao.descomprimir_se_gzip(s3_memoria.corpo(PUB, "2026-1t-geral/presidente/br.json")) == b'{"v":2}'
     assert "1 arquivo(s) publicado(s)" in avisos[0]
 
 
@@ -138,6 +139,40 @@ def test_manifesto_regravado_em_lotes(tmp_path, s3_memoria, monkeypatch):
         (saida / f"f{i}.json").write_text(str(i))
     _nuvem(s3_memoria, saida, tmp_path / "estado").publicar()
     assert sum(1 for b, c in s3_memoria.puts if c == "publicacao.json") == 3   # 2, 4 e o fim
+
+
+def test_json_sobe_comprimido_e_volta_descomprimido(tmp_path, s3_memoria):
+    saida, estado = tmp_path / "feeds", tmp_path / "estado"
+    (saida / "fotos").mkdir(parents=True)
+    (saida / "indice.json").write_text('{"versao":1,"eleicoes":[]}')
+    (saida / "fotos" / "a.jpg").write_bytes(b"\xff\xd8jpeg")
+    nuvem = _nuvem(s3_memoria, saida, estado)
+    nuvem.publicar()
+    corpo, cab = s3_memoria.objetos[(PUB, "indice.json")]
+    assert corpo[:2] == b"\x1f\x8b" and cab["content-encoding"] == "gzip"
+    assert gzip.decompress(corpo) == b'{"versao":1,"eleicoes":[]}'
+    foto, cab_foto = s3_memoria.objetos[(PUB, "fotos/a.jpg")]
+    assert foto == b"\xff\xd8jpeg" and "content-encoding" not in cab_foto
+    manifesto = json.loads(s3_memoria.corpo(PRIV, "publicacao.json"))["arquivos"]
+    assert manifesto["indice.json"].endswith(publicacao.MARCA_GZIP)
+    assert not manifesto["fotos/a.jpg"].endswith(publicacao.MARCA_GZIP)
+    # Outra máquina restaura o índice descomprimido
+    outra = tmp_path / "outra"
+    _nuvem(s3_memoria, outra / "feeds", outra / "estado").restaurar()
+    assert (outra / "feeds" / "indice.json").read_text() == '{"versao":1,"eleicoes":[]}'
+
+
+def test_publicado_sem_compressao_e_reenviado_comprimido(tmp_path, s3_memoria):
+    """O manifesto de antes da compressão (SHA-256 sem a marca) faz o JSON subir de novo, comprimido."""
+    saida, estado = tmp_path / "feeds", tmp_path / "estado"
+    saida.mkdir()
+    (saida / "indice.json").write_text("{}")
+    sha = publicacao.sha256_de(saida / "indice.json")
+    _cliente_s3(s3_memoria, PRIV).gravar("publicacao.json", json.dumps(
+        {"versao": 1, "arquivos": {"indice.json": sha}}).encode(), sem_sobrescrever=False)
+    r = _nuvem(s3_memoria, saida, estado).publicar()
+    assert (r.enviados, r.iguais) == (1, 0)
+    assert publicacao.descomprimir_se_gzip(b"sem gzip") == b"sem gzip"
 
 
 def test_publica_em_paralelo_com_o_indice_por_ultimo(tmp_path, s3_memoria):
@@ -265,7 +300,7 @@ def test_carga_na_nuvem_retomada_em_outra_maquina(cfg, s3_memoria, cdn_1950, tmp
     prep2, _ = _preparacao(cfg, s3_memoria, tmp_path / "m2", [1989, 1950])
     r2 = prep2.executar()
     assert {a["ano"]: a["situacao"] for a in r2.anos} == {1950: "já processado", 1989: "processado"}
-    indice = json.loads(s3_memoria.corpo(PUB, "indice.json"))
+    indice = json.loads(publicacao.descomprimir_se_gzip(s3_memoria.corpo(PUB, "indice.json")))
     assert {"1950-1t-geral", "1989-1t-geral", "1989-2t-geral"} <= {e["id"] for e in indice["eleicoes"]}
     # Só o que a 2ª máquina gerou subiu: nada de 1950 de novo, e o mapa e o cadastro já estavam iguais
     subiram = [c for b, c in s3_memoria.puts[antes:] if b == PUB]
@@ -325,7 +360,8 @@ def test_cli_publicar_e_falta_de_configuracao(cfg, s3_memoria, monkeypatch, caps
     (cfg.saida / "indice.json").write_text('{"versao":1,"eleicoes":[]}')
     assert cli.main(["--config", str(cfg.toml), "publicar"]) == 0
     texto = capsys.readouterr().out
-    assert json.loads(texto[texto.index("{"):]) == {"enviados": 1, "iguais": 0, "bytes": 26}
+    tamanho = len(gzip.compress(b'{"versao":1,"eleicoes":[]}', compresslevel=6, mtime=0))
+    assert json.loads(texto[texto.index("{"):]) == {"enviados": 1, "iguais": 0, "bytes": tamanho}
     assert s3_memoria.chaves(PUB) == ["indice.json"]
 
 

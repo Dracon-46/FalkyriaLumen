@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import os
 
 import pytest
 
@@ -70,7 +71,7 @@ def test_visao_de():
 
 
 def test_limites_estourados(tmp_path, monkeypatch):
-    _arquivo(tmp_path, "geo/br-uf.json", b"x" * 2000)
+    _arquivo(tmp_path, "geo/br-uf.json", os.urandom(2000))   # aleatório: o gzip não reduz
     monkeypatch.setitem(medicao.LIMITES, "supabase_gratuito",
                         {"armazenamento": 1000, "arquivo": 1500, "saida": 10**9, "saida_cache": 10**9})
     m = medicao.medir(tmp_path)
