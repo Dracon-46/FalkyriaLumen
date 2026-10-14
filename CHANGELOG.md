@@ -77,6 +77,13 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   visitante consome cerca de 1 MB por hora na visão Brasil e 9 MB na de um
   estado grande. A medição passou a estimar também a visão do estado mais
   pesado, que chega a dez vezes a nacional.
+- O Supabase responde 400 (com `not_found` ou `NoSuchKey` no corpo), e não 404,
+  a arquivo inexistente em parte das rotas: o cliente S3 e o portal tratam essa
+  resposta como "não existe". Sem isso, a primeira carga, com o bucket vazio,
+  não começaria, e o portal mostraria erro em vez de "ainda não publicado".
+- Portal na Vercel (plano Hobby, gratuito) como alternativa ao Cloudflare Pages,
+  sem token no GitHub: `packages/portal/vercel.json` gera de novo só quando o
+  portal muda.
 - Documentação: adendo do ADR-026 (com a medição e a recomendação para 25/10),
   DOC-12 1.3 (seção 9.7), DOC-11, README.
 

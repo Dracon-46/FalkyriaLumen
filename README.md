@@ -85,7 +85,12 @@ do painel, as variáveis `R2_REGIAO` (a região do projeto, ex.: `sa-east-1`) e
 `ELEICOES_SEM_HISTORICO=true`, e `LUMEN_URL_FEEDS` com
 `https://<ref>.supabase.co/storage/v1/object/public/lumen-eleicoes`. Antes de escolher,
 Actions → `eleicoes-medir` mede o tamanho dos feeds de 2026 e o pior caso de saída por visitante
-(DOC-12, seção 9.7).
+(DOC-12, seção 9.7). É a configuração escolhida para o 2º turno de 2026.
+
+**Portal na Vercel, sem token:** o projeto da Vercel (plano Hobby, gratuito) importa este
+repositório com *Root Directory* `packages/portal` e a variável `NEXT_PUBLIC_DADOS_ELEICOES` igual a
+`LUMEN_URL_FEEDS`; `packages/portal/vercel.json` só gera de novo quando o portal muda. O fluxo
+`portal-pages.yml` continua verificando o portal e só publica no Cloudflare Pages se houver token.
 
 Nenhuma chave vai para o repositório nem para o `lumen.toml`. Com a carga já pronta num
 computador, `lumen eleicoes publicar` envia ao R2 o que falta (variáveis de ambiente em
@@ -318,7 +323,7 @@ num comando (`lumen eleicoes preparar`, ou `preparar.cmd` no Windows).
 
 | Componente | Testes |
 |---|---|
-| Ingestão (bronze, S3, cliente HTTP, adaptadores) | 102 |
+| Ingestão (bronze, S3, cliente HTTP, adaptadores) | 113 |
 | Esquema canônico e máquina de estados do indício | 194 |
 | Parâmetros legais | 39 |
 | Normalização | 116 |
@@ -326,7 +331,7 @@ num comando (`lumen eleicoes preparar`, ou `preparar.cmd` no Windows).
 | Pipeline local | 8 |
 | Aba Eleições (Python, inclusive a publicação na nuvem) | 192 |
 | Vocabulário controlado e referência técnica | 66 |
-| Portal (TypeScript) | 79 |
+| Portal (TypeScript) | 84 |
 
 Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (verificado por teste).
 
