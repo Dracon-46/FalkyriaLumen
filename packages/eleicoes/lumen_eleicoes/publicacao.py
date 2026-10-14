@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -38,6 +39,9 @@ MANIFESTO = "publicacao.json"
 PREFIXO_ESTADO = "estado/"
 INDICE = "indice.json"
 LOTE_MANIFESTO = 1000
+# Envios simultâneos. Um a um, o Supabase em sa-east-1 recebia pouco mais de um arquivo por segundo de
+# uma máquina do GitHub (14/10/2026): uma passada do coletor, com mil feeds, levava mais de dez minutos.
+PARALELOS = 16
 
 TIPOS = {
     ".json": "application/json; charset=utf-8",
@@ -115,13 +119,15 @@ class Nuvem:
     """Ponte entre os diretórios locais da carga (feeds e estado) e os dois buckets."""
 
     def __init__(self, feeds: ClienteS3, estado: ClienteS3, saida: Path, dir_estado: Path, *,
-                 aviso: Callable[[str], None] | None = None):
-        """Clientes dos buckets público (``feeds``) e privado (``estado``) e os diretórios locais."""
+                 aviso: Callable[[str], None] | None = None, paralelos: int = PARALELOS):
+        """Clientes dos buckets público (``feeds``) e privado (``estado``), os diretórios locais e quantos
+        arquivos sobem ao mesmo tempo."""
         self.feeds = feeds
         self.estado = estado
         self.saida = Path(saida)
         self.dir_estado = Path(dir_estado)
         self.aviso = aviso or (lambda msg: print(msg, flush=True))
+        self.paralelos = max(1, paralelos)
         self._manifesto: dict[str, str] | None = None
         self._hashes: dict[str, tuple[int, int, str]] = {}
 
@@ -182,30 +188,48 @@ class Nuvem:
         return vieram
 
     def publicar(self) -> ResumoPublicacao:
-        """Envia ao bucket público os arquivos novos ou alterados; o índice por último.
+        """Envia ao bucket público os arquivos novos ou alterados, ``paralelos`` de cada vez; o índice por último.
 
-        O manifesto é regravado a cada ``LOTE_MANIFESTO`` envios e no fim: uma interrupção perde no máximo
-        um lote, que a próxima publicação reenvia.
+        O índice só sobe depois de todos os outros terem subido, para o portal nunca apontar para um feed que
+        ainda não está lá. O manifesto registra só o que subiu e é regravado a cada ``LOTE_MANIFESTO``
+        envios e no fim, também quando um envio falha: uma interrupção perde no máximo um lote, que a
+        próxima publicação reenvia. A primeira falha de um lote é levantada depois que o lote termina.
         """
         resumo = ResumoPublicacao()
         publicado = self.manifesto()
         locais = arquivos_publicaveis(self.saida, self._hashes)
-        mudaram = [rel for rel, h in locais.items() if publicado.get(rel) != h]
+        mudaram = sorted(rel for rel, h in locais.items() if publicado.get(rel) != h)
         resumo.iguais = len(locais) - len(mudaram)
-        mudaram.sort(key=lambda rel: (rel == INDICE, rel))
-        for i, rel in enumerate(mudaram, start=1):
-            corpo = (self.saida / rel).read_bytes()
-            self.feeds.gravar(rel, corpo, sem_sobrescrever=False, tipo=tipo_de(rel), cache=cache_de(rel))
-            publicado[rel] = locais[rel]
-            resumo.enviados += 1
-            resumo.bytes += len(corpo)
-            if i % LOTE_MANIFESTO == 0:
-                self._gravar_manifesto()
-        if mudaram:
+        antes = [rel for rel in mudaram if rel != INDICE]
+        lotes = [antes[i:i + LOTE_MANIFESTO] for i in range(0, len(antes), LOTE_MANIFESTO)]
+        if INDICE in mudaram:
+            lotes.append([INDICE])
+        for lote in lotes:
+            falha: Exception | None = None
+            with ThreadPoolExecutor(max_workers=min(self.paralelos, len(lote))) as ex:
+                futuros = {ex.submit(self._enviar, rel): rel for rel in lote}
+                for futuro in as_completed(futuros):
+                    rel = futuros[futuro]
+                    try:
+                        tamanho = futuro.result()
+                    except Exception as erro:  # noqa: BLE001 - o lote termina; a falha sobe depois
+                        falha = falha or erro
+                        continue
+                    publicado[rel] = locais[rel]
+                    resumo.enviados += 1
+                    resumo.bytes += tamanho
             self._gravar_manifesto()
+            if falha is not None:
+                raise falha
         self.aviso(f"nuvem: {resumo.enviados} arquivo(s) publicado(s) ({resumo.bytes / 1e6:,.1f} MB), "
                    f"{resumo.iguais} já iguais")
         return resumo
+
+    def _enviar(self, rel: str) -> int:
+        """Envia um arquivo da saída ao bucket público com o tipo e o cache dele; devolve o tamanho."""
+        corpo = (self.saida / rel).read_bytes()
+        self.feeds.gravar(rel, corpo, sem_sobrescrever=False, tipo=tipo_de(rel), cache=cache_de(rel))
+        return len(corpo)
 
     def salvar_estado(self) -> int:
         """Envia ao bucket privado os arquivos do diretório de estado; devolve quantos."""
