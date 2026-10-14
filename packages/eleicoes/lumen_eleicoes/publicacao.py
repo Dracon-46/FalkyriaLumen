@@ -24,6 +24,7 @@ Só biblioteca padrão: o cliente é o mesmo ``ClienteS3`` da camada bronze
 
 from __future__ import annotations
 
+import gzip
 import hashlib
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -42,6 +43,12 @@ LOTE_MANIFESTO = 1000
 # Envios simultâneos. Um a um, o Supabase em sa-east-1 recebia pouco mais de um arquivo por segundo de
 # uma máquina do GitHub (14/10/2026): uma passada do coletor, com mil feeds, levava mais de dez minutos.
 PARALELOS = 16
+# JSON sobe comprimido com gzip e ``Content-Encoding: gzip``: ocupa um terço no bucket. O Supabase (Cloudflare
+# na frente) entrega comprimido a quem aceita gzip e descomprimido a quem não aceita (diagnóstico de
+# 14/10/2026, nuvem-diagnostico.yml). No manifesto, o SHA-256 do arquivo comprimido ganha o sufixo
+# ``MARCA_GZIP``: a primeira publicação depois da mudança reenvia, comprimido, o que tinha subido sem.
+COMPRIMIR = (".json",)
+MARCA_GZIP = ":gz"
 
 TIPOS = {
     ".json": "application/json; charset=utf-8",
@@ -75,6 +82,21 @@ def sha256_de(caminho: Path) -> str:
         for bloco in iter(lambda: fh.read(1 << 20), b""):
             h.update(bloco)
     return h.hexdigest()
+
+
+def comprimir(relativo: str) -> bool:
+    """Se o arquivo sobe comprimido com gzip (os JSON; imagens já são comprimidas)."""
+    return Path(relativo).suffix.lower() in COMPRIMIR
+
+
+def assinatura(relativo: str, sha: str) -> str:
+    """Como o arquivo fica no manifesto: o SHA-256 do conteúdo, com ``MARCA_GZIP`` quando sobe comprimido."""
+    return sha + MARCA_GZIP if comprimir(relativo) else sha
+
+
+def descomprimir_se_gzip(conteudo: bytes) -> bytes:
+    """Conteúdo lido do bucket, descomprimido se veio com a assinatura do gzip (``1f 8b``)."""
+    return gzip.decompress(conteudo) if conteudo[:2] == b"\x1f\x8b" else conteudo
 
 
 def arquivos_publicaveis(raiz: Path, cache: dict[str, tuple[int, int, str]] | None = None) -> dict[str, str]:
@@ -173,7 +195,7 @@ class Nuvem:
                 conteudo = None
             if conteudo is not None:
                 indice.parent.mkdir(parents=True, exist_ok=True)
-                indice.write_bytes(conteudo)
+                indice.write_bytes(descomprimir_se_gzip(conteudo))
                 vieram += 1
         for chave in self.estado.listar(PREFIXO_ESTADO):
             rel = chave[len(PREFIXO_ESTADO):]
@@ -197,7 +219,7 @@ class Nuvem:
         """
         resumo = ResumoPublicacao()
         publicado = self.manifesto()
-        locais = arquivos_publicaveis(self.saida, self._hashes)
+        locais = {rel: assinatura(rel, h) for rel, h in arquivos_publicaveis(self.saida, self._hashes).items()}
         mudaram = sorted(rel for rel, h in locais.items() if publicado.get(rel) != h)
         resumo.iguais = len(locais) - len(mudaram)
         antes = [rel for rel in mudaram if rel != INDICE]
@@ -226,9 +248,14 @@ class Nuvem:
         return resumo
 
     def _enviar(self, rel: str) -> int:
-        """Envia um arquivo da saída ao bucket público com o tipo e o cache dele; devolve o tamanho."""
+        """Envia um arquivo da saída ao bucket público com o tipo e o cache dele (JSON comprimido com gzip);
+        devolve quantos bytes subiram."""
         corpo = (self.saida / rel).read_bytes()
-        self.feeds.gravar(rel, corpo, sem_sobrescrever=False, tipo=tipo_de(rel), cache=cache_de(rel))
+        codificacao = None
+        if comprimir(rel):
+            corpo, codificacao = gzip.compress(corpo, compresslevel=6, mtime=0), "gzip"
+        self.feeds.gravar(rel, corpo, sem_sobrescrever=False, tipo=tipo_de(rel), cache=cache_de(rel),
+                          codificacao=codificacao)
         return len(corpo)
 
     def salvar_estado(self) -> int:

@@ -99,11 +99,14 @@ class Medicao:
         return LEITURAS_FEED_POR_HORA * feed + LEITURAS_INDICE_POR_HORA * self.indice_gzip
 
     def cabe(self, plano: str) -> dict[str, bool | None]:
-        """Se o total e o maior arquivo cabem nos limites do plano (``None`` quando o plano não tem limite)."""
+        """Se o total e o maior arquivo cabem nos limites do plano (``None`` quando o plano não tem limite).
+
+        O total é o tamanho com gzip: a publicação guarda os JSON comprimidos (``publicacao.COMPRIMIR``).
+        """
         lim = LIMITES[plano]
         maior = max((m["bytes"] for m in self.maiores), default=0)
         return {
-            "armazenamento": None if lim["armazenamento"] is None else self.total.bytes <= lim["armazenamento"],
+            "armazenamento": None if lim["armazenamento"] is None else self.total.bytes_gzip <= lim["armazenamento"],
             "arquivo": None if lim["arquivo"] is None else maior <= lim["arquivo"],
         }
 
@@ -189,7 +192,8 @@ def resumo_markdown(m: Medicao) -> str:
     linhas = [
         "## Tamanho dos feeds",
         "",
-        f"{m.total.arquivos} arquivo(s), {_legivel(m.total.bytes)} ({_legivel(m.total.bytes_gzip)} com gzip).",
+        f"{m.total.arquivos} arquivo(s), {_legivel(m.total.bytes)} ({_legivel(m.total.bytes_gzip)} com gzip, "
+        "o que ocupa no bucket).",
         "",
         "| Grupo | Arquivos | Tamanho | Com gzip |",
         "|---|---:|---:|---:|",
