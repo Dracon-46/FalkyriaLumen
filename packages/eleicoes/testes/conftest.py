@@ -99,7 +99,10 @@ class _S3Memoria:
                 bucket, chave, _ = self._partes()
                 self._resp(200 if (bucket, chave) in objetos else 404)
 
-        self.http = ThreadingHTTPServer(("127.0.0.1", 0), T)
+        class Servidor(ThreadingHTTPServer):
+            request_queue_size = 64   # a publicação envia vários arquivos ao mesmo tempo
+
+        self.http = Servidor(("127.0.0.1", 0), T)
         self.endpoint = f"http://127.0.0.1:{self.http.server_address[1]}"
         threading.Thread(target=self.http.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True).start()
 

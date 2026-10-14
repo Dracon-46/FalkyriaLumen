@@ -140,6 +140,46 @@ def test_manifesto_regravado_em_lotes(tmp_path, s3_memoria, monkeypatch):
     assert sum(1 for b, c in s3_memoria.puts if c == "publicacao.json") == 3   # 2, 4 e o fim
 
 
+def test_publica_em_paralelo_com_o_indice_por_ultimo(tmp_path, s3_memoria):
+    saida = tmp_path / "feeds"
+    (saida / "e").mkdir(parents=True)
+    for i in range(60):
+        (saida / "e" / f"f{i:02}.json").write_text(str(i))
+    (saida / "indice.json").write_text('{"versao":1,"eleicoes":[]}')
+    nuvem = Nuvem(_cliente_s3(s3_memoria, PUB), _cliente_s3(s3_memoria, PRIV), saida, tmp_path / "estado",
+                  aviso=lambda m: None, paralelos=8)
+    r = nuvem.publicar()
+    assert r.enviados == 61
+    feeds = [c for b, c in s3_memoria.puts if b == PUB]
+    assert len(feeds) == 61 and feeds[-1] == "indice.json"
+
+
+def test_falha_num_envio_guarda_o_que_subiu_e_segura_o_indice(tmp_path, s3_memoria):
+    saida = tmp_path / "feeds"
+    saida.mkdir()
+    for nome in ("a.json", "b.json", "c.json", "indice.json"):
+        (saida / nome).write_text("{}")
+    pub = _cliente_s3(s3_memoria, PUB)
+    original = pub.gravar
+
+    def gravar(chave, corpo, **kw):
+        if chave == "b.json":
+            raise RuntimeError("falha de rede")
+        return original(chave, corpo, **kw)
+
+    pub.gravar = gravar
+    nuvem = Nuvem(pub, _cliente_s3(s3_memoria, PRIV), saida, tmp_path / "estado", aviso=lambda m: None)
+    with pytest.raises(RuntimeError, match="falha de rede"):
+        nuvem.publicar()
+    assert s3_memoria.chaves(PUB) == ["a.json", "c.json"]          # o índice não subiu
+    manifesto = json.loads(s3_memoria.corpo(PRIV, "publicacao.json"))["arquivos"]
+    assert set(manifesto) == {"a.json", "c.json"}
+    pub.gravar = original                                           # a próxima publicação completa
+    r = Nuvem(pub, _cliente_s3(s3_memoria, PRIV), saida, tmp_path / "estado", aviso=lambda m: None).publicar()
+    assert (r.enviados, r.iguais) == (2, 2)
+    assert s3_memoria.chaves(PUB) == ["a.json", "b.json", "c.json", "indice.json"]
+
+
 def test_restaurar_traz_indice_e_estado(tmp_path, s3_memoria):
     pub, priv = _cliente_s3(s3_memoria, PUB), _cliente_s3(s3_memoria, PRIV)
     pub.gravar("indice.json", b'{"versao":1,"eleicoes":[{"id":"1950-1t-geral"}]}', sem_sobrescrever=False)
