@@ -563,6 +563,8 @@ body.push(table(["Chave", "Padrão", "Para quê"], [3400, 1800, 4400], [
   ["bucket / LUMEN_PUBLICACAO_BUCKET", "obrigatório", "Bucket público dos feeds, lido pelo portal"],
   ["bucket_estado / LUMEN_PUBLICACAO_BUCKET_ESTADO", "o mesmo bucket", "Bucket privado do estado da carga e do manifesto da publicação"],
   ["regiao / LUMEN_PUBLICACAO_REGIAO", "auto", "Região da assinatura: o R2 usa auto; o Supabase, a região do projeto (ex.: sa-east-1), e a configuração recusa endpoint do Supabase sem ela"],
+  ["paralelos / LUMEN_PUBLICACAO_PARALELOS", "16", "Envios simultâneos ao bucket público (no GitHub Actions, 32)"],
+  ["limite_mb / LUMEN_PUBLICACAO_LIMITE_MB", "900 no Supabase; sem limite no R2", "Teto do bucket público, em MB: a publicação para entre dois lotes quando o total passa dele (0 tira o teto)"],
   ["LUMEN_S3_CHAVE_ACESSO e LUMEN_S3_CHAVE_SECRETA", "obrigatório", "Token da API S3 do R2, com leitura e escrita só nos dois buckets; no Supabase, as chaves S3 do projeto"],
 ], { monoCols: [0], size: 17 }));
 
@@ -622,7 +624,7 @@ body.push(table(["Parte", "Onde roda", "Como"], [2200, 3000, 4400], [
   ["Carga diária e retomada", "GitHub Actions: eleicoes-carga.yml", "Todo dia às 04:41 (Brasília) e quando disparada à mão: preparar --nuvem --sem-portal --sem-bronze --apagar-zips --limite-minutos 280"],
   ["Noite da eleição", "GitHub Actions: eleicoes-ao-vivo.yml", "À mão, com o id da eleição; publica a cada passada que gravou feeds"],
   ["Feeds", "Cloudflare R2, bucket público", "Cache-Control: no-cache nos feeds; um dia nas malhas, no cadastro e nas fotos"],
-  ["Estado da carga", "Cloudflare R2, bucket privado", "estado/preparar.json, estado do coletor ao vivo e o manifesto publicacao.json"],
+  ["Estado da carga", "Cloudflare R2 ou Supabase, bucket privado", "estado/preparar.json, estado do coletor ao vivo e o manifesto da publicação, um arquivo por grupo (publicacao/<grupo>.json) e o total de cada grupo (publicacao/_totais.json)"],
   ["Portal", "Vercel (Hobby) ou Cloudflare Pages: portal-pages.yml", "Vercel: importa o repositório com Root Directory packages/portal e gera a cada mudança do portal (vercel.json), sem token no GitHub. Pages: a cada mudança em packages/portal na main, ou à mão; cria o projeto na primeira vez"],
 ], { size: 17 }));
 
@@ -635,13 +637,22 @@ body.push(n("`restaurar`: traz do bucket privado tudo o que está em `estado/` e
   "sobrescreveria o índice publicado."));
 body.push(n("A carga roda como numa máquina local e pula o que o estado registra como pronto."));
 body.push(n("Depois de cada ano e de cada passada do sistema de resultados que gravou feeds, `sincronizar` envia só " +
-  "os arquivos cujo SHA-256 difere do manifesto `publicacao.json`, 16 de cada vez, os JSON comprimidos com gzip " +
-  "(`Content-Encoding: gzip`, um terço do espaço), o índice por último, depois de " +
-  "todos (o portal nunca aponta para " +
-  "um feed que ainda não subiu), e grava o estado. O manifesto é regravado a cada 1.000 envios: uma interrupção " +
-  "no meio não obriga a reenviar o que já subiu."));
+  "os arquivos cuja assinatura (os 24 primeiros dígitos do SHA-256) difere do manifesto, 16 de cada vez (32 no " +
+  "GitHub Actions), os JSON comprimidos com gzip (`Content-Encoding: gzip`, um quinto do espaço), o índice por " +
+  "último, depois de todos (o portal nunca aponta para um feed que ainda não subiu), e grava o estado. O " +
+  "manifesto é regravado a cada 1.000 envios: uma interrupção no meio não obriga a reenviar o que já subiu."));
+body.push(n("O manifesto é dividido por grupo: uma parte por eleição (`publicacao/2022-1t-geral.json`), uma para " +
+  "`geo` e uma para os arquivos da raiz, comprimidas. Cada parte só é lida quando a carga tem arquivo daquele " +
+  "grupo para enviar; com o histórico inteiro (perto de 450 mil arquivos), um manifesto único passaria do limite " +
+  "de 50 MB por arquivo do Supabase e seria regravado inteiro a cada lote. `publicacao/_totais.json` guarda os " +
+  "bytes de cada grupo no bucket público."));
+body.push(n("Falha passageira de um envio (408, 429, 5xx, rede ou tempo esgotado) é tentada de novo depois de 2 e " +
+  "de 8 segundos; outra falha, ou a terceira seguida, vira erro do lote."));
+body.push(n("Antes de cada lote, se o total no bucket público passou de `limite_mb` (900 MB no Supabase), a " +
+  "publicação para com erro, sem enviar o índice: o bucket não passa do plano gratuito por um ano a mais."));
 body.push(n("Vencido `--limite-minutos`, nada novo começa; o ano em curso termina, o estado sobe e o resumo marca " +
-  "`prazo_atingido`. A execução seguinte continua dali."));
+  "`prazo_atingido`. A publicação tem 50 minutos de folga depois do prazo; passou dela, para entre dois lotes, " +
+  "não grava o estado e deixa o resto para a execução seguinte, que gera o ano de novo e envia só o que faltou."));
 body.push(t("Falha ao publicar não interrompe a carga: vira erro no resumo, e a próxima sincronização reenvia o que " +
   "faltou, porque o manifesto só registra o que subiu. `--apagar-zips` apaga os ZIPs de cada ano depois de " +
   "processado, para caber no disco da máquina; a prova de cada número continua sendo o SHA-256 do ZIP, registrado " +
@@ -716,16 +727,16 @@ body.push(table(["Limite", "Uso esperado", "Se passar"], [3300, 3300, 3000], [
   ["GitHub (repositório público): agendamento desligado após 60 dias sem atividade", "—", "Reativar o fluxo em Actions"],
 ], { size: 17 }));
 
-body.push(h2("9.7 Alternativa sem cartão: Supabase Storage, só 2026 (adendo do ADR-026)"));
-body.push(t("O R2 pede um meio de pagamento na assinatura, mesmo no plano gratuito. Sem ele, os feeds de 2026 " +
-  "(1º turno e o 2º turno de 25 de outubro) cabem no armazenamento gratuito do Supabase, que fala o mesmo " +
-  "protocolo S3: o código é o mesmo, muda só a configuração. As eleições de 1933 a 2024 ficam de fora, porque " +
-  "somam 2 a 3 GB e o Supabase gratuito guarda 1 GB."));
+body.push(h2("9.7 Alternativa sem cartão: Supabase Storage (adendo do ADR-026)"));
+body.push(t("O R2 pede um meio de pagamento na assinatura, mesmo no plano gratuito. Sem ele, os feeds cabem no " +
+  "armazenamento gratuito do Supabase, que fala o mesmo protocolo S3: o código é o mesmo, muda só a " +
+  "configuração. Com os JSON comprimidos com gzip, as eleições de 1933 a 2026 somam perto de 850 MB e cabem no " +
+  "1 GB gratuito (medição de 14/10/2026, abaixo)."));
 body.push(table(["", "Cloudflare R2", "Supabase Storage gratuito"], [2400, 3600, 3600], [
   ["Armazenamento", "10 GB-mês", "1 GB, 50 MB por arquivo"],
   ["Saída (quem lê os feeds)", "Grátis, sem limite", "5 GB sem cache e 5 GB com cache por mês, somados a todo o uso da organização; passou, o projeto pode ser restringido até o mês seguinte"],
   ["Meio de pagamento", "Pedido na assinatura", "Não"],
-  ["Eleições", "Todas, de 1933 a 2026", "Só 2026"],
+  ["Eleições", "Todas, de 1933 a 2026", "Todas, de 1933 a 2026, com o JSON comprimido (perto de 850 MB); pouca folga para o que vier depois"],
   ["CORS", "Política no bucket (seção 9.5)", "Nada a configurar: o Supabase responde a qualquer origem nos buckets públicos (conferido em 14/10/2026)"],
   ["Arquivo inexistente", "404", "400 com not_found no corpo; o cliente S3 e o portal tratam como 404"],
   ["Pausa", "Não há", "Projeto gratuito pausa após uma semana sem uso; a carga diária o mantém ativo"],
@@ -748,8 +759,28 @@ body.push(table(["Medida", "Valor"], [4800, 4800], [
 ], { boldFirstCol: true, size: 17 }));
 body.push(spacer(80));
 body.push(t("Recomendação para o 2º turno de 2026: o Supabase, gratuito sem meio de pagamento, que ao fim da cota para " +
-  "de servir em vez de cobrar. O R2 fica para quando o portal for divulgado ou precisar das eleições antigas. " +
+  "de servir em vez de cobrar. O R2 fica para quando o portal for divulgado. " +
   "`lumen eleicoes medir` passou a estimar também a visão do estado mais pesado."));
+body.push(t("A medição por anos (14 de outubro de 2026, oito execuções de 1 a 4 minutos, com `so_2026` desmarcado) " +
+  "deu o tamanho do histórico, sem contar as malhas e o cadastro, que são os mesmos de 2026:"));
+body.push(table(["Anos", "Arquivos", "Com gzip", "Execução"], [2600, 2000, 2000, 3000], [
+  ["2026 (1º turno, 13/10)", "17.653", "35,4 MB", "1h06 (sistema de resultados)"],
+  ["2024", "11.233", "28,6 MB", "41 s"],
+  ["2022", "36.677", "83,9 MB", "4 min"],
+  ["2018 e 2020", "48.144", "115,4 MB", "3 min"],
+  ["2014 e 2016", "46.927", "110,5 MB", "3 min"],
+  ["2010 e 2012", "46.174", "102,0 MB", "1 min"],
+  ["2004, 2006 e 2008", "58.649", "129,3 MB", "4 min"],
+  ["1994 a 2002", "112.612", "236,9 MB", "3 min"],
+  ["1933 a 1990", "1.670", "5,3 MB", "1 min"],
+  ["Total", "perto de 380 mil", "perto de 850 MB", ""],
+], { boldFirstCol: true, size: 17 }));
+body.push(spacer(80));
+body.push(t("Sem compressão seriam perto de 4 GB. Com 85% do plano ocupado, a publicação tem um teto " +
+  "(`LUMEN_PUBLICACAO_LIMITE_MB`, 900 MB por padrão no Supabase, seção 9.5) e para antes de passar dele. A " +
+  "conferência dos feeds (`lumen eleicoes verificar`) apontou 630 municípios em que a soma dos votos dos " +
+  "candidatos passa dos votos válidos do arquivo de detalhe (493 em 1998, quase todos de senador; 133 em 2000; 4 " +
+  "em 2024): é divergência entre dois arquivos do próprio TSE, publicada como está, com a fonte de cada número."));
 body.push(h3("Configuração, uma vez"));
 novaLista();
 body.push(n("Num projeto do Supabase da conta do mantenedor (nunca na organização de uma empresa que ele atende), " +
@@ -766,15 +797,16 @@ body.push(table(["Nome no GitHub", "Tipo", "Valor no Supabase"], [3000, 1400, 52
   ["R2_REGIAO", "variável", "A região do projeto (ex.: sa-east-1); obrigatória no Supabase"],
   ["R2_BUCKET_FEEDS", "variável", "lumen-eleicoes"],
   ["R2_BUCKET_ESTADO", "variável", "lumen-privado"],
-  ["ELEICOES_SEM_HISTORICO", "variável", "true: a carga diária não baixa os dados abertos de 1933 a 2024"],
+  ["ELEICOES_SEM_HISTORICO", "variável", "false (ou ausente): a carga inclui os dados abertos de 1933 a 2024; true deixa só 2026"],
+  ["PUBLICACAO_LIMITE_MB", "variável", "Opcional: teto do bucket público em MB (900 se ausente)"],
   ["LUMEN_URL_FEEDS", "variável", "https://<ref>.supabase.co/storage/v1/object/public/lumen-eleicoes"],
 ], { monoCols: [0], size: 17 }));
 body.push(spacer(80));
 body.push(n("Portal na Vercel (plano Hobby): Add New → Project → importar o repositório, Root Directory " +
   "`packages/portal`, variável `NEXT_PUBLIC_DADOS_ELEICOES` com o mesmo valor de `LUMEN_URL_FEEDS`. O " +
   "`vercel.json` do portal faz a Vercel gerar o site só quando `packages/portal` muda. Sem token no GitHub."));
-body.push(n("Actions → `eleicoes-carga` → Run workflow (publica o 1º turno). Na noite do 2º turno, " +
-  "`eleicoes-ao-vivo` com `2026-2t-geral`, como na seção 9.4."));
+body.push(n("Actions → `eleicoes-carga` → Run workflow (publica 2026 e, em duas ou três execuções, o histórico). Na " +
+  "noite do 2º turno, `eleicoes-ao-vivo` com `2026-2t-geral`, como na seção 9.4."));
 body.push(n("Durante a apuração, acompanhar a saída em Organization → Usage do Supabase. Se a cota se aproximar " +
   "do fim, a saída é passar os feeds para o R2: os mesmos segredos com os valores do R2 e um novo " +
   "`portal-pages` com o endereço do R2."));
@@ -789,9 +821,9 @@ body.push(callout("O que o Supabase não faz", [
 body.push(h1("10. Verificação"));
 body.push(h2("10.1 Testes automatizados"));
 body.push(table(["Conjunto", "Quantidade", "O que cobre"], [3000, 1400, 5200], [
-  ["packages/eleicoes/testes", "196", "Leitores do TSE com arquivos reais, dados abertos com CSV sintético nos cabeçalhos reais dos três layouts, eleições de 1933 a 1990 com linhas reais recortadas de seis anos, download retomável, coletor contra servidor local, feeds (amostra byte a byte), cadastro, malhas e referências embutidas, servidor, preparar de ponta a ponta (com retomada e erro num ano), publicação na nuvem contra um S3 em memória (só o que mudou, índice por último, retomada em outra máquina, prazo, falhas de restauração e de publicação), configuração (inclusive a região exigida pelo Supabase), medição dos feeds contra os limites gratuitos e CLI"],
+  ["packages/eleicoes/testes", "203", "Leitores do TSE com arquivos reais, dados abertos com CSV sintético nos cabeçalhos reais dos três layouts, eleições de 1933 a 1990 com linhas reais recortadas de seis anos, download retomável, coletor contra servidor local, feeds (amostra byte a byte), cadastro, malhas e referências embutidas, servidor, preparar de ponta a ponta (com retomada e erro num ano), publicação na nuvem contra um S3 em memória (só o que mudou, índice por último, manifesto por grupo lido só quando preciso, teto do bucket, prazo entre lotes, novas tentativas, retomada em outra máquina, falhas de restauração e de publicação), configuração (inclusive a região exigida pelo Supabase), medição dos feeds contra os limites gratuitos e CLI"],
   ["packages/portal (vitest)", "84", "Leitura dos feeds (404 e o 400 de inexistente do Supabase), decodificador TopoJSON, validação dos feeds lendo a amostra do Python (inclusive as eleições antigas), formatação, cores, busca, estado na URL, grupos do seletor, área do mapa ↔ parte e as contas do zoom"],
-  ["Suíte Python inteira", "855", "Eleições e o resto do Lumen; cobertura mínima de 80% exigida no CI (97% na data deste documento)"],
+  ["Suíte Python inteira", "862", "Eleições e o resto do Lumen; cobertura mínima de 80% exigida no CI (97% na data deste documento)"],
 ], { size: 17 }));
 body.push(spacer(80));
 body.push(t("Além dos testes: verificação de tipos do portal (`tsc`), build da exportação estática, ruff, o verificador " +
@@ -844,8 +876,8 @@ body.push(callout("Cuidado editorial", [
 body.push(h1("12. Próximos passos e riscos", { novaPagina: true }));
 body.push(h2("12.1 Próximos passos"));
 body.push(table(["Item", "Por quê", "Quando"], [3600, 4300, 1700], [
-  ["Onde publicar o 2º turno de 2026", "R2 com cartão (todas as eleições) ou Supabase Storage sem cartão (só 2026, seção 9.7); eleicoes-medir.yml mede o tamanho e a saída", "Antes de 25/10/2026"],
-  ["Carga completa (1933 a 2024) na nuvem", "Fluxos prontos (seção 9.5); faltam a conta no Cloudflare e os segredos no GitHub", "Antes da publicação"],
+  ["Acompanhar o espaço e a saída do Supabase", "O histórico inteiro ocupa perto de 85% do 1 GB gratuito (seção 9.7); a saída tem cota mensal", "Na carga do histórico e na noite de 25/10/2026"],
+  ["Feeds municipais mais enxutos", "Os nomes dos candidatos se repetem em cada arquivo de município; um cadastro por UF e cargo liberaria boa parte do espaço", "Se o espaço apertar"],
   ["Domínio próprio para o portal e os feeds", "O endereço r2.dev tem limite de requisições (seção 9.6)", "Antes da divulgação pública"],
   ["Malhas históricas para as UFs da época", "Guanabara, o Distrito Federal antigo e os territórios aparecem só como botões; a API de malhas do IBGE não tem as fronteiras antigas", "Quando houver fonte oficial"],
   ["Ensaio geral com a simulação em infraestrutura real (CDN)", "Medir a latência entre a gravação do feed e a tela", "Antes do 2º turno de 2026 e de cada pleito"],
@@ -866,6 +898,7 @@ body.push(table(["Risco", "Efeito", "Mitigação"], [2900, 3200, 3500], [
   ["Primeira carga longa (2,3 GB, horas)", "Quem roda acha que travou", "Andamento impresso por arquivo e por ano; portal no ar desde o início com --servir; retomada sem refazer nada"],
   ["Fontes do TSE recusarem conexões das máquinas do GitHub (fora do Brasil)", "Carga na nuvem não avança", "A primeira execução confirma; alternativa: preparar --nuvem ou publicar a partir de uma máquina no Brasil (seção 9.5)"],
   ["Passar de um limite gratuito (R2 ou Actions)", "Cobrança pequena ou fluxo parado até o mês seguinte", "Uso esperado abaixo dos limites (seção 9.6); só o que muda é reenviado; acompanhar o painel do R2 na noite da eleição"],
+  ["Bucket do Supabase no teto de 900 MB (seção 9.7)", "A publicação para e o índice não sobe: eleições novas não aparecem no portal", "Erro no resumo da carga; feeds municipais mais enxutos ou passar para o R2"],
   ["Cota de saída do Supabase gratuito esgotada na noite da eleição (seção 9.7)", "Feeds restringidos até o mês seguinte", "Medir antes com eleicoes-medir.yml; acompanhar o uso durante a apuração; passar para o R2 trocando segredos e o endereço do portal"],
   ["Chave do R2 vazada", "Escrita indevida nos feeds publicados", "Token restrito aos dois buckets, guardado só em segredos do GitHub; revogar e trocar"],
   ["Leitura indevida do mapa como mensagem partidária", "Dano à neutralidade do projeto", "Cor por posição, nunca por partido; tabela sempre ao lado"],
@@ -892,7 +925,7 @@ L.buildDoc({
   codigo: "DOC-12",
   titulo: "Aba Eleições",
   subtitulo: "Consulta de eleições municipais, estaduais e federais, ao vivo e passadas desde 1933, com dados oficiais do TSE",
-  meta: { versao: "1.3", data: "13 de outubro de 2026", situacao: "Proposta — acompanha o ADR-019 a ADR-026",
+  meta: { versao: "1.4", data: "14 de outubro de 2026", situacao: "Proposta — acompanha o ADR-019 a ADR-026",
     verificado: "outubro de 2026" },
   body,
   outFile: path.join(__dirname, "..", "docs", "DOC-12_Eleicoes.docx"),
