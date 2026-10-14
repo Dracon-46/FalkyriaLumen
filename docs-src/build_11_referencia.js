@@ -222,6 +222,7 @@ body.push(table(["Arquivo", "Papel"], [3600, 6000], [
   ["packages/normalizacao/sql/silver_consolidada.sql", "Consolidação da silver no DuckDB: uma linha por id, a mais recente."],
   ["ferramentas/lint-vocabulario/vocabulario.json", "Lista normativa de termos proibidos, expressões técnicas permitidas, alvos e isenções."],
   ["packages/portal/package.json, package-lock.json", "Dependências do portal com versões fixas; scripts dev, build, tipos, testes, verificar, dados:amostra."],
+  ["packages/portal/vercel.json", "Projeto na Vercel (plano Hobby): instala com npm ci, gera com next build e só gera de novo quando packages/portal muda (ignoreCommand com git diff)."],
   ["packages/portal/next.config.mjs", "Exportação estática (output: export), barra final nas rotas, imagens sem otimizador."],
   ["packages/portal/tsconfig.json, vitest.config.mts", "TypeScript estrito (noUncheckedIndexedAccess) e testes de unidade em Node."],
   ["packages/portal/src/app/globals.css", "Estilo do portal: variáveis de cor clara e escura, paleta das séries, layout responsivo, modo TV."],

@@ -623,7 +623,7 @@ body.push(table(["Parte", "Onde roda", "Como"], [2200, 3000, 4400], [
   ["Noite da eleição", "GitHub Actions: eleicoes-ao-vivo.yml", "À mão, com o id da eleição; publica a cada passada que gravou feeds"],
   ["Feeds", "Cloudflare R2, bucket público", "Cache-Control: no-cache nos feeds; um dia nas malhas, no cadastro e nas fotos"],
   ["Estado da carga", "Cloudflare R2, bucket privado", "estado/preparar.json, estado do coletor ao vivo e o manifesto publicacao.json"],
-  ["Portal", "Cloudflare Pages: portal-pages.yml", "A cada mudança em packages/portal na main, ou à mão; cria o projeto no Pages na primeira vez"],
+  ["Portal", "Vercel (Hobby) ou Cloudflare Pages: portal-pages.yml", "Vercel: importa o repositório com Root Directory packages/portal e gera a cada mudança do portal (vercel.json), sem token no GitHub. Pages: a cada mudança em packages/portal na main, ou à mão; cria o projeto na primeira vez"],
 ], { size: 17 }));
 
 body.push(h3("Como a carga continua de uma execução para outra"));
@@ -724,7 +724,8 @@ body.push(table(["", "Cloudflare R2", "Supabase Storage gratuito"], [2400, 3600,
   ["Saída (quem lê os feeds)", "Grátis, sem limite", "5 GB sem cache e 5 GB com cache por mês, somados a todo o uso da organização; passou, o projeto pode ser restringido até o mês seguinte"],
   ["Meio de pagamento", "Pedido na assinatura", "Não"],
   ["Eleições", "Todas, de 1933 a 2026", "Só 2026"],
-  ["CORS", "Política no bucket (seção 9.5)", "Nada a configurar: o Supabase responde a qualquer origem nos buckets públicos"],
+  ["CORS", "Política no bucket (seção 9.5)", "Nada a configurar: o Supabase responde a qualquer origem nos buckets públicos (conferido em 14/10/2026)"],
+  ["Arquivo inexistente", "404", "400 com not_found no corpo; o cliente S3 e o portal tratam como 404"],
   ["Pausa", "Não há", "Projeto gratuito pausa após uma semana sem uso; a carga diária o mantém ativo"],
   ["Endereço público dos feeds", "https://pub-….r2.dev ou domínio próprio", "https://<ref>.supabase.co/storage/v1/object/public/<bucket>"],
 ], { boldFirstCol: true, size: 17 }));
@@ -767,8 +768,11 @@ body.push(table(["Nome no GitHub", "Tipo", "Valor no Supabase"], [3000, 1400, 52
   ["LUMEN_URL_FEEDS", "variável", "https://<ref>.supabase.co/storage/v1/object/public/lumen-eleicoes"],
 ], { monoCols: [0], size: 17 }));
 body.push(spacer(80));
-body.push(n("Actions → `eleicoes-carga` → Run workflow (publica o 1º turno), depois `portal-pages`. Na noite do " +
-  "2º turno, `eleicoes-ao-vivo` com `2026-2t-geral`, como na seção 9.4."));
+body.push(n("Portal na Vercel (plano Hobby): Add New → Project → importar o repositório, Root Directory " +
+  "`packages/portal`, variável `NEXT_PUBLIC_DADOS_ELEICOES` com o mesmo valor de `LUMEN_URL_FEEDS`. O " +
+  "`vercel.json` do portal faz a Vercel gerar o site só quando `packages/portal` muda. Sem token no GitHub."));
+body.push(n("Actions → `eleicoes-carga` → Run workflow (publica o 1º turno). Na noite do 2º turno, " +
+  "`eleicoes-ao-vivo` com `2026-2t-geral`, como na seção 9.4."));
 body.push(n("Durante a apuração, acompanhar a saída em Organization → Usage do Supabase. Se a cota se aproximar " +
   "do fim, a saída é passar os feeds para o R2: os mesmos segredos com os valores do R2 e um novo " +
   "`portal-pages` com o endereço do R2."));
@@ -784,8 +788,8 @@ body.push(h1("10. Verificação"));
 body.push(h2("10.1 Testes automatizados"));
 body.push(table(["Conjunto", "Quantidade", "O que cobre"], [3000, 1400, 5200], [
   ["packages/eleicoes/testes", "192", "Leitores do TSE com arquivos reais, dados abertos com CSV sintético nos cabeçalhos reais dos três layouts, eleições de 1933 a 1990 com linhas reais recortadas de seis anos, download retomável, coletor contra servidor local, feeds (amostra byte a byte), cadastro, malhas e referências embutidas, servidor, preparar de ponta a ponta (com retomada e erro num ano), publicação na nuvem contra um S3 em memória (só o que mudou, índice por último, retomada em outra máquina, prazo, falhas de restauração e de publicação), configuração (inclusive a região exigida pelo Supabase), medição dos feeds contra os limites gratuitos e CLI"],
-  ["packages/portal (vitest)", "79", "Decodificador TopoJSON, validação dos feeds lendo a amostra do Python (inclusive as eleições antigas), formatação, cores, busca, estado na URL, grupos do seletor, área do mapa ↔ parte e as contas do zoom"],
-  ["Suíte Python inteira", "846", "Eleições e o resto do Lumen; cobertura mínima de 80% exigida no CI (97% na data deste documento)"],
+  ["packages/portal (vitest)", "84", "Leitura dos feeds (404 e o 400 de inexistente do Supabase), decodificador TopoJSON, validação dos feeds lendo a amostra do Python (inclusive as eleições antigas), formatação, cores, busca, estado na URL, grupos do seletor, área do mapa ↔ parte e as contas do zoom"],
+  ["Suíte Python inteira", "850", "Eleições e o resto do Lumen; cobertura mínima de 80% exigida no CI (97% na data deste documento)"],
 ], { size: 17 }));
 body.push(spacer(80));
 body.push(t("Além dos testes: verificação de tipos do portal (`tsc`), build da exportação estática, ruff, o verificador " +
