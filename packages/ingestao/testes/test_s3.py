@@ -245,3 +245,10 @@ def test_outro_400_continua_erro():
     with pytest.raises(ErroS3) as e:
         c.ler("x")
     assert not isinstance(e.value, ChaveInexistente) and e.value.status == 400
+
+
+def test_codificacao_vai_assinada(s3):
+    """``codificacao`` vira ``Content-Encoding`` e entra na assinatura (o servidor falso confere)."""
+    s3.gravar("feeds/x.json", b"\x1f\x8b comprimido", sem_sobrescrever=False, tipo="application/json",
+              codificacao="gzip")
+    assert s3.ler("feeds/x.json") == b"\x1f\x8b comprimido"
