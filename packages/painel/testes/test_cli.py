@@ -122,7 +122,8 @@ def test_publicar_de_ponta_a_ponta(tmp_path, apoio, capsys):
     arquivos = {p.relative_to(site).as_posix() for p in site.rglob("*") if p.is_file()}
     assert {"indice.json", "entes.json", "index.html", ".nojekyll", "contratacoes/panorama.json",
             "contratacoes/ente/4319604.json", "conformidade/panorama.json", "conformidade/uf/RS.json",
-            "conformidade/ente/4319604.json", "contratacoes/orgao/97229181000164.json"} <= arquivos
+            "conformidade/ente/4319604.json", "contratacoes/orgao/97229181000164.json", "orgaos.json"} <= arquivos
+    assert "97229181000164" in {linha[0] for linha in comum.ler_json(site / "orgaos.json")["orgaos"]}
     entes = comum.ler_json(site / "entes.json")
     linhas = {e[0]: e for e in entes["entes"]}
     assert linhas["4319604"][1] == "São Sepé" and linhas["4202008"][1] == "4202008"   # fora do cadastro de amostra

@@ -245,6 +245,18 @@ def test_arquivo_de_cada_orgao(estado_sintetico):
     assert sem["ente"] is None and sem["orgao"]["esfera"] is None
 
 
+def test_orgaos_para_a_busca(estado_sintetico):
+    painel = contratacoes.somar_dias(estado_sintetico.glob("contratacoes-*.json.gz"))
+    busca = contratacoes.orgaos_para_busca(painel, "G")
+    assert busca["tipo"] == "orgaos" and busca["colunas"] == ["cnpj", "nome", "ente", "esfera", "processos",
+                                                               "contratos"]
+    linhas = {linha[0]: linha for linha in busca["orgaos"]}
+    assert [linha[0] for linha in busca["orgaos"]] == sorted(linhas)
+    assert linhas["00000000000100"] == ["00000000000100", "MUNICIPIO X", "3550308", "M", 3, 3]
+    assert linhas["00000000000300"][2:] == ["1", "F", 0, 1]
+    assert linhas["00000000000400"][2:4] == [None, None]       # órgão sem esfera: sem ente
+
+
 def test_nome_de_reserva_sem_cadastro(estado_sintetico):
     painel = contratacoes.somar_dias(estado_sintetico.glob("*.json.gz"))
     vazio = Cadastro({})
