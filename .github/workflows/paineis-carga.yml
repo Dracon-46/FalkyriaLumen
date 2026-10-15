@@ -1,0 +1,118 @@
+# Carga dos meses anteriores do painel de contratações — ADR-028.
+#
+# Divide os dias do PNCP que ainda faltam no estado (de "de" até ontem, ou
+# até "ate") em blocos de dias seguidos, do mais recente para o mais antigo,
+# e coleta os blocos em máquinas paralelas (no máximo quatro ao mesmo tempo,
+# para não pesar no PNCP). Cada dia leva perto de 8 minutos (todas as
+# modalidades e os contratos) e é guardado assim que termina, nos anexos da
+# versão "painel-estado"; um bloco que não acaba no prazo da máquina deixa os
+# dias restantes para uma nova execução deste fluxo, que só pega o que falta.
+# No fim, publica o site (paineis-site.yml).
+#
+# Usa o segredo LUMEN_CONTATO (User-Agent). Repositório público: os minutos
+# não são cobrados.
+
+name: paineis-carga
+
+on:
+  workflow_dispatch:
+    inputs:
+      de:
+        description: "Primeiro dia (AAAA-MM-DD)"
+        default: "2026-01-01"
+      ate:
+        description: "Último dia (AAAA-MM-DD; vazio = ontem)"
+        default: ""
+      partes:
+        description: "Em quantos blocos dividir os dias que faltam"
+        default: "12"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: paineis-carga
+  cancel-in-progress: false
+
+env:
+  TAG: painel-estado
+  NOTAS: >-
+    Estado dos painéis de contratações e de conformidade do Lumen (ADR-028): um arquivo por dia do PNCP,
+    um por UF do extrato de entregas do SICONFI e o cadastro de entes. Gerado pelos fluxos paineis e
+    paineis-carga; não é uma versão do software.
+
+jobs:
+  plano:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      blocos: ${{ steps.blocos.outputs.blocos }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      DE: ${{ inputs.de }}
+      ATE: ${{ inputs.ate }}
+      PARTES: ${{ inputs.partes }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      - name: Dias já guardados
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --prerelease --title "Estado dos painéis" --notes "$NOTAS"
+          mkdir -p estado
+          gh release view "$TAG" --json assets --jq '.assets[].name' | grep '^contratacoes-' | while read -r n; do : > "estado/$n"; done
+      - id: blocos
+        run: |
+          set -- faltando --estado estado --de "$DE" --partes "$PARTES"
+          if [ -n "$ATE" ]; then set -- "$@" --ate "$ATE"; fi
+          blocos=$(python -m lumen_painel "$@")
+          echo "blocos=$blocos" >> "$GITHUB_OUTPUT"
+          echo "### Blocos de dias a coletar" >> "$GITHUB_STEP_SUMMARY"
+          echo "$blocos" | python -m json.tool >> "$GITHUB_STEP_SUMMARY"
+
+  coleta:
+    needs: plano
+    if: needs.plano.outputs.blocos != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        bloco: ${{ fromJSON(needs.plano.outputs.blocos) }}
+    env:
+      LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
+      LUMEN_DADOS: dados
+      GH_TOKEN: ${{ github.token }}
+      DE: ${{ matrix.bloco.de }}
+      ATE: ${{ matrix.bloco.ate }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      - name: Dias já guardados
+        run: |
+          mkdir -p estado
+          gh release view "$TAG" --json assets --jq '.assets[].name' | grep '^contratacoes-' | while read -r n; do : > "estado/$n"; done
+          touch marco
+      - name: Coleta do bloco
+        run: lumen painel contratacoes --estado estado --de "$DE" --ate "$ATE" --limite-minutos 300
+      - name: Guardar os dias novos
+        if: always()
+        run: find estado -name 'contratacoes-*.json.gz' -newer marco -size +0 -print0 | xargs -0 -r gh release upload "$TAG" --clobber
+
+  site:
+    needs: coleta
+    if: always() && needs.coleta.result != 'skipped'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/paineis-site.yml

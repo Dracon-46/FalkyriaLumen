@@ -58,7 +58,7 @@ jobs:
         run: >
           python -m pytest
           --cov=lumen_ingestao --cov=lumen_canonico --cov=lumen_deteccao --cov=lint_vocabulario
-          --cov=lumen_normalizacao --cov=lumen_conformidade --cov=lumen_orquestracao --cov=lumen_eleicoes --cov=lumen_mercado --cov=referencia
+          --cov=lumen_normalizacao --cov=lumen_conformidade --cov=lumen_orquestracao --cov=lumen_eleicoes --cov=lumen_mercado --cov=lumen_painel --cov=referencia
           --cov-report=term-missing
           --cov-fail-under=80
 

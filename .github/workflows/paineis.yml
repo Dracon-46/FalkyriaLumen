@@ -1,0 +1,126 @@
+# Painéis de contratações e de conformidade, todo dia — ADR-028.
+#
+# 1. contratacoes: confere os últimos dias do PNCP (todas as modalidades de
+#    contratação e os contratos, pela data de publicação) e coleta os que
+#    ainda não estão no estado. Cada dia vira um arquivo compacto,
+#    contratacoes-AAAA-MM-DD.json.gz, guardado nos anexos da versão
+#    "painel-estado" do repositório; um dia com falha na coleta não é gravado
+#    e volta na execução seguinte. Atualiza também o cadastro de entes do
+#    SICONFI (uma requisição).
+# 2. conformidade (segundas-feiras, ou à mão): o extrato de entregas do
+#    SICONFI de todos os entes, em cinco grupos de UFs em paralelo, para o
+#    exercício anterior e o corrente; um arquivo por UF no mesmo lugar.
+# 3. site: monta e publica o site no GitHub Pages (paineis-site.yml).
+#
+# A carga dos meses anteriores, em execuções paralelas, é a de
+# paineis-carga.yml.
+#
+# Usa o segredo LUMEN_CONTATO (User-Agent) e o token da própria execução para
+# os anexos da versão. Repositório público: os minutos não são cobrados.
+
+name: paineis
+
+on:
+  schedule:
+    - cron: "17 8 * * *"    # 05:17 em Brasília, todo dia
+    - cron: "47 8 * * 1"    # 05:47 às segundas: também a conformidade
+  workflow_dispatch:
+    inputs:
+      ultimos:
+        description: "Contratações: quantos dias até ontem conferir (os que faltam são coletados)"
+        default: "5"
+      conformidade:
+        description: "Coletar também a conformidade (extrato do SICONFI de todas as UFs)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: paineis
+  cancel-in-progress: false
+
+env:
+  TAG: painel-estado
+  NOTAS: >-
+    Estado dos painéis de contratações e de conformidade do Lumen (ADR-028): um arquivo por dia do PNCP,
+    um por UF do extrato de entregas do SICONFI e o cadastro de entes. Gerado pelos fluxos paineis e
+    paineis-carga; não é uma versão do software.
+
+jobs:
+  contratacoes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    env:
+      LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
+      LUMEN_DADOS: dados
+      GH_TOKEN: ${{ github.token }}
+      ULTIMOS: ${{ inputs.ultimos || '5' }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      # Só os nomes dos dias já guardados (arquivos vazios no lugar): basta para saber o que falta
+      - name: Dias já guardados
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --prerelease --title "Estado dos painéis" --notes "$NOTAS"
+          mkdir -p estado
+          gh release view "$TAG" --json assets --jq '.assets[].name' | grep '^contratacoes-' | while read -r n; do : > "estado/$n"; done
+          touch marco
+      - name: Cadastro de entes (SICONFI)
+        continue-on-error: true
+        run: |
+          lumen painel cadastro --estado estado
+          gh release upload "$TAG" estado/cadastro-entes.json.gz --clobber
+      - name: Dias do PNCP que faltam
+        run: lumen painel contratacoes --estado estado --ultimos "$ULTIMOS" --limite-minutos 240
+      - name: Guardar os dias novos
+        if: always()
+        run: find estado -name 'contratacoes-*.json.gz' -newer marco -size +0 -print0 | xargs -0 -r gh release upload "$TAG" --clobber
+
+  conformidade:
+    if: always() && (inputs.conformidade || github.event.schedule == '47 8 * * 1')
+    needs: contratacoes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        # Cinco grupos de perto de 1.100 entes cada (duas consultas por ente)
+        ufs: ["MG,PB,AC,AP", "SP,PI,RN,AM,RR", "RS,PR,MT,ES", "BA,SC,GO,RJ,RO", "MA,PE,CE,PA,TO,MS,SE,AL,DF"]
+    env:
+      LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
+      LUMEN_DADOS: dados
+      GH_TOKEN: ${{ github.token }}
+      UFS: ${{ matrix.ufs }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      - name: Cadastro de entes
+        run: |
+          mkdir -p estado
+          gh release download "$TAG" -p cadastro-entes.json.gz -D estado --clobber || lumen painel cadastro --estado estado
+      - name: Extrato de entregas das UFs
+        run: lumen painel conformidade --estado estado --ufs "$UFS"
+      - name: Guardar as UFs
+        if: always()
+        run: find estado -name 'conformidade-*.json.gz' -print0 | xargs -0 -r gh release upload "$TAG" --clobber
+
+  site:
+    needs: [contratacoes, conformidade]
+    if: always()
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/paineis-site.yml

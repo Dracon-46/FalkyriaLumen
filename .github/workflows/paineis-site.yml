@@ -1,0 +1,71 @@
+# Publicação dos painéis de contratações e de conformidade — ADR-028.
+#
+# Monta o site inteiro a partir do estado guardado nos anexos da versão
+# "painel-estado" (um arquivo por dia do PNCP, um por UF da conformidade e o
+# cadastro de entes) e o publica no GitHub Pages, de onde o portal lê:
+# https://dracon-46.github.io/FalkyriaLumen/
+#
+# Chamado no fim de paineis.yml e de paineis-carga.yml; pode ser disparado à
+# mão para refazer o site (a avaliação da conformidade usa a data do dia: um
+# prazo que vence muda o resultado sem coleta nova).
+#
+# Configuração, uma vez: Settings → Pages → Build and deployment → Source:
+# GitHub Actions (feito em 14/10/2026). Repositório público: Pages e minutos
+# do GitHub Actions sem custo.
+
+name: paineis-site
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: paineis-site
+  cancel-in-progress: false
+
+jobs:
+  site:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.publicacao.outputs.page_url }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: painel-estado
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      - name: Estado dos painéis
+        run: |
+          mkdir -p estado
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release download "$TAG" -D estado --clobber -p '*.json.gz'
+          fi
+          ls estado | sed -e 's/-[0-9-]*\.json\.gz$//' -e 's/-[A-Z]*\.json\.gz$//' | sort | uniq -c
+      - name: Montar o site
+        run: lumen painel publicar --estado estado --saida site | tee resumo.json
+      - name: Resumo
+        run: |
+          {
+            echo "## Painéis publicados"
+            echo
+            echo '```json'
+            cat resumo.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+      - id: publicacao
+        uses: actions/deploy-pages@v4
