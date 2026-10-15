@@ -3,7 +3,7 @@
 
 PY ?= python3
 COV = --cov=lumen_ingestao --cov=lumen_canonico --cov=lumen_deteccao --cov=lint_vocabulario \
-      --cov=lumen_normalizacao --cov=lumen_conformidade --cov=lumen_orquestracao --cov=lumen_eleicoes --cov=referencia
+      --cov=lumen_normalizacao --cov=lumen_conformidade --cov=lumen_orquestracao --cov=lumen_eleicoes --cov=lumen_mercado --cov=lumen_painel --cov=referencia
 
 .PHONY: ajuda instalar testes cobertura vocabulario estilo verificar docs ambiente banco contrato portal
 
