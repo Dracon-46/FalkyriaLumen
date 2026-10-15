@@ -15,6 +15,7 @@ esta tabela.
 | `municipios.json` | 5.757 municípios: 5.571 no Brasil, com código IBGE, e 186 cidades do exterior (UF `zz`) | Cadastro de municípios da eleição geral de 2026 no sistema de resultados do TSE, com os nomes da API de localidades do IBGE | 06/10/2026 |
 | `geo/br-uf.json` | Brasil, uma geometria por UF | API de malhas v3 do IBGE, qualidade `minima`, TopoJSON | 06/10/2026 |
 | `geo/uf-<sigla>-mu.json` | Cada UF, uma geometria por município (27 arquivos, 5.570 municípios) | API de malhas v3 do IBGE, qualidade `minima`, TopoJSON | 06/10/2026 |
+| `geo/mu/<código IBGE>.json` | Contorno de cada um dos 191 municípios com mais de uma zona eleitoral em algum ano de 2018 a 2026 (1,5 MB), para o mapa das zonas (ADR-029) | API de malhas v3 do IBGE, qualidade `maxima`, TopoJSON | 15/10/2026 |
 
 ## Endereços
 
@@ -25,6 +26,12 @@ esta tabela.
   (5.571 municípios).
 - Malha do Brasil: `https://servicodados.ibge.gov.br/api/v3/malhas/paises/BR?formato=application/json&intrarregiao=UF&qualidade=minima`
 - Malha de cada UF: `https://servicodados.ibge.gov.br/api/v3/malhas/estados/<código IBGE da UF>?formato=application/json&intrarregiao=municipio&qualidade=minima`
+- Contorno de um município: `https://servicodados.ibge.gov.br/api/v3/malhas/municipios/<código IBGE>?formato=application/json&qualidade=maxima`
+  (`geo.baixar_contornos`; a lista é a dos índices `geo/zonas-<ano>/indice.json` de 2018 a 2026).
+  O servidor envia só o certificado final, sem o intermediário (Sectigo Public Server Authentication
+  CA DV R36); o download de 15/10/2026 completou a cadeia com o intermediário publicado no crt.sh
+  (SHA-256 `8C:54:C3:34:B6:6B:A4:E4:26:77:2A:F4:A3:F9:13:6C:19:A1:AE:C7:29:FD:B2:8C:53:5C:07:A5:A4:EF:22:E0`),
+  conferido até a raiz Sectigo Public Server Authentication Root R46.
 
 As malhas são os bytes publicados pelo IBGE, sem alteração, conferidos por
 `geo.validar_topojson`. O cadastro é gravado por

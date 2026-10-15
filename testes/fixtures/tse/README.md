@@ -59,3 +59,15 @@ quebras de linha. O conteúdo é o mesmo campo a campo.
 Usos além dos testes: `lumen eleicoes amostra` gera, a partir desta pasta,
 os feeds de exemplo do portal (`testes/fixtures/eleicoes_feed`), e
 `lumen eleicoes simular` serve estes arquivos como uma apuração em andamento.
+
+### Locais de votação (`locais_votacao/`)
+
+Linhas reais, sem nenhuma alteração (bytes Latin-1 como publicados), de
+`https://cdn.tse.jus.br/estatistica/sead/odsele/eleitorado_locais_votacao/eleitorado_local_votacao_<ano>.zip`,
+baixados em **15/10/2026**. Uma linha por seção; os testes de `zonas.py` montam
+os ZIPs com elas.
+
+| Arquivo | Linhas mantidas | Por quê |
+|---|---|---|
+| `eleitorado_local_votacao_2026_SP_recorte.csv` | cabeçalho; São Caetano do Sul, a primeira seção de cada um dos 31 locais (zonas 166 e 269), mais uma segunda seção de um local e uma linha do 2º turno; duas linhas de Bragança Paulista (zonas 27 e 298) | município pequeno com duas zonas; em 2026 a coordenada vem com vírgula decimal; o mesmo prédio é local das duas zonas; o 2º turno repete as seções |
+| `eleitorado_local_votacao_2024_recorte.csv` | cabeçalho; duas linhas de São Caetano do Sul | até 2024 a coordenada vem com ponto decimal; local sem coordenada (`-1`) |
