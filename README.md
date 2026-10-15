@@ -355,7 +355,7 @@ ordenação por risco (ADR-028).
 | Normalização | 116 |
 | Conformidade (SICONFI) | 14 |
 | Pipeline local | 8 |
-| Aba Eleições (Python, inclusive a publicação na nuvem) | 203 |
+| Aba Eleições (Python, inclusive a publicação na nuvem) | 204 |
 | Painéis de contratações e conformidade | 28 |
 | Vocabulário controlado e referência técnica | 66 |
 | Portal (TypeScript) | 91 |

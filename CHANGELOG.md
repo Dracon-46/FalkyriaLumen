@@ -39,7 +39,12 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   do órgão; gráficos por mês com tabela; selos de resultado com ícone e texto;
   obrigações empilhadas no celular.
 - `eleicoes-carga`: entrada `historico` na execução manual, que inclui 1933 a
-  2024 mesmo com `ELEICOES_SEM_HISTORICO=true`.
+  2024 mesmo com `ELEICOES_SEM_HISTORICO=true`. A primeira carga com o
+  histórico (14/10/2026) publicou 342 mil arquivos em 3h17, a perto de 50 por
+  segundo: as 56 eleições de 1933 a 2026 somam 844 MB no Supabase.
+- Publicação das eleições: o manifesto e o estado também tentam de novo uma
+  falha passageira, e os 520 a 524 do Cloudflare (na frente do Supabase) contam
+  como passageiros; um 520 ao gravar o estado tinha marcado a carga como falha.
 - Documentação: ADR-028, DOC-13 1.0, DOC-11 e DOC-12 regerados, README.
 
 ## 0.6.0 — 2026-10-09
