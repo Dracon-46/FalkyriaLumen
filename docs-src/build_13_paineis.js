@@ -122,6 +122,7 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["somar_dias", "Lê os dias em ordem e soma por ente, por órgão, por esfera e para o Brasil", "Linha sem ente reconhecido vai só para o Brasil e para sem_ente"],
   ["ente_para_json", "Arquivo de um ente; o de um estado traz os municípios da UF", "Municípios do cadastro e os que publicaram, por nome, com zero quando não publicaram"],
   ["orgao_para_json", "Arquivo de um órgão, com o ente a que pertence", "Para quem procura uma entidade: um serviço autônomo de água e esgoto, uma fundação, uma empresa pública"],
+  ["teto_do_ente", "Teto de plausibilidade de um processo ou contrato: R$ 10 bilhões ou R$ 20 mil por habitante do ente, o menor", "Acima dele, conta na quantidade e fica fora das somas, em \"valores a conferir\""],
   ["orgaos_para_busca", "Todo órgão com publicação no período: CNPJ, razão social, ente, esfera, processos e contratos", "Para a busca do portal achar uma entidade pelo nome, pela sigla ou pelo CNPJ"],
   ["panorama_para_json", "Brasil: esferas, UFs (governo do estado e municípios), meses, modalidades, 30 maiores fornecedores", "UFs em ordem alfabética; nada ordenado por risco"],
   ["Painel.cobertura", "Primeiro e último dia, quantos e os que faltam entre eles", "O portal mostra o período e os dias ainda sem coleta"],
@@ -193,8 +194,16 @@ body.push(b("**Ente pelo órgão que publicou.** Os números de um município s�
   "panorama nacional, na linha \"Não informada\"."));
 body.push(b("**Data de publicação.** Processo e contrato contam no dia em que foram publicados no PNCP (o filtro das " +
   "consultas), não na data de assinatura ou de abertura."));
-body.push(b("**Valores como publicados.** Valor estimado sigiloso ou zerado conta como processo sem valor; um valor " +
-  "digitado errado pelo órgão entra como veio. O painel não corrige nem descarta valores, e o aviso metodológico diz isso."));
+body.push(b("**Valores como publicados.** Valor estimado sigiloso ou zerado conta como processo sem valor. O painel não " +
+  "corrige valores."));
+body.push(b("**Teto de plausibilidade.** Processo ou contrato com valor acima de R$ 10 bilhões, ou de R$ 20 mil por " +
+  "habitante do ente (perto de quatro anos do orçamento por habitante de um município médio), o que for menor, conta nas " +
+  "quantidades, mas o valor fica fora de todas as somas (ente, órgão, mês, modalidade, esfera, UF, fornecedor) e aparece " +
+  "na seção \"Valores a conferir na fonte\", com o link da publicação. Motivo: na primeira semana coletada, um único " +
+  "contrato publicado com R$ 239,8 bilhões (e outro com R$ 17,7 bilhões) fazia 97% do valor de contratos do país e " +
+  "punha uma empresa pequena no topo da lista de fornecedores. Não é juízo sobre o órgão nem sobre o fornecedor; o " +
+  "aviso metodológico e a própria seção dizem isso. Função `teto_do_ente`; constantes `TETO_ABSOLUTO` e " +
+  "`TETO_POR_HABITANTE`."));
 body.push(b("**Pessoa física anônima.** Contratos com pessoa física ou estrangeira entram numa soma única, sem nome nem " +
   "documento (RNF-19, RNF-20)."));
 body.push(b("**Sem dia incompleto.** Um dia com falha de coleta não entra; o portal mostra quantos dias do período ainda " +
@@ -287,7 +296,7 @@ body.push(b("Uma máquina do GitHub coleta perto de 8 minutos por dia do PNCP; u
 
 body.push(h1("11. Verificação"));
 body.push(table(["Conjunto", "Quantidade", "O que cobre"], [3000, 1400, 5200], [
-  ["packages/painel/testes", "29", "Dia compacto com as respostas reais do PNCP (01/09/2026), pessoa física sem identificação, dia incompleto não gravado (falha, resposta de erro, coleta interrompida), soma por ente, órgão, esfera e UF, cobertura e dias faltando, avaliação da conformidade com o extrato real de São Sepé (RS), instituição não identificada, obrigações só até a data, coleta por UF, comandos e publicação de ponta a ponta"],
+  ["packages/painel/testes", "30", "Dia compacto com as respostas reais do PNCP (01/09/2026), pessoa física sem identificação, dia incompleto não gravado (falha, resposta de erro, coleta interrompida), soma por ente, órgão, esfera e UF, cobertura e dias faltando, avaliação da conformidade com o extrato real de São Sepé (RS), instituição não identificada, obrigações só até a data, coleta por UF, comandos e publicação de ponta a ponta"],
   ["packages/portal (vitest)", "10 novos", "Busca de entes e de órgãos (sigla, município, CNPJ), leitura do entes.json e do orgaos.json, validação de caminhos, conferência de versão e tipo, formatos e topo do eixo do gráfico"],
 ], { size: 17 }));
 body.push(spacer(80));
@@ -302,7 +311,7 @@ body.push(table(["Item", "Por quê", "Quando"], [3400, 4600, 1600], [
   ["Portais da transparência municipais", "Estatais da Lei 13.303 e o que o município só publica no próprio portal ficam fora do PNCP. Três etapas: cadastro do endereço do portal de cada município; conformidade de transparência do portal (RF-CF-01, RF-CF-03, RF-CF-04); leitura por fornecedor de sistema, dos que atendem mais municípios para os que atendem menos", "Próxima fase"],
   ["Atualização dos processos", "O valor homologado chega depois da publicação; a consulta /v1/contratacoes/atualizacao traria os resultados", "Próxima versão"],
   ["Juntar dias em meses", "Limite de mil anexos por versão", "Antes de 2029"],
-  ["Valor digitado errado", "Um valor estimado absurdo distorce a soma de um ente; marcar (sem excluir) valores fora de escala é decisão metodológica", "Revisão do DOC-07"],
+  ["Valor digitado errado", "Valores acima do teto já ficam fora das somas (seção 7); erro menor que o teto (um contrato de R$ 50 mil digitado como R$ 50 milhões numa capital) ainda entra. Comparar com o valor estimado do processo do mesmo contrato é o próximo passo", "Revisão do DOC-07"],
   ["Indícios", "Quando as regras forem calibradas e revisadas, os painéis ganham a camada de sinalização, com o fluxo do DOC-08", "Fase 2"],
 ], { size: 17 }));
 
