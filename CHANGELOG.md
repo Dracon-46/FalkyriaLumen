@@ -3,6 +3,21 @@
 Formato: o que mudou para quem usa e para quem desenvolve, por versão. As
 decisões que justificam cada mudança estão nas ADRs citadas.
 
+## 0.7.1 — 2026-10-15
+
+### Busca de órgãos no painel de Contratações (ADR-028)
+
+- A busca de Contratações acha também os órgãos que publicaram no PNCP, e não
+  só a União, os estados e os municípios: prefeituras, câmaras, autarquias,
+  fundações e empresas públicas. Casa pelo nome, pela sigla formada pelas
+  iniciais ("SAAE Sorocaba" acha o Serviço Autônomo de Água e Esgoto de
+  Sorocaba), pelo município do órgão ou pelo começo do CNPJ, e leva à página
+  do órgão.
+- `lumen painel publicar` grava `orgaos.json` (CNPJ, razão social, ente,
+  esfera, processos e contratos de cada órgão com publicação no período); o
+  portal só baixa o arquivo quando a busca de Contratações é aberta.
+- Documentação: ADR-028, DOC-13 1.1, DOC-11 regerado.
+
 ## 0.7.0 — 2026-10-14
 
 ### Painéis de Contratações e de Conformidade (ADR-028, DOC-13)
