@@ -250,14 +250,16 @@ def id_eleicao(ano: int, turno: int, tp_abrangencia: str | None) -> str:
     return f"{ano}-{turno}t-{tipo}"
 
 
-# Chave de abrangência: ("br",), ("uf", "sp"), ("mu", "sp", "71072")
+# Chave de abrangência: ("br",), ("uf", "sp"), ("mu", "sp", "71072") e, dentro do município,
+# ("zn", "sp", "71072", "1") — a zona eleitoral, que só aparece como parte do feed do município.
 Abr = tuple[str, ...]
 
 
-def abrangencias_da_linha(cargo: int, uf: str, municipio: str) -> list[Abr]:
+def abrangencias_da_linha(cargo: int, uf: str, municipio: str, zona: str | None = None) -> list[Abr]:
     """Abrangências em que uma linha de zona é somada: é assim que as zonas viram município, UF e Brasil.
 
-    Sempre o município; também a UF, se o cargo é estadual ou nacional; e o Brasil, se é nacional.
+    Sempre o município; também a UF, se o cargo é estadual ou nacional; e o Brasil, se é nacional. Com
+    ``zona``, também a própria zona dentro do município (``("zn", uf, município, zona)``).
     """
     nivel = CARGOS[cargo][2]
     saida: list[Abr] = [("mu", uf, municipio)]
@@ -265,7 +267,28 @@ def abrangencias_da_linha(cargo: int, uf: str, municipio: str) -> list[Abr]:
         saida.append(("uf", uf))
     if nivel is Nivel.BRASIL:
         saida.append(("br",))
+    if zona:
+        saida.append(("zn", uf, municipio, zona))
     return saida
+
+
+def zona_da_linha(valor: str | None) -> str | None:
+    """Número da zona como texto sem zeros à esquerda (``"0001"`` → ``"1"``); None se ausente ou zero."""
+    numero = _int(valor)
+    return str(numero) if numero > 0 else None
+
+
+def municipios_com_zonas(totais: dict[tuple[str, int, Abr], "Totais"]) -> set[tuple[str, str]]:
+    """Municípios, como ``(uf, código TSE)``, que o detalhe da apuração divide em duas zonas ou mais.
+
+    São os únicos em que o resultado por zona diz algo além do resultado do município: nos outros, a
+    única zona do município tem os mesmos números que ele.
+    """
+    zonas: dict[tuple[str, str], set[str]] = defaultdict(set)
+    for _eid, _cargo, abr in totais:
+        if abr[0] == "zn":
+            zonas[(abr[1], abr[2])].add(abr[3])
+    return {m for m, z in zonas.items() if len(z) > 1}
 
 
 # ---------------------------------------------------------------- detalhe
@@ -346,7 +369,8 @@ def ler_detalhe(fluxos: Iterable[tuple[str, io.BufferedIOBase]], *, pular_presid
                 ) -> dict[tuple[str, int, Abr], Totais]:
     """Totais por eleição, cargo e abrangência, somados das zonas.
 
-    ``fluxos`` é uma sequência de (nome do arquivo, fluxo binário), na ordem
+    Cada zona também fica com os próprios totais (abrangência ``("zn", uf, município, zona)``), que dão o
+    eleitorado e o comparecimento das zonas no feed do município. ``fluxos`` é uma sequência de (nome do arquivo, fluxo binário), na ordem
     de ``entradas_csv``. Com ``pular_presidente_nos_estados``, as linhas de
     Presidente (``SG_UE`` = BR) dos arquivos por UF são puladas: vêm do
     ``_BR``.
@@ -361,7 +385,7 @@ def ler_detalhe(fluxos: Iterable[tuple[str, io.BufferedIOBase]], *, pular_presid
             "QT_VOTOS_NOMINAIS_VALIDOS", "QT_TOTAL_VOTOS_LEG_VALIDOS", "QT_VOTOS_LEG_VALIDOS",
             "QT_VOTOS_BRANCOS", "QT_TOTAL_VOTOS_NULOS", "QT_VOTOS_NULOS", "QT_VOTOS_NULOS_TECNICOS",
             "QT_TOTAL_VOTOS_ANULADOS", "QT_TOTAL_VOTOS_ANUL_SUBJUD", "DT_ULTIMA_TOTALIZACAO",
-            "HH_ULTIMA_TOTALIZACAO")}
+            "HH_ULTIMA_TOTALIZACAO", "NR_ZONA")}
 
         def col(linha: list[str], nome: str, _g: dict[str, int | None] = g) -> str | None:
             i = _g.get(nome)
@@ -394,7 +418,7 @@ def ler_detalhe(fluxos: Iterable[tuple[str, io.BufferedIOBase]], *, pular_presid
                 ultima_totalizacao=_instante_br(col(linha, "DT_ULTIMA_TOTALIZACAO"),
                                                 col(linha, "HH_ULTIMA_TOTALIZACAO")),
             )
-            for abr in abrangencias_da_linha(cargo, uf, municipio):
+            for abr in abrangencias_da_linha(cargo, uf, municipio, zona_da_linha(col(linha, "NR_ZONA"))):
                 totais[(eid, cargo, abr)].somar(t)
     for t in totais.values():
         t.reconciliar()
@@ -462,6 +486,9 @@ class AgregadorVotacao:
     """
 
     pular_presidente: bool = False
+    # Municípios (uf, código TSE) com duas zonas ou mais (``municipios_com_zonas``): só neles a votação
+    # também é somada por zona. Nos demais a zona repetiria o município e só ocuparia memória.
+    zonas_de: set[tuple[str, str]] = field(default_factory=set)
     votos: dict[tuple[str, int, Abr], dict[str, list[int]]] = field(default_factory=lambda: defaultdict(dict))
     meta: dict[tuple[str, int, str], _Meta] = field(default_factory=dict)
     nomes_municipios: dict[tuple[str, str], str] = field(default_factory=dict)
@@ -476,8 +503,9 @@ class AgregadorVotacao:
 
         Pula eleição não ordinária, cargo fora de ``CARGOS`` e, com ``pular_presidente``, o Presidente.
         Por candidato acumula [votos, válidos]: o voto é o maior entre nominais e válidos (2000 traz os
-        nominais zerados); sem a coluna de válidos, a eleição entra em ``sem_destinacao``. Colhe também a
-        data e o código TSE de cada eleição e o nome de cada município.
+        nominais zerados); sem a coluna de válidos, a eleição entra em ``sem_destinacao``. Nos municípios de
+        ``zonas_de``, soma também na zona da linha. Colhe também a data e o código TSE de cada eleição e o
+        nome de cada município.
         """
         linhas = Linhas(fluxo, COLUNAS_VOTACAO)
         ix = linhas.colunas
@@ -485,7 +513,7 @@ class AgregadorVotacao:
         i_dest = ix.get("NM_TIPO_DESTINACAO_VOTOS")
         opc = {c: ix.get(c) for c in ("NM_CANDIDATO", "SG_PARTIDO", "NM_COLIGACAO", "DS_COMPOSICAO_COLIGACAO",
                                       "SG_FEDERACAO", "DS_SIT_TOT_TURNO", "TP_AGREMIACAO", "DT_ELEICAO",
-                                      "CD_ELEICAO")}
+                                      "CD_ELEICAO", "NR_ZONA")}
 
         def col(linha: list[str], nome: str) -> str | None:
             i = opc.get(nome)
@@ -536,7 +564,8 @@ class AgregadorVotacao:
                     destinacao=_texto(linha[i_dest]) if i_dest is not None and i_dest < len(linha) else None,
                 )
             self.nomes_municipios.setdefault((uf, municipio), (linha[ix["NM_MUNICIPIO"]] or "").strip())
-            for abr in abrangencias_da_linha(cargo, uf, municipio):
+            zona = zona_da_linha(col(linha, "NR_ZONA")) if (uf, municipio) in self.zonas_de else None
+            for abr in abrangencias_da_linha(cargo, uf, municipio, zona):
                 atual = self.votos[(eid, cargo, abr)].get(sq)
                 if atual is None:
                     self.votos[(eid, cargo, abr)][sq] = [total, validos]
@@ -547,8 +576,8 @@ class AgregadorVotacao:
     # ------------------------------------------------------------ resultados
 
     def chaves(self) -> list[tuple[str, int, Abr]]:
-        """Chaves (eleição, cargo, abrangência) em ordem estável: dentro de eleição e cargo, Brasil, UFs e
-        municípios.
+        """Chaves (eleição, cargo, abrangência) em ordem estável: dentro de eleição e cargo, Brasil, UFs,
+        municípios e zonas.
         """
         return sorted(self.votos, key=lambda k: (k[0], k[1], len(k[2]), k[2]))
 

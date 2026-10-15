@@ -11,6 +11,10 @@ O que sai, por eleição (ano e turno) e cargo:
 - cargo nacional (Presidente): ``br``, ``uf-*`` e ``mu-*``;
 - cargo estadual: ``uf-*``, ``mu-*`` e o panorama ``br`` (quem lidera em cada UF);
 - cargo municipal: ``mu-*`` e os panoramas ``uf-*`` e ``br``.
+
+No município com duas zonas eleitorais ou mais, o feed ``mu-*`` leva as zonas em ``partes`` (quem lidera em
+cada zona, com as cores do próprio feed). Quais municípios têm mais de uma zona sai do detalhe da apuração;
+sem ele, os feeds saem sem zonas.
 """
 
 from __future__ import annotations
@@ -29,6 +33,7 @@ from .feeds import (
     abrangencia_brasil,
     abrangencia_municipio,
     abrangencia_uf,
+    abrangencia_zona,
     atribuir_cores,
     entrada_indice,
     feed_historico,
@@ -38,6 +43,7 @@ from .feeds import (
     origem_json,
     panorama_nacional,
     parte_json,
+    parte_zona_json,
     proporcional,
     ranking_partidos,
 )
@@ -81,6 +87,20 @@ def _ordem_cores(r: ResultadoAbrangencia) -> list[str]:
     return [c.numero for c in r.candidatos if c.valido]
 
 
+# Resultados por zona de cada município: chave do município ("mu", uf, tse) → número da zona → resultado
+Zonas = dict[da.Abr, dict[str, ResultadoAbrangencia]]
+
+
+def _partes_zonas(municipio: da.Abr, zonas: Zonas, cores: dict[str, int], por_partido: bool) -> list[dict]:
+    """Partes do feed do município: uma por zona, em ordem numérica; nenhuma se o município tem uma só."""
+    do_municipio = zonas.get(municipio) or {}
+    if len(do_municipio) < 2:
+        return []
+    uf = municipio[1]
+    return [parte_zona_json(abrangencia_zona(uf, z), r, cores, por_partido=por_partido)
+            for z, r in sorted(do_municipio.items(), key=lambda kv: int(kv[0]))]
+
+
 class ProcessadorAno:
     """Transforma os ZIPs de um ano em feeds. Um objeto por ano processado."""
 
@@ -117,6 +137,7 @@ class ProcessadorAno:
         self.partes_estaduais: dict[tuple[str, int], dict[str, dict]] = defaultdict(dict)
         self.ultimo_estadual: dict[tuple[str, int], datetime] = {}
         self.finais_br: dict[tuple[str, int], ResultadoAbrangencia] = {}
+        self.zonas_de: set[tuple[str, str]] = set()
 
     # ------------------------------------------------------------ entrada
 
@@ -126,7 +147,8 @@ class ProcessadorAno:
         O detalhe da apuração, quando informado, é lido inteiro antes e dá os totais de cada abrangência
         (comparecimento, brancos, nulos, seções). A votação é lida um CSV por vez, cada um com um agregador
         próprio, emitido e limpo antes do próximo. Se o ZIP tem o arquivo ``_BR``, o Presidente vem só dele e
-        é pulado nos arquivos por UF. No fim, emite os panoramas nacionais e atualiza o índice.
+        é pulado nos arquivos por UF. Os municípios com duas zonas ou mais, conhecidos pelo detalhe, também
+        têm a votação somada por zona. No fim, emite os panoramas nacionais e atualiza o índice.
         """
         totais: dict = {}
         if zip_detalhe:
@@ -134,12 +156,14 @@ class ProcessadorAno:
                 br = da.tem_arquivo_br(zf.namelist())
                 self.progresso(f"{self.ano}: lendo detalhe da apuração")
                 totais = da.ler_detalhe(da.fluxos_do_zip(zf), pular_presidente_nos_estados=br)
+            self.zonas_de = da.municipios_com_zonas(totais)
         with da.abrir_zip(zip_votacao) as zf:
             nomes = zf.namelist()
             br = da.tem_arquivo_br(nomes)
             for nome in da.entradas_csv(nomes):
                 self.progresso(f"{self.ano}: {nome}")
-                agregador = da.AgregadorVotacao(pular_presidente=br and not nome.upper().endswith("_BR.CSV"))
+                agregador = da.AgregadorVotacao(pular_presidente=br and not nome.upper().endswith("_BR.CSV"),
+                                                zonas_de=self.zonas_de)
                 with zf.open(nome) as fluxo:
                     agregador.ler(fluxo)
                 self.resumo.arquivos += 1
@@ -201,12 +225,18 @@ class ProcessadorAno:
 
         Agrupa os resultados por eleição e cargo, registra o cargo na eleição, acompanha o instante mais
         recente e as UFs com resultado (para o índice) e despacha para a emissão municipal ou para a dos
-        cargos nacional e estaduais, conforme o nível do cargo.
+        cargos nacional e estaduais, conforme o nível do cargo. Os resultados por zona vão à parte, por
+        município, para entrar no feed do município.
         """
         grupos: dict[tuple[str, int], dict[da.Abr, ResultadoAbrangencia]] = defaultdict(dict)
+        zonas: dict[tuple[str, int], Zonas] = defaultdict(lambda: defaultdict(dict))
         for chave in agregador.chaves():
             eid, cargo, abr = chave
-            grupos[(eid, cargo)][abr] = agregador.resultado(chave, totais.get(chave))
+            r = agregador.resultado(chave, totais.get(chave))
+            if abr[0] == "zn":
+                zonas[(eid, cargo)][("mu", abr[1], abr[2])][abr[3]] = r
+            else:
+                grupos[(eid, cargo)][abr] = r
         for (eid, codigo), resultados in grupos.items():
             e = self._eleicao(eid, agregador)
             cargo = _cargo(codigo, agregador.codigos_tse.get((eid, codigo)))
@@ -219,21 +249,24 @@ class ProcessadorAno:
                     self.ufs[eid].add(abr_chave[1])
                     self.ufs_cargo[eid][codigo].add(abr_chave[1])
             if nivel is Nivel.MUNICIPIO:
-                self._emitir_municipal(e, cargo, resultados, agregador)
+                self._emitir_municipal(e, cargo, resultados, agregador, zonas.get((eid, codigo), {}))
             else:
-                self._emitir_majoritario_ou_estadual(e, cargo, resultados, agregador, nivel)
+                self._emitir_majoritario_ou_estadual(e, cargo, resultados, agregador, nivel,
+                                                     zonas.get((eid, codigo), {}))
 
     def _emitir_majoritario_ou_estadual(self, e: Eleicao, cargo: Cargo,
                                         resultados: dict[da.Abr, ResultadoAbrangencia],
-                                        agregador: da.AgregadorVotacao, nivel: Nivel) -> None:
+                                        agregador: da.AgregadorVotacao, nivel: Nivel,
+                                        zonas: Zonas | None = None) -> None:
         """Grava os feeds de cargo nacional ou estadual: municípios, UFs e, para o Presidente, o Brasil.
 
         As cores do Presidente são as do resultado nacional, as mesmas em todas as UFs; nos cargos estaduais,
         cada UF tem as suas, pela ordem dos candidatos (ou dos partidos, nos proporcionais). O feed de UF leva
         as partes dos municípios e o do Brasil, as das UFs; nos proporcionais, o de município fica com os
-        ``limite`` mais votados e os eleitos. Num cargo estadual, a parte de cada UF fica guardada para o
-        panorama nacional, emitido no fim do ano.
+        ``limite`` mais votados e os eleitos, e o de município com mais de uma zona, as zonas em ``partes``.
+        Num cargo estadual, a parte de cada UF fica guardada para o panorama nacional, emitido no fim do ano.
         """
+        zonas = zonas or {}
         por_partido = proporcional(cargo)
         ufs = sorted({k[1] for k in resultados if k[0] == "uf"})
         cores_br: dict[str, int] = {}
@@ -255,7 +288,8 @@ class ProcessadorAno:
                 partes_uf.append(parte_json(abr_mu, r_mu, cores, por_partido=por_partido))
                 self.escritor.gravar(e.id, cargo.slug, abr_mu, feed_resultado(
                     eleicao=e, cargo=cargo, abr=abr_mu, resultado=r_mu, cores=cores, origem=self.origem,
-                    limite_candidatos=self.limite if por_partido else None))
+                    limite_candidatos=self.limite if por_partido else None,
+                    partes=_partes_zonas(chave, zonas, cores, por_partido)))
             abr_uf = abrangencia_uf(uf)
             self.escritor.gravar(e.id, cargo.slug, abr_uf, feed_resultado(
                 eleicao=e, cargo=cargo, abr=abr_uf, resultado=r_uf, cores=cores, origem=self.origem,
@@ -283,12 +317,15 @@ class ProcessadorAno:
                 self.vagas[e.id][cargo.codigo] = r_br.vagas
 
     def _emitir_municipal(self, e: Eleicao, cargo: Cargo, resultados: dict[da.Abr, ResultadoAbrangencia],
-                          agregador: da.AgregadorVotacao) -> None:
-        """Grava os feeds de cargo municipal: um por município e o panorama de cada UF.
+                          agregador: da.AgregadorVotacao, zonas: Zonas | None = None) -> None:
+        """Grava os feeds de cargo municipal: um por município, com as zonas quando há mais de uma, e o
+        panorama de cada UF.
 
-        Cada município tem as próprias cores (por candidato, ou por partido nos proporcionais). O panorama
-        de cada UF fica guardado para o panorama nacional, emitido no fim do ano.
+        Cada município tem as próprias cores (por candidato, ou por partido nos proporcionais), que valem
+        também para as zonas dele. O panorama de cada UF fica guardado para o panorama nacional, emitido no
+        fim do ano.
         """
+        zonas = zonas or {}
         por_partido = proporcional(cargo)
         por_uf: dict[str, list[dict]] = defaultdict(list)
         ultimo: dict[str, datetime] = {}
@@ -299,7 +336,8 @@ class ProcessadorAno:
             else:
                 cores = atribuir_cores(_ordem_cores(r))
             self.escritor.gravar(e.id, cargo.slug, abr, feed_resultado(
-                eleicao=e, cargo=cargo, abr=abr, resultado=r, cores=cores, origem=self.origem))
+                eleicao=e, cargo=cargo, abr=abr, resultado=r, cores=cores, origem=self.origem,
+                partes=_partes_zonas(chave, zonas, cores, por_partido)))
             # No panorama, a linha do município mostra o partido do líder (ou,
             # para vereador, o partido mais votado e a bancada eleita); a cor
             # é atribuída lá, pela ordem do placar.

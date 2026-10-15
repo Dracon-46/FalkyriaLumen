@@ -7,9 +7,11 @@ desenvolvimento, ``packages/portal/public/dados/eleicoes``)::
     indice.json                              eleições disponíveis e seus cargos
     municipios.json                          cadastro TSE ↔ IBGE (busca)
     geo/br-uf.json, geo/uf-<sigla>-mu.json   malhas do IBGE (TopoJSON)
+    geo/zonas-<ano>/…                        locais de votação por zona, para o mapa das zonas (``zonas.py``)
     <eleição>/<cargo>/br.json                resultado no Brasil, com as UFs em ``partes``
     <eleição>/<cargo>/uf-<sigla>.json        resultado na UF, com os municípios em ``partes``
-    <eleição>/<cargo>/mu-<chave>.json        resultado no município
+    <eleição>/<cargo>/mu-<chave>.json        resultado no município, com as zonas eleitorais em ``partes``
+                                             quando ele tem mais de uma (só nos dados abertos)
     <eleição>/<cargo>/historico-<abr>.json   evolução da totalização
     fotos/...                                fotos dos candidatos (sistema de resultados)
 
@@ -80,7 +82,7 @@ def _r(valor: float | None, casas: int = 6) -> float | None:
 class Abrangencia:
     """Recorte geográfico de um feed: Brasil, UF ou município, com os códigos IBGE e TSE quando há."""
 
-    tipo: str                    # br, uf, mu
+    tipo: str                    # br, uf, mu; zn (zona eleitoral) só como parte do feed do município
     codigo: str                  # "br", sigla da UF em minúsculas, chave do município
     nome: str
     uf: str | None = None
@@ -114,6 +116,13 @@ def abrangencia_uf(sigla: str) -> Abrangencia:
 def abrangencia_municipio(m: Municipio) -> Abrangencia:
     """Abrangência de um município do cadastro; o código é a ``chave`` dele (o IBGE, quando há)."""
     return Abrangencia("mu", m.chave, m.nome, uf=m.uf, ibge=m.ibge, tse=m.tse)
+
+
+def abrangencia_zona(uf: str, zona: str) -> Abrangencia:
+    """Zona eleitoral de um município, pelo número (sem zeros à esquerda). Não tem feed próprio: aparece
+    como parte do feed do município, com o número da zona como código."""
+    numero = str(int(zona))
+    return Abrangencia("zn", numero, f"Zona {numero}", uf=uf.lower())
 
 
 # ---------------------------------------------------------------- cores
@@ -244,6 +253,18 @@ def parte_json(abr: Abrangencia, r: ResultadoAbrangencia, cores: Mapping[str, in
             "votos": lider.votos, "pct": pl, "margem": _r(pl - ps) if pl is not None and ps is not None else None,
             "cor": cores.get(lider.numero, SEM_COR), "eleito": lider.eleito,
             "segundo_turno": lider.segundo_turno}
+
+
+def parte_zona_json(abr: Abrangencia, r: ResultadoAbrangencia, cores: Mapping[str, int], *,
+                    por_partido: bool = False) -> dict:
+    """Uma zona no feed do município: como ``parte_json``, sem a bancada.
+
+    Os eleitos de um cargo proporcional são do município (ou da UF) inteiro; contá-los por zona daria a
+    impressão de que cada zona elegeu alguém.
+    """
+    parte = parte_json(abr, r, cores, por_partido=por_partido)
+    parte.pop("bancada", None)
+    return parte
 
 
 def origem_json(fonte: str, url: str | None = None, sha256: str | None = None,
