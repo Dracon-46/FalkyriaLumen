@@ -83,12 +83,43 @@ def verificar_feed(caminho: Path, dados: dict, rel: Relatorio) -> None:
             rel.problemas.append(f"{caminho}: pontos da evolução fora de ordem")
 
 
+def verificar_zonas(caminho: Path, dados: dict, rel: Relatorio) -> None:
+    """Confere um arquivo do mapa das zonas (``geo/zonas-<ano>/``, ver ``zonas.py``).
+
+    No índice, os municípios; no arquivo de um município, que cada local tenha longitude, latitude, uma zona
+    da lista de zonas, eleitores e nome, e que a contagem de locais por zona bata com a lista.
+    """
+    from .zonas import VERSAO_ZONAS
+    if dados.get("versao") != VERSAO_ZONAS:
+        rel.problemas.append(f"{caminho}: versao {dados.get('versao')!r}, esperado {VERSAO_ZONAS}")
+        return
+    if dados.get("tipo") == "zonas-indice":
+        if not isinstance(dados.get("municipios"), dict):
+            rel.problemas.append(f"{caminho}: índice das zonas sem municípios")
+        return
+    faltando = [c for c in ("tipo", "ano", "municipio", "origem", "zonas", "locais") if c not in dados]
+    if dados.get("tipo") != "zonas" or faltando:
+        rel.problemas.append(f"{caminho}: arquivo de zonas fora do contrato ({', '.join(faltando) or dados.get('tipo')})")
+        return
+    contagem = {z["zona"]: 0 for z in dados["zonas"]}
+    for local in dados["locais"]:
+        ok = (isinstance(local, list) and len(local) == 5 and all(isinstance(v, (int, float)) for v in local[:2])
+              and local[2] in contagem and isinstance(local[3], int))
+        if not ok:
+            rel.problemas.append(f"{caminho}: local fora do formato {local!r}")
+            return
+        contagem[local[2]] += 1
+    if any(z["locais"] != contagem[z["zona"]] for z in dados["zonas"]):
+        rel.problemas.append(f"{caminho}: locais por zona não batem com a lista de locais")
+
+
 def verificar_diretorio(raiz: Path | str) -> Relatorio:
     """Confere o diretório dos feeds: o índice, os arquivos que ele promete e cada feed.
 
     A existência dos arquivos listados no índice só é cobrada nas eleições históricas (``dados_abertos``):
     na coleta ao vivo, uma UF do plano pode ainda não ter sido publicada pelo TSE. Depois, cada
-    ``<eleição>/<cargo>/*.json`` passa por ``verificar_feed``.
+    ``<eleição>/<cargo>/*.json`` passa por ``verificar_feed`` e cada arquivo do mapa das zonas
+    (``geo/zonas-<ano>/*.json``) por ``verificar_zonas``. As malhas do IBGE em ``geo/`` não são feeds.
     """
     raiz = Path(raiz)
     rel = Relatorio()
@@ -119,8 +150,15 @@ def verificar_diretorio(raiz: Path | str) -> Relatorio:
                 if cargo["nivel"] == "uf" and uf != "zz" and not arq.exists():
                     rel.problemas.append(f"{arq}: UF listada no índice sem arquivo")
     for arquivo in sorted(raiz.glob("*/*/*.json")):
+        if arquivo.relative_to(raiz).parts[0] == "geo":
+            continue
         dados = _ler(arquivo, rel)
         rel.arquivos += 1
         if dados is not None:
             verificar_feed(arquivo, dados, rel)
+    for arquivo in sorted(raiz.glob("geo/zonas-*/*.json")):
+        dados = _ler(arquivo, rel)
+        rel.arquivos += 1
+        if dados is not None:
+            verificar_zonas(arquivo, dados, rel)
     return rel

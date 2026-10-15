@@ -15,14 +15,18 @@ com o SHA-256 de cada um (ADR-021) e gera os feeds que o portal lê:
 4. coleta, no sistema de resultados, as eleições ordinárias que já
    aconteceram e ainda não estão nos dados abertos (em outubro de 2026, o 1º
    turno de 2026), até a totalização terminar, com todos os municípios;
-5. baixa e processa os dados abertos de 1933 a 1990 (resultados por UF);
-6. baixa e processa os dados abertos de 2024 a 1994, do mais recente para o
-   mais antigo, com todos os municípios.
+5. baixa os locais de votação de 2026 a 2018 e grava o mapa das zonas
+   eleitorais dos municípios com mais de uma zona (``zonas.py``, ADR-029);
+6. baixa e processa os dados abertos de 1933 a 1990 (resultados por UF);
+7. baixa e processa os dados abertos de 2024 a 1994, do mais recente para o
+   mais antigo, com todos os municípios e, onde há mais de uma, as zonas.
 
 É retomável. ``<estado>/preparar.json`` registra cada etapa concluída e o
 SHA-256 dos arquivos de entrada; rodar de novo pula o que já está pronto
 (``--refazer`` ignora o registro, ``--atualizar`` consulta a fonte e só
-reprocessa o ano cujos arquivos mudaram). Um erro num ano não interrompe os
+reprocessa o ano cujos arquivos mudaram). Um ano de 1994 em diante processado
+por uma versão anterior do processamento (``VERSAO_PROCESSAMENTO``) é refeito
+uma vez: foi assim que os feeds dos municípios ganharam as zonas eleitorais. Um erro num ano não interrompe os
 outros: o resumo final lista o que falhou e o comando devolve 1.
 
 Na nuvem (``--nuvem``, ADR-026), a mesma sequência roda numa máquina que
@@ -48,7 +52,7 @@ from typing import Callable
 from lumen_ingestao.bronze import ArmazemBronze, ArmazemBronzeLocal
 from lumen_ingestao.cliente_http import ClienteHttp
 
-from . import antigas, carga, referencias, tse
+from . import antigas, carga, referencias, tse, zonas
 from . import dados_abertos as da
 from .coletor import FONTE_ID, ColetorAoVivo, ResumoPassada, plano_padrao
 from .configuracao import ConfiguracaoEleicoes
@@ -68,6 +72,9 @@ ORCAMENTO_MUNICIPAL = 1000
 # passou dela, para entre dois lotes. No GitHub Actions: prazo de 280 minutos, publicação até 330, máquina 355.
 FOLGA_PUBLICACAO = 50 * 60
 MAX_PASSADAS = 500
+# Versão do processamento dos dados abertos de 1994 em diante. Sobe quando o que sai de um mesmo ZIP muda
+# (2: zonas eleitorais nos feeds dos municípios); ano registrado com versão menor é processado de novo.
+VERSAO_PROCESSAMENTO = 2
 
 
 class PortalIndisponivel(RuntimeError):
@@ -85,14 +92,15 @@ def _agora() -> str:
 class EstadoPreparacao:
     """O que ``preparar`` já concluiu, gravado em ``<estado>/preparar.json`` depois de cada etapa.
 
-    ``anos`` guarda, por ano, quando terminou, as eleições geradas e o SHA-256 de cada ZIP de entrada;
-    ``ao_vivo``, por eleição do sistema de resultados, quando a coleta terminou com a totalização
-    concluída.
+    ``anos`` guarda, por ano, quando terminou, as eleições geradas, o SHA-256 de cada ZIP de entrada e a
+    versão do processamento; ``ao_vivo``, por eleição do sistema de resultados, quando a coleta terminou
+    com a totalização concluída; ``zonas``, por ano, o SHA-256 do ZIP de locais de votação usado.
     """
 
     caminho: Path
     anos: dict[str, dict] = field(default_factory=dict)
     ao_vivo: dict[str, dict] = field(default_factory=dict)
+    zonas: dict[str, dict] = field(default_factory=dict)
 
     @classmethod
     def carregar(cls, caminho: Path) -> "EstadoPreparacao":
@@ -101,19 +109,23 @@ class EstadoPreparacao:
             dados = json.loads(Path(caminho).read_text(encoding="utf-8"))
         except (OSError, ValueError):
             dados = {}
-        return cls(Path(caminho), anos=dict(dados.get("anos") or {}), ao_vivo=dict(dados.get("ao_vivo") or {}))
+        return cls(Path(caminho), anos=dict(dados.get("anos") or {}), ao_vivo=dict(dados.get("ao_vivo") or {}),
+                   zonas=dict(dados.get("zonas") or {}))
 
     def gravar(self) -> None:
         """Grava o registro por troca atômica (``.tmp`` e ``replace``)."""
         self.caminho.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.caminho.with_name(self.caminho.name + ".tmp")
-        tmp.write_text(json.dumps({"versao": 1, "anos": self.anos, "ao_vivo": self.ao_vivo}, ensure_ascii=False,
-                                  indent=2, sort_keys=True), encoding="utf-8")
+        tmp.write_text(json.dumps({"versao": 1, "anos": self.anos, "ao_vivo": self.ao_vivo, "zonas": self.zonas},
+                                  ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
         tmp.replace(self.caminho)
 
     def ano_pronto(self, ano: int) -> bool:
-        """Se o ano já foi processado por completo."""
-        return str(ano) in self.anos
+        """Se o ano já foi processado por completo, pela versão atual do processamento (de 1994 em diante)."""
+        registro = self.anos.get(str(ano))
+        if registro is None:
+            return False
+        return ano in antigas.ANOS_ANTIGOS or registro.get("processamento", 1) >= VERSAO_PROCESSAMENTO
 
     def entradas_do_ano(self, ano: int) -> dict[str, str]:
         """{arquivo: SHA-256} dos ZIPs com que o ano foi processado."""
@@ -121,7 +133,21 @@ class EstadoPreparacao:
 
     def marcar_ano(self, ano: int, entradas: dict[str, str], eleicoes: list[str]) -> None:
         """Registra o ano como concluído e grava."""
-        self.anos[str(ano)] = {"concluido_em": _agora(), "entradas": entradas, "eleicoes": eleicoes}
+        self.anos[str(ano)] = {"concluido_em": _agora(), "entradas": entradas, "eleicoes": eleicoes,
+                               "processamento": VERSAO_PROCESSAMENTO}
+        self.gravar()
+
+    def zonas_prontas(self, ano: int) -> bool:
+        """Se o mapa das zonas do ano já foi gravado."""
+        return str(ano) in self.zonas
+
+    def entradas_das_zonas(self, ano: int) -> dict[str, str]:
+        """{arquivo: SHA-256} do ZIP de locais com que o mapa das zonas do ano foi gravado."""
+        return dict((self.zonas.get(str(ano)) or {}).get("entradas") or {})
+
+    def marcar_zonas(self, ano: int, entradas: dict[str, str], municipios: int) -> None:
+        """Registra o mapa das zonas do ano como gravado e grava."""
+        self.zonas[str(ano)] = {"concluido_em": _agora(), "entradas": entradas, "municipios": municipios}
         self.gravar()
 
     def ao_vivo_pronto(self, eleicao_id: str) -> bool:
@@ -199,6 +225,7 @@ class OpcoesPreparacao:
     anos: list[int] | None = None          # anos dos dados abertos; None = todos
     ao_vivo: bool = True
     historico: bool = True
+    zonas: bool = True
     portal: bool = True
     servir: bool = False
     abrir_navegador: bool = True
@@ -222,6 +249,7 @@ class ResumoPreparacao:
     portal: str = "não gerado"
     endereco: str | None = None
     ao_vivo: list[dict] = field(default_factory=list)
+    zonas: list[dict] = field(default_factory=list)
     anos: list[dict] = field(default_factory=list)
     erros: list[str] = field(default_factory=list)
     publicados: int = 0
@@ -230,7 +258,7 @@ class ResumoPreparacao:
     def para_json(self) -> dict:
         """Dicionário para imprimir em JSON."""
         return {"referencias_instaladas": self.referencias, "portal": self.portal, "endereco": self.endereco,
-                "ao_vivo": self.ao_vivo, "anos": self.anos, "erros": self.erros,
+                "ao_vivo": self.ao_vivo, "zonas": self.zonas, "anos": self.anos, "erros": self.erros,
                 "publicados_na_nuvem": self.publicados, "prazo_atingido": self.prazo_atingido}
 
 
@@ -443,8 +471,41 @@ class Preparacao:
         return {"eleicao": e.id, "situacao": "concluída" if concluida else "em andamento",
                 "passadas": coletor.passadas}
 
+    def anos_das_zonas(self) -> list[int]:
+        """Anos com locais de votação (2026 a 2018), limitados aos de ``anos`` quando a opção é dada."""
+        return [a for a in zonas.ANOS_LOCAIS if not self.op.anos or a in self.op.anos]
+
+    def carregar_zonas(self, ano: int) -> None:
+        """Etapa 5, um ano: baixa os locais de votação, confere se mudaram e grava o mapa das zonas."""
+        if self.estado.zonas_prontas(ano) and not (self.op.refazer or self.op.atualizar):
+            self.saida(f"{ano}: zonas já gravadas")
+            self.resumo.zonas.append({"ano": ano, "situacao": "já gravadas"})
+            return
+        try:
+            caminho, manifesto = zonas.baixar_locais(self.cfg, ano, bronze=self.bronze,
+                                                     atualizar=self.op.atualizar, saida=self.saida)
+            entradas = {manifesto.arquivo: manifesto.sha256}
+            if (self.estado.zonas_prontas(ano) and not self.op.refazer
+                    and entradas == self.estado.entradas_das_zonas(ano)):
+                self.saida(f"{ano}: locais de votação iguais aos já usados")
+                self.resumo.zonas.append({"ano": ano, "situacao": "sem mudança na fonte"})
+                return
+            r = zonas.gravar_zonas(ano, caminho, self.cfg.saida, self.cadastro(), manifesto=manifesto,
+                                   progresso=self.saida)
+        except Exception as erro:  # noqa: BLE001 - um ano sem zonas não impede os outros nem os resultados
+            self.resumo.erros.append(f"zonas {ano}: {erro}")
+            self.resumo.zonas.append({"ano": ano, "situacao": "erro"})
+            self.saida(f"erro nas zonas de {ano}: {erro}")
+            return
+        self.estado.marcar_zonas(ano, entradas, r.municipios)
+        self.resumo.zonas.append({"ano": ano, "situacao": "gravadas", "municipios": r.municipios,
+                                  "locais": r.locais})
+        if self.op.apagar_arquivos:
+            caminho.unlink(missing_ok=True)
+        self.sincronizar()
+
     def carregar_ano(self, ano: int) -> None:
-        """Etapas 5 e 6, um ano: baixa, confere se mudou, processa e registra. Erro vira item do resumo."""
+        """Etapas 6 e 7, um ano: baixa, confere se mudou, processa e registra. Erro vira item do resumo."""
         if self.estado.ano_pronto(ano) and not (self.op.refazer or self.op.atualizar):
             self.saida(f"{ano}: já processado")
             self.resumo.anos.append({"ano": ano, "situacao": "já processado"})
@@ -503,6 +564,14 @@ class Preparacao:
             self.iniciar_servidor()
         if self.op.ao_vivo and not self.parar():
             self.coletar_ao_vivo()
+        # Os locais de votação também são dados abertos: sem o histórico, ficam de fora
+        anos_zonas = self.anos_das_zonas() if self.op.historico and self.op.zonas else []
+        if anos_zonas and not self.parar():
+            self._etapa("Zonas eleitorais: locais de votação de 2018 em diante")
+            for ano in anos_zonas:
+                if self.parar():
+                    break
+                self.carregar_zonas(ano)
         if self.op.historico:
             antigos, recentes = self.anos_historicos()
             for titulo, anos in (("Eleições de 1933 a 1990 (resultados por UF)", antigos),

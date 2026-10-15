@@ -165,14 +165,20 @@ def test_cli_historico_de_ano_antigo(cfg, cdn_antiga, capsys):
 def test_referencias_embutidas_cobrem_o_brasil(tmp_path):
     itens = referencias.arquivos_embutidos()
     destinos = [d for _, d in itens]
-    assert destinos[0] == "municipios.json" and "geo/br-uf.json" in destinos and len(destinos) == 1 + 1 + 27
+    malhas = [d for d in destinos if d.startswith("geo/") and not d.startswith("geo/mu/")]
+    contornos = [d for d in destinos if d.startswith("geo/mu/")]
+    assert destinos[0] == "municipios.json" and "geo/br-uf.json" in destinos and len(malhas) == 1 + 27
+    assert len(destinos) == 1 + len(malhas) + len(contornos) and len(contornos) >= 190
     cad = referencias.cadastro_embutido()
     assert len(cad) > 5700 and cad.por_ibge("3550308").nome == "São Paulo"
     assert sum(1 for m in cad if not m.ibge) > 100                         # exterior
     municipios_nas_malhas = 0
     for origem, destino in itens[1:]:
         topo = geo.validar_topojson(origem.read_bytes())
-        if destino != "geo/br-uf.json":
+        if destino.startswith("geo/mu/"):
+            # Contorno fino: só o município do nome do arquivo, que também está na malha da UF
+            assert geo.codigos_da_malha(topo) == [Path(destino).stem] and cad.por_ibge(Path(destino).stem)
+        elif destino != "geo/br-uf.json":
             municipios_nas_malhas += len(geo.codigos_da_malha(topo))
     assert municipios_nas_malhas == 5570
     copiados = referencias.instalar(tmp_path)
@@ -292,7 +298,7 @@ def test_preparar_tudo_e_retomar(cfg, cdn_antiga, tmp_path, monkeypatch):
                 indice = json.loads(r.read())
         finally:
             prep.servidor.parar()
-    assert resumo.erros == [] and resumo.portal == "gerado" and resumo.referencias == 29
+    assert resumo.erros == [] and resumo.portal == "gerado" and resumo.referencias == len(referencias.arquivos_embutidos())
     assert abertos == [resumo.endereco]
     ids = {e["id"] for e in indice["eleicoes"]}
     assert {"2026-1t-geral", "1989-1t-geral", "1989-2t-geral", "1950-1t-geral"} <= ids
