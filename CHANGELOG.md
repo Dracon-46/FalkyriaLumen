@@ -3,6 +3,54 @@
 Formato: o que mudou para quem usa e para quem desenvolve, por versão. As
 decisões que justificam cada mudança estão nas ADRs citadas.
 
+## 0.8.0 — 2026-10-15
+
+### Zonas eleitorais no mapa do município (ADR-029)
+
+- Escolher um município no mapa abre o município: o mapa da UF voa até ele,
+  apaga os vizinhos (que continuam clicáveis: abrir outro voa até ele) e, nos
+  190 municípios com mais de uma zona eleitoral, mostra as zonas com a cor de
+  quem lidera em cada uma, os locais de votação como pontos e o número de cada
+  zona. Dica por zona (quem lidera, percentual, vantagem, eleitores, locais) e
+  por local de votação (nome, zona, eleitores).
+- O contorno das zonas é aproximado e a tela diz isso: a Justiça Eleitoral não
+  publica os limites das zonas; cada zona é a área mais perto dos seus locais
+  de votação (dados abertos do TSE, do mesmo ano da eleição, de 2018 em
+  diante), recortada pelo contorno do município.
+- Tabela "Por zona eleitoral", ligada ao mapa: o cursor numa linha destaca a
+  zona, o clique fixa o destaque. Ao vivo, o TSE não publica por zona: a tabela
+  mostra o eleitorado e os locais, e o mapa, as zonas sem cor de resultado.
+- Feeds de município (dados abertos, 1994 em diante): as zonas em `partes`
+  quando o município tem mais de uma, com as cores do próprio feed e sem
+  `bancada` nos cargos proporcionais. Contrato na versão 1.
+- `lumen eleicoes zonas` e etapa nova do `preparar`: locais de votação de 2018
+  a 2026 em `geo/zonas-<ano>/` (índice e um arquivo por município). O
+  `preparar` refaz uma vez os anos de 1994 a 2024 processados pela versão
+  anterior (`VERSAO_PROCESSAMENTO`), para os feeds ganharem as zonas; a
+  publicação só envia o que mudou. `--sem-zonas` pula a etapa.
+- Contornos dos 191 municípios com mais de uma zona na qualidade `maxima` do
+  IBGE, embutidos em `lumen_eleicoes/dados/geo/mu/` (1,5 MB) e instalados em
+  `geo/mu/`; `geo.baixar_contornos` os baixa de novo.
+- `lumen eleicoes verificar` confere os arquivos das zonas e não trata mais as
+  malhas de `geo/` como feeds.
+
+### Navegação mais fluida na aba Eleições
+
+- A tela anterior fica, esmaecida, enquanto o feed novo chega (no lugar de
+  "Carregando…"); na primeira leitura, um esqueleto no formato da tela.
+- O feed da UF de um município é pedido junto com o dele (a UF sai do código
+  IBGE na URL), e o mapa não some durante a troca.
+- Feeds de eleições encerradas guardados em memória durante a visita, e o
+  cursor parado numa área do mapa pré-carrega o que o clique vai abrir.
+- Aproximação animada (botões, tecla 0, "Ver tudo", "Município") e voo até o
+  município; sem animação para quem pede menos movimento ao sistema.
+- Mapa mais leve: camada das áreas memorizada, um ouvinte só para o cursor (no
+  máximo uma atualização da dica por quadro), apagamento dos vizinhos numa
+  opacidade só, do grupo. Num navegador sem GPU, o voo até a capital paulista
+  passou de 4 quadros travados para 32 quadros de 16 ms.
+- Esc no município solta a zona escolhida e, de novo, volta para a UF.
+- Documentação: ADR-029.
+
 ## 0.7.1 — 2026-10-15
 
 ### Busca de órgãos no painel de Contratações (ADR-028)
