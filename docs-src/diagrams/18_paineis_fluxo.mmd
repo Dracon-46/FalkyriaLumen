@@ -1,0 +1,40 @@
+flowchart TB
+    classDef fonte fill:#1F3864,stroke:#0d1b33,color:#ffffff
+    classDef proc fill:#2E75B6,stroke:#1f4e79,color:#ffffff
+    classDef estado fill:#A0522D,stroke:#5c2f18,color:#ffffff
+    classDef feed fill:#548235,stroke:#375623,color:#ffffff
+    classDef web fill:#7F7F7F,stroke:#404040,color:#ffffff
+    classDef grp fill:#FAFAFA,stroke:#BFBFBF,color:#404040
+
+    subgraph F["Fontes oficiais"]
+        F1["PNCP<br/>contratações (19 modalidades)<br/>e contratos, por dia de publicação"]:::fonte
+        F2["SICONFI<br/>cadastro de entes (/entes)<br/>e extrato de entregas por ente"]:::fonte
+    end
+
+    subgraph G["GitHub Actions (paineis, paineis-carga)"]
+        G1["lumen painel contratacoes<br/>um dia por vez: bronze e silver<br/>temporários, dia só se completo"]:::proc
+        G2["lumen painel conformidade<br/>extrato por UF, exercício<br/>anterior e corrente"]:::proc
+        G3["lumen painel cadastro<br/>nomes, UF, esfera, população"]:::proc
+    end
+
+    E[("Versão painel-estado<br/>anexos .json.gz: um por dia,<br/>um por UF e o cadastro")]:::estado
+
+    S["lumen painel publicar<br/>soma os dias, avalia as UFs<br/>na data de hoje (paineis-site)"]:::proc
+    D[("Site estático<br/>GitHub Pages: contratacoes/,<br/>conformidade/, entes.json")]:::feed
+
+    subgraph P["Portal (Vercel)"]
+        P1["/contratacoes/<br/>Brasil, ente, órgão"]:::web
+        P2["/conformidade/<br/>Brasil, UF, ente"]:::web
+    end
+
+    F1 --> G1
+    F2 --> G2
+    F2 --> G3
+    G1 -- "gh release upload" --> E
+    G2 --> E
+    G3 --> E
+    E -- "gh release download" --> S
+    S --> D
+    D -- "fetch, JSON" --> P
+
+    class F,G,P grp
