@@ -168,7 +168,7 @@ def cmd_publicar(args) -> int:
     cadastro = Cadastro.ler(caminho_cadastro) if caminho_cadastro.exists() else Cadastro({})
     site = Site(args.saida)
 
-    painel = contr.somar_dias(estado.glob("contratacoes-*.json.gz"))
+    painel = contr.somar_dias(estado.glob("contratacoes-*.json.gz"), cadastro)
     for codigo, acumulador in painel.entes.items():
         site.gravar(f"contratacoes/ente/{codigo}.json",
                     contr.ente_para_json(codigo, acumulador, painel, cadastro, gerado_em))

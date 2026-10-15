@@ -16,8 +16,12 @@ O ente de cada publicação é o do órgão que publicou (``dia.resumir_dia``): 
 dos órgãos municipais, e não os de órgãos estaduais ou federais que ficam nele.
 
 Os valores são os publicados no PNCP, sem correção: valor estimado sigiloso ou zerado conta como processo
-sem valor, e um valor digitado errado pelo órgão entra na soma como veio. O painel não ordena entes por
-nenhum critério de risco (PUB-07) e não publica indício: só soma o que a fonte publicou.
+sem valor. Um valor acima do teto de plausibilidade (``teto_do_ente``: R$ 10 bilhões, ou R$ 20 mil por
+habitante do ente, o que for menor) conta o processo ou o contrato, mas fica fora das somas e das listas de
+fornecedores e aparece em "valores a conferir", com o link da publicação: um único contrato de R$ 240
+bilhões, como o publicado em 13/10/2026, faria sozinho mais de 90% do valor do país na semana. Não é juízo
+sobre o órgão nem sobre o fornecedor; é a conferência mínima de um valor que a fonte publicou. O painel não
+ordena entes por nenhum critério de risco (PUB-07) e não publica indício: só soma o que a fonte publicou.
 """
 
 from __future__ import annotations
@@ -39,6 +43,10 @@ RECENTES_ORGAO = 10
 ORGAOS = 300
 FORNECEDORES = 20
 FORNECEDORES_PANORAMA = 30
+A_CONFERIR = 50
+# Teto de plausibilidade de um processo ou contrato: acima dele o valor fica fora das somas (ADR-028)
+TETO_ABSOLUTO = 10_000_000_000.0
+TETO_POR_HABITANTE = 20_000.0
 
 
 def _mes(dia: str) -> str:
@@ -55,24 +63,32 @@ class Totais:
     sem_valor: int = 0
     contratos: int = 0
     valor_contratos: float = 0.0
+    a_conferir: int = 0
 
-    def processo(self, estimado: float | None) -> None:
-        """Conta um processo; estimado ausente ou zero conta como processo sem valor."""
+    def processo(self, estimado: float | None, conferir: bool = False) -> None:
+        """Conta um processo; estimado ausente ou zero conta como processo sem valor; acima do teto
+        (``conferir``), conta o processo e o valor fica fora da soma."""
         self.processos += 1
+        if conferir:
+            self.a_conferir += 1
+            return
         if not estimado:
             self.sem_valor += 1
         self.valor_estimado = somar(self.valor_estimado, estimado)
 
-    def contrato(self, global_: float | None) -> None:
-        """Conta um contrato e soma o valor global."""
+    def contrato(self, global_: float | None, conferir: bool = False) -> None:
+        """Conta um contrato e soma o valor global, salvo acima do teto (``conferir``)."""
         self.contratos += 1
+        if conferir:
+            self.a_conferir += 1
+            return
         self.valor_contratos = somar(self.valor_contratos, global_)
 
     def para_json(self) -> dict:
         """Os totais com os nomes de campo dos feeds."""
         return {"processos": self.processos, "valor_estimado": self.valor_estimado,
                 "processos_sem_valor": self.sem_valor, "contratos": self.contratos,
-                "valor_contratos": self.valor_contratos}
+                "valor_contratos": self.valor_contratos, "valores_a_conferir": self.a_conferir}
 
 
 @dataclass
@@ -96,38 +112,46 @@ class Acumulador:
     pessoas_fisicas: Totais = field(default_factory=Totais)
     recentes: deque = field(default_factory=lambda: deque(maxlen=RECENTES))
     contratos_recentes: deque = field(default_factory=lambda: deque(maxlen=CONTRATOS_RECENTES))
+    a_conferir: deque = field(default_factory=lambda: deque(maxlen=A_CONFERIR))
 
     @classmethod
     def de_orgao(cls) -> "Acumulador":
         """Acumulador de um órgão, com as listas de recentes menores (``RECENTES_ORGAO``)."""
-        return cls(recentes=deque(maxlen=RECENTES_ORGAO), contratos_recentes=deque(maxlen=RECENTES_ORGAO))
+        return cls(recentes=deque(maxlen=RECENTES_ORGAO), contratos_recentes=deque(maxlen=RECENTES_ORGAO),
+                   a_conferir=deque(maxlen=RECENTES_ORGAO))
 
-    def processo(self, dia: str, linha: dict) -> None:
-        """Soma um processo (linha do arquivo do dia, já como dicionário)."""
+    def processo(self, dia: str, linha: dict, conferir: bool = False) -> None:
+        """Soma um processo (linha do arquivo do dia, já como dicionário); ``conferir``: valor acima do teto."""
         estimado = linha["valor_estimado"]
-        self.totais.processo(estimado)
-        self.meses.setdefault(_mes(dia), Totais()).processo(estimado)
-        self.modalidades.setdefault(linha["modalidade"], Totais()).processo(estimado)
+        self.totais.processo(estimado, conferir)
+        self.meses.setdefault(_mes(dia), Totais()).processo(estimado, conferir)
+        self.modalidades.setdefault(linha["modalidade"], Totais()).processo(estimado, conferir)
         if linha["orgao"]:
-            self.orgaos.setdefault(linha["orgao"], Totais()).processo(estimado)
-        self.recentes.append((dia, linha))
+            self.orgaos.setdefault(linha["orgao"], Totais()).processo(estimado, conferir)
+        self.recentes.append((dia, linha, conferir))
+        if conferir:
+            self.a_conferir.append((dia, "processo", linha))
 
-    def contrato(self, dia: str, linha: dict) -> None:
-        """Soma um contrato: no fornecedor pessoa jurídica pelo CNPJ, ou na soma anônima das demais pessoas."""
+    def contrato(self, dia: str, linha: dict, conferir: bool = False) -> None:
+        """Soma um contrato: no fornecedor pessoa jurídica pelo CNPJ, ou na soma anônima das demais pessoas.
+        Com ``conferir`` (valor acima do teto), o contrato conta e o valor fica fora de todas as somas."""
         global_ = linha["valor_global"]
-        self.totais.contrato(global_)
-        self.meses.setdefault(_mes(dia), Totais()).contrato(global_)
+        self.totais.contrato(global_, conferir)
+        self.meses.setdefault(_mes(dia), Totais()).contrato(global_, conferir)
         if linha["orgao"]:
-            self.orgaos.setdefault(linha["orgao"], Totais()).contrato(global_)
+            self.orgaos.setdefault(linha["orgao"], Totais()).contrato(global_, conferir)
         cnpj = linha["fornecedor_cnpj"]
         if cnpj:
             f = self.fornecedores.setdefault(cnpj, Fornecedor())
             f.nome = linha["fornecedor_nome"] or f.nome
             f.contratos += 1
-            f.valor = somar(f.valor, global_)
+            if not conferir:
+                f.valor = somar(f.valor, global_)
         else:
-            self.pessoas_fisicas.contrato(global_)
-        self.contratos_recentes.append((dia, linha))
+            self.pessoas_fisicas.contrato(global_, conferir)
+        self.contratos_recentes.append((dia, linha, conferir))
+        if conferir:
+            self.a_conferir.append((dia, "contrato", linha))
 
 
 def _linhas(dados: dict, tipo: str) -> Iterable[dict]:
@@ -160,35 +184,48 @@ class Painel:
         return {"de": self.dias[0], "ate": self.dias[-1], "dias": len(self.dias), "faltando": faltando}
 
 
-def somar_dias(arquivos: Iterable[Path]) -> Painel:
-    """Lê os arquivos do dia em ordem de data e soma tudo por ente e para o Brasil."""
+def teto_do_ente(ente: str | None, cadastro: Cadastro | None) -> float:
+    """Teto de plausibilidade de um processo ou contrato do ente: R$ 10 bilhões, ou R$ 20 mil por habitante
+    (perto de quatro vezes o orçamento anual por habitante de um município médio), o que for menor. Sem
+    população no cadastro (União, órgão sem ente), só o teto absoluto."""
+    populacao = None
+    if cadastro is not None and tipo_do_ente(ente):
+        registro = cadastro.get(ente)
+        populacao = registro.populacao if registro else None
+    return min(TETO_ABSOLUTO, TETO_POR_HABITANTE * populacao) if populacao else TETO_ABSOLUTO
+
+
+def somar_dias(arquivos: Iterable[Path], cadastro: Cadastro | None = None) -> Painel:
+    """Lê os arquivos do dia em ordem de data e soma tudo por ente e para o Brasil. Com o ``cadastro``, o teto
+    de plausibilidade usa a população do ente; sem ele, só o teto absoluto."""
     painel = Painel()
+    tetos: dict[str | None, float] = {}
     for caminho in sorted(arquivos, key=lambda p: p.name):
         dados = ler_dia(caminho)
         dia = dados["dia"]
         painel.dias.append(dia)
         for cnpj, orgao in (dados.get("orgaos") or {}).items():
             painel.orgaos[cnpj] = orgao
-        for tipo, metodo in (("processos", "processo"), ("contratos", "contrato")):
+        for tipo, metodo, campo in (("processos", "processo", "valor_estimado"),
+                                    ("contratos", "contrato", "valor_global")):
             for linha in _linhas(dados, tipo):
-                getattr(painel.brasil, metodo)(dia, linha)
+                ente = linha["ente"]
+                if ente not in tetos:
+                    tetos[ente] = teto_do_ente(ente, cadastro)
+                valor = linha[campo]
+                conferir = valor is not None and valor > tetos[ente]
+                getattr(painel.brasil, metodo)(dia, linha, conferir)
                 if linha["orgao"]:
                     acumulador = painel.por_orgao.get(linha["orgao"])
                     if acumulador is None:
                         acumulador = painel.por_orgao[linha["orgao"]] = Acumulador.de_orgao()
-                    getattr(acumulador, metodo)(dia, linha)
+                    getattr(acumulador, metodo)(dia, linha, conferir)
                 esfera = (painel.orgaos.get(linha["orgao"]) or [None, None])[1] or "?"
-                totais = painel.esferas.setdefault(esfera, Totais())
-                ente = linha["ente"]
-                if tipo == "processos":
-                    totais.processo(linha["valor_estimado"])
-                else:
-                    totais.contrato(linha["valor_global"])
+                getattr(painel.esferas.setdefault(esfera, Totais()), metodo)(valor, conferir)
                 if tipo_do_ente(ente) is None:
-                    getattr(painel.sem_ente, "processo" if tipo == "processos" else "contrato")(
-                        linha["valor_estimado"] if tipo == "processos" else linha["valor_global"])
+                    getattr(painel.sem_ente, metodo)(valor, conferir)
                     continue
-                getattr(painel.entes.setdefault(ente, Acumulador()), metodo)(dia, linha)
+                getattr(painel.entes.setdefault(ente, Acumulador()), metodo)(dia, linha, conferir)
     return painel
 
 
@@ -218,14 +255,23 @@ def _secoes(a: Acumulador, painel: Painel, *, fornecedores: int = FORNECEDORES) 
         "recentes": [
             {"data": dia, "chave": p["chave"], "orgao": _nome_orgao(painel, p["orgao"]),
              "modalidade": MODALIDADES.get(p["modalidade"]), "objeto": p["objeto"],
-             "valor_estimado": p["valor_estimado"], "situacao": p["situacao"], "link": link_pncp(p["chave"])}
-            for dia, p in reversed(a.recentes)],
+             "valor_estimado": p["valor_estimado"], "situacao": p["situacao"], "link": link_pncp(p["chave"]),
+             "a_conferir": conferir}
+            for dia, p, conferir in reversed(a.recentes)],
         "contratos_recentes": [
             {"data": dia, "chave": c["chave"], "orgao": _nome_orgao(painel, c["orgao"]),
              "fornecedor": c["fornecedor_nome"] if c["fornecedor_cnpj"] else None,
              "fornecedor_cnpj": c["fornecedor_cnpj"], "tipo_pessoa": c["tipo_pessoa"], "valor": c["valor_global"],
-             "instrumento": c["instrumento"], "objeto": c["objeto"], "link": link_pncp(c["chave"])}
-            for dia, c in reversed(a.contratos_recentes)],
+             "instrumento": c["instrumento"], "objeto": c["objeto"], "link": link_pncp(c["chave"]),
+             "a_conferir": conferir}
+            for dia, c, conferir in reversed(a.contratos_recentes)],
+        "a_conferir": [
+            {"data": dia, "tipo": tipo, "chave": x["chave"], "orgao": _nome_orgao(painel, x["orgao"]),
+             "fornecedor": x["fornecedor_nome"] if tipo == "contrato" and x["fornecedor_cnpj"] else None,
+             "fornecedor_cnpj": x["fornecedor_cnpj"] if tipo == "contrato" else None,
+             "valor": x["valor_estimado"] if tipo == "processo" else x["valor_global"],
+             "objeto": x["objeto"], "link": link_pncp(x["chave"])}
+            for dia, tipo, x in reversed(a.a_conferir)],
     }
 
 
@@ -298,6 +344,7 @@ def panorama_para_json(painel: Painel, cadastro: Cadastro, gerado_em: str) -> di
         alvo.valor_estimado = somar(alvo.valor_estimado, a.totais.valor_estimado)
         alvo.contratos += a.totais.contratos
         alvo.valor_contratos = somar(alvo.valor_contratos, a.totais.valor_contratos)
+        alvo.a_conferir += a.totais.a_conferir
         if tipo == "municipio" and (a.totais.processos or a.totais.contratos):
             por_uf[uf]["municipios_com_publicacao"] += 1
     nomes_esfera = {"F": "União", "E": "Estados", "D": "Distrito Federal", "M": "Municípios", "?": "Não informada"}
