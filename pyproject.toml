@@ -41,7 +41,7 @@ lumen_deteccao = ["*.toml"]
 # Parâmetros da regra A-05 (ADR-027)
 lumen_mercado = ["*.toml"]
 # Malhas do IBGE e cadastro de municípios que vêm com a aba Eleições (dados/LEIAME.md)
-lumen_eleicoes = ["dados/*.json", "dados/*.md", "dados/geo/*.json"]
+lumen_eleicoes = ["dados/*.json", "dados/*.md", "dados/geo/*.json", "dados/geo/mu/*.json"]
 
 [tool.ruff]
 line-length = 120

@@ -3,7 +3,8 @@
 O mapa precisa das malhas do IBGE, e a busca e os resultados por município
 precisam do cadastro TSE ↔ IBGE. As duas coisas mudam raramente (um município
 novo a cada poucos anos) e são pequenas — 1,4 MB de malhas na qualidade
-``minima`` e 0,5 MB de cadastro —, por isso ficam versionadas em
+``minima``, 1,5 MB de contornos em ``maxima`` dos 191 municípios com mais
+de uma zona eleitoral e 0,5 MB de cadastro —, por isso ficam versionadas em
 ``lumen_eleicoes/dados`` e o portal funciona sem nenhum download prévio. A
 proveniência (endereços, data e SHA-256 do que foi publicado pelas fontes)
 está em ``dados/LEIAME.md``.
@@ -30,10 +31,12 @@ DIR_MALHAS = "geo"
 def arquivos_embutidos() -> list[tuple[Path, str]]:
     """(arquivo no pacote, caminho relativo no diretório dos feeds) de cada referência embutida.
 
-    Cadastro primeiro, depois as malhas em ordem de nome (``br-uf.json`` e ``uf-<sigla>-mu.json``).
+    Cadastro primeiro, depois as malhas em ordem de nome (``br-uf.json`` e ``uf-<sigla>-mu.json``) e os
+    contornos finos dos municípios com mais de uma zona eleitoral (``mu/<código IBGE>.json``).
     """
     itens = [(DIR_DADOS / ARQUIVO_CADASTRO, ARQUIVO_CADASTRO)]
     itens += [(p, f"{DIR_MALHAS}/{p.name}") for p in sorted((DIR_DADOS / DIR_MALHAS).glob("*.json"))]
+    itens += [(p, f"{DIR_MALHAS}/mu/{p.name}") for p in sorted((DIR_DADOS / DIR_MALHAS / "mu").glob("*.json"))]
     return [(origem, destino) for origem, destino in itens if origem.exists()]
 
 

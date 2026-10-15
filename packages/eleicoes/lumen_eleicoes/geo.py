@@ -16,6 +16,20 @@ validados)::
 
     geo/br-uf.json          Brasil, uma geometria por UF (codarea = código da UF)
     geo/uf-<sigla>-mu.json  UF, uma geometria por município (codarea = código IBGE)
+    geo/mu/<ibge>.json      contorno de um município na qualidade ``maxima``, para os que têm mais de
+                            uma zona eleitoral (``baixar_contornos``)
+
+Na qualidade ``minima``, um município pequeno vira um polígono de quatro ou
+cinco pontos (Taboão da Serra, SP: 4; Olinda, PE: 6), bom para o mapa da UF e
+inútil quando o município ocupa a tela inteira com as zonas eleitorais. Por
+isso os municípios com mais de uma zona têm também o contorno em ``maxima``
+(São Paulo: 1.157 pontos, 10,6 KB; Taboão da Serra: 74 pontos, 0,9 KB).
+
+Certificado: o servidor ``servicodados.ibge.gov.br`` envia só o certificado
+final, sem o intermediário (Sectigo Public Server Authentication CA DV R36,
+verificado em 15/10/2026). Navegadores completam a cadeia sozinhos; o Python
+não, e a conexão falha com ``unable to get local issuer certificate`` até o
+intermediário estar no repositório de certificados da máquina.
 """
 
 from __future__ import annotations
@@ -34,6 +48,7 @@ BASE_MALHAS = "https://servicodados.ibge.gov.br/api/v3/malhas"
 BASE_LOCALIDADES = "https://servicodados.ibge.gov.br/api/v1/localidades"
 QUALIDADES = ("minima", "intermediaria", "maxima")
 FONTE_ID = "ibge_malhas"
+DIR_CONTORNOS = "geo/mu"
 
 
 class MalhaInvalida(ValueError):
@@ -50,6 +65,11 @@ def url_uf_por_municipio(codigo_uf: str, qualidade: str = "minima") -> str:
     """URL da malha de uma UF (código IBGE de 2 dígitos) com uma geometria por município."""
     return (f"{BASE_MALHAS}/estados/{codigo_uf}?formato=application/json&intrarregiao=municipio"
             f"&qualidade={qualidade}")
+
+
+def url_municipio(codigo_ibge: str, qualidade: str = "maxima") -> str:
+    """URL da malha de um município (código IBGE de 7 dígitos), na ``qualidade`` pedida."""
+    return f"{BASE_MALHAS}/municipios/{codigo_ibge}?formato=application/json&qualidade={qualidade}"
 
 
 def url_municipios_ibge() -> str:
@@ -123,4 +143,30 @@ def baixar_malhas(cliente: ClienteHttp, raiz_feeds: Path | str, *, ufs: Iterable
         if bronze:
             bronze.guardar(art)
         gravados.append(_gravar(raiz / nome, art.conteudo))
+    return gravados
+
+
+def baixar_contornos(cliente: ClienteHttp, raiz_feeds: Path | str, codigos: Iterable[str], *,
+                     qualidade: str = "maxima", bronze: ArmazemBronze | None = None) -> list[Path]:
+    """Baixa o contorno de cada município (código IBGE) para ``geo/mu/<código>.json``. Devolve os gravados.
+
+    São os bytes do IBGE, conferidos por ``validar_topojson`` e pelo código da única geometria.
+    """
+    if qualidade not in QUALIDADES:
+        raise ValueError(f"qualidade deve ser uma de {QUALIDADES}")
+    raiz = Path(raiz_feeds) / DIR_CONTORNOS
+    gravados = []
+    for codigo in sorted(set(codigos)):
+        if not (codigo.isdigit() and len(codigo) == 7):
+            raise ValueError(f"código IBGE de município inválido: {codigo!r}")
+        url = url_municipio(codigo, qualidade)
+        art = cliente.obter(url, {"Accept": "application/json"})
+        if art.status_http != 200:
+            raise MalhaInvalida(f"{url}: HTTP {art.status_http}")
+        topo = validar_topojson(art.conteudo)
+        if codigos_da_malha(topo) != [codigo]:
+            raise MalhaInvalida(f"{url}: a malha não é só do município {codigo}")
+        if bronze:
+            bronze.guardar(art)
+        gravados.append(_gravar(raiz / f"{codigo}.json", art.conteudo))
     return gravados
