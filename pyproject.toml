@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "falkyria-lumen"
-version = "0.7.1"
+version = "0.8.0"
 description = "Monitoramento de contratações e despesas públicas do Brasil. Publica indícios para análise, nunca conclusões."
 requires-python = ">=3.11"
 readme = "README.md"
