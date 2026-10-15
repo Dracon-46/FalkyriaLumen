@@ -94,13 +94,30 @@ export interface Cobertura {
   faltando: string[];
 }
 
-/** Contagens e somas de um recorte: processos, valor estimado, contratos e valor global. */
+/**
+ * Contagens e somas de um recorte: processos, valor estimado, contratos e valor global. `valores_a_conferir`:
+ * processos e contratos contados cujo valor passou do teto de plausibilidade e ficou fora das somas.
+ */
 export interface TotaisContratacoes {
   processos: number;
   valor_estimado: number;
   processos_sem_valor: number;
   contratos: number;
   valor_contratos: number;
+  valores_a_conferir?: number;
+}
+
+/** Processo ou contrato com valor acima do teto de plausibilidade: fora das somas, com o link para conferir. */
+export interface ValorAConferir {
+  data: string;
+  tipo: "processo" | "contrato";
+  chave: string;
+  orgao: string | null;
+  fornecedor: string | null;
+  fornecedor_cnpj: string | null;
+  valor: number | null;
+  objeto: string | null;
+  link: string | null;
 }
 
 /** Seções comuns ao panorama, a um ente e a um órgão (`_secoes` no Python). */
@@ -120,6 +137,7 @@ export interface SecoesContratacoes {
     valor_estimado: number | null;
     situacao: string | null;
     link: string | null;
+    a_conferir?: boolean;
   }[];
   contratos_recentes: {
     data: string;
@@ -132,7 +150,9 @@ export interface SecoesContratacoes {
     instrumento: string | null;
     objeto: string | null;
     link: string | null;
+    a_conferir?: boolean;
   }[];
+  a_conferir?: ValorAConferir[];
 }
 
 /** Arquivo `contratacoes/ente/<código>.json`; o de um estado traz também os municípios da UF. */
