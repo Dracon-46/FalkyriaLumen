@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
   buscarEntes,
+  buscarOrgaos,
   cnpj,
   codigoSeguro,
   conferir,
   dataCurta,
   descreverEnte,
+  descreverOrgao,
   lerEntes,
+  lerOrgaos,
+  siglaDoNome,
   mesCurto,
   moeda,
   moedaCompacta,
@@ -50,6 +54,65 @@ describe("busca de entes", () => {
     expect(descreverEnte({ codigo: "35", uf: "SP" })).toBe("Estado");
     expect(descreverEnte({ codigo: "53", uf: "DF" })).toBe("Distrito Federal");
     expect(descreverEnte({ codigo: "1", uf: null })).toBe("União");
+  });
+});
+
+describe("busca de órgãos", () => {
+  const bruto = {
+    versao: 1,
+    tipo: "orgaos",
+    colunas: ["cnpj", "nome", "ente", "esfera", "processos", "contratos"],
+    orgaos: [
+      ["71480560000101", "SERVICO AUTONOMO DE AGUA E ESGOTO DE SOROCABA", "3552205", "M", 10, 4],
+      ["46634044000174", "MUNICIPIO DE SOROCABA", "3552205", "M", 50, 30],
+      ["11111111000111", "SECRETARIA DA ADMINISTRACAO E ASSUNTOS ESTRATEGICOS", "35", "E", 1, 0],
+      ["00394460000141", "MINISTERIO DA FAZENDA", "1", "F", 5, 5],
+      ["22222222000122", null, null, null, 1, 0],
+      ["123", "CNPJ INVÁLIDO", null, null, 1, 0],
+    ],
+  };
+  const entes: EnteBusca[] = [
+    { codigo: "3552205", nome: "Sorocaba", uf: "SP", esfera: "M", populacao: 720_000 },
+    { codigo: "35", nome: "São Paulo", uf: "SP", esfera: "E", populacao: 46_000_000 },
+    { codigo: "1", nome: "União", uf: null, esfera: "F", populacao: null },
+  ];
+  const orgaos = lerOrgaos(bruto, entes);
+
+  it("lê o orgaos.json pelas colunas, com o ente do cadastro, e descarta CNPJ inválido", () => {
+    expect(orgaos.map((o) => o.cnpj)).toEqual([
+      "71480560000101",
+      "46634044000174",
+      "11111111000111",
+      "00394460000141",
+      "22222222000122",
+    ]);
+    expect(orgaos[0]).toMatchObject({ enteNome: "Sorocaba", uf: "SP", publicacoes: 14, sigla: "saaes" });
+    expect(orgaos[4]?.nome).toBe("22222222000122");
+    expect(lerOrgaos({ versao: 2 }, entes)).toEqual([]);
+    expect(lerOrgaos(null, entes)).toEqual([]);
+  });
+
+  it("acha pela sigla, pelo nome, pelo município e pelo CNPJ", () => {
+    expect(buscarOrgaos("SAAE Sorocaba", orgaos).map((o) => o.cnpj)).toEqual(["71480560000101"]);
+    expect(buscarOrgaos("saae", orgaos).map((o) => o.cnpj)).toEqual(["71480560000101", "11111111000111"]);
+    expect(buscarOrgaos("sorocaba", orgaos).map((o) => o.cnpj)).toEqual(["46634044000174", "71480560000101"]);
+    expect(buscarOrgaos("municipio sor", orgaos)[0]?.cnpj).toBe("46634044000174");
+    expect(buscarOrgaos("46.634.044", orgaos).map((o) => o.cnpj)).toEqual(["46634044000174"]);
+    expect(buscarOrgaos("aa", orgaos)).toEqual([]); // sigla só com três letras ou mais
+    expect(buscarOrgaos(" ", orgaos)).toEqual([]);
+    expect(buscarOrgaos("e", orgaos, 1)).toHaveLength(1);
+  });
+
+  it("descreve o órgão pela esfera e pelo ente", () => {
+    expect(siglaDoNome("Serviço Autônomo de Água e Esgoto")).toBe("saae");
+    expect(orgaos.map(descreverOrgao)).toEqual([
+      "Órgão municipal · Sorocaba (SP)",
+      "Órgão municipal · Sorocaba (SP)",
+      "Órgão estadual · SP",
+      "Órgão federal",
+      "Órgão",
+    ]);
+    expect(urlsPainel.orgaos()).toMatch(/\/orgaos\.json$/);
   });
 });
 
