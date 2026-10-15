@@ -120,7 +120,11 @@ describe("URL da tela", () => {
     expect(lerSelecao(new URLSearchParams("a=uf-")).abrangencia).toBe("br");
     expect(lerSelecao(new URLSearchParams("a=uf-1x")).abrangencia).toBe("br");
     expect(ufDaAbrangencia("uf-rj")).toBe("rj");
-    expect(ufDaAbrangencia("mu-3550308")).toBeNull();
+    expect(ufDaAbrangencia("mu-3550308")).toBe("sp");
+    expect(ufDaAbrangencia("mu-ap-06130")).toBe("ap");
+    expect(ufDaAbrangencia("mu-zz-29254")).toBe("zz");
+    expect(ufDaAbrangencia("mu-9950308")).toBeNull();
+    expect(ufDaAbrangencia("br")).toBeNull();
   });
   it("endereços dos feeds", () => {
     expect(BASE_DADOS).toBe("/dados/eleicoes");

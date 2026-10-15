@@ -6,6 +6,7 @@
  * município. Parâmetros inválidos são descartados, nunca interpretados.
  */
 
+import { CODIGO_UF } from "./busca";
 import type { Selecao } from "./tipos";
 
 const SEGURO = /^[a-z0-9][a-z0-9-]{0,80}$/;
@@ -37,7 +38,14 @@ export function escreverSelecao(s: Selecao): string {
   return q ? `?${q}` : "";
 }
 
-/** UF da abrangência: "uf-sp" → "sp"; "mu-3550308" → precisa do cadastro, devolve null. */
+/**
+ * UF da abrangência, sem esperar o feed: "uf-sp" → "sp"; "mu-3550308" → "sp"
+ * (os dois primeiros dígitos do código IBGE); "mu-ap-06130" (município sem
+ * código IBGE) e "mu-zz-29254" (exterior) → a sigla do começo. No Brasil, null.
+ */
 export function ufDaAbrangencia(abrangencia: string): string | null {
-  return abrangencia.startsWith("uf-") ? abrangencia.slice(3) : null;
+  if (abrangencia.startsWith("uf-")) return abrangencia.slice(3);
+  const ibge = /^mu-(\d{2})\d{5}$/.exec(abrangencia);
+  if (ibge) return CODIGO_UF[ibge[1]!] ?? null;
+  return /^mu-([a-z]{2})-/.exec(abrangencia)?.[1] ?? null;
 }

@@ -194,7 +194,11 @@ export interface Agremiacao {
   vagas: number | null;
 }
 
-/** Linha de uma abrangência filha (UF no Brasil, município na UF), para o mapa. */
+/**
+ * Linha de uma abrangência filha (UF no Brasil, município na UF, zona
+ * eleitoral no município), para o mapa e a tabela. Na zona, `codigo` é o
+ * número da zona e `ibge` é null.
+ */
 export interface Parte {
   codigo: string;
   nome: string;
@@ -243,7 +247,11 @@ export interface FeedResultado {
   /** Candidatos fora do arquivo (município com lista limitada); a lista completa está no arquivo da UF. */
   candidatos_omitidos: number;
   agremiacoes: Agremiacao[];
-  /** Abrangências filhas (UFs no Brasil, municípios na UF), para o mapa e a tabela. */
+  /**
+   * Abrangências filhas (UFs no Brasil, municípios na UF), para o mapa e a
+   * tabela. No município com mais de uma zona eleitoral, as zonas (só nas
+   * eleições lidas dos dados abertos; ao vivo, o TSE não publica por zona).
+   */
   partes: Parte[];
   /** Ressalvas da fonte, exibidas antes dos números. */
   avisos: string[];
@@ -325,6 +333,47 @@ export interface Municipio {
 export interface CadastroMunicipios {
   versao: number;
   municipios: Municipio[];
+}
+
+/**
+ * Um local de votação no arquivo das zonas: longitude, latitude, número da
+ * zona, eleitores (soma das seções do local) e nome, como o TSE publica.
+ */
+export type LocalVotacao = [number, number, string, number, string];
+
+/** Uma zona eleitoral do município no arquivo das zonas. */
+export interface ZonaDoMunicipio {
+  /** Número da zona, sem zeros à esquerda. */
+  zona: string;
+  /** Locais da zona com coordenada (os que entram no mapa). */
+  locais: number;
+  /** Eleitores da zona no município, inclusive os de locais sem coordenada. */
+  eleitores: number;
+}
+
+/**
+ * Arquivo `geo/zonas-<ano>/mu-<ibge>.json`: as zonas de um município com mais
+ * de uma e os locais de votação de cada uma (ADR-029). Gravado por
+ * `lumen eleicoes zonas` a partir dos dados abertos do TSE.
+ */
+export interface ArquivoZonas {
+  versao: number;
+  tipo: "zonas";
+  ano: number;
+  municipio: { ibge: string; tse: string; uf: string; nome: string };
+  origem: Origem;
+  zonas: ZonaDoMunicipio[];
+  locais: LocalVotacao[];
+  /** Locais deixados de fora: sem coordenada, ou com coordenada fora do município. */
+  descartados: { sem_coordenada: number; fora_do_municipio: number };
+}
+
+/** Arquivo `geo/zonas-<ano>/indice.json`: código IBGE → número de zonas, dos municípios com mais de uma. */
+export interface IndiceZonas {
+  versao: number;
+  tipo: "zonas-indice";
+  ano: number;
+  municipios: Record<string, number>;
 }
 
 /** O que está selecionado na tela; vai para a URL (ver `estado-url.ts`). */

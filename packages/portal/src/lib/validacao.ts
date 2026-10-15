@@ -10,11 +10,13 @@
 
 import {
   VERSAO_FEED,
+  type ArquivoZonas,
   type CadastroMunicipios,
   type FeedHistorico,
   type FeedPanorama,
   type FeedResultado,
   type Indice,
+  type IndiceZonas,
 } from "./tipos";
 
 /**
@@ -122,4 +124,33 @@ export function validarMunicipios(bruto: unknown): CadastroMunicipios {
   versao(o, "municipios");
   lista(o.municipios, "municipios.municipios");
   return o as unknown as CadastroMunicipios;
+}
+
+/** Confere o índice das zonas de um ano (`geo/zonas-<ano>/indice.json`). */
+export function validarIndiceZonas(bruto: unknown, onde = "zonas/indice"): IndiceZonas {
+  const o = objeto(bruto, onde);
+  versao(o, onde);
+  if (o.tipo !== "zonas-indice") throw new ErroFeed(`${onde}: tipo ${String(o.tipo)} não é índice de zonas`);
+  objeto(o.municipios, `${onde}.municipios`);
+  return o as unknown as IndiceZonas;
+}
+
+/**
+ * Confere o arquivo das zonas de um município. Cada local precisa de
+ * longitude e latitude numéricas e de uma zona da lista: é o que vira ponto
+ * e área no mapa.
+ */
+export function validarZonas(bruto: unknown, onde = "zonas"): ArquivoZonas {
+  const o = objeto(bruto, onde);
+  versao(o, onde);
+  if (o.tipo !== "zonas") throw new ErroFeed(`${onde}: tipo ${String(o.tipo)} não é de zonas`);
+  exigir(o, ["ano", "municipio", "origem", "zonas", "locais"], onde);
+  const zonas = new Set(lista(o.zonas, `${onde}.zonas`).map((z) => String(objeto(z, `${onde}.zonas`).zona)));
+  for (const [i, l] of lista(o.locais, `${onde}.locais`).entries()) {
+    const local = lista(l, `${onde}.locais[${i}]`);
+    if (typeof local[0] !== "number" || typeof local[1] !== "number" || !zonas.has(String(local[2]))) {
+      throw new ErroFeed(`${onde}.locais[${i}] fora do formato`);
+    }
+  }
+  return o as unknown as ArquivoZonas;
 }
