@@ -2943,7 +2943,7 @@
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/publicacao.py",
    "linguagem": "python",
-   "linhas": 373,
+   "linhas": 383,
    "doc": "Feeds e estado da carga na nuvem: Cloudflare R2, ou qualquer armazenamento compatível com S3 (ADR-026).\n\nCom a publicação, a carga das eleições pode rodar numa máquina que começa\nvazia a cada execução (GitHub Actions) e o portal lê os feeds de um endereço\npúblico, sem nenhum computador pessoal ligado. Dois buckets:\n\n- o **público** recebe os feeds (``indice.json``, ``<eleição>/<cargo>/…``,\n  ``geo/``, ``municipios.json``), lidos pelo portal com ``Cache-Control``\n  adequado a cada tipo;\n- o **privado** guarda o estado da carga (``estado/preparar.json``, o estado\n  do coletor ao vivo) e o manifesto do que já foi publicado, um arquivo por\n  grupo (``publicacao/<grupo>.json``, comprimido: caminho → assinatura e\n  tamanho), com o total de cada grupo em ``publicacao/_totais.json``.\n\nCada execução: ``restaurar`` baixa o índice publicado e o estado; a carga roda\ncomo na máquina local, pulando o que o estado diz que já foi feito;\n``sincronizar`` envia só os arquivos cujo SHA-256 difere do manifesto — o\níndice por último, para o portal nunca apontar para um feed que ainda não\nsubiu — e grava o estado. Uma execução interrompida no meio (limite de tempo\ndo GitHub Actions) é retomada pela seguinte sem refazer o que já subiu.\n\nO manifesto é dividido por grupo (uma eleição, ``geo``, ``raiz``) e cada\nparte só é lida quando a carga tem arquivo daquele grupo para publicar: com\no histórico de 1933 a 2024 (perto de 450 mil arquivos), um manifesto único\npassaria do limite de 50 MB por arquivo do Supabase e seria regravado inteiro\na cada lote. O total ocupado, somado por grupo, segura a publicação antes do\nlimite do plano gratuito (``limite_bytes``).\n\nSó biblioteca padrão: o cliente é o mesmo ``ClienteS3`` da camada bronze\n(``lumen_ingestao.s3``, assinatura SigV4).",
    "itens": [
     {
@@ -2951,168 +2951,175 @@
      "nome": "tipo_de",
      "assinatura": "def tipo_de(relativo: str) -> str",
      "doc": "Tipo de mídia pelo sufixo do arquivo; desconhecido vira ``application/octet-stream``.",
-     "linha": 84
+     "linha": 85
     },
     {
      "tipo": "funcao",
      "nome": "cache_de",
      "assinatura": "def cache_de(relativo: str) -> str",
      "doc": "``Cache-Control`` do arquivo publicado: longo para referências e fotos, ``no-cache`` para feeds.",
-     "linha": 89
+     "linha": 90
     },
     {
      "tipo": "funcao",
      "nome": "sha256_de",
      "assinatura": "def sha256_de(caminho: Path) -> str",
      "doc": "SHA-256 do conteúdo do arquivo, em hexadecimal.",
-     "linha": 96
+     "linha": 97
     },
     {
      "tipo": "funcao",
      "nome": "comprimir",
      "assinatura": "def comprimir(relativo: str) -> bool",
      "doc": "Se o arquivo sobe comprimido com gzip (os JSON; imagens já são comprimidas).",
-     "linha": 105
+     "linha": 106
     },
     {
      "tipo": "funcao",
      "nome": "assinatura",
      "assinatura": "def assinatura(relativo: str, sha: str) -> str",
      "doc": "Como o arquivo fica no manifesto: o começo do SHA-256 do conteúdo (``DIGITOS_ASSINATURA``), com\n``MARCA_GZIP`` quando sobe comprimido.",
-     "linha": 110
+     "linha": 111
     },
     {
      "tipo": "funcao",
      "nome": "transitorio",
      "assinatura": "def transitorio(erro: Exception) -> bool",
      "doc": "Se a falha de envio é passageira: 408, 429 e 5xx do armazenamento, rede ou tempo esgotado.",
-     "linha": 117
+     "linha": 118
     },
     {
      "tipo": "funcao",
      "nome": "descomprimir_se_gzip",
      "assinatura": "def descomprimir_se_gzip(conteudo: bytes) -> bytes",
      "doc": "Conteúdo lido do bucket, descomprimido se veio com a assinatura do gzip (``1f 8b``).",
-     "linha": 124
+     "linha": 125
     },
     {
      "tipo": "funcao",
      "nome": "arquivos_publicaveis",
      "assinatura": "def arquivos_publicaveis(raiz: Path, cache: dict[str, tuple[int, int, str]] | None=None) -> dict[str, str]",
      "doc": "{caminho relativo com \"/\": SHA-256} de tudo o que vai para o bucket público.\n\nFicam de fora os temporários da gravação atômica (``.*.tmp``, ``*.tmp``), arquivos ocultos e os\n``LEIAME.md`` de explicação de diretório. Com ``cache`` ({caminho: (mtime_ns, tamanho, sha)}), o\nSHA-256 só é recalculado para arquivo com data ou tamanho diferente — na apuração ao vivo, a cada\npassada, só os feeds regravados são lidos de novo.",
-     "linha": 129
+     "linha": 130
     },
     {
      "tipo": "classe",
      "nome": "ResumoPublicacao",
      "assinatura": "class ResumoPublicacao",
      "doc": "Contagem de uma publicação: arquivos enviados, já iguais no bucket, bytes enviados e os que ficaram\npara a próxima vez porque o prazo acabou (``pendentes``).",
-     "linha": 159
+     "linha": 160
     },
     {
      "tipo": "classe",
      "nome": "LimiteDoArmazenamento",
      "assinatura": "class LimiteDoArmazenamento(Exception)",
      "doc": "A publicação parou porque o bucket chegou ao limite configurado (``limite_bytes``).",
-     "linha": 169
+     "linha": 170
     },
     {
      "tipo": "classe",
      "nome": "Nuvem",
      "assinatura": "class Nuvem",
      "doc": "Ponte entre os diretórios locais da carga (feeds e estado) e os dois buckets.",
-     "linha": 173
+     "linha": 174
     },
     {
      "tipo": "metodo",
      "nome": "Nuvem.__init__",
      "assinatura": "def __init__(self, feeds: ClienteS3, estado: ClienteS3, saida: Path, dir_estado: Path, *, aviso: Callable[[str], None] | None=None, paralelos: int=PARALELOS, limite_bytes: int | None=None, dormir: Callable[[float], None]=time.sleep)",
      "doc": "Clientes dos buckets público (``feeds``) e privado (``estado``), os diretórios locais, quantos\narquivos sobem ao mesmo tempo e o limite de bytes no bucket público (``None``: sem limite).",
-     "linha": 176
+     "linha": 177
     },
     {
      "tipo": "metodo",
      "nome": "Nuvem.de_configuracao",
      "assinatura": "def de_configuracao(cls, pub: ConfiguracaoPublicacao, cfg: ConfiguracaoEleicoes, *, aviso: Callable[[str], None] | None=None) -> 'Nuvem'",
      "doc": "Monta os dois clientes S3 (estilo caminho, que o R2 aceita) a partir da configuração.",
-     "linha": 196
+     "linha": 197
     },
     {
      "tipo": "metodo",
      "nome": "Nuvem._ler_json",
      "assinatura": "def _ler_json(self, chave: str) -> dict | None",
      "doc": "JSON do bucket privado (comprimido ou não); ``None`` se a chave não existe.",
-     "linha": 207
+     "linha": 208
     },
     {
      "tipo": "metodo",
      "nome": "Nuvem.manifesto_do_grupo",
      "assinatura": "def manifesto_do_grupo(self, grupo: str) -> dict[str, str]",
      "doc": "O que já está publicado do grupo ({caminho: assinatura}), lido do bucket na primeira vez.",
-     "linha": 214
+     "linha": 215
     },
     {
      "tipo": "metodo",
      "nome": "Nuvem.totais",
      "assinatura": "def totais(self) -> dict[str, int]",
      "doc": "Bytes no bucket público por grupo: os grupos já lidos contam o manifesto, os outros, o total salvo.",
-     "linha": 222
+     "linha": 223
     },
     {
      "tipo": "metodo",
      "nome": "Nuvem.ocupado",
      "assinatura": "def ocupado(self) -> int",
      "doc": "Bytes no bucket público, somados de todos os grupos publicados por esta carga.",
-     "linha": 228
+     "linha": 229
     },
     {
      "tipo": "metodo",
      "nome": "Nuvem._registrar",
      "assinatura": "def _registrar(self, rel: str, assinatura_: str, tamanho: int) -> None",
      "doc": "Anota no manifesto do grupo um arquivo que acabou de subir.",
-     "linha": 232
+     "linha": 233
     },
     {
      "tipo": "metodo",
      "nome": "Nuvem._gravar_manifesto",
      "assinatura": "def _gravar_manifesto(self) -> None",
      "doc": "Grava no bucket privado o manifesto dos grupos que mudaram e o total de cada grupo.",
-     "linha": 239
+     "linha": 240
     },
     {
      "tipo": "metodo",
      "nome": "Nuvem.restaurar",
      "assinatura": "def restaurar(self) -> int",
      "doc": "Baixa o índice publicado (se não há um local) e o estado da carga; devolve quantos arquivos vieram.\n\nO índice local, quando existe, vence: é a máquina em que a carga está rodando que sabe o que gerou.",
-     "linha": 256
+     "linha": 260
     },
     {
      "tipo": "metodo",
      "nome": "Nuvem.publicar",
      "assinatura": "def publicar(self, parar: Callable[[], bool] | None=None) -> ResumoPublicacao",
      "doc": "Envia ao bucket público os arquivos novos ou alterados, ``paralelos`` de cada vez; o índice por último.\n\nO índice só sobe depois de todos os outros terem subido, para o portal nunca apontar para um feed que\nainda não está lá. O manifesto registra só o que subiu e é regravado a cada ``LOTE_MANIFESTO``\nenvios e no fim, também quando um envio falha: uma interrupção perde no máximo um lote, que a\npróxima publicação reenvia. A primeira falha de um lote é levantada depois que o lote termina.\n\nEntre um lote e outro, ``parar()`` verdadeiro encerra a publicação (o que faltou fica em\n``pendentes``, para a próxima execução) e o total ocupado acima de ``limite_bytes`` levanta\n``LimiteDoArmazenamento``.",
-     "linha": 283
+     "linha": 287
+    },
+    {
+     "tipo": "metodo",
+     "nome": "Nuvem._com_tentativas",
+     "assinatura": "def _com_tentativas(self, gravar: Callable[[], None]) -> None",
+     "doc": "Roda a gravação; falha passageira (``transitorio``) é tentada de novo depois de cada espera de\n``ESPERAS_ENVIO``, e a última falha sobe.",
+     "linha": 337
     },
     {
      "tipo": "metodo",
      "nome": "Nuvem._enviar",
      "assinatura": "def _enviar(self, rel: str) -> int",
-     "doc": "Envia um arquivo da saída ao bucket público com o tipo e o cache dele (JSON comprimido com gzip);\ndevolve quantos bytes subiram. Falha passageira (``transitorio``) é tentada de novo, com espera.",
-     "linha": 333
+     "doc": "Envia um arquivo da saída ao bucket público com o tipo e o cache dele (JSON comprimido com gzip);\ndevolve quantos bytes subiram. Falha passageira é tentada de novo, com espera (``_com_tentativas``).",
+     "linha": 349
     },
     {
      "tipo": "metodo",
      "nome": "Nuvem.salvar_estado",
      "assinatura": "def salvar_estado(self) -> int",
      "doc": "Envia ao bucket privado os arquivos do diretório de estado; devolve quantos.",
-     "linha": 351
+     "linha": 360
     },
     {
      "tipo": "metodo",
      "nome": "Nuvem.sincronizar",
      "assinatura": "def sincronizar(self, parar: Callable[[], bool] | None=None) -> ResumoPublicacao",
      "doc": "Publica os feeds e grava o estado: o ponto de salvamento depois de cada etapa da carga.\n\nSe o prazo (``parar``) interrompe a publicação, o estado não é gravado: a próxima execução refaz a\netapa e publica o que faltou, em vez de dá-la por publicada.",
-     "linha": 363
+     "linha": 373
     }
    ]
   },
@@ -9085,7 +9092,7 @@
   {
    "caminho": "packages/eleicoes/testes/test_publicacao.py",
    "doc": "Publicação na nuvem (ADR-026): feeds no bucket público, estado da carga no privado, carga retomável.",
-   "testes": 24
+   "testes": 25
   },
   {
    "caminho": "packages/eleicoes/testes/test_suporte.py",
