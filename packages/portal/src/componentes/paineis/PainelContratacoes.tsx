@@ -83,8 +83,9 @@ export function PainelContratacoes() {
       <AvisoMetodologico>
         Somas e listas do que os próprios órgãos publicaram no Portal Nacional de Contratações Públicas (PNCP), pela
         data de publicação, com o link de cada processo e contrato. Valores como publicados, sem correção: valor
-        sigiloso ou zerado conta como processo sem valor estimado. Contratos com pessoa física aparecem só somados,
-        sem nome nem documento. Nada aqui é conclusão sobre os entes ou os fornecedores.
+        sigiloso ou zerado conta como processo sem valor estimado; valor acima do teto de plausibilidade fica fora das
+        somas, em &ldquo;Valores a conferir na fonte&rdquo;. Contratos com pessoa física aparecem só somados, sem nome
+        nem documento. Nada aqui é conclusão sobre os entes ou os fornecedores.
       </AvisoMetodologico>
       {estado.carregando && <Situacao>Carregando…</Situacao>}
       {!estado.carregando && estado.erro && (
@@ -169,7 +170,15 @@ function Secoes({
           />
           <Numero rotulo="Valor estimado" valor={moedaCompacta(t.valor_estimado)} detalhe={moeda(t.valor_estimado)} />
           <Numero rotulo="Contratos publicados" valor={numero(t.contratos)} />
-          <Numero rotulo="Valor dos contratos" valor={moedaCompacta(t.valor_contratos)} detalhe={moeda(t.valor_contratos)} />
+          <Numero
+            rotulo="Valor dos contratos"
+            valor={moedaCompacta(t.valor_contratos)}
+            detalhe={
+              t.valores_a_conferir
+                ? `${moeda(t.valor_contratos)} · sem ${numero(t.valores_a_conferir)} valor(es) a conferir`
+                : moeda(t.valor_contratos)
+            }
+          />
           {!orgaoUnico && <Numero rotulo="Órgãos" valor={numero(t.orgaos)} />}
           <Numero rotulo="Fornecedores (PJ)" valor={numero(t.fornecedores)} />
         </div>
@@ -295,6 +304,45 @@ function Secoes({
         </section>
       )}
 
+      {dados.a_conferir && dados.a_conferir.length > 0 && (
+        <section className="cartao cartao-corpo" aria-labelledby="titulo-a-conferir">
+          <h2 id="titulo-a-conferir" className="titulo-secao">
+            Valores a conferir na fonte
+          </h2>
+          <p className="busca-detalhe">
+            Processos e contratos publicados com valor acima de R$ 10 bilhões, ou de R$ 20 mil por habitante do ente
+            (perto de quatro anos do orçamento de um município médio). Eles contam nos números acima, mas o valor fica
+            fora das somas e da lista de fornecedores até ser conferido na publicação original: costuma ser erro de
+            digitação. Não é juízo sobre o órgão nem sobre o fornecedor.
+          </p>
+          <ul className="lista-publicacoes">
+            {dados.a_conferir.map((x) => (
+              <li key={`${x.tipo}-${x.chave}`}>
+                <div className="publicacao-cabeca">
+                  <span className="num">{dataCurta(x.data)}</span> ·{" "}
+                  {x.tipo === "processo" ? "Processo (valor estimado)" : "Contrato (valor global)"} ·{" "}
+                  <span className="num">{moeda(x.valor)}</span>
+                </div>
+                <div>{x.objeto ?? "—"}</div>
+                <div className="busca-detalhe">
+                  {x.tipo === "contrato" &&
+                    (x.fornecedor_cnpj ? `${x.fornecedor ?? "—"} (${cnpj(x.fornecedor_cnpj)}) · ` : "Pessoa física ou estrangeira · ")}
+                  {x.orgao ?? "—"}
+                  {x.link && (
+                    <>
+                      {" · "}
+                      <a href={x.link} target="_blank" rel="noreferrer">
+                        conferir no PNCP
+                      </a>
+                    </>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="cartao cartao-corpo">
         <h2 className="titulo-secao">Processos publicados mais recentemente</h2>
         <ul className="lista-publicacoes">
@@ -303,6 +351,7 @@ function Secoes({
               <div className="publicacao-cabeca">
                 <span className="num">{dataCurta(p.data)}</span> · {p.modalidade ?? "Modalidade não informada"} ·{" "}
                 <span className="num">{p.valor_estimado ? moeda(p.valor_estimado) : "sem valor estimado"}</span>
+                {p.a_conferir && " (valor a conferir, fora das somas)"}
               </div>
               <div>{p.objeto ?? "—"}</div>
               <div className="busca-detalhe">
@@ -330,6 +379,7 @@ function Secoes({
                 <div className="publicacao-cabeca">
                   <span className="num">{dataCurta(c.data)}</span> · {c.instrumento ?? "Contrato"} ·{" "}
                   <span className="num">{moeda(c.valor)}</span>
+                  {c.a_conferir && " (valor a conferir, fora das somas)"}
                 </div>
                 <div>{c.objeto ?? "—"}</div>
                 <div className="busca-detalhe">
