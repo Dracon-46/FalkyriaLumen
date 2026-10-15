@@ -1,28 +1,26 @@
 /**
- * Página `/contratacoes/`: a área de contratações públicas (PNCP), ainda não
- * publicada. Por enquanto é só texto, sem leitura de dados: diz o que a área
- * vai mostrar e do que a publicação depende.
+ * Página `/contratacoes/`: o painel de contratações (ADR-028). O trabalho é do
+ * `PainelContratacoes`, que roda no navegador e lê os arquivos publicados pelo
+ * fluxo `paineis`; o site é exportado como estático.
  */
 
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { PainelContratacoes } from "@/componentes/paineis/PainelContratacoes";
 
-/** Título da página; o layout completa com " · Lumen". */
-export const metadata: Metadata = { title: "Contratações" };
+/** Título e descrição da página, usados pelo navegador e nas prévias de link. */
+export const metadata: Metadata = {
+  title: "Contratações",
+  description:
+    "O que a União, os estados e os municípios publicaram no PNCP: processos de contratação, contratos, órgãos e " +
+    "fornecedores, com o link de cada publicação.",
+};
 
-/** Texto de apresentação da área. */
+/** Envolve o painel em `Suspense`: ele lê a URL com `useSearchParams`, que só existe no navegador. */
 export default function Contratacoes() {
   return (
-    <div className="texto-corrido">
-      <h1>Contratações</h1>
-      <p>
-        Esta área vai mostrar as contratações, contratos e atas publicados no Portal Nacional de Contratações Públicas
-        (PNCP), com o amparo legal declarado em cada uma.
-      </p>
-      <p>
-        A coleta e a normalização já funcionam (Fase 1 do roteiro); a publicação depende da revisão metodológica das
-        regras de sinalização, que acompanham cada atividade para análise com a evidência primária e o dispositivo
-        legal aplicado.
-      </p>
-    </div>
+    <Suspense fallback={<p>Carregando…</p>}>
+      <PainelContratacoes />
+    </Suspense>
   );
 }
