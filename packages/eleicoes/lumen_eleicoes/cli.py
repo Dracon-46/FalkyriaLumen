@@ -8,6 +8,7 @@ Exemplos::
     lumen eleicoes catalogo                         # o que o TSE publica agora
     lumen eleicoes municipios                       # cadastro TSE ↔ IBGE (busca e mapa)
     lumen eleicoes mapas                            # malhas do IBGE para o mapa
+    lumen eleicoes zonas --anos 2026,2024           # locais de votação: mapa das zonas eleitorais
     lumen eleicoes ao-vivo --eleicao 2026-1t-geral  # noite da apuração
     lumen eleicoes historico baixar --anos 2022,2018,1950
     lumen eleicoes historico processar --anos 2022,2018,1950
@@ -33,7 +34,7 @@ from pathlib import Path
 from lumen_ingestao.bronze import ArmazemBronzeLocal
 from lumen_ingestao.cliente_http import ClienteHttp
 
-from . import antigas, carga, geo, medicao, referencias, tse
+from . import antigas, carga, geo, medicao, referencias, tse, zonas
 from . import dados_abertos as da
 from .coletor import FONTE_ID, ColetorAoVivo, ResumoPassada, plano_padrao
 from .configuracao import ConfiguracaoAusente, ConfiguracaoEleicoes, carregar, carregar_publicacao
@@ -67,6 +68,18 @@ def _anos(texto: str) -> list[int]:
     fora = [a for a in anos if a not in validos]
     if fora:
         raise argparse.ArgumentTypeError(f"anos sem eleição ordinária nos dados abertos: {fora}")
+    return anos
+
+
+def _anos_locais(texto: str) -> list[int]:
+    """Tipo do argparse para ``zonas --anos``: anos com locais de votação (2018 em diante), do mais recente ao
+    mais antigo; ``todos`` são os de ``zonas.ANOS_LOCAIS``."""
+    if texto.strip().lower() == "todos":
+        return list(zonas.ANOS_LOCAIS)
+    anos = sorted({int(x) for x in texto.split(",") if x.strip()}, reverse=True)
+    fora = [a for a in anos if a not in zonas.ANOS_LOCAIS]
+    if fora:
+        raise argparse.ArgumentTypeError(f"anos sem locais de votação nos dados abertos: {fora}")
     return anos
 
 
@@ -164,6 +177,26 @@ def cmd_mapas(cfg, args) -> int:
     gravados = geo.baixar_malhas(_cliente(cfg, geo.FONTE_ID, cfg.rpm_ibge), cfg.saida, ufs=_lista(args.ufs),
                                  qualidade=args.qualidade, bronze=bronze)
     _imprimir({"malhas": [str(p) for p in gravados]})
+    return 0
+
+
+def cmd_zonas(cfg, args) -> int:
+    """Baixa os locais de votação de cada ano e grava o mapa das zonas eleitorais (``geo/zonas-<ano>/``).
+
+    O andamento vai para o stderr; no stdout, só o resumo de cada ano em JSON: municípios com mais de uma
+    zona, locais e descartados.
+    """
+    bronze = None if args.sem_bronze else ArmazemBronzeLocal(cfg.bronze)
+    cadastro = _cadastro(cfg)
+    resumos = []
+
+    def andamento(msg: str) -> None:
+        print(msg, file=sys.stderr, flush=True)
+    for ano in args.anos:
+        caminho, manifesto = zonas.baixar_locais(cfg, ano, bronze=bronze, atualizar=args.atualizar, saida=andamento)
+        resumos.append(zonas.gravar_zonas(ano, caminho, cfg.saida, cadastro, manifesto=manifesto,
+                                          progresso=andamento).para_json())
+    _imprimir(resumos)
     return 0
 
 
@@ -285,6 +318,7 @@ def cmd_preparar(cfg, args) -> int:
     """
     opcoes = OpcoesPreparacao(
         anos=args.anos, ao_vivo=not args.sem_ao_vivo, historico=not args.sem_historico, portal=not args.sem_portal,
+        zonas=not args.sem_zonas,
         servir=args.servir, abrir_navegador=not args.sem_navegador, host=args.host, porta=args.porta,
         refazer=args.refazer, atualizar=args.atualizar, municipios_proporcionais=args.municipios_proporcionais,
         limite_municipio=args.limite_municipio, base=args.base, bronze=not args.sem_bronze,
@@ -420,6 +454,7 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--anos", type=_anos, help="anos dos dados abertos (padrão: todos, de 2024 a 1933)")
     c.add_argument("--sem-ao-vivo", action="store_true", help="não coleta o sistema de resultados (2026)")
     c.add_argument("--sem-historico", action="store_true", help="não baixa os dados abertos")
+    c.add_argument("--sem-zonas", action="store_true", help="não baixa os locais de votação (mapa das zonas)")
     c.add_argument("--sem-portal", action="store_true", help="não gera o portal (Node.js)")
     c.add_argument("--sem-navegador", action="store_true", help="com --servir, não abre o navegador")
     c.add_argument("--refazer", action="store_true", help="ignora o registro do que já foi feito")
@@ -452,6 +487,12 @@ def construir_parser() -> argparse.ArgumentParser:
     c = sub.add_parser("mapas", help="baixa as malhas do IBGE")
     c.add_argument("--ufs", help="siglas separadas por vírgula (padrão: todas)")
     c.add_argument("--qualidade", default="minima", choices=geo.QUALIDADES)
+    c.add_argument("--sem-bronze", action="store_true")
+
+    c = sub.add_parser("zonas", help="locais de votação: mapa das zonas eleitorais (ADR-029)")
+    c.add_argument("--anos", type=_anos_locais, default=list(zonas.ANOS_LOCAIS),
+                   help="anos separados por vírgula, ou todos (padrão: 2026 a 2018)")
+    c.add_argument("--atualizar", action="store_true", help="consulta o servidor mesmo se já baixado")
     c.add_argument("--sem-bronze", action="store_true")
 
     c = sub.add_parser("ao-vivo", help="coleta a apuração em andamento")
@@ -504,7 +545,7 @@ def construir_parser() -> argparse.ArgumentParser:
     return p
 
 
-COMANDOS = {"preparar": cmd_preparar, "publicar": cmd_publicar, "catalogo": cmd_catalogo, "municipios": cmd_municipios, "mapas": cmd_mapas, "ao-vivo": cmd_ao_vivo,
+COMANDOS = {"preparar": cmd_preparar, "publicar": cmd_publicar, "catalogo": cmd_catalogo, "municipios": cmd_municipios, "mapas": cmd_mapas, "zonas": cmd_zonas, "ao-vivo": cmd_ao_vivo,
             "simular": cmd_simular, "amostra": cmd_amostra, "servir": cmd_servir, "verificar": cmd_verificar,
             "medir": cmd_medir}
 

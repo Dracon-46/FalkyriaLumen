@@ -1,8 +1,11 @@
 # Carga das eleições na nuvem — ADR-026.
 #
 # Baixa e processa as eleições (sistema de resultados do TSE e dados abertos,
-# 1933 a 2024) numa máquina do GitHub, sem nenhum computador pessoal ligado,
-# e publica os feeds no Cloudflare R2, de onde o portal os lê.
+# 1933 a 2024) e os locais de votação de 2018 a 2026 (mapa das zonas
+# eleitorais, ADR-029) numa máquina do GitHub, sem nenhum computador pessoal
+# ligado, e publica os feeds no Cloudflare R2, de onde o portal os lê. Depois
+# da versão 0.8, a primeira execução refaz os anos de 1994 a 2024 (os feeds
+# dos municípios ganham as zonas) e só publica os arquivos que mudaram.
 #
 # Retomável: o estado da carga fica no bucket privado. A primeira carga leva
 # mais que uma execução (2,3 GB de arquivos do TSE, perto de 450 mil feeds);
