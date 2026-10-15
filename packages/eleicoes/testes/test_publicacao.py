@@ -297,6 +297,32 @@ def test_envio_tenta_de_novo_falha_passageira(tmp_path, s3_memoria):
         nuvem.publicar()
     assert esperas == list(publicacao.ESPERAS_ENVIO)
     assert not publicacao.transitorio(ValueError("x"))
+    assert publicacao.transitorio(ErroS3(520, "error code: 520"))
+
+
+def test_estado_e_manifesto_tentam_de_novo_falha_passageira(tmp_path, s3_memoria):
+    """Um 520 do Cloudflare ao gravar o estado derrubou a sincronização de um ano em 14/10/2026."""
+    from lumen_ingestao.s3 import ErroS3
+    saida, estado = tmp_path / "feeds", tmp_path / "estado"
+    saida.mkdir()
+    (saida / "a.json").write_text("{}")
+    estado.mkdir()
+    (estado / "preparar.json").write_text("{}")
+    priv = _cliente_s3(s3_memoria, PRIV)
+    original = priv.gravar
+    falhas = {"publicacao/raiz.json": 1, "publicacao/_totais.json": 1, "estado/preparar.json": 2}
+
+    def gravar(chave, corpo, **kw):
+        if falhas.get(chave):
+            falhas[chave] -= 1
+            raise ErroS3(520, "error code: 520")
+        return original(chave, corpo, **kw)
+
+    priv.gravar = gravar
+    esperas = []
+    r = Nuvem(_cliente_s3(s3_memoria, PUB), priv, saida, estado, aviso=lambda m: None, dormir=esperas.append).sincronizar()
+    assert r.enviados == 1 and len(esperas) == 4
+    assert {"publicacao/raiz.json", "publicacao/_totais.json", "estado/preparar.json"} <= set(s3_memoria.chaves(PRIV))
 
 
 def test_publica_em_paralelo_com_o_indice_por_ultimo(tmp_path, s3_memoria):
