@@ -55,8 +55,9 @@ LOTE_MANIFESTO = 1000
 # Assinatura no manifesto: os primeiros 24 dígitos hexadecimais do SHA-256 (96 bits), suficientes para saber
 # se o arquivo mudou e com metade do tamanho no manifesto.
 DIGITOS_ASSINATURA = 24
-# Erros de envio que valem nova tentativa (excesso de requisições e falhas passageiras do servidor)
-STATUS_TRANSITORIOS = {408, 429, 500, 502, 503, 504}
+# Erros de envio que valem nova tentativa: excesso de requisições, falhas passageiras do servidor e as do
+# Cloudflare na frente do Supabase (520 a 524; um 520 derrubou uma gravação do estado em 14/10/2026)
+STATUS_TRANSITORIOS = {408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524}
 ESPERAS_ENVIO = (2.0, 8.0)
 # Envios simultâneos. Um a um, o Supabase em sa-east-1 recebia pouco mais de um arquivo por segundo de
 # uma máquina do GitHub (14/10/2026): uma passada do coletor, com mil feeds, levava mais de dez minutos.
@@ -241,14 +242,17 @@ class Nuvem:
         if not self._sujos:
             return
         for grupo in sorted(self._sujos):
-            corpo = json.dumps({"versao": 2, "arquivos": self._grupos[grupo], "bytes": self._tamanhos[grupo]},
-                               sort_keys=True, separators=(",", ":")).encode("utf-8")
-            self.estado.gravar(f"{PREFIXO_MANIFESTO}{grupo}.json", gzip.compress(corpo, compresslevel=6, mtime=0),
-                               sem_sobrescrever=False, tipo="application/gzip")
+            corpo = gzip.compress(json.dumps({"versao": 2, "arquivos": self._grupos[grupo],
+                                              "bytes": self._tamanhos[grupo]},
+                                             sort_keys=True, separators=(",", ":")).encode("utf-8"),
+                                  compresslevel=6, mtime=0)
+            self._com_tentativas(lambda chave=f"{PREFIXO_MANIFESTO}{grupo}.json", corpo=corpo: self.estado.gravar(
+                chave, corpo, sem_sobrescrever=False, tipo="application/gzip"))
         totais = self.totais()
         self._totais = totais
-        self.estado.gravar(TOTAIS, json.dumps({"versao": 1, "bytes": totais}, sort_keys=True).encode("utf-8"),
-                           sem_sobrescrever=False, tipo="application/json")
+        corpo_totais = json.dumps({"versao": 1, "bytes": totais}, sort_keys=True).encode("utf-8")
+        self._com_tentativas(lambda: self.estado.gravar(TOTAIS, corpo_totais, sem_sobrescrever=False,
+                                                        tipo="application/json"))
         self._sujos.clear()
 
     # ------------------------------------------------------------ operações
@@ -330,23 +334,28 @@ class Nuvem:
                    f"{resumo.iguais} já iguais; {self.ocupado() / 1e6:,.1f} MB no bucket")
         return resumo
 
-    def _enviar(self, rel: str) -> int:
-        """Envia um arquivo da saída ao bucket público com o tipo e o cache dele (JSON comprimido com gzip);
-        devolve quantos bytes subiram. Falha passageira (``transitorio``) é tentada de novo, com espera."""
-        corpo = (self.saida / rel).read_bytes()
-        codificacao = None
-        if comprimir(rel):
-            corpo, codificacao = gzip.compress(corpo, compresslevel=6, mtime=0), "gzip"
+    def _com_tentativas(self, gravar: Callable[[], None]) -> None:
+        """Roda a gravação; falha passageira (``transitorio``) é tentada de novo depois de cada espera de
+        ``ESPERAS_ENVIO``, e a última falha sobe."""
         for espera in (*ESPERAS_ENVIO, None):
             try:
-                self.feeds.gravar(rel, corpo, sem_sobrescrever=False, tipo=tipo_de(rel), cache=cache_de(rel),
-                                  codificacao=codificacao)
-                return len(corpo)
+                gravar()
+                return
             except Exception as erro:
                 if espera is None or not transitorio(erro):
                     raise
                 self.dormir(espera)
-        raise AssertionError("inalcançável")  # pragma: no cover
+
+    def _enviar(self, rel: str) -> int:
+        """Envia um arquivo da saída ao bucket público com o tipo e o cache dele (JSON comprimido com gzip);
+        devolve quantos bytes subiram. Falha passageira é tentada de novo, com espera (``_com_tentativas``)."""
+        corpo = (self.saida / rel).read_bytes()
+        codificacao = None
+        if comprimir(rel):
+            corpo, codificacao = gzip.compress(corpo, compresslevel=6, mtime=0), "gzip"
+        self._com_tentativas(lambda: self.feeds.gravar(rel, corpo, sem_sobrescrever=False, tipo=tipo_de(rel),
+                                                       cache=cache_de(rel), codificacao=codificacao))
+        return len(corpo)
 
     def salvar_estado(self) -> int:
         """Envia ao bucket privado os arquivos do diretório de estado; devolve quantos."""
@@ -355,8 +364,9 @@ class Nuvem:
             for p in sorted(self.dir_estado.rglob("*")):
                 if p.is_file() and not p.name.endswith(".tmp"):
                     rel = p.relative_to(self.dir_estado).as_posix()
-                    self.estado.gravar(PREFIXO_ESTADO + rel, p.read_bytes(), sem_sobrescrever=False,
-                                       tipo=tipo_de(rel))
+                    corpo = p.read_bytes()
+                    self._com_tentativas(lambda rel=rel, corpo=corpo: self.estado.gravar(
+                        PREFIXO_ESTADO + rel, corpo, sem_sobrescrever=False, tipo=tipo_de(rel)))
                     n += 1
         return n
 
