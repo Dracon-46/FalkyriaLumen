@@ -6,4 +6,4 @@ aqui, na camada mais baixa, porque vai no User-Agent de toda coleta
 orquestração.
 """
 
-VERSAO_LUMEN = "0.7.0"
+VERSAO_LUMEN = "0.7.1"
