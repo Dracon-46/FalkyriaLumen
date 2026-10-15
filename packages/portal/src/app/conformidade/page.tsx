@@ -1,27 +1,26 @@
 /**
- * Página `/conformidade/`: a área de conformidade fiscal, ainda não publicada.
- * Por enquanto é só texto, sem leitura de dados: diz o que a área vai mostrar
- * e em que pé está a avaliação.
+ * Página `/conformidade/`: o painel de conformidade fiscal (ADR-028). O
+ * trabalho é do `PainelConformidade`, que roda no navegador e lê os arquivos
+ * publicados pelo fluxo `paineis`; o site é exportado como estático.
  */
 
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { PainelConformidade } from "@/componentes/paineis/PainelConformidade";
 
-/** Título da página; o layout completa com " · Lumen". */
-export const metadata: Metadata = { title: "Conformidade" };
+/** Título e descrição da página, usados pelo navegador e nas prévias de link. */
+export const metadata: Metadata = {
+  title: "Conformidade",
+  description:
+    "Se os relatórios da Lei de Responsabilidade Fiscal de cada estado e município constam do extrato do Tesouro " +
+    "Nacional, e em que data, contra o prazo legal.",
+};
 
-/** Texto de apresentação da área. */
+/** Envolve o painel em `Suspense`: ele lê a URL com `useSearchParams`, que só existe no navegador. */
 export default function Conformidade() {
   return (
-    <div className="texto-corrido">
-      <h1>Conformidade</h1>
-      <p>
-        Esta área vai mostrar, para cada estado e município, se os relatórios exigidos pela Lei de Responsabilidade
-        Fiscal (RREO, RGF e contas anuais) constam do extrato do Tesouro Nacional e em que data foram entregues.
-      </p>
-      <p>
-        A avaliação já está implementada e testada; quando a coleta do extrato falha ou o prazo ainda não venceu, o
-        resultado aparece como indeterminado, e nada é atribuído ao ente.
-      </p>
-    </div>
+    <Suspense fallback={<p>Carregando…</p>}>
+      <PainelConformidade />
+    </Suspense>
   );
 }
