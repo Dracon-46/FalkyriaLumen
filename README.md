@@ -15,8 +15,9 @@ controle, imprensa e sociedade civil.
 Este repositório contém a **documentação completa do projeto**, a **Fase 0** concluída (camada
 de prova, máquina de estados do indício, parâmetros legais datados, vocabulário controlado), o
 **núcleo da Fase 1** (coleta e normalização do PNCP, IBGE e SICONFI, conformidade da LRF) e a
-**aba Eleições** do portal, com resultados oficiais do TSE ao vivo e desde 1933. O
-desenvolvimento segue o plano descrito no DOC-10.
+**aba Eleições** do portal, com resultados oficiais do TSE ao vivo e desde 1933, e os **painéis de
+Contratações e de Conformidade**, com o que cada ente publicou no PNCP e as entregas da LRF ao
+Tesouro. O desenvolvimento segue o plano descrito no DOC-10.
 
 ## Ver a aba Eleições funcionando
 
@@ -149,6 +150,7 @@ relativização, o sistema reproduziria o viés de atenção que existe para cor
 | [DOC-10](docs/DOC-10_Roadmap.docx) | Fases, marcos, esforço, custos e critérios de replanejamento |
 | [DOC-11](docs/DOC-11_Referencia_Tecnica.docx) | Referência técnica: arquivo por arquivo, função por função (gerada do código) |
 | [DOC-12](docs/DOC-12_Eleicoes.docx) | Aba Eleições: idealização, fontes, arquitetura, operação e integração |
+| [DOC-13](docs/DOC-13_Paineis.docx) | Painéis de Contratações e Conformidade: fontes, estado, regras de soma e de avaliação, operação |
 
 Os diagramas estão em [`docs/diagramas/`](docs/diagramas/) em PNG. As decisões
 arquiteturais estão em [`docs/adr/`](docs/adr/README.md); o histórico de versões, no
@@ -277,6 +279,23 @@ calibrar com amostras maiores. O varejo só funciona com o segredo
 `LUMEN_ML_TOKEN` (sem credencial, a busca do Mercado Livre responde 403). Lojas sem API pública (Magazine Luiza, KaBuM,
 Pichau, comparadores) ficam de fora por decisão: ver a ADR-027.
 
+### Painéis de contratações e conformidade
+
+Fatos publicados, sem indício (ADR-028, DOC-13): o que cada ente e cada órgão publicou no PNCP
+(processos, contratos, órgãos, fornecedores pessoa jurídica, com o link de cada publicação) e se
+as contas anuais, o RREO e o RGF constam do extrato do Tesouro, contra o prazo da LRF.
+
+```bash
+lumen painel cadastro --estado estado/                      # cadastro de entes do SICONFI
+lumen painel contratacoes --estado estado/ --ultimos 3      # dias do PNCP que faltam
+lumen painel conformidade --estado estado/ --ufs RS,SC      # extrato de entregas por UF
+lumen painel publicar --estado estado/ --saida site/        # o site inteiro, a partir do estado
+```
+
+Na nuvem: `paineis.yml` (todo dia; a conformidade às segundas), `paineis-carga.yml` (meses
+anteriores, em máquinas paralelas) e `paineis-site.yml` (publica no GitHub Pages). O estado fica
+nos anexos da versão `painel-estado`; o portal lê de `https://dracon-46.github.io/FalkyriaLumen/`.
+
 ### Estrutura
 
 ```
@@ -291,7 +310,8 @@ packages/
                   leitor de .xlsx sem dependências, relatório e distribuição para calibrar
   eleicoes/       aba Eleições: coletor do TSE, dados abertos (1933 a 2024), feeds, preparar,
                   mapa e cadastro embutidos, simulação, servidor local
-  portal/         portal Next.js (aba Eleições; Contratações e Conformidade nas próximas fases)
+  painel/         painéis de contratações (PNCP por ente e órgão) e conformidade (entregas da LRF)
+  portal/         portal Next.js: Eleições, Contratações e Conformidade
 ferramentas/
   lint-vocabulario/   verificador de vocabulário controlado (ADR-007)
   referencia/         extrai a referência técnica e cobra documentação de tudo (ADR-023)
@@ -322,6 +342,11 @@ passadas desde 1933 pelos dados abertos (por município de 1994 em diante; antes
 mapa interativo por estado e município, busca, modo TV, simulação de apuração e carga completa
 num comando (`lumen eleicoes preparar`, ou `preparar.cmd` no Windows).
 
+**Painéis de Contratações e Conformidade: no ar desde 14/10/2026.** Para o Brasil, cada ente e
+cada órgão (inclusive autarquias e empresas públicas municipais), o que foi publicado no PNCP; para
+cada estado e município, as entregas da LRF ao Tesouro contra o prazo legal. Sem indício e sem
+ordenação por risco (ADR-028).
+
 | Componente | Testes |
 |---|---|
 | Ingestão (bronze, S3, cliente HTTP, adaptadores) | 114 |
@@ -330,15 +355,16 @@ num comando (`lumen eleicoes preparar`, ou `preparar.cmd` no Windows).
 | Normalização | 116 |
 | Conformidade (SICONFI) | 14 |
 | Pipeline local | 8 |
-| Aba Eleições (Python, inclusive a publicação na nuvem) | 196 |
+| Aba Eleições (Python, inclusive a publicação na nuvem) | 203 |
+| Painéis de contratações e conformidade | 28 |
 | Vocabulário controlado e referência técnica | 66 |
-| Portal (TypeScript) | 84 |
+| Portal (TypeScript) | 91 |
 
 Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (verificado por teste).
 
 ### Pendente
 
-- **Revisar as ADRs 011 a 027** (todas propostas, tomadas durante a implementação).
+- **Revisar as ADRs 011 a 028** (todas propostas, tomadas durante a implementação).
 - **Calibrar a regra A-05** sobre o relatório silencioso antes de qualquer publicação (ADR-027).
 - **Contas da hospedagem gratuita** (ADR-026): Cloudflare (R2 e Pages), segredos do GitHub e
   uma organização própria do projeto no Supabase para o núcleo (DOC-12, seção 9.5). Feeds das
@@ -346,6 +372,10 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
 - **Revisão metodológica e jurídica da regra B-01** frente ao art. 75, § 1º, da Lei 14.133
   (ADR-022), antes da Fase 2.
 - **Fonte para "quem autorizou o ato"**: a API do PNCP não publica o agente (ADR-017).
+- **Portais da transparência municipais** (ADR-028): o que não passa pelo PNCP — estatais da
+  Lei 13.303 que não publicam lá e o que o município só publica no próprio portal. Cadastro do
+  portal de cada município, conformidade de transparência (RF-CF-01, 03, 04) e leitura por
+  fornecedor de sistema.
 - Fase 1 restante: Portal da Transparência (CGU, com CEIS/CNEP/CEPIM), base de CNPJ da Receita
   Federal, grupos de pares e painel operacional (DOC-10).
 

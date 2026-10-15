@@ -3,6 +3,45 @@
 Formato: o que mudou para quem usa e para quem desenvolve, por versão. As
 decisões que justificam cada mudança estão nas ADRs citadas.
 
+## 0.7.0 — 2026-10-14
+
+### Painéis de Contratações e de Conformidade (ADR-028, DOC-13)
+
+- As abas Contratações e Conformidade do portal deixam de ser "em breve". Mostram
+  fatos publicados, sem indício e sem ordenação por risco (PUB-07), com o aviso
+  metodológico em cada página (PUB-08).
+- Pacote novo, `lumen_painel` (`lumen painel …`):
+  - `contratacoes`: coleta um dia do PNCP por vez (as 19 modalidades e os
+    contratos, pela data de publicação), com bronze e silver temporários, e
+    guarda só o resumo compacto do dia; um dia com falha não é gravado e volta
+    na execução seguinte;
+  - `conformidade`: o extrato de entregas do SICONFI de cada ente da UF, no
+    exercício anterior e no corrente, com a situação da coleta de cada um;
+  - `cadastro`: nomes, UF, esfera e população dos entes, do SICONFI;
+  - `publicar`: soma os dias por ente, por órgão, por esfera e por UF, avalia
+    as obrigações da LRF na data do dia e grava o site inteiro;
+  - `faltando`: divide os dias que faltam em blocos para máquinas paralelas.
+- Contratações por ente (União, estado, DF, município) e por órgão: o número
+  de um município é o dos órgãos municipais, inclusive autarquias, fundações e
+  empresas públicas (como um serviço autônomo de água e esgoto), cada um com
+  página própria. Contratos com pessoa física ou estrangeira só entram numa
+  soma anônima: nome e documento não ficam nem no estado guardado.
+- Conformidade: contas anuais, RREO por bimestre e RGF por período e por
+  Poder, contra os prazos de `parametros_legais`; coleta que falhou, prazo não
+  vencido e instituição não identificada dão indeterminado. Entregas
+  comparadas ao prazo no horário de Brasília.
+- Estado nos anexos da versão `painel-estado` do repositório (sem custo, fora
+  do 1 GB do Supabase); site no GitHub Pages
+  (`https://dracon-46.github.io/FalkyriaLumen/`). Fluxos `paineis.yml`
+  (diário; conformidade às segundas), `paineis-carga.yml` (meses anteriores) e
+  `paineis-site.yml`.
+- Portal: busca de União, estado ou município; páginas do Brasil, do ente e
+  do órgão; gráficos por mês com tabela; selos de resultado com ícone e texto;
+  obrigações empilhadas no celular.
+- `eleicoes-carga`: entrada `historico` na execução manual, que inclui 1933 a
+  2024 mesmo com `ELEICOES_SEM_HISTORICO=true`.
+- Documentação: ADR-028, DOC-13 1.0, DOC-11 e DOC-12 regerados, README.
+
 ## 0.6.0 — 2026-10-09
 
 ### Preço comparado com o mercado de fora do governo (regra A-05, ADR-027)
