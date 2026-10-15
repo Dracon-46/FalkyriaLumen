@@ -407,6 +407,12 @@ body.push(spacer(80));
 body.push(t("O arquivo de município de cargo com muitos candidatos (Vereador, deputados) leva os 50 mais votados e " +
   "todos os eleitos (`--limite-municipio`); os demais são contados em `candidatos_omitidos`, e a lista completa " +
   "fica no arquivo da UF quando o cargo é estadual."));
+body.push(t("**Zonas eleitorais (ADR-029).** Os arquivos já vêm por município e zona; até a versão 0.7 as zonas eram " +
+  "só somadas no município. O detalhe da apuração diz quais municípios têm duas zonas ou mais (190 em 2026) e, só " +
+  "neles, a votação também é somada por zona. O feed `mu-*` desses municípios leva as zonas em `partes`, como o da " +
+  "UF leva os municípios: o número da zona como código, quem lidera, percentual, vantagem e eleitorado, com as " +
+  "cores do próprio feed. Nos cargos proporcionais a zona não traz `bancada`: os eleitos são do município ou da " +
+  "UF. `preparar` refaz uma vez os anos processados pela versão anterior (`VERSAO_PROCESSAMENTO`)."));
 
 body.push(h2("6.3 Eleições de 1933 a 1990"));
 body.push(t("Os três ZIPs do ano são pequenos (de 10 KB a 640 KB) e lidos inteiros (`antigas.LeituraAno`), " +
@@ -422,6 +428,35 @@ body.push(t("O índice marca a eleição com `municipios: false`. Os totais do B
   "como total. Os 19 anos geram 1.670 feeds em cerca de 5 segundos, e todos passam em `verificar`."));
 
 // ============================================================ 7. Contrato dos feeds
+
+body.push(h2("6.4 Locais de votação e o mapa das zonas"));
+body.push(t("A Justiça Eleitoral não publica os limites das zonas eleitorais. Publica, por seção, o local de votação, a " +
+  "zona e as coordenadas do local (`eleitorado_local_votacao_<ano>.zip`, de 2018 em diante; em 2026, um CSV por UF " +
+  "e coordenadas com vírgula decimal). `lumen eleicoes zonas` (e a etapa das zonas do `preparar`) baixa esse " +
+  "arquivo, soma o eleitorado das seções de cada local e grava, para cada município com duas zonas ou mais, as " +
+  "zonas e os locais com coordenada. O portal desenha cada zona como a área mais perto dos seus locais (seção 8.3)."));
+body.push(table(["Ano", "Municípios", "Zonas", "Locais no mapa", "Sem coordenada", "Fora do município"],
+  [1100, 1500, 1200, 1900, 1900, 2000], [
+  ["2026", "190", "725", "25.508", "118", "47"],
+  ["2024", "189", "705", "23.824", "827", "29"],
+  ["2022", "189", "721", "23.678", "962", "59"],
+  ["2020", "189", "704", "22.731", "1.539", "58"],
+  ["2018", "189", "721", "21.358", "3.477", "29"],
+], { size: 17 }));
+body.push(spacer(80));
+body.push(t("Um local fica fora do desenho sem coordenada, ou com coordenada a mais de 300 m do contorno do " +
+  "município. O contorno é o da qualidade `maxima` do IBGE (191 municípios, 1,5 MB, em `lumen_eleicoes/dados/geo/mu/`): " +
+  "na qualidade `minima` do mapa da UF, Taboão da Serra (SP) tem 4 pontos e Olinda (PE), 6, e um terço dos locais " +
+  "de Olinda caía no vizinho. Os eleitores dos locais fora do desenho continuam na tabela das zonas."));
+body.push(code([
+  "geo/zonas-<ano>/indice.json        código IBGE → número de zonas, dos municípios com mais de uma",
+  "geo/zonas-<ano>/mu-<ibge>.json     zonas (eleitores, locais) e locais [longitude, latitude, zona, eleitores, nome]",
+  "geo/mu/<ibge>.json                 contorno do município na qualidade maxima do IBGE",
+]));
+body.push(t("O servidor de malhas do IBGE envia só o certificado final, sem o intermediário (Sectigo Public Server " +
+  "Authentication CA DV R36). O navegador completa a cadeia; o Python não, e `lumen eleicoes mapas` falha com " +
+  "`unable to get local issuer certificate` numa máquina sem o intermediário instalado. Os contornos embutidos " +
+  "foram baixados em 15/10/2026 com a cadeia completada pelo intermediário publicado no crt.sh."));
 
 body.push(h1("7. Contrato dos feeds (versão 1)", { novaPagina: true }));
 body.push(t("Tudo o que o portal mostra sai destes arquivos. O contrato está em `feeds.py` (Python, quem grava) e " +
@@ -442,6 +477,8 @@ body.push(table(["tipo", "Quando", "Campos principais"], [1500, 3300, 4800], [
   ["resultado", "Abrangência em que o cargo tem resultado único", "totalizacao, comparecimento, votos, candidatos (com cor, situação, vice), agremiacoes, quociente_eleitoral, partes, avisos, origem"],
   ["panorama", "Cargo visto acima do nível em que é disputado", "partidos (liderados, eleitos, votos, cor), partes (líder de cada uma; bancada nos proporcionais), totalizacao por partes"],
   ["historico", "Evolução da totalização", "candidatos (número, nome, partido, cor) e pontos (instante, % de seções, votos por número)"],
+  ["zonas", "Município com mais de uma zona eleitoral (geo/zonas-<ano>/)", "municipio, zonas (zona, locais, eleitores), locais [longitude, latitude, zona, eleitores, nome], descartados, origem"],
+  ["zonas-indice", "Índice do mapa das zonas de um ano", "municipios (código IBGE → número de zonas), origem"],
 ], { monoCols: [0], size: 17 }));
 
 body.push(h2("7.2 Regras do contrato"));
@@ -488,7 +525,10 @@ body.push(t("No mapa (coroplético: todas as áreas lado a lado) só as três pr
 body.push(h2("8.2 Leitura da tela"));
 body.push(table(["Elemento", "Regra"], [2600, 7000], [
   ["Lista de candidatos", "Ordem do feed (mais votado primeiro); percentual dos válidos; vice ou 1º suplente; selo de eleito ou 2º turno como o TSE publica."],
-  ["Mapa", "Pinta quem lidera cada parte; dica com líder, percentual, margem e seções totalizadas; contorno em destaque na área sob o cursor; clique desce de nível (o clique que termina um arrasto não desce). Aproxima até 16 vezes (seção 1.2). Partes sem área no mapa atual viram botões abaixo dele (no Brasil) ou uma nota (na UF)."],
+  ["Mapa", "Pinta quem lidera cada parte; dica com líder, percentual, margem e seções totalizadas; contorno em destaque na área sob o cursor; clique desce de nível (o clique que termina um arrasto não desce). Aproxima até 16 vezes (seção 1.2), e mais com um município aberto. Partes sem área no mapa atual viram botões abaixo dele (no Brasil) ou uma nota (na UF)."],
+  ["Município aberto", "O mapa da UF voa até o município (cerca de meio segundo; sem animação para quem pede menos movimento) e apaga os vizinhos, que continuam clicáveis. Com mais de uma zona, mostra as zonas (seção 8.3). Esc solta a zona escolhida e, de novo, volta para a UF."],
+  ["Tabela das zonas", "Zona, quem lidera, percentual, eleitores e locais; o cursor numa linha destaca a zona no mapa e o clique fixa o destaque. Ao vivo, só eleitores e locais."],
+  ["Navegação", "A tela anterior fica, esmaecida, até o feed novo chegar; feeds de eleições encerradas ficam em memória e o cursor parado numa área já pré-carrega o que o clique abre."],
   ["Eleições de 1933 a 1990", "Grupo próprio no seletor; sem mapa de municípios nem evolução da apuração; número de urna oculto quando não existia; a busca por município leva ao estado."],
   ["Panorama", "Placar por partido com eleitos e partes lideradas; nos proporcionais, a bancada de cada partido na parte."],
   ["Evolução", "Eixo horizontal em % de seções totalizadas (não o relógio): mostra como a vantagem mudou conforme as urnas chegaram. Um só eixo vertical, em % dos válidos; quatro séries."],
@@ -500,6 +540,20 @@ body.push(table(["Elemento", "Regra"], [2600, 7000], [
   ["Celular", "Lista de candidatos antes do mapa; cabeçalho compacto."],
   ["Modo TV", "Fundo escuro, tipografia grande, seis candidatos, sem controles."],
 ], { boldFirstCol: true, size: 17 }));
+
+body.push(h2("8.3 Zonas eleitorais no mapa do município (ADR-029)"));
+body.push(t("Cada local de votação fica com a área mais perto dele (diagrama de Voronoi, calculado no portal, " +
+  "`src/lib/voronoi.ts`), e a zona é a soma das áreas dos seus locais, recortada pelo contorno do município. Quando " +
+  "o mesmo prédio é local de duas zonas, o ponto fica com a que tem mais eleitores ali. A cor da zona é a de quem " +
+  "lidera nela, com a regra da seção 8.1; ao vivo, as zonas ficam sem cor de resultado, separadas pelas fronteiras. " +
+  "Os locais aparecem como pontos e os números das zonas, por cima; onde não cabem todos, ficam os das zonas com " +
+  "mais eleitores, e aproximar mostra o resto. Com os 2 mil locais da capital paulista, o cálculo leva perto de 30 ms."));
+body.push(t("Embaixo do mapa, sempre, a nota de método: o contorno é aproximado, vem dos locais de votação do ano da " +
+  "eleição, a Justiça Eleitoral não publica os limites das zonas, e quantos locais ficaram fora do desenho. De 1994 a " +
+  "2016 não há locais com coordenada: o resultado por zona aparece só na tabela."));
+body.push(...figure("21_tela_zonas.png",
+  "Figura 8. Presidente, 1º turno de 2026, município de São Paulo: as 57 zonas eleitorais, os locais de votação e a dica da zona 5.",
+  560, 494));
 
 // ============================================================ 9. Operação
 
@@ -532,7 +586,7 @@ body.push(t("É retomável: `<estado>/preparar.json` registra cada ano processad
 body.push(table(["Opção", "Efeito"], [3400, 6200], [
   ["--servir [--porta 8080] [--sem-navegador]", "Sobe o portal antes da carga e abre o navegador"],
   ["--anos 2024,2022 | todos", "Restringe os anos dos dados abertos (padrão: todos)"],
-  ["--sem-ao-vivo / --sem-historico / --sem-portal", "Pula a etapa correspondente"],
+  ["--sem-ao-vivo / --sem-historico / --sem-portal / --sem-zonas", "Pula a etapa correspondente (sem o histórico, as zonas também ficam de fora)"],
   ["--atualizar / --refazer", "Reprocessa o que mudou na fonte / tudo"],
   ["--municipios-proporcionais", "Na eleição do sistema de resultados, também os deputados por município"],
   ["--limite-municipio 50", "Candidatos por município nos cargos proporcionais"],
@@ -577,6 +631,7 @@ body.push(table(["Comando", "O que faz"], [4400, 5200], [
   ["lumen eleicoes catalogo", "Lista as eleições do sistema de resultados e os anos dos dados abertos"],
   ["lumen eleicoes municipios [--eleicao <id>]", "Grava municipios.json (TSE ↔ IBGE)"],
   ["lumen eleicoes mapas [--ufs] [--qualidade]", "Baixa as malhas do IBGE"],
+  ["lumen eleicoes zonas [--anos]", "Baixa os locais de votação (2018 a 2026) e grava o mapa das zonas (seção 6.4)"],
   ["lumen eleicoes ao-vivo --eleicao <id> [--nuvem]", "Coleta a apuração em andamento (seção 5); com --nuvem, publica a cada passada"],
   ["lumen eleicoes historico baixar --anos", "Baixa os ZIPs dos dados abertos (1933 a 2024)"],
   ["lumen eleicoes historico processar --anos", "Gera os feeds das eleições passadas"],
@@ -882,6 +937,7 @@ body.push(table(["Item", "Por quê", "Quando"], [3600, 4300, 1700], [
   ["Domínio próprio para o portal e os feeds", "O endereço r2.dev tem limite de requisições (seção 9.6)", "Antes da divulgação pública"],
   ["Malhas históricas para as UFs da época", "Guanabara, o Distrito Federal antigo e os territórios aparecem só como botões; a API de malhas do IBGE não tem as fronteiras antigas", "Quando houver fonte oficial"],
   ["Ensaio geral com a simulação em infraestrutura real (CDN)", "Medir a latência entre a gravação do feed e a tela", "Antes do 2º turno de 2026 e de cada pleito"],
+  ["Resultado por zona de 2026", "Os dados abertos de votação de 2026 saíram em 15/10/2026; com 2026 em ANOS_GERAIS, o 1º turno vem deles, com as zonas (ADR-029)", "Depois do 2º turno"],
   ["Eleições suplementares e consultas", "Aparecem no catálogo, mas não estão nos testes", "Após a carga histórica"],
   ["Capturas de tela de referência no CI", "Hoje a conferência visual é manual (seção 10.2)", "Fase 1"],
   ["Política de retenção dos ZIPs", "Ocupam espaço fora do armazenamento de objetos (ADR-021)", "Junto com a política do bronze"],
@@ -917,7 +973,8 @@ body.push(table(["Termo", "Significado"], [2400, 7200], [
   ["Panorama", "Cargo visto acima do nível em que é disputado: líder de cada parte e placar por partido."],
   ["Parte", "Abrangência filha dentro de um feed (UF no Brasil, município na UF), usada pelo mapa."],
   ["Passada", "Um ciclo do coletor ao vivo: andamento, resultados, fila, feeds e estado."],
-  ["Seção / zona", "Unidade de votação e agrupamento territorial do TSE; os dados abertos vêm por zona."],
+  ["Seção / zona", "Unidade de votação e agrupamento territorial do TSE; os dados abertos vêm por zona. A zona não tem limite publicado: o mapa a desenha pelos locais de votação (seção 8.3)."],
+  ["Local de votação", "Prédio onde ficam uma ou mais seções; tem zona, endereço e coordenadas nos dados abertos."],
   ["Totalização", "Contagem oficial dos votos das seções; o percentual de seções totalizadas mede o avanço."],
   ["UF da época", "UF como aparece numa eleição anterior a 1994, inclusive as que não existem mais; tem código próprio no feed e só declara o código IBGE quando o território é o atual."],
 ], { boldFirstCol: true, size: 18 }));
@@ -926,7 +983,7 @@ L.buildDoc({
   codigo: "DOC-12",
   titulo: "Aba Eleições",
   subtitulo: "Consulta de eleições municipais, estaduais e federais, ao vivo e passadas desde 1933, com dados oficiais do TSE",
-  meta: { versao: "1.4", data: "14 de outubro de 2026", situacao: "Proposta — acompanha o ADR-019 a ADR-026",
+  meta: { versao: "1.5", data: "15 de outubro de 2026", situacao: "Proposta — acompanha o ADR-019 a ADR-026 e o ADR-029",
     verificado: "outubro de 2026" },
   body,
   outFile: path.join(__dirname, "..", "docs", "DOC-12_Eleicoes.docx"),
