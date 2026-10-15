@@ -74,7 +74,11 @@ export function PainelContratacoes() {
     <div className="painel">
       <div className="painel-topo">
         <h1>Contratações</h1>
-        <BuscaEnte rotulo="Buscar União, estado ou município" onEscolher={ir} />
+        <BuscaEnte
+          rotulo="Buscar ente ou órgão (ex.: SAAE Sorocaba)"
+          onEscolher={ir}
+          onEscolherOrgao={irOrgao}
+        />
       </div>
       <AvisoMetodologico>
         Somas e listas do que os próprios órgãos publicaram no Portal Nacional de Contratações Públicas (PNCP), pela

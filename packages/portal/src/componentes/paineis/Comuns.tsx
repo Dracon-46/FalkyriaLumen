@@ -9,10 +9,15 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   buscarEntes,
+  buscarOrgaos,
   carregarEntes,
+  carregarOrgaos,
+  cnpj,
   descreverEnte,
+  descreverOrgao,
   topoDoEixo,
   type EnteBusca,
+  type OrgaoBusca,
   type Resultado,
 } from "@/lib/paineis";
 
@@ -21,15 +26,38 @@ export const METODOLOGIA = "https://github.com/Dracon-46/FalkyriaLumen/blob/main
 
 // ------------------------------------------------------------------------------------------ busca
 
-/** Campo de busca de ente (União, estado ou município), com a lista de resultados logo abaixo. */
-export function BuscaEnte({ onEscolher, rotulo }: { onEscolher: (codigo: string) => void; rotulo: string }) {
+/** Um item da lista de resultados: um ente ou, na busca de contratações, um órgão. */
+type Item = { tipo: "ente"; e: EnteBusca } | { tipo: "orgao"; o: OrgaoBusca };
+
+/**
+ * Campo de busca de ente (União, estado ou município), com a lista de resultados logo abaixo. Com
+ * `onEscolherOrgao`, busca também os órgãos que publicaram no PNCP (prefeituras, câmaras, autarquias como um
+ * serviço autônomo de água e esgoto, fundações e empresas públicas), pelo nome, pela sigla ou pelo CNPJ.
+ */
+export function BuscaEnte({
+  onEscolher,
+  onEscolherOrgao,
+  rotulo,
+}: {
+  onEscolher: (codigo: string) => void;
+  onEscolherOrgao?: (cnpj: string) => void;
+  rotulo: string;
+}) {
   const [entes, setEntes] = useState<EnteBusca[] | null>(null);
+  const [orgaos, setOrgaos] = useState<OrgaoBusca[] | null>(null);
   const [erro, setErro] = useState(false);
   const [termo, setTermo] = useState("");
   const [indice, setIndice] = useState(0);
   const [aberta, setAberta] = useState(false);
   const caixa = useRef<HTMLDivElement>(null);
-  const achados = useMemo(() => (entes ? buscarEntes(termo, entes) : []), [termo, entes]);
+  const comOrgaos = onEscolherOrgao !== undefined;
+  const achados = useMemo<Item[]>(
+    () => [
+      ...(entes ? buscarEntes(termo, entes, comOrgaos ? 6 : 12) : []).map((e) => ({ tipo: "ente" as const, e })),
+      ...(orgaos ? buscarOrgaos(termo, orgaos) : []).map((o) => ({ tipo: "orgao" as const, o })),
+    ],
+    [termo, entes, orgaos, comOrgaos],
+  );
 
   useEffect(() => {
     if (!aberta || entes !== null) return;
@@ -42,6 +70,13 @@ export function BuscaEnte({ onEscolher, rotulo }: { onEscolher: (codigo: string)
   }, [aberta, entes]);
 
   useEffect(() => {
+    if (!aberta || !comOrgaos || orgaos !== null) return;
+    carregarOrgaos()
+      .then(setOrgaos)
+      .catch(() => setOrgaos([]));
+  }, [aberta, comOrgaos, orgaos]);
+
+  useEffect(() => {
     const fora = (e: PointerEvent) => {
       if (caixa.current && !caixa.current.contains(e.target as Node)) setAberta(false);
     };
@@ -49,9 +84,10 @@ export function BuscaEnte({ onEscolher, rotulo }: { onEscolher: (codigo: string)
     return () => document.removeEventListener("pointerdown", fora);
   }, []);
 
-  const escolher = (e: EnteBusca | undefined) => {
-    if (!e) return;
-    onEscolher(e.codigo);
+  const escolher = (item: Item | undefined) => {
+    if (!item) return;
+    if (item.tipo === "ente") onEscolher(item.e.codigo);
+    else onEscolherOrgao?.(item.o.cnpj);
     setTermo("");
     setAberta(false);
   };
@@ -86,21 +122,26 @@ export function BuscaEnte({ onEscolher, rotulo }: { onEscolher: (codigo: string)
       {aberta && termo && (
         <ul id="busca-ente-lista" role="listbox" className="busca-ente-lista">
           {entes === null && <li className="busca-vazio">Carregando o cadastro…</li>}
-          {entes !== null && achados.length === 0 && (
+          {entes !== null && comOrgaos && orgaos === null && achados.length === 0 && (
+            <li className="busca-vazio">Carregando os órgãos…</li>
+          )}
+          {entes !== null && (!comOrgaos || orgaos !== null) && achados.length === 0 && (
             <li className="busca-vazio">{erro ? "O cadastro de entes não está disponível agora." : "Nada encontrado."}</li>
           )}
-          {achados.map((e, i) => (
-            <li key={e.codigo}>
+          {achados.map((item, i) => (
+            <li key={item.tipo === "ente" ? `e${item.e.codigo}` : `o${item.o.cnpj}`}>
               <button
                 id={`busca-ente-${i}`}
                 type="button"
                 role="option"
                 aria-selected={i === indice}
                 onMouseEnter={() => setIndice(i)}
-                onClick={() => escolher(e)}
+                onClick={() => escolher(item)}
               >
-                <span>{e.nome}</span>
-                <span className="busca-detalhe">{descreverEnte(e)}</span>
+                <span>{item.tipo === "ente" ? item.e.nome : item.o.nome}</span>
+                <span className="busca-detalhe">
+                  {item.tipo === "ente" ? descreverEnte(item.e) : `${descreverOrgao(item.o)} · CNPJ ${cnpj(item.o.cnpj)}`}
+                </span>
               </button>
             </li>
           ))}
