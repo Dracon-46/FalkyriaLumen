@@ -16,7 +16,13 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 - `lumen painel publicar` grava `orgaos.json` (CNPJ, razão social, ente,
   esfera, processos e contratos de cada órgão com publicação no período); o
   portal só baixa o arquivo quando a busca de Contratações é aberta.
-- Documentação: ADR-028, DOC-13 1.1, DOC-11 regerado.
+- Teto de plausibilidade dos valores: processo ou contrato com valor acima
+  de R$ 10 bilhões, ou de R$ 20 mil por habitante do ente, conta nas
+  quantidades, mas fica fora das somas e da lista de fornecedores e aparece
+  em "Valores a conferir na fonte", com o link do PNCP. Na primeira semana
+  coletada, um contrato publicado com R$ 239,8 bilhões fazia sozinho perto de
+  90% do valor de contratos do país.
+- Documentação: ADR-028 (decisão 8), DOC-13 1.1, DOC-11 regerado.
 
 ## 0.7.0 — 2026-10-14
 
