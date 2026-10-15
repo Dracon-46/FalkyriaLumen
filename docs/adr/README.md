@@ -33,9 +33,10 @@ nunca apagadas: uma ADR substituída continua aqui, marcada como tal.
 | [025](ADR-025.md) | Eleições de 1933 a 1990, referências embutidas e carga num comando | **proposta** |
 | [026](ADR-026.md) | Hospedagem gratuita: Supabase Free, Cloudflare R2 e Pages, carga no GitHub Actions | **proposta** |
 | [027](ADR-027.md) | Referência de mercado de fora do governo: regra A-05 em modo silencioso | **proposta** |
+| [028](ADR-028.md) | Painéis de contratações e de conformidade: fatos publicados, sem indício | **proposta** |
 
 As ADRs 011 a 015 foram tomadas durante a implementação da Fase 0, e as 016 a
-027 durante a Fase 1 e a criação da aba Eleições; todas aguardam revisão. Para aceitar, troque a situação para `aceita`. Para rejeitar, marque
+028 durante a Fase 1 e a criação da aba Eleições; todas aguardam revisão. Para aceitar, troque a situação para `aceita`. Para rejeitar, marque
 `rejeitada` com o motivo — não apague o arquivo.
 
 ## Nova ADR
