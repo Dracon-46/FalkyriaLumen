@@ -44,7 +44,8 @@ src/componentes/            cabeçalho e rodapé
 src/componentes/eleicoes/   painel, mapa, candidatos, panorama, evolução, busca, faixas
 src/lib/                    tipos do contrato, validação, acesso aos feeds, TopoJSON,
                             formato pt-BR, cores, busca, URL, regras de navegação,
-                            zoom do mapa (zoom.ts) e área do mapa ↔ parte do feed (areas.ts)
+                            zoom do mapa (zoom.ts), área do mapa ↔ parte do feed (areas.ts),
+                            Voronoi (voronoi.ts) e desenho das zonas eleitorais (zonas.ts)
 src/lib/__testes__/         testes de unidade; leem a amostra gerada pelo Python
 ```
 
@@ -63,6 +64,13 @@ Regras que valem para todo o código daqui:
 - O mapa aproxima pelos botões + e −, por Ctrl (⌘) + rolagem, pela pinça no
   trackpad e por dois dedos na tela de toque; aproximado, arrasta. A rolagem
   simples continua rolando a página.
+- Abrir um município voa até ele no mapa da UF; nos municípios com mais de uma
+  zona eleitoral, o mapa mostra as zonas (ADR-029), sempre com a nota de que o
+  contorno é aproximado pelos locais de votação. As zonas só são montadas
+  quando o voo termina, e quem pede menos movimento ao sistema não vê animação.
+- Navegação sem piscar: a tela anterior fica até o feed novo chegar; feeds de
+  eleição encerrada ficam em memória (`carregarFeed(…, { guardar: true })`) e o
+  cursor parado numa área os pré-carrega. Ao vivo, nada fica guardado.
 
 Configuração de build: `NEXT_PUBLIC_DADOS_ELEICOES` muda a base dos feeds
 (padrão `/dados/eleicoes`), para quando os dados ficam numa CDN separada.

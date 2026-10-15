@@ -1070,183 +1070,197 @@
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/cli.py",
    "linguagem": "python",
-   "linhas": 541,
-   "doc": "Linha de comando da aba Eleições (``lumen eleicoes ...``).\n\nExemplos::\n\n    lumen eleicoes preparar --servir                # tudo: mapa, 1933 a 2026, portal no navegador\n    lumen eleicoes preparar --nuvem --limite-minutos 280 --apagar-zips   # a mesma carga no GitHub Actions\n    lumen eleicoes publicar                         # envia ao R2 os feeds que mudaram\n    lumen eleicoes catalogo                         # o que o TSE publica agora\n    lumen eleicoes municipios                       # cadastro TSE ↔ IBGE (busca e mapa)\n    lumen eleicoes mapas                            # malhas do IBGE para o mapa\n    lumen eleicoes ao-vivo --eleicao 2026-1t-geral  # noite da apuração\n    lumen eleicoes historico baixar --anos 2022,2018,1950\n    lumen eleicoes historico processar --anos 2022,2018,1950\n    lumen eleicoes simular                          # apuração fictícia para testar a tela\n    lumen eleicoes servir                           # portal + feeds em http://127.0.0.1:8080\n    lumen eleicoes verificar                        # confere o contrato dos feeds gravados\n    lumen eleicoes medir --resumo resumo.md         # tamanho dos feeds contra os limites gratuitos",
+   "linhas": 582,
+   "doc": "Linha de comando da aba Eleições (``lumen eleicoes ...``).\n\nExemplos::\n\n    lumen eleicoes preparar --servir                # tudo: mapa, 1933 a 2026, portal no navegador\n    lumen eleicoes preparar --nuvem --limite-minutos 280 --apagar-zips   # a mesma carga no GitHub Actions\n    lumen eleicoes publicar                         # envia ao R2 os feeds que mudaram\n    lumen eleicoes catalogo                         # o que o TSE publica agora\n    lumen eleicoes municipios                       # cadastro TSE ↔ IBGE (busca e mapa)\n    lumen eleicoes mapas                            # malhas do IBGE para o mapa\n    lumen eleicoes zonas --anos 2026,2024           # locais de votação: mapa das zonas eleitorais\n    lumen eleicoes ao-vivo --eleicao 2026-1t-geral  # noite da apuração\n    lumen eleicoes historico baixar --anos 2022,2018,1950\n    lumen eleicoes historico processar --anos 2022,2018,1950\n    lumen eleicoes simular                          # apuração fictícia para testar a tela\n    lumen eleicoes servir                           # portal + feeds em http://127.0.0.1:8080\n    lumen eleicoes verificar                        # confere o contrato dos feeds gravados\n    lumen eleicoes medir --resumo resumo.md         # tamanho dos feeds contra os limites gratuitos",
    "itens": [
     {
      "tipo": "funcao",
      "nome": "_lista",
      "assinatura": "def _lista(texto: str | None) -> list[str] | None",
      "doc": "Converte ``a, b, c`` em lista sem espaços e em minúsculas; texto ausente vira ``None`` (padrão do comando).",
-     "linha": 52
+     "linha": 53
     },
     {
      "tipo": "funcao",
      "nome": "_anos",
      "assinatura": "def _anos(texto: str) -> list[int]",
      "doc": "Tipo do argparse para ``--anos``: anos sem repetição, do mais recente ao mais antigo.\n\n``todos`` são todos os anos dos dados abertos, de 2024 a 1933. Recusa ano sem eleição ordinária nos\ndados abertos (fora de ``carga.anos_disponiveis``).",
-     "linha": 57
+     "linha": 58
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_anos_locais",
+     "assinatura": "def _anos_locais(texto: str) -> list[int]",
+     "doc": "Tipo do argparse para ``zonas --anos``: anos com locais de votação (2018 em diante), do mais recente ao\nmais antigo; ``todos`` são os de ``zonas.ANOS_LOCAIS``.",
+     "linha": 74
     },
     {
      "tipo": "funcao",
      "nome": "_cliente",
      "assinatura": "def _cliente(cfg: ConfiguracaoEleicoes, fonte: str, rpm: int) -> ClienteHttp",
      "doc": "Cliente HTTP da fonte, com o User-Agent da configuração e limite de ``rpm`` requisições por minuto.",
-     "linha": 73
+     "linha": 86
     },
     {
      "tipo": "funcao",
      "nome": "_imprimir",
      "assinatura": "def _imprimir(dados) -> None",
      "doc": "Imprime ``dados`` como JSON indentado, com acentos e ``str`` para o que não for serializável.",
-     "linha": 78
+     "linha": 91
     },
     {
      "tipo": "funcao",
      "nome": "_catalogo",
      "assinatura": "def _catalogo(cliente: ClienteHttp, base: str) -> list",
      "doc": "Baixa e lê o catálogo de eleições do sistema de resultados; encerra o programa se não vier HTTP 200.",
-     "linha": 83
+     "linha": 96
     },
     {
      "tipo": "funcao",
      "nome": "_nuvem",
      "assinatura": "def _nuvem(cfg: ConfiguracaoEleicoes, args) -> Nuvem",
      "doc": "Ponte com o armazenamento da nuvem a partir do ``[publicacao]`` e das variáveis de ambiente.\n\nLevanta ``ConfiguracaoAusente`` se faltar endpoint, bucket ou chave; ``main`` transforma isso em\nmensagem e código 2.",
-     "linha": 91
+     "linha": 104
     },
     {
      "tipo": "funcao",
      "nome": "_cadastro",
      "assinatura": "def _cadastro(cfg: ConfiguracaoEleicoes) -> CadastroMunicipios",
      "doc": "Cadastro de municípios do diretório dos feeds; sem ele, o que vem com o pacote (``referencias``).\n\nO do diretório dos feeds é o mais novo: ``lumen eleicoes municipios`` grava ali a versão corrente.",
-     "linha": 101
+     "linha": 114
     },
     {
      "tipo": "funcao",
      "nome": "cmd_catalogo",
      "assinatura": "def cmd_catalogo(cfg, args) -> int",
      "doc": "Imprime as eleições do sistema de resultados (cargos e UFs de cada uma) e os anos dos dados abertos.",
-     "linha": 114
+     "linha": 127
     },
     {
      "tipo": "funcao",
      "nome": "cmd_municipios",
      "assinatura": "def cmd_municipios(cfg, args) -> int",
      "doc": "Grava o ``municipios.json`` (cadastro TSE ↔ IBGE) e imprime o arquivo e as contagens.\n\nUsa o cadastro de municípios de uma eleição do catálogo — por padrão a geral mais recente, que tem\ntodos os municípios e o exterior — e os nomes do IBGE; se o IBGE não responder, ficam os nomes do TSE.",
-     "linha": 127
+     "linha": 140
     },
     {
      "tipo": "funcao",
      "nome": "cmd_mapas",
      "assinatura": "def cmd_mapas(cfg, args) -> int",
      "doc": "Baixa as malhas do IBGE para o mapa (todas as UFs ou as pedidas) e imprime os arquivos gravados.",
-     "linha": 161
+     "linha": 174
+    },
+    {
+     "tipo": "funcao",
+     "nome": "cmd_zonas",
+     "assinatura": "def cmd_zonas(cfg, args) -> int",
+     "doc": "Baixa os locais de votação de cada ano e grava o mapa das zonas eleitorais (``geo/zonas-<ano>/``).\n\nO andamento vai para o stderr; no stdout, só o resumo de cada ano em JSON: municípios com mais de uma\nzona, locais e descartados.",
+     "linha": 183
     },
     {
      "tipo": "funcao",
      "nome": "_aviso_passada",
      "assinatura": "def _aviso_passada(r: ResumoPassada) -> None",
      "doc": "Imprime a linha de acompanhamento de uma passada do coletor e, no stderr, até cinco dos erros dela.",
-     "linha": 170
+     "linha": 203
     },
     {
      "tipo": "funcao",
      "nome": "_instalar_parada",
      "assinatura": "def _instalar_parada() -> list[bool]",
      "doc": "Instala o tratamento de Ctrl+C e devolve a sinalização que o laço do coletor consulta.\n\nO primeiro Ctrl+C só marca ``sinal[0]``, e o coletor para ao fim da passada em curso; o segundo\ninterrompe na hora. É uma lista, e não um ``bool``, para o tratador poder alterá-la.",
-     "linha": 181
+     "linha": 214
     },
     {
      "tipo": "funcao",
      "nome": "cmd_ao_vivo",
      "assinatura": "def cmd_ao_vivo(cfg, args) -> int",
      "doc": "Coleta a apuração em andamento de uma eleição do catálogo, imprimindo uma linha por passada.\n\nRoda até a totalização terminar, até Ctrl+C ou, com ``--uma-vez``, por uma passada só. Devolve 2\nse a eleição não está no sistema de resultados. Com ``--nuvem``, restaura o estado antes, publica\nos feeds a cada passada que gravou algo e sincroniza no fim (ADR-026).",
-     "linha": 201
+     "linha": 234
     },
     {
      "tipo": "funcao",
      "nome": "cmd_historico_baixar",
      "assinatura": "def cmd_historico_baixar(cfg, args) -> int",
      "doc": "Baixa os ZIPs dos dados abertos de cada ano e registra o manifesto de cada um no bronze.\n\nImprime, por arquivo, o caminho, o SHA-256 e o tamanho. Até 1990 são os três conjuntos por UF.",
-     "linha": 245
+     "linha": 278
     },
     {
      "tipo": "funcao",
      "nome": "cmd_historico_processar",
      "assinatura": "def cmd_historico_processar(cfg, args) -> int",
      "doc": "Gera os feeds de cada ano a partir dos ZIPs já baixados e imprime um resumo por ano.\n\nDevolve 2 se faltar o ZIP de votação de algum ano; os demais conjuntos são opcionais.",
-     "linha": 261
+     "linha": 294
     },
     {
      "tipo": "funcao",
      "nome": "cmd_preparar",
      "assinatura": "def cmd_preparar(cfg, args) -> int",
      "doc": "Deixa a aba pronta: mapa, portal, 2026 do sistema de resultados e os dados abertos de 1933 a 2024.\n\nRetomável; imprime o andamento e, no fim, o resumo em JSON. Devolve 1 se alguma etapa falhou.",
-     "linha": 281
+     "linha": 314
     },
     {
      "tipo": "funcao",
      "nome": "_rodar_simulacao",
      "assinatura": "def _rodar_simulacao(cfg, arquivos: Path, eleicao_id: str, etapas: int, intervalo: float, ufs: list[str] | None, estado: Path | None) -> int",
      "doc": "Roda o coletor ao vivo contra um servidor local que publica os arquivos finais em ``etapas``.\n\nA cada intervalo entre passadas o cenário avança uma etapa, até ``etapas`` passadas. Por ser\nlocal, o cliente ignora o proxy do ambiente e tem limite de taxa folgado. Devolve 2 se a eleição\nnão está no catálogo da simulação.",
-     "linha": 304
+     "linha": 338
     },
     {
      "tipo": "funcao",
      "nome": "cmd_simular",
      "assinatura": "def cmd_simular(cfg, args) -> int",
      "doc": "Simula uma apuração a partir dos arquivos finais (as fixtures, por padrão), avisando no stderr que\nos números intermediários são fictícios.",
-     "linha": 335
+     "linha": 369
     },
     {
      "tipo": "funcao",
      "nome": "cmd_publicar",
      "assinatura": "def cmd_publicar(cfg, args) -> int",
      "doc": "Envia ao bucket público os feeds novos ou alterados e grava o estado no privado (ADR-026).",
-     "linha": 344
+     "linha": 378
     },
     {
      "tipo": "funcao",
      "nome": "cmd_amostra",
      "assinatura": "def cmd_amostra(cfg, args) -> int",
      "doc": "Feeds a partir dos arquivos reais das fixtures, para desenvolver o portal sem rede, com o mapa e o\ncadastro de municípios que vêm com o pacote.",
-     "linha": 355
+     "linha": 389
     },
     {
      "tipo": "funcao",
      "nome": "cmd_servir",
      "assinatura": "def cmd_servir(cfg, args) -> int",
      "doc": "Serve o portal gerado e os feeds em HTTP local até Ctrl+C; devolve 2 se o portal não foi gerado.",
-     "linha": 365
+     "linha": 399
     },
     {
      "tipo": "funcao",
      "nome": "cmd_verificar",
      "assinatura": "def cmd_verificar(cfg, args) -> int",
      "doc": "Confere o contrato dos feeds gravados; imprime cada problema e o total, e devolve 1 se houver algum.",
-     "linha": 382
+     "linha": 416
     },
     {
      "tipo": "funcao",
      "nome": "cmd_medir",
      "assinatura": "def cmd_medir(cfg, args) -> int",
      "doc": "Mede os feeds gravados contra os limites do R2 e do Supabase gratuitos; imprime JSON.\n\n``--resumo`` também grava o resumo em Markdown (no GitHub Actions, o ``$GITHUB_STEP_SUMMARY``).\nDevolve 1 se não houver nenhum feed para medir.",
-     "linha": 391
+     "linha": 425
     },
     {
      "tipo": "funcao",
      "nome": "construir_parser",
      "assinatura": "def construir_parser() -> argparse.ArgumentParser",
      "doc": "Monta o parser de ``lumen eleicoes``: opções globais e um subcomando por ação.\n\n``historico`` tem os seus próprios subcomandos, ``baixar`` e ``processar``.",
-     "linha": 407
+     "linha": 441
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada: lê argumentos e configuração e despacha para o comando; devolve o código de saída.\n\nOs comandos que não consultam as fontes (``servir``, ``verificar``, ``amostra``, ``publicar``, ``medir``)\ndispensam o contato da coleta. ``--saida`` sobrepõe o diretório dos feeds da configuração. Falta de\nconfiguração da nuvem (``--nuvem``, ``publicar``) vira mensagem e código 2.",
-     "linha": 512
+     "linha": 553
     }
    ]
   },
@@ -1549,7 +1563,7 @@
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/dados_abertos.py",
    "linguagem": "python",
-   "linhas": 726,
+   "linhas": 755,
    "doc": "Dados abertos do TSE: resultados de todas as eleições desde 1994.\n\nO sistema de divulgação de resultados só mantém as eleições recentes (ver\n``tse.py``). As anteriores vêm do Portal de Dados Abertos\n(``dadosabertos.tse.jus.br``, CKAN), que aponta para arquivos ZIP na CDN do\ntribunal. Um pacote por ano (``resultados-AAAA``), com, entre outros:\n\n``votacao_candidato_munzona_AAAA.zip``\n    votos de cada candidato em cada zona de cada município. Um CSV por UF\n    (cargos estaduais e municipais), um ``_BR.csv`` com o cargo de\n    Presidente em todos os municípios e no exterior, e um ``_BRASIL.csv``\n    que é a concatenação de todos — este é ignorado, para não contar duas\n    vezes.\n``detalhe_votacao_munzona_AAAA.zip``\n    por zona: aptos, comparecimento, abstenção, brancos, nulos, válidos e\n    votos de legenda. Mesma divisão em arquivos.\n``Historico_Totalizacao_Presidente_BR_<T>T_AAAA.zip``\n    (2018 em diante) a evolução da totalização do Presidente, minuto a\n    minuto, que alimenta o gráfico de evolução.\n\nFormato observado em 05/10/2026, de 1994 a 2024 (ver ``testes/fixtures/tse``):\nCSV com cabeçalho, separador ``;``, aspas duplas, codificação Latin-1.\nValores ausentes como ``#NULO#``, ``#NULO``, ``#NE`` ou códigos ``-1``/``-3``.\nO número de colunas varia por ano (38, 44 ou 50), e por isso a leitura é\nsempre pelo nome da coluna, nunca pela posição.\n\nDiferenças entre anos que mudam o resultado e são tratadas aqui:\n\n- ``QT_VOTOS_NOMINAIS_VALIDOS`` e ``NM_TIPO_DESTINACAO_VOTOS`` não existem\n  nos arquivos de 2002 a 2014. Nesses anos a fonte não distingue voto válido\n  de voto anulado por candidatura indeferida; o feed registra o aviso.\n- Em 2000, ``QT_VOTOS_NOMINAIS`` vem zerado e o voto está em\n  ``QT_VOTOS_NOMINAIS_VALIDOS``: a votação do candidato é o maior dos dois.\n- Em 1994, os totais do detalhe vêm parcialmente zerados\n  (``QT_TOTAL_VOTOS_VALIDOS`` = 0 com ``QT_VOTOS_NOMINAIS_VALIDOS`` > 0). Os\n  totais são reconciliados pelas parcelas (``_reconciliar``).",
    "itens": [
     {
@@ -1688,621 +1702,670 @@
     {
      "tipo": "funcao",
      "nome": "abrangencias_da_linha",
-     "assinatura": "def abrangencias_da_linha(cargo: int, uf: str, municipio: str) -> list[Abr]",
-     "doc": "Abrangências em que uma linha de zona é somada: é assim que as zonas viram município, UF e Brasil.\n\nSempre o município; também a UF, se o cargo é estadual ou nacional; e o Brasil, se é nacional.",
-     "linha": 257
+     "assinatura": "def abrangencias_da_linha(cargo: int, uf: str, municipio: str, zona: str | None=None) -> list[Abr]",
+     "doc": "Abrangências em que uma linha de zona é somada: é assim que as zonas viram município, UF e Brasil.\n\nSempre o município; também a UF, se o cargo é estadual ou nacional; e o Brasil, se é nacional. Com\n``zona``, também a própria zona dentro do município (``(\"zn\", uf, município, zona)``).",
+     "linha": 258
+    },
+    {
+     "tipo": "funcao",
+     "nome": "zona_da_linha",
+     "assinatura": "def zona_da_linha(valor: str | None) -> str | None",
+     "doc": "Número da zona como texto sem zeros à esquerda (``\"0001\"`` → ``\"1\"``); None se ausente ou zero.",
+     "linha": 275
+    },
+    {
+     "tipo": "funcao",
+     "nome": "municipios_com_zonas",
+     "assinatura": "def municipios_com_zonas(totais: dict[tuple[str, int, Abr], 'Totais']) -> set[tuple[str, str]]",
+     "doc": "Municípios, como ``(uf, código TSE)``, que o detalhe da apuração divide em duas zonas ou mais.\n\nSão os únicos em que o resultado por zona diz algo além do resultado do município: nos outros, a\núnica zona do município tem os mesmos números que ele.",
+     "linha": 281
     },
     {
      "tipo": "classe",
      "nome": "Totais",
      "assinatura": "class Totais",
      "doc": "Totais do detalhe da apuração de um recorte, somados zona a zona.\n\n``ultima_totalizacao`` fica com o instante mais recente entre as zonas; ``reconciliado`` marca que\n``reconciliar`` precisou recompor algum total, o que vira aviso no feed.",
-     "linha": 274
+     "linha": 297
     },
     {
      "tipo": "metodo",
      "nome": "Totais.somar",
      "assinatura": "def somar(self, outro: 'Totais') -> None",
      "doc": "Soma as contagens de ``outro`` a estas e fica com a mais recente das duas últimas totalizações.",
-     "linha": 298
+     "linha": 321
     },
     {
      "tipo": "metodo",
      "nome": "Totais.reconciliar",
      "assinatura": "def reconciliar(self) -> None",
      "doc": "Totais zerados com parcelas positivas (1994): recompõe pelas parcelas.",
-     "linha": 308
+     "linha": 331
     },
     {
      "tipo": "funcao",
      "nome": "_instante_br",
      "assinatura": "def _instante_br(data: str | None, hora: str | None) -> datetime | None",
      "doc": "Data (``dd/mm/aaaa``) e hora do TSE → ``datetime`` no horário de Brasília; sem hora, meia-noite.\n\nDevolve ``None`` se a data faltar ou não estiver nesse formato.",
-     "linha": 331
+     "linha": 354
     },
     {
      "tipo": "funcao",
      "nome": "ler_detalhe",
      "assinatura": "def ler_detalhe(fluxos: Iterable[tuple[str, io.BufferedIOBase]], *, pular_presidente_nos_estados: bool) -> dict[tuple[str, int, Abr], Totais]",
-     "doc": "Totais por eleição, cargo e abrangência, somados das zonas.\n\n``fluxos`` é uma sequência de (nome do arquivo, fluxo binário), na ordem\nde ``entradas_csv``. Com ``pular_presidente_nos_estados``, as linhas de\nPresidente (``SG_UE`` = BR) dos arquivos por UF são puladas: vêm do\n``_BR``.",
-     "linha": 345
+     "doc": "Totais por eleição, cargo e abrangência, somados das zonas.\n\nCada zona também fica com os próprios totais (abrangência ``(\"zn\", uf, município, zona)``), que dão o\neleitorado e o comparecimento das zonas no feed do município. ``fluxos`` é uma sequência de (nome do arquivo, fluxo binário), na ordem\nde ``entradas_csv``. Com ``pular_presidente_nos_estados``, as linhas de\nPresidente (``SG_UE`` = BR) dos arquivos por UF são puladas: vêm do\n``_BR``.",
+     "linha": 368
     },
     {
      "tipo": "funcao",
      "nome": "situacao_publicada",
      "assinatura": "def situacao_publicada(texto: str | None) -> str",
      "doc": "Situação do candidato no turno (``DS_SIT_TOT_TURNO``) como o feed a mostra.\n\nUnifica as grafias que mudam entre anos (``MEDIA``/``MÉDIA``, ``2O TURNO``/``2º TURNO``); situação\nfora de ``SITUACOES`` sai só com a inicial maiúscula, e a ausente sai vazia.",
-     "linha": 430
+     "linha": 454
     },
     {
      "tipo": "classe",
      "nome": "_Meta",
      "assinatura": "class _Meta",
      "doc": "Metadados de um candidato, guardados uma vez por (eleição, cargo, ``SQ_CANDIDATO``), e não por linha.",
-     "linha": 441
+     "linha": 465
     },
     {
      "tipo": "classe",
      "nome": "AgregadorVotacao",
      "assinatura": "class AgregadorVotacao",
      "doc": "Soma os votos por candidato em cada abrangência, a partir das zonas.\n\nMantém só inteiros por (eleição, cargo, abrangência, candidato) e os\nmetadados do candidato uma vez; é o que permite ler o arquivo de São\nPaulo de 2018 (1,2 GB) sem carregar o arquivo na memória.",
-     "linha": 456
+     "linha": 480
     },
     {
      "tipo": "metodo",
      "nome": "AgregadorVotacao.ler",
      "assinatura": "def ler(self, fluxo: io.BufferedIOBase) -> None",
-     "doc": "Lê um CSV de votação e soma os votos de cada candidato em todas as abrangências da linha.\n\nPula eleição não ordinária, cargo fora de ``CARGOS`` e, com ``pular_presidente``, o Presidente.\nPor candidato acumula [votos, válidos]: o voto é o maior entre nominais e válidos (2000 traz os\nnominais zerados); sem a coluna de válidos, a eleição entra em ``sem_destinacao``. Colhe também a\ndata e o código TSE de cada eleição e o nome de cada município.",
-     "linha": 474
+     "doc": "Lê um CSV de votação e soma os votos de cada candidato em todas as abrangências da linha.\n\nPula eleição não ordinária, cargo fora de ``CARGOS`` e, com ``pular_presidente``, o Presidente.\nPor candidato acumula [votos, válidos]: o voto é o maior entre nominais e válidos (2000 traz os\nnominais zerados); sem a coluna de válidos, a eleição entra em ``sem_destinacao``. Nos municípios de\n``zonas_de``, soma também na zona da linha. Colhe também a data e o código TSE de cada eleição e o\nnome de cada município.",
+     "linha": 501
     },
     {
      "tipo": "metodo",
      "nome": "AgregadorVotacao.chaves",
      "assinatura": "def chaves(self) -> list[tuple[str, int, Abr]]",
-     "doc": "Chaves (eleição, cargo, abrangência) em ordem estável: dentro de eleição e cargo, Brasil, UFs e\nmunicípios.",
-     "linha": 549
+     "doc": "Chaves (eleição, cargo, abrangência) em ordem estável: dentro de eleição e cargo, Brasil, UFs,\nmunicípios e zonas.",
+     "linha": 578
     },
     {
      "tipo": "metodo",
      "nome": "AgregadorVotacao.resultado",
      "assinatura": "def resultado(self, chave: tuple[str, int, Abr], totais: Totais | None) -> ResultadoAbrangencia",
      "doc": "Monta o ``ResultadoAbrangencia`` de uma chave, com os totais do detalhe quando os há.\n\nSem detalhe, os válidos saem da soma dos candidatos, com aviso. Percentuais sobre os válidos;\ncandidatos em ordem de votação, com os de voto não válido no fim; vagas = número de eleitos. A\ntotalização vem como finalizada (dado definitivo), e as agremiações só nos cargos proporcionais.",
-     "linha": 555
+     "linha": 584
     },
     {
      "tipo": "metodo",
      "nome": "AgregadorVotacao.limpar",
      "assinatura": "def limpar(self) -> None",
      "doc": "Libera votos e metadados depois de emitidos, para não segurar na memória o arquivo já lido.",
-     "linha": 616
+     "linha": 645
     },
     {
      "tipo": "funcao",
      "nome": "_agremiacoes",
      "assinatura": "def _agremiacoes(candidatos: list[Candidato], legenda: int) -> list[Agremiacao]",
      "doc": "Votação nominal por partido (a de legenda por partido não está neste arquivo).",
-     "linha": 622
+     "linha": 651
     },
     {
      "tipo": "classe",
      "nome": "PontoHistorico",
      "assinatura": "class PontoHistorico",
      "doc": "Um ponto da evolução da totalização: instante, percentual de seções e votos acumulados por rótulo.",
-     "linha": 641
+     "linha": 670
     },
     {
      "tipo": "funcao",
      "nome": "ler_historico_totalizacao",
      "assinatura": "def ler_historico_totalizacao(fluxo: io.BufferedIOBase, *, maximo_pontos: int=400) -> list[PontoHistorico]",
      "doc": "``Historico_Totalizacao_*`` → série acumulada, reduzida a ``maximo_pontos``.\n\nAs colunas por candidato são ``<RÓTULO>_QT_VOTOS_TOT_ACUMULADO``; brancos\ne nulos (``BRANCO_``, ``NULO_``) ficam de fora da série, que é de votos\nválidos. A redução preserva o primeiro e o último ponto.",
-     "linha": 649
+     "linha": 678
     },
     {
      "tipo": "funcao",
      "nome": "reduzir",
      "assinatura": "def reduzir(pontos: list, maximo: int) -> list",
      "doc": "Reduz a série a ``maximo`` pontos igualmente espaçados, mantendo o primeiro e o último.",
-     "linha": 683
+     "linha": 712
     },
     {
      "tipo": "funcao",
      "nome": "casar_rotulo",
      "assinatura": "def casar_rotulo(rotulo: str, candidatos: Iterable[Candidato]) -> str | None",
      "doc": "Rótulo do histórico (``JAIR_BOLSONARO``) → número do candidato.",
-     "linha": 691
+     "linha": 720
     },
     {
      "tipo": "funcao",
      "nome": "abrir_zip",
      "assinatura": "def abrir_zip(caminho: Path | str) -> zipfile.ZipFile",
      "doc": "Abre um ZIP dos dados abertos para leitura.",
-     "linha": 710
+     "linha": 739
     },
     {
      "tipo": "funcao",
      "nome": "fluxos_do_zip",
      "assinatura": "def fluxos_do_zip(zf: zipfile.ZipFile, filtro: Callable[[str], bool] | None=None) -> Iterator[tuple[str, io.BufferedIOBase]]",
      "doc": "Gera (nome, fluxo binário) dos CSVs do ZIP na ordem de ``entradas_csv``, aplicando ``filtro``.\n\nLê direto do ZIP, sem extrair para o disco; cada fluxo fica aberto só enquanto é consumido.",
-     "linha": 715
+     "linha": 744
     }
    ]
   },
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/feeds.py",
    "linguagem": "python",
-   "linhas": 600,
-   "doc": "Contrato dos feeds JSON que o portal lê (ADR-019).\n\nO portal é estático e não fala com o TSE. Tudo o que ele mostra sai destes\narquivos, gravados num diretório servido como arquivo comum (no\ndesenvolvimento, ``packages/portal/public/dados/eleicoes``)::\n\n    indice.json                              eleições disponíveis e seus cargos\n    municipios.json                          cadastro TSE ↔ IBGE (busca)\n    geo/br-uf.json, geo/uf-<sigla>-mu.json   malhas do IBGE (TopoJSON)\n    <eleição>/<cargo>/br.json                resultado no Brasil, com as UFs em ``partes``\n    <eleição>/<cargo>/uf-<sigla>.json        resultado na UF, com os municípios em ``partes``\n    <eleição>/<cargo>/mu-<chave>.json        resultado no município\n    <eleição>/<cargo>/historico-<abr>.json   evolução da totalização\n    fotos/...                                fotos dos candidatos (sistema de resultados)\n\nRegras do contrato:\n\n- ``versao`` em todo arquivo. Mudança incompatível sobe a versão e o portal\n  recusa o que não conhece, em vez de exibir número errado.\n- Números são números (inteiros para votos, decimais para percentuais com\n  até 6 casas), nunca texto com vírgula. Datas em ISO 8601 com fuso.\n- Cargo municipal (prefeito, vereador) não tem resultado único na UF nem no\n  Brasil: nesses níveis o arquivo é um **panorama** (``tipo: panorama``),\n  com o líder de cada município e a contagem por partido.\n- Cores: o feed não traz cor, traz ``cor`` = índice de 0 a ``N_CORES - 1``\n  (ou -1, cinza). O índice segue a ordem de votação no nível mais alto do\n  cargo e é o mesmo em todos os níveis (o candidato tem a mesma cor no mapa\n  do Brasil e no da UF). A paleta é do portal e não usa cor de partido\n  (ADR-020).",
+   "linhas": 621,
+   "doc": "Contrato dos feeds JSON que o portal lê (ADR-019).\n\nO portal é estático e não fala com o TSE. Tudo o que ele mostra sai destes\narquivos, gravados num diretório servido como arquivo comum (no\ndesenvolvimento, ``packages/portal/public/dados/eleicoes``)::\n\n    indice.json                              eleições disponíveis e seus cargos\n    municipios.json                          cadastro TSE ↔ IBGE (busca)\n    geo/br-uf.json, geo/uf-<sigla>-mu.json   malhas do IBGE (TopoJSON)\n    geo/zonas-<ano>/…                        locais de votação por zona, para o mapa das zonas (``zonas.py``)\n    <eleição>/<cargo>/br.json                resultado no Brasil, com as UFs em ``partes``\n    <eleição>/<cargo>/uf-<sigla>.json        resultado na UF, com os municípios em ``partes``\n    <eleição>/<cargo>/mu-<chave>.json        resultado no município, com as zonas eleitorais em ``partes``\n                                             quando ele tem mais de uma (só nos dados abertos)\n    <eleição>/<cargo>/historico-<abr>.json   evolução da totalização\n    fotos/...                                fotos dos candidatos (sistema de resultados)\n\nRegras do contrato:\n\n- ``versao`` em todo arquivo. Mudança incompatível sobe a versão e o portal\n  recusa o que não conhece, em vez de exibir número errado.\n- Números são números (inteiros para votos, decimais para percentuais com\n  até 6 casas), nunca texto com vírgula. Datas em ISO 8601 com fuso.\n- Cargo municipal (prefeito, vereador) não tem resultado único na UF nem no\n  Brasil: nesses níveis o arquivo é um **panorama** (``tipo: panorama``),\n  com o líder de cada município e a contagem por partido.\n- Cores: o feed não traz cor, traz ``cor`` = índice de 0 a ``N_CORES - 1``\n  (ou -1, cinza). O índice segue a ordem de votação no nível mais alto do\n  cargo e é o mesmo em todos os níveis (o candidato tem a mesma cor no mapa\n  do Brasil e no da UF). A paleta é do portal e não usa cor de partido\n  (ADR-020).",
    "itens": [
     {
      "tipo": "funcao",
      "nome": "_seguro",
      "assinatura": "def _seguro(parte: str) -> str",
      "doc": "Valida um trecho do caminho de um feed: só minúsculas, dígitos e hífen, sem começar por hífen.\n\nOs trechos vêm de dados externos (ids, slugs, códigos) e viram nome de arquivo; isso impede\nbarras e ``..`` de saírem do diretório dos feeds.",
-     "linha": 52
+     "linha": 54
     },
     {
      "tipo": "funcao",
      "nome": "_iso",
      "assinatura": "def _iso(valor: datetime | date | None) -> str | None",
      "doc": "Data ou instante em ISO 8601; ``None`` passa direto.",
-     "linha": 63
+     "linha": 65
     },
     {
      "tipo": "funcao",
      "nome": "_r",
      "assinatura": "def _r(valor: float | None, casas: int=6) -> float | None",
      "doc": "Arredonda para ``casas`` decimais, preservando ``None``.",
-     "linha": 72
+     "linha": 74
     },
     {
      "tipo": "classe",
      "nome": "Abrangencia",
      "assinatura": "class Abrangencia",
      "doc": "Recorte geográfico de um feed: Brasil, UF ou município, com os códigos IBGE e TSE quando há.",
-     "linha": 80
+     "linha": 82
     },
     {
      "tipo": "metodo",
      "nome": "Abrangencia.arquivo",
      "assinatura": "def arquivo(self) -> str",
      "doc": "Nome do feed sem extensão: ``br``, ``uf-<sigla>`` ou ``mu-<chave>``, validado por ``_seguro``.",
-     "linha": 91
+     "linha": 93
     },
     {
      "tipo": "metodo",
      "nome": "Abrangencia.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "Bloco ``abrangencia`` do feed.",
-     "linha": 97
+     "linha": 99
     },
     {
      "tipo": "funcao",
      "nome": "abrangencia_brasil",
      "assinatura": "def abrangencia_brasil() -> Abrangencia",
      "doc": "A abrangência nacional.",
-     "linha": 103
+     "linha": 105
     },
     {
      "tipo": "funcao",
      "nome": "abrangencia_uf",
      "assinatura": "def abrangencia_uf(sigla: str) -> Abrangencia",
      "doc": "Abrangência da UF pela sigla, com o nome e o código IBGE.",
-     "linha": 108
+     "linha": 110
     },
     {
      "tipo": "funcao",
      "nome": "abrangencia_municipio",
      "assinatura": "def abrangencia_municipio(m: Municipio) -> Abrangencia",
      "doc": "Abrangência de um município do cadastro; o código é a ``chave`` dele (o IBGE, quando há).",
-     "linha": 114
+     "linha": 116
+    },
+    {
+     "tipo": "funcao",
+     "nome": "abrangencia_zona",
+     "assinatura": "def abrangencia_zona(uf: str, zona: str) -> Abrangencia",
+     "doc": "Zona eleitoral de um município, pelo número (sem zeros à esquerda). Não tem feed próprio: aparece\ncomo parte do feed do município, com o número da zona como código.",
+     "linha": 121
     },
     {
      "tipo": "funcao",
      "nome": "atribuir_cores",
      "assinatura": "def atribuir_cores(numeros_em_ordem: Iterable[str], anteriores: Mapping[str, int] | None=None, n: int=N_CORES) -> dict[str, int]",
      "doc": "Índice de cor por candidato (ou partido), estável entre atualizações.\n\nQuem já tem cor a mantém — no meio da apuração, a troca de posição entre\ndois candidatos não troca a cor deles no mapa. Quem chega pega o menor\níndice livre, na ordem de votação. Do ``n``-ésimo em diante, cinza.",
-     "linha": 121
+     "linha": 130
     },
     {
      "tipo": "funcao",
      "nome": "ranking_partidos",
      "assinatura": "def ranking_partidos(r: ResultadoAbrangencia) -> list[tuple[str, int]]",
      "doc": "Partidos em ordem de votação: a total publicada pela fonte, ou a nominal somada.\n\nO recorte de candidatos de um arquivo pode não ter todos os candidatos\n(município com limite); a votação do partido publicada pelo TSE tem.",
-     "linha": 138
+     "linha": 147
     },
     {
      "tipo": "funcao",
      "nome": "resumo_eleicao",
      "assinatura": "def resumo_eleicao(e: Eleicao) -> dict",
      "doc": "Bloco ``eleicao`` dos feeds e do índice: id, nome, ano, turno, tipo e data.",
-     "linha": 156
+     "linha": 165
     },
     {
      "tipo": "funcao",
      "nome": "cargo_json",
      "assinatura": "def cargo_json(c: Cargo, vagas: int | None=None) -> dict",
      "doc": "Bloco ``cargo`` do feed; ``vagas``, quando informado, substitui o número de vagas do cargo.",
-     "linha": 161
+     "linha": 170
     },
     {
      "tipo": "funcao",
      "nome": "_totalizacao",
      "assinatura": "def _totalizacao(r: ResultadoAbrangencia) -> dict",
      "doc": "Bloco ``totalizacao``: seções, percentual totalizado, finalizada e matematicamente definida.",
-     "linha": 167
+     "linha": 176
     },
     {
      "tipo": "funcao",
      "nome": "_comparecimento",
      "assinatura": "def _comparecimento(r: ResultadoAbrangencia) -> dict",
      "doc": "Bloco ``comparecimento``: eleitorado, comparecimento, abstenção e os percentuais.",
-     "linha": 174
+     "linha": 183
     },
     {
      "tipo": "funcao",
      "nome": "_votos",
      "assinatura": "def _votos(r: ResultadoAbrangencia) -> dict",
      "doc": "Bloco ``votos``: válidos, brancos, nulos, anulados, de legenda e os percentuais.",
-     "linha": 181
+     "linha": 190
     },
     {
      "tipo": "funcao",
      "nome": "_pct",
      "assinatura": "def _pct(c: Candidato, r: ResultadoAbrangencia) -> float | None",
      "doc": "Percentual do candidato nos válidos: o publicado ou, se faltar, calculado sobre os válidos do recorte.",
-     "linha": 189
+     "linha": 198
     },
     {
      "tipo": "funcao",
      "nome": "candidato_json",
      "assinatura": "def candidato_json(c: Candidato, r: ResultadoAbrangencia, cores: Mapping[str, int], foto: str | None=None) -> dict",
      "doc": "Um candidato no feed, com o índice de cor e a foto.\n\nNos cargos proporcionais as cores são por partido: sem cor pelo número, vale a da sigla.",
-     "linha": 198
+     "linha": 207
     },
     {
      "tipo": "funcao",
      "nome": "parte_json",
      "assinatura": "def parte_json(abr: Abrangencia, r: ResultadoAbrangencia, cores: Mapping[str, int], *, por_partido: bool=False) -> dict",
      "doc": "Resumo de uma abrangência filha, para colorir o mapa do nível de cima.",
-     "linha": 217
+     "linha": 226
+    },
+    {
+     "tipo": "funcao",
+     "nome": "parte_zona_json",
+     "assinatura": "def parte_zona_json(abr: Abrangencia, r: ResultadoAbrangencia, cores: Mapping[str, int], *, por_partido: bool=False) -> dict",
+     "doc": "Uma zona no feed do município: como ``parte_json``, sem a bancada.\n\nOs eleitos de um cargo proporcional são do município (ou da UF) inteiro; contá-los por zona daria a\nimpressão de que cada zona elegeu alguém.",
+     "linha": 258
     },
     {
      "tipo": "funcao",
      "nome": "origem_json",
      "assinatura": "def origem_json(fonte: str, url: str | None=None, sha256: str | None=None, coletado_em: datetime | str | None=None, registro_bronze: str | None=None) -> dict",
      "doc": "Bloco ``origem`` do feed: fonte, URL, SHA-256, instante da coleta e registro no bronze.\n\nÉ o que liga cada número exibido à resposta guardada como prova.",
-     "linha": 249
+     "linha": 270
     },
     {
      "tipo": "funcao",
      "nome": "feed_resultado",
      "assinatura": "def feed_resultado(*, eleicao: Eleicao, cargo: Cargo, abr: Abrangencia, resultado: ResultadoAbrangencia, cores: Mapping[str, int], origem: dict, partes: list[dict] | None=None, limite_candidatos: int | None=None, fotos: Mapping[str, str] | None=None, ao_vivo: bool=False) -> dict",
      "doc": "Feed de resultado de um cargo numa abrangência (``tipo: resultado``).\n\nCom ``limite_candidatos``, leva só os mais votados e os eleitos, e conta os demais em\n``candidatos_omitidos``: um município pode ter centenas de candidatos a deputado, e a lista completa\nestá no feed da UF. ``partes`` traz as abrangências filhas, que colorem o mapa.",
-     "linha": 260
+     "linha": 281
     },
     {
      "tipo": "funcao",
      "nome": "feed_panorama",
      "assinatura": "def feed_panorama(*, eleicao: Eleicao, cargo: Cargo, abr: Abrangencia, partes: list[dict], origem: dict, atualizado_em: datetime | None, ao_vivo: bool=False, avisos: Iterable[str]=()) -> dict",
      "doc": "Um cargo visto de cima: o líder de cada parte e o placar por partido.\n\nUsado onde não existe resultado único: cargo municipal na UF e no Brasil\n(prefeitos, vereadores) e cargo estadual no Brasil (governadores,\nsenadores, deputados). Cada parte já vem com ``partido`` (do líder, ou o\nmais votado nos proporcionais) e ``eleito``; nos proporcionais, também\ncom ``bancada`` = {partido: eleitos}. O placar conta, por partido, as\npartes que lidera (``liderados``) e as vagas que obteve (``eleitos``), e a\ncor sai da ordem do placar.",
-     "linha": 301
+     "linha": 322
     },
     {
      "tipo": "funcao",
      "nome": "parte_de_panorama",
      "assinatura": "def parte_de_panorama(abr: Abrangencia, panorama: dict) -> dict",
      "doc": "Linha de uma UF no panorama nacional de cargo municipal: o partido que lidera mais municípios nela.\n\nLeva a ``bancada`` da UF (eleitos por partido), para que o placar\nnacional some as vagas de todos os partidos, não só as do líder.",
-     "linha": 353
+     "linha": 374
     },
     {
      "tipo": "funcao",
      "nome": "panorama_nacional",
      "assinatura": "def panorama_nacional(*, eleicao: Eleicao, cargo: Cargo, por_uf: Mapping[str, dict], origem: dict, atualizado_em: datetime | None, ao_vivo: bool=False) -> dict",
      "doc": "Panorama do Brasil a partir dos panoramas das UFs (cargo municipal).\n\nO placar soma o de todas as UFs (municípios liderados e eleitos por\npartido); as partes são as UFs, cada uma com o partido que lidera mais\nmunicípios nela.",
-     "linha": 373
+     "linha": 394
     },
     {
      "tipo": "funcao",
      "nome": "feed_historico",
      "assinatura": "def feed_historico(*, eleicao: Eleicao, cargo: Cargo, abr: Abrangencia, pontos: list[dict], candidatos: list[dict], origem: dict) -> dict",
      "doc": "``pontos``: [{\"t\": ISO, \"pct_secoes\": float, \"votos\": {numero: votos}}], em ordem.",
-     "linha": 418
+     "linha": 439
     },
     {
      "tipo": "funcao",
      "nome": "entrada_indice",
      "assinatura": "def entrada_indice(e: Eleicao, *, origem: str, ao_vivo: bool, atualizado_em: datetime | None, ufs: Iterable[str]=(), vagas: Mapping[int, int] | None=None, ufs_por_cargo: Mapping[int, Iterable[str]] | None=None, municipios: bool=True) -> dict",
      "doc": "Linha da eleição no ``indice.json``.\n\nCom ``ufs_por_cargo``, cada cargo leva as UFs em que há dados (Deputado\nDistrital só no DF; Conselheiro Distrital só em PE), e cargos sem dado\nnenhum ficam fora: o portal não mostra aba que não leva a nada.\n\n``municipios=False`` marca a eleição publicada só por UF (1933 a 1990): o\nportal não oferece o mapa de municípios nem a busca por município nela.",
-     "linha": 435
+     "linha": 456
     },
     {
      "tipo": "funcao",
      "nome": "eleicao_de_indice",
      "assinatura": "def eleicao_de_indice(item: dict) -> Eleicao",
      "doc": "Reconstrói o essencial de uma ``Eleicao`` a partir do índice gravado.",
-     "linha": 469
+     "linha": 490
     },
     {
      "tipo": "funcao",
      "nome": "nome_eleicao",
      "assinatura": "def nome_eleicao(ano: int, turno: int, tipo: str) -> str",
      "doc": "Nome exibido da eleição, ex.: ``Eleições Gerais 2022 — 1º turno``.",
-     "linha": 483
+     "linha": 504
     },
     {
      "tipo": "funcao",
      "nome": "substituir_arquivo",
      "assinatura": "def substituir_arquivo(tmp: Path, caminho: Path, tentativas: int=20, espera_s: float=0.05, dormir=time.sleep) -> None",
      "doc": "``os.replace`` com novas tentativas enquanto o destino estiver aberto por outro processo.\n\nNo Windows, trocar um arquivo que o servidor local está enviando ao navegador falha com\n``PermissionError`` (o arquivo aberto não permite exclusão). A leitura de um feed leva\nmilissegundos; esperar um pouco e tentar de novo resolve, e a última falha é propagada.",
-     "linha": 491
+     "linha": 512
     },
     {
      "tipo": "funcao",
      "nome": "_gravar_json",
      "assinatura": "def _gravar_json(caminho: Path, dados: dict) -> Path",
      "doc": "Grava o JSON compacto de forma atômica: arquivo temporário e ``os.replace``.\n\nO portal nunca lê um feed pela metade; o PID no nome do temporário evita que dois processos\ngravando o mesmo feed usem o mesmo arquivo.",
-     "linha": 509
+     "linha": 530
     },
     {
      "tipo": "classe",
      "nome": "EscritorFeeds",
      "assinatura": "class EscritorFeeds",
      "doc": "Grava e lê os feeds sob ``raiz``, em ``<eleição>/<cargo>/<arquivo>.json``, e mantém o ``indice.json``.",
-     "linha": 522
+     "linha": 543
     },
     {
      "tipo": "metodo",
      "nome": "EscritorFeeds.__init__",
      "assinatura": "def __init__(self, raiz: Path | str)",
      "doc": "Escritor dos feeds sob o diretório ``raiz``.",
-     "linha": 525
+     "linha": 546
     },
     {
      "tipo": "metodo",
      "nome": "EscritorFeeds.caminho",
      "assinatura": "def caminho(self, eleicao_id: str, cargo_slug: str, arquivo: str) -> Path",
      "doc": "Caminho de um feed; cada trecho passa por ``_seguro``.",
-     "linha": 529
+     "linha": 550
     },
     {
      "tipo": "metodo",
      "nome": "EscritorFeeds.gravar",
      "assinatura": "def gravar(self, eleicao_id: str, cargo_slug: str, abr: Abrangencia, feed: dict) -> Path",
      "doc": "Grava o feed da abrangência e devolve o caminho.",
-     "linha": 533
+     "linha": 554
     },
     {
      "tipo": "metodo",
      "nome": "EscritorFeeds.gravar_historico",
      "assinatura": "def gravar_historico(self, eleicao_id: str, cargo_slug: str, abr: Abrangencia, feed: dict) -> Path",
      "doc": "Grava o feed de evolução da totalização da abrangência (``historico-<arquivo>.json``).",
-     "linha": 537
+     "linha": 558
     },
     {
      "tipo": "metodo",
      "nome": "EscritorFeeds.ler",
      "assinatura": "def ler(self, eleicao_id: str, cargo_slug: str, arquivo: str) -> dict | None",
      "doc": "Lê um feed já gravado; ``None`` se ele não existe.",
-     "linha": 541
+     "linha": 562
     },
     {
      "tipo": "metodo",
      "nome": "EscritorFeeds.caminho_indice",
      "assinatura": "def caminho_indice(self) -> Path",
      "doc": "Caminho do ``indice.json``.",
-     "linha": 551
+     "linha": 572
     },
     {
      "tipo": "metodo",
      "nome": "EscritorFeeds.ler_indice",
      "assinatura": "def ler_indice(self) -> dict",
      "doc": "Lê o índice; sem arquivo, devolve um índice vazio, com a ``versao`` atual.",
-     "linha": 555
+     "linha": 576
     },
     {
      "tipo": "metodo",
      "nome": "EscritorFeeds.atualizar_indice",
      "assinatura": "def atualizar_indice(self, entrada: dict) -> dict",
      "doc": "Insere ou substitui a eleição no índice, mantendo a ordem (mais recente primeiro).",
-     "linha": 561
+     "linha": 582
     },
     {
      "tipo": "metodo",
      "nome": "EscritorFeeds.remover_do_indice",
      "assinatura": "def remover_do_indice(self, eleicao_id: str) -> None",
      "doc": "Tira a eleição do índice e regrava o arquivo.",
-     "linha": 574
+     "linha": 595
     },
     {
      "tipo": "funcao",
      "nome": "proporcional",
      "assinatura": "def proporcional(cargo: Cargo | int) -> bool",
      "doc": "O cargo é proporcional (deputados e vereador)? Aceita o cargo ou o código.\n\nCargo com ``slug_fixo`` (eleições de 1933 a 1990) decide pelo próprio ``tipo``: o código, ali, não\nsegue a tabela atual.",
-     "linha": 581
+     "linha": 602
     },
     {
      "tipo": "funcao",
      "nome": "municipal",
      "assinatura": "def municipal(cargo: Cargo | int) -> bool",
      "doc": "O cargo é disputado no município (prefeito, vereador, conselheiro distrital)? Aceita o cargo ou o código.",
-     "linha": 594
+     "linha": 615
     }
    ]
   },
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/geo.py",
    "linguagem": "python",
-   "linhas": 127,
-   "doc": "Malhas do IBGE para o mapa da aba Eleições.\n\nAPI de malhas v3 do IBGE (``servicodados.ibge.gov.br/api/v3/malhas``), sem\nautenticação, com CORS aberto. ``formato=application/json`` devolve\n**TopoJSON**: arcos compartilhados entre vizinhos e coordenadas quantizadas,\no que deixa o arquivo várias vezes menor que o GeoJSON equivalente. O\nportal decodifica TopoJSON sozinho (``src/lib/topojson.ts``), sem biblioteca.\n\nTamanhos medidos em 05/10/2026, qualidade ``minima``: Brasil por UF 31 KB;\nSão Paulo por município 136 KB; Acre 10 KB. A qualidade ``intermediaria``\ndobra o tamanho (SP: 292 KB) e quase não muda o desenho no tamanho em que o\nmapa é exibido, por isso o padrão é ``minima``.\n\nArquivos gravados (sempre os bytes publicados pelo IBGE, depois de\nvalidados)::\n\n    geo/br-uf.json          Brasil, uma geometria por UF (codarea = código da UF)\n    geo/uf-<sigla>-mu.json  UF, uma geometria por município (codarea = código IBGE)",
+   "linhas": 173,
+   "doc": "Malhas do IBGE para o mapa da aba Eleições.\n\nAPI de malhas v3 do IBGE (``servicodados.ibge.gov.br/api/v3/malhas``), sem\nautenticação, com CORS aberto. ``formato=application/json`` devolve\n**TopoJSON**: arcos compartilhados entre vizinhos e coordenadas quantizadas,\no que deixa o arquivo várias vezes menor que o GeoJSON equivalente. O\nportal decodifica TopoJSON sozinho (``src/lib/topojson.ts``), sem biblioteca.\n\nTamanhos medidos em 05/10/2026, qualidade ``minima``: Brasil por UF 31 KB;\nSão Paulo por município 136 KB; Acre 10 KB. A qualidade ``intermediaria``\ndobra o tamanho (SP: 292 KB) e quase não muda o desenho no tamanho em que o\nmapa é exibido, por isso o padrão é ``minima``.\n\nArquivos gravados (sempre os bytes publicados pelo IBGE, depois de\nvalidados)::\n\n    geo/br-uf.json          Brasil, uma geometria por UF (codarea = código da UF)\n    geo/uf-<sigla>-mu.json  UF, uma geometria por município (codarea = código IBGE)\n    geo/mu/<ibge>.json      contorno de um município na qualidade ``maxima``, para os que têm mais de\n                            uma zona eleitoral (``baixar_contornos``)\n\nNa qualidade ``minima``, um município pequeno vira um polígono de quatro ou\ncinco pontos (Taboão da Serra, SP: 4; Olinda, PE: 6), bom para o mapa da UF e\ninútil quando o município ocupa a tela inteira com as zonas eleitorais. Por\nisso os municípios com mais de uma zona têm também o contorno em ``maxima``\n(São Paulo: 1.157 pontos, 10,6 KB; Taboão da Serra: 74 pontos, 0,9 KB).\n\nCertificado: o servidor ``servicodados.ibge.gov.br`` envia só o certificado\nfinal, sem o intermediário (Sectigo Public Server Authentication CA DV R36,\nverificado em 15/10/2026). Navegadores completam a cadeia sozinhos; o Python\nnão, e a conexão falha com ``unable to get local issuer certificate`` até o\nintermediário estar no repositório de certificados da máquina.",
    "itens": [
     {
      "tipo": "classe",
      "nome": "MalhaInvalida",
      "assinatura": "class MalhaInvalida(ValueError)",
      "doc": "A malha recebida não serve ao portal: HTTP diferente de 200 ou TopoJSON fora da estrutura esperada.",
-     "linha": 39
+     "linha": 54
     },
     {
      "tipo": "funcao",
      "nome": "url_brasil_por_uf",
      "assinatura": "def url_brasil_por_uf(qualidade: str='minima') -> str",
      "doc": "URL da malha do Brasil com uma geometria por UF, na ``qualidade`` pedida.",
-     "linha": 44
+     "linha": 59
     },
     {
      "tipo": "funcao",
      "nome": "url_uf_por_municipio",
      "assinatura": "def url_uf_por_municipio(codigo_uf: str, qualidade: str='minima') -> str",
      "doc": "URL da malha de uma UF (código IBGE de 2 dígitos) com uma geometria por município.",
-     "linha": 49
+     "linha": 64
+    },
+    {
+     "tipo": "funcao",
+     "nome": "url_municipio",
+     "assinatura": "def url_municipio(codigo_ibge: str, qualidade: str='maxima') -> str",
+     "doc": "URL da malha de um município (código IBGE de 7 dígitos), na ``qualidade`` pedida.",
+     "linha": 70
     },
     {
      "tipo": "funcao",
      "nome": "url_municipios_ibge",
      "assinatura": "def url_municipios_ibge() -> str",
      "doc": "URL da lista de municípios da API de localidades do IBGE, de onde vêm os nomes acentuados.",
-     "linha": 55
+     "linha": 75
     },
     {
      "tipo": "funcao",
      "nome": "validar_topojson",
      "assinatura": "def validar_topojson(conteudo: bytes | str | dict) -> dict",
      "doc": "Confere a estrutura mínima que o portal usa e devolve o objeto.",
-     "linha": 60
+     "linha": 80
     },
     {
      "tipo": "funcao",
      "nome": "codigos_da_malha",
      "assinatura": "def codigos_da_malha(topo: dict) -> list[str]",
      "doc": "Códigos ``codarea`` das geometrias de uma malha já validada, como texto e em ordem crescente.",
-     "linha": 87
+     "linha": 107
     },
     {
      "tipo": "funcao",
      "nome": "_gravar",
      "assinatura": "def _gravar(destino: Path, conteudo: bytes) -> Path",
      "doc": "Grava ``conteudo`` em ``destino`` por troca atômica (``.tmp`` e ``os.replace``), criando o diretório.\n\nQuem lê o diretório dos feeds vê a malha anterior ou a nova, nunca um arquivo pela metade; com a\nmalha aberta pelo servidor local (Windows), a troca espera e tenta de novo (``feeds.substituir_arquivo``).",
-     "linha": 93
+     "linha": 113
     },
     {
      "tipo": "funcao",
      "nome": "baixar_malhas",
      "assinatura": "def baixar_malhas(cliente: ClienteHttp, raiz_feeds: Path | str, *, ufs: Iterable[str] | None=None, qualidade: str='minima', bronze: ArmazemBronze | None=None) -> list[Path]",
      "doc": "Baixa o Brasil por UF e cada UF por município. Devolve os arquivos gravados.",
-     "linha": 106
+     "linha": 126
+    },
+    {
+     "tipo": "funcao",
+     "nome": "baixar_contornos",
+     "assinatura": "def baixar_contornos(cliente: ClienteHttp, raiz_feeds: Path | str, codigos: Iterable[str], *, qualidade: str='maxima', bronze: ArmazemBronze | None=None) -> list[Path]",
+     "doc": "Baixa o contorno de cada município (código IBGE) para ``geo/mu/<código>.json``. Devolve os gravados.\n\nSão os bytes do IBGE, conferidos por ``validar_topojson`` e pelo código da única geometria.",
+     "linha": 149
     }
    ]
   },
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/historico.py",
    "linguagem": "python",
-   "linhas": 377,
-   "doc": "Eleições passadas: dos arquivos de dados abertos aos feeds do portal.\n\nUm ano por vez. O detalhe da apuração (pequeno) é lido inteiro primeiro; o\narquivo de votação (grande) é lido um CSV por vez — o ``_BR`` com o\nPresidente e depois um por UF —, e cada CSV vira os feeds do que ele contém\nantes de o próximo ser aberto. Assim a memória fica proporcional à maior UF,\nnão ao Brasil.\n\nO que sai, por eleição (ano e turno) e cargo:\n\n- cargo nacional (Presidente): ``br``, ``uf-*`` e ``mu-*``;\n- cargo estadual: ``uf-*``, ``mu-*`` e o panorama ``br`` (quem lidera em cada UF);\n- cargo municipal: ``mu-*`` e os panoramas ``uf-*`` e ``br``.",
+   "linhas": 415,
+   "doc": "Eleições passadas: dos arquivos de dados abertos aos feeds do portal.\n\nUm ano por vez. O detalhe da apuração (pequeno) é lido inteiro primeiro; o\narquivo de votação (grande) é lido um CSV por vez — o ``_BR`` com o\nPresidente e depois um por UF —, e cada CSV vira os feeds do que ele contém\nantes de o próximo ser aberto. Assim a memória fica proporcional à maior UF,\nnão ao Brasil.\n\nO que sai, por eleição (ano e turno) e cargo:\n\n- cargo nacional (Presidente): ``br``, ``uf-*`` e ``mu-*``;\n- cargo estadual: ``uf-*``, ``mu-*`` e o panorama ``br`` (quem lidera em cada UF);\n- cargo municipal: ``mu-*`` e os panoramas ``uf-*`` e ``br``.\n\nNo município com duas zonas eleitorais ou mais, o feed ``mu-*`` leva as zonas em ``partes`` (quem lidera em\ncada zona, com as cores do próprio feed). Quais municípios têm mais de uma zona sai do detalhe da apuração;\nsem ele, os feeds saem sem zonas.",
    "itens": [
     {
      "tipo": "classe",
      "nome": "ResumoAno",
      "assinatura": "class ResumoAno",
      "doc": "Contagens do processamento de um ano, devolvidas por ``ProcessadorAno.processar``.\n\n``municipios_sem_ibge`` junta, como ``<uf><código TSE>``, os municípios do Brasil que apareceram nos\ndados sem código IBGE no cadastro: entram nos feeds, mas o mapa não os colore.",
-     "linha": 54
+     "linha": 60
     },
     {
      "tipo": "funcao",
      "nome": "_cargo",
      "assinatura": "def _cargo(codigo: int, codigo_tse: int | None) -> Cargo",
      "doc": "``Cargo`` a partir do código: nome da tabela ``CARGOS`` e tipo dado por ``proporcional``.\n\nSem o código da eleição no TSE, ``eleicao_tse`` fica 0.",
-     "linha": 69
+     "linha": 75
     },
     {
      "tipo": "funcao",
      "nome": "_ordem_cores",
      "assinatura": "def _ordem_cores(r: ResultadoAbrangencia) -> list[str]",
      "doc": "Números dos candidatos válidos na ordem do resultado: a ordem em que ``atribuir_cores`` distribui as cores.",
-     "linha": 79
+     "linha": 85
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_partes_zonas",
+     "assinatura": "def _partes_zonas(municipio: da.Abr, zonas: Zonas, cores: dict[str, int], por_partido: bool) -> list[dict]",
+     "doc": "Partes do feed do município: uma por zona, em ordem numérica; nenhuma se o município tem uma só.",
+     "linha": 94
     },
     {
      "tipo": "classe",
      "nome": "ProcessadorAno",
      "assinatura": "class ProcessadorAno",
      "doc": "Transforma os ZIPs de um ano em feeds. Um objeto por ano processado.",
-     "linha": 84
+     "linha": 104
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno.__init__",
      "assinatura": "def __init__(self, ano: int, escritor: EscritorFeeds, cadastro: CadastroMunicipios, *, origem_votacao: Manifesto | None=None, origem_detalhe: Manifesto | None=None, limite_candidatos_municipio: int=LIMITE_CANDIDATOS_MUNICIPIO, progresso: Callable[[str], None] | None=None)",
      "doc": "Prepara o estado que se acumula ao longo do ano.\n\nA origem dos feeds vem do manifesto do ZIP de votação quando há um (URL, SHA-256 e instante do\ndownload); sem ele, só a URL oficial do conjunto. Os dicionários guardam o que só pode ser emitido no\nfim — índice, panoramas nacionais, vagas somadas das UFs —, porque cada CSV é emitido e descartado\nantes de o próximo ser aberto.",
-     "linha": 87
+     "linha": 107
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno.processar",
      "assinatura": "def processar(self, zip_votacao: Path | str, zip_detalhe: Path | str | None) -> ResumoAno",
-     "doc": "Lê os ZIPs do ano, grava todos os feeds e devolve o resumo.\n\nO detalhe da apuração, quando informado, é lido inteiro antes e dá os totais de cada abrangência\n(comparecimento, brancos, nulos, seções). A votação é lida um CSV por vez, cada um com um agregador\npróprio, emitido e limpo antes do próximo. Se o ZIP tem o arquivo ``_BR``, o Presidente vem só dele e\né pulado nos arquivos por UF. No fim, emite os panoramas nacionais e atualiza o índice.",
-     "linha": 123
+     "doc": "Lê os ZIPs do ano, grava todos os feeds e devolve o resumo.\n\nO detalhe da apuração, quando informado, é lido inteiro antes e dá os totais de cada abrangência\n(comparecimento, brancos, nulos, seções). A votação é lida um CSV por vez, cada um com um agregador\npróprio, emitido e limpo antes do próximo. Se o ZIP tem o arquivo ``_BR``, o Presidente vem só dele e\né pulado nos arquivos por UF. Os municípios com duas zonas ou mais, conhecidos pelo detalhe, também\ntêm a votação somada por zona. No fim, emite os panoramas nacionais e atualiza o índice.",
+     "linha": 144
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno._eleicao",
      "assinatura": "def _eleicao(self, eid: str, agregador: da.AgregadorVotacao) -> Eleicao",
      "doc": "``Eleicao`` do id (``\"2022-1t-geral\"``), criada na primeira vez em que aparece.\n\nA data vem do agregador; se o primeiro CSV não a trazia, é preenchida quando um seguinte trouxer.",
-     "linha": 157
+     "linha": 181
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno._registrar_cargo",
      "assinatura": "def _registrar_cargo(self, e: Eleicao, cargo: Cargo) -> None",
      "doc": "Acrescenta o cargo à eleição, se ainda não estiver lá, mantendo a lista ordenada por código.",
-     "linha": 173
+     "linha": 197
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno._abr",
      "assinatura": "def _abr(self, chave: da.Abr, agregador: da.AgregadorVotacao) -> Abrangencia",
      "doc": "Converte a chave do agregador (``(\"br\",)``, ``(\"uf\", uf)`` ou ``(\"mu\", uf, tse)``) em ``Abrangencia``.\n\nMunicípio fora do cadastro entra por ``CadastroMunicipios.completar``, com o nome publicado no CSV;\nos do Brasil que ficam sem código IBGE são anotados no resumo.",
-     "linha": 179
+     "linha": 203
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno._emitir",
      "assinatura": "def _emitir(self, agregador: da.AgregadorVotacao, totais: dict) -> None",
-     "doc": "Emite os feeds de tudo o que um CSV agregou.\n\nAgrupa os resultados por eleição e cargo, registra o cargo na eleição, acompanha o instante mais\nrecente e as UFs com resultado (para o índice) e despacha para a emissão municipal ou para a dos\ncargos nacional e estaduais, conforme o nível do cargo.",
-     "linha": 199
+     "doc": "Emite os feeds de tudo o que um CSV agregou.\n\nAgrupa os resultados por eleição e cargo, registra o cargo na eleição, acompanha o instante mais\nrecente e as UFs com resultado (para o índice) e despacha para a emissão municipal ou para a dos\ncargos nacional e estaduais, conforme o nível do cargo. Os resultados por zona vão à parte, por\nmunicípio, para entrar no feed do município.",
+     "linha": 223
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno._emitir_majoritario_ou_estadual",
-     "assinatura": "def _emitir_majoritario_ou_estadual(self, e: Eleicao, cargo: Cargo, resultados: dict[da.Abr, ResultadoAbrangencia], agregador: da.AgregadorVotacao, nivel: Nivel) -> None",
-     "doc": "Grava os feeds de cargo nacional ou estadual: municípios, UFs e, para o Presidente, o Brasil.\n\nAs cores do Presidente são as do resultado nacional, as mesmas em todas as UFs; nos cargos estaduais,\ncada UF tem as suas, pela ordem dos candidatos (ou dos partidos, nos proporcionais). O feed de UF leva\nas partes dos municípios e o do Brasil, as das UFs; nos proporcionais, o de município fica com os\n``limite`` mais votados e os eleitos. Num cargo estadual, a parte de cada UF fica guardada para o\npanorama nacional, emitido no fim do ano.",
-     "linha": 226
+     "assinatura": "def _emitir_majoritario_ou_estadual(self, e: Eleicao, cargo: Cargo, resultados: dict[da.Abr, ResultadoAbrangencia], agregador: da.AgregadorVotacao, nivel: Nivel, zonas: Zonas | None=None) -> None",
+     "doc": "Grava os feeds de cargo nacional ou estadual: municípios, UFs e, para o Presidente, o Brasil.\n\nAs cores do Presidente são as do resultado nacional, as mesmas em todas as UFs; nos cargos estaduais,\ncada UF tem as suas, pela ordem dos candidatos (ou dos partidos, nos proporcionais). O feed de UF leva\nas partes dos municípios e o do Brasil, as das UFs; nos proporcionais, o de município fica com os\n``limite`` mais votados e os eleitos, e o de município com mais de uma zona, as zonas em ``partes``.\nNum cargo estadual, a parte de cada UF fica guardada para o panorama nacional, emitido no fim do ano.",
+     "linha": 257
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno._emitir_municipal",
-     "assinatura": "def _emitir_municipal(self, e: Eleicao, cargo: Cargo, resultados: dict[da.Abr, ResultadoAbrangencia], agregador: da.AgregadorVotacao) -> None",
-     "doc": "Grava os feeds de cargo municipal: um por município e o panorama de cada UF.\n\nCada município tem as próprias cores (por candidato, ou por partido nos proporcionais). O panorama\nde cada UF fica guardado para o panorama nacional, emitido no fim do ano.",
-     "linha": 285
+     "assinatura": "def _emitir_municipal(self, e: Eleicao, cargo: Cargo, resultados: dict[da.Abr, ResultadoAbrangencia], agregador: da.AgregadorVotacao, zonas: Zonas | None=None) -> None",
+     "doc": "Grava os feeds de cargo municipal: um por município, com as zonas quando há mais de uma, e o\npanorama de cada UF.\n\nCada município tem as próprias cores (por candidato, ou por partido nos proporcionais), que valem\ntambém para as zonas dele. O panorama de cada UF fica guardado para o panorama nacional, emitido no\nfim do ano.",
+     "linha": 319
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno._emitir_panoramas_nacionais",
      "assinatura": "def _emitir_panoramas_nacionais(self) -> None",
      "doc": "Grava o feed ``br`` dos cargos sem resultado nacional próprio, com o que foi guardado durante o ano.\n\nCargo municipal: o panorama nacional junta os panoramas das UFs. Cargo estadual: um panorama com uma\nparte por UF (governadores, senadores, bancadas), em ordem de UF.",
-     "linha": 318
+     "linha": 356
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno._atualizar_indice",
      "assinatura": "def _atualizar_indice(self) -> None",
      "doc": "Registra no índice cada eleição do ano como histórica (``ao_vivo=False``), com UFs, vagas e o\ninstante mais recente.",
-     "linha": 337
+     "linha": 375
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno.gravar_evolucao",
      "assinatura": "def gravar_evolucao(self, turno: int, fluxo) -> bool",
      "doc": "Grava ``historico-br.json`` do Presidente a partir do Historico_Totalizacao.",
-     "linha": 347
+     "linha": 385
     }
    ]
   },
@@ -2697,246 +2760,281 @@
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/preparacao.py",
    "linguagem": "python",
-   "linhas": 528,
-   "doc": "``lumen eleicoes preparar``: a aba Eleições pronta num comando.\n\nO repositório traz o código, o mapa e o cadastro de municípios, mas não os\nresultados: os arquivos do TSE somam vários GB (só a votação por município de\n2022 tem 642 MB compactados) e são publicados e corrigidos pelo próprio\ntribunal. Este comando busca tudo na fonte oficial uma vez, guarda os ZIPs\ncom o SHA-256 de cada um (ADR-021) e gera os feeds que o portal lê:\n\n1. instala as referências embutidas (malhas do IBGE e cadastro TSE ↔ IBGE)\n   no diretório dos feeds (``referencias.instalar``);\n2. gera o portal estático quando ele não existe ou o código mudou depois da\n   última geração (``npm ci`` e ``npm run build``);\n3. com ``--servir``, sobe o servidor local e abre o navegador antes da carga:\n   cada eleição aparece no portal assim que fica pronta;\n4. coleta, no sistema de resultados, as eleições ordinárias que já\n   aconteceram e ainda não estão nos dados abertos (em outubro de 2026, o 1º\n   turno de 2026), até a totalização terminar, com todos os municípios;\n5. baixa e processa os dados abertos de 1933 a 1990 (resultados por UF);\n6. baixa e processa os dados abertos de 2024 a 1994, do mais recente para o\n   mais antigo, com todos os municípios.\n\nÉ retomável. ``<estado>/preparar.json`` registra cada etapa concluída e o\nSHA-256 dos arquivos de entrada; rodar de novo pula o que já está pronto\n(``--refazer`` ignora o registro, ``--atualizar`` consulta a fonte e só\nreprocessa o ano cujos arquivos mudaram). Um erro num ano não interrompe os\noutros: o resumo final lista o que falhou e o comando devolve 1.\n\nNa nuvem (``--nuvem``, ADR-026), a mesma sequência roda numa máquina que\ncomeça vazia: antes de tudo, ``publicacao.Nuvem.restaurar`` traz o índice\npublicado e o estado; depois de cada ano e de cada passada do sistema de\nresultados, ``sincronizar`` publica o que mudou e guarda o estado. Com\n``--limite-minutos``, a carga para sozinha antes do prazo da máquina, e a\nexecução seguinte continua de onde esta parou.",
+   "linhas": 597,
+   "doc": "``lumen eleicoes preparar``: a aba Eleições pronta num comando.\n\nO repositório traz o código, o mapa e o cadastro de municípios, mas não os\nresultados: os arquivos do TSE somam vários GB (só a votação por município de\n2022 tem 642 MB compactados) e são publicados e corrigidos pelo próprio\ntribunal. Este comando busca tudo na fonte oficial uma vez, guarda os ZIPs\ncom o SHA-256 de cada um (ADR-021) e gera os feeds que o portal lê:\n\n1. instala as referências embutidas (malhas do IBGE e cadastro TSE ↔ IBGE)\n   no diretório dos feeds (``referencias.instalar``);\n2. gera o portal estático quando ele não existe ou o código mudou depois da\n   última geração (``npm ci`` e ``npm run build``);\n3. com ``--servir``, sobe o servidor local e abre o navegador antes da carga:\n   cada eleição aparece no portal assim que fica pronta;\n4. coleta, no sistema de resultados, as eleições ordinárias que já\n   aconteceram e ainda não estão nos dados abertos (em outubro de 2026, o 1º\n   turno de 2026), até a totalização terminar, com todos os municípios;\n5. baixa os locais de votação de 2026 a 2018 e grava o mapa das zonas\n   eleitorais dos municípios com mais de uma zona (``zonas.py``, ADR-029);\n6. baixa e processa os dados abertos de 1933 a 1990 (resultados por UF);\n7. baixa e processa os dados abertos de 2024 a 1994, do mais recente para o\n   mais antigo, com todos os municípios e, onde há mais de uma, as zonas.\n\nÉ retomável. ``<estado>/preparar.json`` registra cada etapa concluída e o\nSHA-256 dos arquivos de entrada; rodar de novo pula o que já está pronto\n(``--refazer`` ignora o registro, ``--atualizar`` consulta a fonte e só\nreprocessa o ano cujos arquivos mudaram). Um ano de 1994 em diante processado\npor uma versão anterior do processamento (``VERSAO_PROCESSAMENTO``) é refeito\numa vez: foi assim que os feeds dos municípios ganharam as zonas eleitorais. Um erro num ano não interrompe os\noutros: o resumo final lista o que falhou e o comando devolve 1.\n\nNa nuvem (``--nuvem``, ADR-026), a mesma sequência roda numa máquina que\ncomeça vazia: antes de tudo, ``publicacao.Nuvem.restaurar`` traz o índice\npublicado e o estado; depois de cada ano e de cada passada do sistema de\nresultados, ``sincronizar`` publica o que mudou e guarda o estado. Com\n``--limite-minutos``, a carga para sozinha antes do prazo da máquina, e a\nexecução seguinte continua de onde esta parou.",
    "itens": [
     {
      "tipo": "classe",
      "nome": "PortalIndisponivel",
      "assinatura": "class PortalIndisponivel(RuntimeError)",
      "doc": "Não foi possível gerar o portal (Node.js ausente ou ``npm`` falhou).",
-     "linha": 73
+     "linha": 80
     },
     {
      "tipo": "funcao",
      "nome": "_agora",
      "assinatura": "def _agora() -> str",
      "doc": "Instante atual em ISO 8601, UTC, sem frações de segundo.",
-     "linha": 77
+     "linha": 84
     },
     {
      "tipo": "classe",
      "nome": "EstadoPreparacao",
      "assinatura": "class EstadoPreparacao",
-     "doc": "O que ``preparar`` já concluiu, gravado em ``<estado>/preparar.json`` depois de cada etapa.\n\n``anos`` guarda, por ano, quando terminou, as eleições geradas e o SHA-256 de cada ZIP de entrada;\n``ao_vivo``, por eleição do sistema de resultados, quando a coleta terminou com a totalização\nconcluída.",
-     "linha": 85
+     "doc": "O que ``preparar`` já concluiu, gravado em ``<estado>/preparar.json`` depois de cada etapa.\n\n``anos`` guarda, por ano, quando terminou, as eleições geradas, o SHA-256 de cada ZIP de entrada e a\nversão do processamento; ``ao_vivo``, por eleição do sistema de resultados, quando a coleta terminou\ncom a totalização concluída; ``zonas``, por ano, o SHA-256 do ZIP de locais de votação usado.",
+     "linha": 92
     },
     {
      "tipo": "metodo",
      "nome": "EstadoPreparacao.carregar",
      "assinatura": "def carregar(cls, caminho: Path) -> 'EstadoPreparacao'",
      "doc": "Lê o registro; arquivo ausente ou ilegível vale como nada feito.",
-     "linha": 98
+     "linha": 106
     },
     {
      "tipo": "metodo",
      "nome": "EstadoPreparacao.gravar",
      "assinatura": "def gravar(self) -> None",
      "doc": "Grava o registro por troca atômica (``.tmp`` e ``replace``).",
-     "linha": 106
+     "linha": 115
     },
     {
      "tipo": "metodo",
      "nome": "EstadoPreparacao.ano_pronto",
      "assinatura": "def ano_pronto(self, ano: int) -> bool",
-     "doc": "Se o ano já foi processado por completo.",
-     "linha": 114
+     "doc": "Se o ano já foi processado por completo, pela versão atual do processamento (de 1994 em diante).",
+     "linha": 123
     },
     {
      "tipo": "metodo",
      "nome": "EstadoPreparacao.entradas_do_ano",
      "assinatura": "def entradas_do_ano(self, ano: int) -> dict[str, str]",
      "doc": "{arquivo: SHA-256} dos ZIPs com que o ano foi processado.",
-     "linha": 118
+     "linha": 130
     },
     {
      "tipo": "metodo",
      "nome": "EstadoPreparacao.marcar_ano",
      "assinatura": "def marcar_ano(self, ano: int, entradas: dict[str, str], eleicoes: list[str]) -> None",
      "doc": "Registra o ano como concluído e grava.",
-     "linha": 122
+     "linha": 134
+    },
+    {
+     "tipo": "metodo",
+     "nome": "EstadoPreparacao.zonas_prontas",
+     "assinatura": "def zonas_prontas(self, ano: int) -> bool",
+     "doc": "Se o mapa das zonas do ano já foi gravado.",
+     "linha": 140
+    },
+    {
+     "tipo": "metodo",
+     "nome": "EstadoPreparacao.entradas_das_zonas",
+     "assinatura": "def entradas_das_zonas(self, ano: int) -> dict[str, str]",
+     "doc": "{arquivo: SHA-256} do ZIP de locais com que o mapa das zonas do ano foi gravado.",
+     "linha": 144
+    },
+    {
+     "tipo": "metodo",
+     "nome": "EstadoPreparacao.marcar_zonas",
+     "assinatura": "def marcar_zonas(self, ano: int, entradas: dict[str, str], municipios: int) -> None",
+     "doc": "Registra o mapa das zonas do ano como gravado e grava.",
+     "linha": 148
     },
     {
      "tipo": "metodo",
      "nome": "EstadoPreparacao.ao_vivo_pronto",
      "assinatura": "def ao_vivo_pronto(self, eleicao_id: str) -> bool",
      "doc": "Se a coleta da eleição já terminou com a totalização concluída.",
-     "linha": 127
+     "linha": 153
     },
     {
      "tipo": "metodo",
      "nome": "EstadoPreparacao.marcar_ao_vivo",
      "assinatura": "def marcar_ao_vivo(self, eleicao_id: str) -> None",
      "doc": "Registra a coleta da eleição como concluída e grava.",
-     "linha": 131
+     "linha": 157
     },
     {
      "tipo": "funcao",
      "nome": "portal_desatualizado",
      "assinatura": "def portal_desatualizado(portal: Path=DIR_PORTAL) -> bool",
      "doc": "Se o portal precisa ser gerado: sem ``out/index.html`` ou com código mais novo que ele.",
-     "linha": 139
+     "linha": 165
     },
     {
      "tipo": "funcao",
      "nome": "construir_portal",
      "assinatura": "def construir_portal(portal: Path=DIR_PORTAL, *, executar: Callable=subprocess.run, localizar: Callable[[str], str | None]=shutil.which) -> None",
      "doc": "Instala as dependências do portal (se faltam) e gera o site estático em ``out/``.\n\nExige o Node.js com ``npm`` no PATH; levanta ``PortalIndisponivel`` se não houver ou se um passo falhar.",
-     "linha": 155
+     "linha": 181
     },
     {
      "tipo": "funcao",
      "nome": "dentro_de",
      "assinatura": "def dentro_de(caminho: Path, pasta: Path) -> bool",
      "doc": "Se ``caminho`` está dentro de ``pasta`` (os dois resolvidos).",
-     "linha": 172
+     "linha": 198
     },
     {
      "tipo": "funcao",
      "nome": "eleicoes_ao_vivo",
      "assinatura": "def eleicoes_ao_vivo(eleicoes: list[Eleicao], hoje: date) -> tuple[list[Eleicao], list[Eleicao]]",
      "doc": "Separa as eleições do sistema de resultados em (coletar agora, ainda por acontecer).\n\nEntram as ordinárias (geral e municipal) cujo ano ainda não está nos dados abertos; as que já estão\nsão processadas pelos arquivos completos. Eleição com data futura fica para a noite da apuração.",
-     "linha": 180
+     "linha": 206
     },
     {
      "tipo": "classe",
      "nome": "OpcoesPreparacao",
      "assinatura": "class OpcoesPreparacao",
      "doc": "O que ``preparar`` deve fazer; os padrões fazem tudo.",
-     "linha": 196
+     "linha": 222
     },
     {
      "tipo": "classe",
      "nome": "ResumoPreparacao",
      "assinatura": "class ResumoPreparacao",
      "doc": "O que aconteceu, etapa por etapa, para o resumo impresso no fim.",
-     "linha": 218
+     "linha": 245
     },
     {
      "tipo": "metodo",
      "nome": "ResumoPreparacao.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "Dicionário para imprimir em JSON.",
-     "linha": 230
+     "linha": 258
     },
     {
      "tipo": "classe",
      "nome": "Preparacao",
      "assinatura": "class Preparacao",
      "doc": "Executa as etapas de ``preparar`` na ordem do módulo, registrando o andamento.\n\nOs clientes HTTP, o construtor do portal, o navegador, a espera e a data de hoje são injetáveis (testes).",
-     "linha": 237
+     "linha": 265
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.__init__",
      "assinatura": "def __init__(self, cfg: ConfiguracaoEleicoes, opcoes: OpcoesPreparacao, *, cliente_resultados: ClienteHttp | None=None, cliente_dados: ClienteHttp | None=None, parar: Callable[[], bool]=lambda: False, saida: Callable[[str], None] | None=None, construir: Callable[[], None] | None=None, abrir: Callable[[str], object]=webbrowser.open, hoje: date | None=None, portal: Path=DIR_PORTAL, dormir: Callable[[float], None]=time.sleep, nuvem=None, relogio: Callable[[], float]=time.monotonic)",
      "doc": "Guarda configuração, opções e dependências; nada é feito até ``executar``.\n\n``nuvem`` (``publicacao.Nuvem``) liga a restauração e a publicação; ``relogio`` mede o prazo de\n``limite_minutos``.",
-     "linha": 243
+     "linha": 271
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.parar",
      "assinatura": "def parar(self) -> bool",
      "doc": "Se é hora de parar: Ctrl+C (ou sinal) ou o prazo de ``limite_minutos`` vencido.",
-     "linha": 280
+     "linha": 308
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.prazo_da_publicacao",
      "assinatura": "def prazo_da_publicacao(self) -> bool",
      "doc": "Se a publicação deve parar: ``FOLGA_PUBLICACAO`` depois do prazo da carga, para a máquina não ser\nderrubada no meio de um envio (o que faltar sobe na execução seguinte).",
-     "linha": 291
+     "linha": 319
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.sincronizar",
      "assinatura": "def sincronizar(self) -> None",
      "doc": "Na nuvem, publica o que mudou e guarda o estado; falha vira erro do resumo, sem derrubar a carga.",
-     "linha": 296
+     "linha": 324
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao._etapa",
      "assinatura": "def _etapa(self, titulo: str) -> None",
      "doc": "Título de etapa no andamento.",
-     "linha": 311
+     "linha": 339
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.cadastro",
      "assinatura": "def cadastro(self) -> CadastroMunicipios",
      "doc": "Cadastro de municípios do diretório dos feeds (instalado na etapa 1), carregado uma vez.",
-     "linha": 315
+     "linha": 343
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.anos_historicos",
      "assinatura": "def anos_historicos(self) -> tuple[list[int], list[int]]",
      "doc": "Anos a carregar: (1933 a 1990, em ordem cronológica — são poucos e rápidos; 1994 em diante, do mais\nrecente ao mais antigo, para as eleições mais procuradas ficarem prontas primeiro).",
-     "linha": 323
+     "linha": 351
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.instalar_referencias",
      "assinatura": "def instalar_referencias(self) -> None",
      "doc": "Etapa 1: mapa e cadastro no diretório dos feeds.",
-     "linha": 333
+     "linha": 361
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.preparar_portal",
      "assinatura": "def preparar_portal(self) -> None",
      "doc": "Etapa 2: gera o portal se preciso. Falha aqui não impede a carga dos dados.",
-     "linha": 341
+     "linha": 369
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.iniciar_servidor",
      "assinatura": "def iniciar_servidor(self) -> None",
      "doc": "Etapa 3: sobe o servidor numa thread e abre o navegador. Porta ocupada: o sistema escolhe outra.",
-     "linha": 360
+     "linha": 388
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.coletar_ao_vivo",
      "assinatura": "def coletar_ao_vivo(self) -> None",
      "doc": "Etapa 4: eleições do sistema de resultados ainda fora dos dados abertos.",
-     "linha": 377
+     "linha": 405
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao._coletar",
      "assinatura": "def _coletar(self, e: Eleicao) -> dict",
      "doc": "Coleta uma eleição e devolve o resumo dela.\n\nPara quando a totalização terminou e a fila de municípios esvaziou; ou, se a apuração ainda não\nterminou, quando uma passada não traz nada novo (``preparar`` tira uma fotografia; acompanhar a\napuração é o trabalho de ``lumen eleicoes ao-vivo``); ou em ``MAX_PASSADAS``.",
-     "linha": 402
+     "linha": 430
+    },
+    {
+     "tipo": "metodo",
+     "nome": "Preparacao.anos_das_zonas",
+     "assinatura": "def anos_das_zonas(self) -> list[int]",
+     "doc": "Anos com locais de votação (2026 a 2018), limitados aos de ``anos`` quando a opção é dada.",
+     "linha": 474
+    },
+    {
+     "tipo": "metodo",
+     "nome": "Preparacao.carregar_zonas",
+     "assinatura": "def carregar_zonas(self, ano: int) -> None",
+     "doc": "Etapa 5, um ano: baixa os locais de votação, confere se mudaram e grava o mapa das zonas.",
+     "linha": 478
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.carregar_ano",
      "assinatura": "def carregar_ano(self, ano: int) -> None",
-     "doc": "Etapas 5 e 6, um ano: baixa, confere se mudou, processa e registra. Erro vira item do resumo.",
-     "linha": 446
+     "doc": "Etapas 6 e 7, um ano: baixa, confere se mudou, processa e registra. Erro vira item do resumo.",
+     "linha": 507
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.executar",
      "assinatura": "def executar(self) -> ResumoPreparacao",
      "doc": "Roda as etapas pedidas nas opções, na ordem do módulo, e devolve o resumo.\n\nNa nuvem, restaura antes de começar e sincroniza no fim (além de depois de cada etapa).",
-     "linha": 478
+     "linha": 539
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao._executar_etapas",
      "assinatura": "def _executar_etapas(self) -> None",
      "doc": "As etapas de ``executar``, sem a restauração e a sincronização final da nuvem.",
-     "linha": 497
+     "linha": 558
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.aguardar",
      "assinatura": "def aguardar(self) -> None",
      "doc": "Com o servidor no ar, segue servindo até ``parar()``; depois o encerra.",
-     "linha": 517
+     "linha": 586
     }
    ]
   },
@@ -3126,29 +3224,29 @@
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/referencias.py",
    "linguagem": "python",
-   "linhas": 65,
-   "doc": "Referências que vêm com o pacote: malhas do mapa e cadastro de municípios.\n\nO mapa precisa das malhas do IBGE, e a busca e os resultados por município\nprecisam do cadastro TSE ↔ IBGE. As duas coisas mudam raramente (um município\nnovo a cada poucos anos) e são pequenas — 1,4 MB de malhas na qualidade\n``minima`` e 0,5 MB de cadastro —, por isso ficam versionadas em\n``lumen_eleicoes/dados`` e o portal funciona sem nenhum download prévio. A\nproveniência (endereços, data e SHA-256 do que foi publicado pelas fontes)\nestá em ``dados/LEIAME.md``.\n\nQuem precisar da versão corrente das fontes continua tendo\n``lumen eleicoes mapas`` e ``lumen eleicoes municipios``, que gravam por cima\nno diretório dos feeds. ``instalar`` nunca sobrescreve um arquivo que já está\nlá, para não desfazer essa atualização.",
+   "linhas": 68,
+   "doc": "Referências que vêm com o pacote: malhas do mapa e cadastro de municípios.\n\nO mapa precisa das malhas do IBGE, e a busca e os resultados por município\nprecisam do cadastro TSE ↔ IBGE. As duas coisas mudam raramente (um município\nnovo a cada poucos anos) e são pequenas — 1,4 MB de malhas na qualidade\n``minima``, 1,5 MB de contornos em ``maxima`` dos 191 municípios com mais\nde uma zona eleitoral e 0,5 MB de cadastro —, por isso ficam versionadas em\n``lumen_eleicoes/dados`` e o portal funciona sem nenhum download prévio. A\nproveniência (endereços, data e SHA-256 do que foi publicado pelas fontes)\nestá em ``dados/LEIAME.md``.\n\nQuem precisar da versão corrente das fontes continua tendo\n``lumen eleicoes mapas`` e ``lumen eleicoes municipios``, que gravam por cima\nno diretório dos feeds. ``instalar`` nunca sobrescreve um arquivo que já está\nlá, para não desfazer essa atualização.",
    "itens": [
     {
      "tipo": "funcao",
      "nome": "arquivos_embutidos",
      "assinatura": "def arquivos_embutidos() -> list[tuple[Path, str]]",
-     "doc": "(arquivo no pacote, caminho relativo no diretório dos feeds) de cada referência embutida.\n\nCadastro primeiro, depois as malhas em ordem de nome (``br-uf.json`` e ``uf-<sigla>-mu.json``).",
-     "linha": 30
+     "doc": "(arquivo no pacote, caminho relativo no diretório dos feeds) de cada referência embutida.\n\nCadastro primeiro, depois as malhas em ordem de nome (``br-uf.json`` e ``uf-<sigla>-mu.json``) e os\ncontornos finos dos municípios com mais de uma zona eleitoral (``mu/<código IBGE>.json``).",
+     "linha": 31
     },
     {
      "tipo": "funcao",
      "nome": "instalar",
      "assinatura": "def instalar(saida: Path | str, *, substituir: bool=False) -> list[Path]",
      "doc": "Copia as referências embutidas para o diretório dos feeds e devolve os arquivos copiados.\n\nArquivo que já existe no destino fica como está (pode ser uma versão mais nova, baixada da fonte),\nexceto com ``substituir=True``. A cópia passa por um ``.tmp`` e ``replace``: quem lê o diretório\nnunca vê um arquivo pela metade.",
-     "linha": 40
+     "linha": 43
     },
     {
      "tipo": "funcao",
      "nome": "cadastro_embutido",
      "assinatura": "def cadastro_embutido() -> CadastroMunicipios",
      "doc": "Cadastro de municípios que vem com o pacote (vazio se o arquivo não estiver instalado).",
-     "linha": 61
+     "linha": 64
     }
    ]
   },
@@ -3649,7 +3747,7 @@
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/verificacao.py",
    "linguagem": "python",
-   "linhas": 127,
+   "linhas": 165,
    "doc": "Conferência dos feeds gravados: o que o portal vai ler está íntegro?\n\nRoda depois de cada processamento (``lumen eleicoes verificar``) e na CI,\nsobre os feeds de amostra. Não confere os números contra o TSE — isso é o\npapel dos testes —, confere o contrato: versão, campos obrigatórios,\nreferências do índice que apontam para arquivo existente e somas que não\npodem ser violadas (votos de candidatos válidos não passam dos válidos).",
    "itens": [
     {
@@ -3682,10 +3780,151 @@
     },
     {
      "tipo": "funcao",
+     "nome": "verificar_zonas",
+     "assinatura": "def verificar_zonas(caminho: Path, dados: dict, rel: Relatorio) -> None",
+     "doc": "Confere um arquivo do mapa das zonas (``geo/zonas-<ano>/``, ver ``zonas.py``).\n\nNo índice, os municípios; no arquivo de um município, que cada local tenha longitude, latitude, uma zona\nda lista de zonas, eleitores e nome, e que a contagem de locais por zona bata com a lista.",
+     "linha": 86
+    },
+    {
+     "tipo": "funcao",
      "nome": "verificar_diretorio",
      "assinatura": "def verificar_diretorio(raiz: Path | str) -> Relatorio",
-     "doc": "Confere o diretório dos feeds: o índice, os arquivos que ele promete e cada feed.\n\nA existência dos arquivos listados no índice só é cobrada nas eleições históricas (``dados_abertos``):\nna coleta ao vivo, uma UF do plano pode ainda não ter sido publicada pelo TSE. Depois, cada\n``<eleição>/<cargo>/*.json`` passa por ``verificar_feed``.",
-     "linha": 86
+     "doc": "Confere o diretório dos feeds: o índice, os arquivos que ele promete e cada feed.\n\nA existência dos arquivos listados no índice só é cobrada nas eleições históricas (``dados_abertos``):\nna coleta ao vivo, uma UF do plano pode ainda não ter sido publicada pelo TSE. Depois, cada\n``<eleição>/<cargo>/*.json`` passa por ``verificar_feed`` e cada arquivo do mapa das zonas\n(``geo/zonas-<ano>/*.json``) por ``verificar_zonas``. As malhas do IBGE em ``geo/`` não são feeds.",
+     "linha": 116
+    }
+   ]
+  },
+  {
+   "caminho": "packages/eleicoes/lumen_eleicoes/zonas.py",
+   "linguagem": "python",
+   "linhas": 390,
+   "doc": "Locais de votação de cada zona eleitoral, para o mapa das zonas dentro do município (ADR-029).\n\nA Justiça Eleitoral não publica os limites das zonas eleitorais. Publica, no\nPortal de Dados Abertos, o eleitorado de cada seção com o local de votação, a\nzona e as coordenadas do local (``eleitorado_local_votacao_AAAA.zip``, de 2018\nem diante; de 2026 em diante, um CSV por UF e um ``_BRASIL`` que é a soma deles\ne é ignorado). Daqui sai, para cada município com duas zonas ou mais, a lista\ndos locais com a zona e o eleitorado. O portal desenha cada zona como a região\nmais próxima dos locais dela (diagrama de Voronoi recortado pelo contorno do\nmunicípio, ``src/lib/voronoi.ts``) e diz que o contorno é aproximado.\n\nFormato observado em 15/10/2026, de 2018 a 2026: uma linha por seção, Latin-1,\n``;``, aspas; coordenadas em ``NR_LATITUDE`` e ``NR_LONGITUDE``, com ponto\ndecimal até 2024 e vírgula em 2026, e ``-1`` quando o local não tem coordenada.\n\nLocais descartados, e contados no arquivo do município:\n\n- sem coordenada, ou com coordenada fora do Brasil;\n- fora do município. Com o contorno fino do município (``geo/mu/<ibge>.json``,\n  qualidade ``maxima``; ver ``geo.py``), fica o local dentro dele ou a menos de\n  ``TOLERANCIA_M`` da borda (a fronteira publicada e a coordenada têm erro de\n  alguns metros). Sem ele, vale a malha ``minima`` da UF, que simplifica tanto\n  a fronteira que um local de verdade pode cair do lado de fora: fica o que\n  está dentro, ou fora de todos os municípios mas perto da caixa do próprio.\n\nArquivos gravados no diretório dos feeds::\n\n    geo/zonas-<ano>/indice.json         municípios com duas zonas ou mais (código IBGE → zonas)\n    geo/zonas-<ano>/mu-<ibge>.json      as zonas do município e os locais de votação de cada uma",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "url_locais",
+     "assinatura": "def url_locais(ano: int) -> str",
+     "doc": "Endereço do ZIP de locais de votação de um ano na CDN do TSE.",
+     "linha": 73
+    },
+    {
+     "tipo": "funcao",
+     "nome": "baixar_locais",
+     "assinatura": "def baixar_locais(cfg: ConfiguracaoEleicoes, ano: int, *, bronze: ArmazemBronze | None=None, atualizar: bool=False, saida: Callable[[str], None] | None=None) -> tuple[Path, Manifesto]",
+     "doc": "Baixa o ZIP de locais de votação do ano para ``<arquivos>/locais/`` (retomável, com manifesto, ADR-021)\ne registra o manifesto no bronze. Devolve o caminho e o manifesto.",
+     "linha": 78
+    },
+    {
+     "tipo": "funcao",
+     "nome": "coordenada",
+     "assinatura": "def coordenada(valor: str | None) -> float | None",
+     "doc": "Texto da coordenada como número: aceita ponto ou vírgula decimal; ``-1``, vazio e texto viram None.",
+     "linha": 92
+    },
+    {
+     "tipo": "classe",
+     "nome": "LocalVotacao",
+     "assinatura": "class LocalVotacao",
+     "doc": "Um local de votação de uma zona, com o eleitorado somado das seções e as coordenadas publicadas.",
+     "linha": 109
+    },
+    {
+     "tipo": "classe",
+     "nome": "LocaisMunicipio",
+     "assinatura": "class LocaisMunicipio",
+     "doc": "Locais de votação de um município (chave: zona e número do local).",
+     "linha": 121
+    },
+    {
+     "tipo": "metodo",
+     "nome": "LocaisMunicipio.zonas",
+     "assinatura": "def zonas(self) -> list[str]",
+     "doc": "Números das zonas do município, em ordem numérica.",
+     "linha": 130
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_locais",
+     "assinatura": "def ler_locais(fluxo: io.BufferedIOBase, municipios: dict[tuple[str, str], LocaisMunicipio] | None=None) -> dict[tuple[str, str], LocaisMunicipio]",
+     "doc": "Lê um CSV de locais de votação e acumula, por município (``(uf, código TSE)``), os locais de cada zona.\n\nSó as linhas do 1º turno contam: as do 2º repetem as seções dos municípios que tiveram 2º turno. O\neleitorado do local é a soma das seções dele; a coordenada é a primeira válida que aparece.",
+     "linha": 135
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_zip_locais",
+     "assinatura": "def ler_zip_locais(caminho: Path | str) -> dict[tuple[str, str], LocaisMunicipio]",
+     "doc": "Lê todos os CSV do ZIP de locais (um só até 2024; um por UF depois, sem o ``_BRASIL``).",
+     "linha": 171
+    },
+    {
+     "tipo": "funcao",
+     "nome": "aneis_da_malha",
+     "assinatura": "def aneis_da_malha(topo: dict) -> dict[str, list[list[Ponto]]]",
+     "doc": "Anéis (contornos fechados, em longitude e latitude) de cada área de uma malha TopoJSON do IBGE.\n\nÉ a mesma decodificação de ``src/lib/topojson.ts``: soma das diferenças e ``transform``.",
+     "linha": 183
+    },
+    {
+     "tipo": "funcao",
+     "nome": "dentro",
+     "assinatura": "def dentro(ponto: Ponto, aneis: Iterable[list[Ponto]]) -> bool",
+     "doc": "Se o ponto está dentro da área (regra par-ímpar sobre todos os anéis: buracos e ilhas inclusive).",
+     "linha": 220
+    },
+    {
+     "tipo": "funcao",
+     "nome": "caixa",
+     "assinatura": "def caixa(aneis: Iterable[list[Ponto]]) -> tuple[float, float, float, float]",
+     "doc": "Caixa envolvente (lon mín., lat mín., lon máx., lat máx.) dos anéis.",
+     "linha": 233
+    },
+    {
+     "tipo": "funcao",
+     "nome": "distancia_borda_m",
+     "assinatura": "def distancia_borda_m(ponto: Ponto, aneis: Iterable[list[Ponto]]) -> float",
+     "doc": "Distância aproximada, em metros, do ponto ao contorno mais próximo (equiretangular na latitude do ponto).",
+     "linha": 240
+    },
+    {
+     "tipo": "funcao",
+     "nome": "no_contorno_fino",
+     "assinatura": "def no_contorno_fino(ponto: Ponto, aneis: list[list[Ponto]]) -> bool",
+     "doc": "Se o local pertence ao município pelo contorno fino: dentro, ou a menos de ``TOLERANCIA_M`` da borda.",
+     "linha": 255
+    },
+    {
+     "tipo": "funcao",
+     "nome": "no_municipio",
+     "assinatura": "def no_municipio(ponto: Ponto, proprio: list[list[Ponto]], vizinhos: Iterable[list[list[Ponto]]]) -> bool",
+     "doc": "Se o local pertence ao município: dentro do contorno dele; ou fora de todos, mas perto da caixa dele.\n\nDentro do contorno de outro município, ou longe, é coordenada de outro lugar.",
+     "linha": 260
+    },
+    {
+     "tipo": "classe",
+     "nome": "ResumoZonas",
+     "assinatura": "class ResumoZonas",
+     "doc": "O que ``gravar_zonas`` produziu num ano, para o resumo da linha de comando.",
+     "linha": 277
+    },
+    {
+     "tipo": "metodo",
+     "nome": "ResumoZonas.para_json",
+     "assinatura": "def para_json(self) -> dict",
+     "doc": "Dicionário para imprimir em JSON.",
+     "linha": 288
+    },
+    {
+     "tipo": "funcao",
+     "nome": "arquivo_municipio",
+     "assinatura": "def arquivo_municipio(m: LocaisMunicipio, *, ano: int, ibge: str, nome: str, origem: dict, aneis: list[list[Ponto]], vizinhos: list[list[list[Ponto]]], fino: list[list[Ponto]] | None=None) -> tuple[dict, int, int]",
+     "doc": "Conteúdo de ``mu-<ibge>.json`` e as contagens de locais sem coordenada e fora do município.\n\nCom ``fino`` (o contorno em qualidade ``maxima``), o local é conferido por ele (``no_contorno_fino``);\nsem, pela malha da UF (``aneis`` do município e ``vizinhos``).\n\n``locais`` é uma lista de ``[longitude, latitude, zona, eleitores, nome]``, em ordem de zona e de\nnúmero do local (bytes iguais a cada geração). ``zonas`` traz todas as zonas, mesmo a que ficou sem\nlocal com coordenada (``locais = 0``): a tabela do portal a mostra, o mapa não.",
+     "linha": 295
+    },
+    {
+     "tipo": "funcao",
+     "nome": "gravar_zonas",
+     "assinatura": "def gravar_zonas(ano: int, zip_locais: Path | str, raiz_feeds: Path | str, cadastro: CadastroMunicipios, *, malhas: Path | str | None=None, manifesto: Manifesto | None=None, progresso: Callable[[str], None] | None=None) -> ResumoZonas",
+     "doc": "Lê o ZIP de locais de um ano e grava ``geo/zonas-<ano>/``: um arquivo por município com duas zonas\nou mais e o índice. Devolve o resumo.\n\nO contorno de cada município vem de ``malhas`` (por padrão, o ``geo`` do diretório dos feeds e, na\nfalta, o do pacote): o fino, ``mu/<ibge>.json``, quando existe, e a malha da UF. Município sem código IBGE ou sem área na malha da\nUF fica de fora (o portal não teria onde desenhá-lo) e é anotado no resumo.",
+     "linha": 333
     }
    ]
   },
@@ -7492,7 +7731,7 @@
   {
    "caminho": "packages/portal/src/lib/estado-url.ts",
    "linguagem": "typescript",
-   "linhas": 43,
+   "linhas": 51,
    "doc": "Seleção da tela ↔ parâmetros da URL.\n\n`/eleicoes/?e=2026-1t-geral&c=presidente&a=uf-sp` é um link que abre\nexatamente o que estava na tela: dá para compartilhar o resultado de um\nmunicípio. Parâmetros inválidos são descartados, nunca interpretados.",
    "itens": [
     {
@@ -7500,106 +7739,134 @@
      "nome": "lerSelecao",
      "assinatura": "export function lerSelecao(params: URLSearchParams): Selecao",
      "doc": "Seleção a partir da URL. Valor fora do formato vira null (ou \"br\", na\nabrangência), e a tela escolhe o padrão em `selecao.ts`.",
-     "linha": 17
+     "linha": 18
     },
     {
      "tipo": "funcao",
      "nome": "escreverSelecao",
      "assinatura": "export function escreverSelecao(s: Selecao): string",
      "doc": "Seleção → `?e=…&c=…&a=…&tv=1`, omitindo o que é padrão (Brasil, sem modo TV); \"\" quando nada sobra.",
-     "linha": 30
+     "linha": 31
     },
     {
      "tipo": "funcao",
      "nome": "ufDaAbrangencia",
      "assinatura": "export function ufDaAbrangencia(abrangencia: string): string | null",
-     "doc": "UF da abrangência: \"uf-sp\" → \"sp\"; \"mu-3550308\" → precisa do cadastro, devolve null.",
-     "linha": 41
+     "doc": "UF da abrangência, sem esperar o feed: \"uf-sp\" → \"sp\"; \"mu-3550308\" → \"sp\"\n(os dois primeiros dígitos do código IBGE); \"mu-ap-06130\" (município sem\ncódigo IBGE) e \"mu-zz-29254\" (exterior) → a sigla do começo. No Brasil, null.",
+     "linha": 46
     }
    ]
   },
   {
    "caminho": "packages/portal/src/lib/feeds.ts",
    "linguagem": "typescript",
-   "linhas": 139,
-   "doc": "Acesso aos feeds da aba Eleições.\n\nO portal nunca fala com o TSE (princípio P6): lê os arquivos que o coletor\ngrava. A base é `/dados/eleicoes` no mesmo domínio, ou a definida em\n`NEXT_PUBLIC_DADOS_ELEICOES` no build (CDN separada, por exemplo).\n\nCache: feeds de resultado vão com `cache: \"no-cache\"` — o navegador\nrevalida a cada consulta e o servidor responde 304 quando nada mudou, o que\nfaz o \"ao vivo\" funcionar sem WebSocket. Malhas e cadastro não mudam\ndurante a noite e ficam no cache do navegador.",
+   "linhas": 202,
+   "doc": "Acesso aos feeds da aba Eleições.\n\nO portal nunca fala com o TSE (princípio P6): lê os arquivos que o coletor\ngrava. A base é `/dados/eleicoes` no mesmo domínio, ou a definida em\n`NEXT_PUBLIC_DADOS_ELEICOES` no build (CDN separada, por exemplo).\n\nCache: feeds de resultado vão com `cache: \"no-cache\"` — o navegador\nrevalida a cada consulta e o servidor responde 304 quando nada mudou, o que\nfaz o \"ao vivo\" funcionar sem WebSocket. Malhas e cadastro não mudam\ndurante a noite e ficam no cache do navegador. Os feeds de uma eleição\nencerrada também ficam guardados em memória durante a visita (`guardar`):\nvoltar a um estado ou a um município já visto não espera a rede, e a\npré-carga (`preCarregarFeed`, ao passar o cursor no mapa) deixa o clique\ninstantâneo.",
    "itens": [
     {
      "tipo": "constante",
      "nome": "BASE_DADOS",
      "assinatura": "export const BASE_DADOS = (process.env.NEXT_PUBLIC_DADOS_ELEICOES || \"/dados/eleicoes\").replace(/\\/$/, \"\");",
      "doc": "Raiz dos feeds, sem barra final; fixada no build (site estático). Variável vazia vale como ausente: o\nfluxo de publicação passa a variável do repositório mesmo quando ela não foi definida.",
-     "linha": 22
+     "linha": 34
     },
     {
      "tipo": "funcao",
      "nome": "seguro",
      "assinatura": "function seguro(parte: string): string",
      "doc": "Deixa passar só nomes de arquivo inofensivos (minúsculas, dígitos e hífen).\nOs pedaços dos caminhos vêm da URL da página e do próprio feed; esta\nbarreira garante que nenhum `..` ou `/` chegue ao `fetch`.",
-     "linha": 31
+     "linha": 43
     },
     {
      "tipo": "constante",
      "nome": "urls",
      "assinatura": "export const urls =",
      "doc": "Endereço de cada arquivo que o portal lê, no mesmo desenho de diretórios\nque o coletor grava. Todo pedaço variável passa por `seguro`; `foto`\ndevolve null para caminho fora do padrão `fotos/….jpg`.",
-     "linha": 41
+     "linha": 53
     },
     {
      "tipo": "funcao",
      "nome": "inexistenteNoSupabase",
      "assinatura": "export async function inexistenteNoSupabase(resposta: Response): Promise<boolean>",
      "doc": "Se a resposta 400 é o \"arquivo não existe\" do Supabase Storage, que responde assim nos buckets públicos\n(`{\"statusCode\":\"404\",\"error\":\"not_found\"}`), em vez de 404.",
-     "linha": 57
+     "linha": 73
     },
     {
      "tipo": "funcao",
      "nome": "obterJson",
      "assinatura": "export async function obterJson(url: string, opcoes: { sinal?: AbortSignal; cache?: RequestCache } = {})",
      "doc": "JSON da URL; `null` quando o arquivo não existe (404, ou o 400 equivalente do Supabase). Outros erros viram `ErroFeed`.",
-     "linha": 68
+     "linha": 84
     },
     {
      "tipo": "funcao",
      "nome": "carregarIndice",
      "assinatura": "export async function carregarIndice(sinal?: AbortSignal): Promise<Indice | null>",
      "doc": "Lê e confere o índice de eleições; `null` quando o servidor ainda não tem nenhuma publicada.",
-     "linha": 86
+     "linha": 102
+    },
+    {
+     "tipo": "funcao",
+     "nome": "memorizar",
+     "assinatura": "function memorizar<T>(cache: Map<string, Promise<T>>, chave: string, criar: () => Promise<T>, limite = Infinity): Promise<T>",
+     "doc": "Guarda a promessa da `chave` enquanto a visita durar (até `limite` itens, saindo os mais antigos); se\nela falhar, sai do cache para a próxima tentativa. Várias telas pedindo o mesmo arquivo fazem uma\nrequisição só.",
+     "linha": 112
     },
     {
      "tipo": "funcao",
      "nome": "carregarFeed",
      "assinatura": "export async function carregarFeed(eleicao: string, cargo: string, abrangencia: string,",
-     "doc": "Lê e confere o feed (resultado ou panorama) de uma eleição, cargo e abrangência; `null` se não existe.",
-     "linha": 92
+     "doc": "Lê e confere o feed (resultado ou panorama) de uma eleição, cargo e abrangência; `null` se não existe.\nCom `guardar` (eleição encerrada: os números não mudam mais), a resposta fica em memória e o `sinal` não\ncancela a leitura, que serve a quem pedir depois.",
+     "linha": 131
+    },
+    {
+     "tipo": "funcao",
+     "nome": "preCarregarFeed",
+     "assinatura": "export function preCarregarFeed(eleicao: string, cargo: string, abrangencia: string): void",
+     "doc": "Pré-carga de um feed de eleição encerrada (cursor sobre a área do mapa): erro aqui não aparece na tela.",
+     "linha": 142
     },
     {
      "tipo": "funcao",
      "nome": "carregarHistorico",
      "assinatura": "export async function carregarHistorico(eleicao: string, cargo: string, abrangencia: string,",
      "doc": "Lê e confere a evolução da apuração; `null` quando não há histórico para a combinação.",
-     "linha": 100
+     "linha": 147
     },
     {
      "tipo": "funcao",
      "nome": "carregarMalha",
      "assinatura": "export function carregarMalha(url: string): Promise<Topologia | null>",
-     "doc": "Malha do IBGE; uma requisição por arquivo durante a visita.",
-     "linha": 110
+     "doc": "Malha do IBGE (a da UF, ou o contorno fino de um município); uma requisição por arquivo durante a visita.",
+     "linha": 157
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarIndiceZonas",
+     "assinatura": "export function carregarIndiceZonas(ano: number): Promise<IndiceZonas | null>",
+     "doc": "Índice das zonas de um ano (municípios com mais de uma zona); `null` quando o ano não tem mapa das zonas.",
+     "linha": 167
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarZonas",
+     "assinatura": "export function carregarZonas(ano: number, ibge: string): Promise<ArquivoZonas | null>",
+     "doc": "Zonas e locais de votação de um município num ano; `null` quando o arquivo não existe.",
+     "linha": 175
     },
     {
      "tipo": "funcao",
      "nome": "carregarMunicipios",
      "assinatura": "export function carregarMunicipios(): Promise<CadastroMunicipios | null>",
      "doc": "Cadastro de municípios para a busca, baixado uma vez por visita. A promessa\nfica guardada; se falhar, sai do cache para a próxima abertura tentar de novo.",
-     "linha": 126
+     "linha": 189
     },
     {
      "tipo": "constante",
      "nome": "INTERVALO_AO_VIVO_MS",
      "assinatura": "export const INTERVALO_AO_VIVO_MS = 15_000;",
      "doc": "Intervalo de atualização: 15 s ao vivo; sem atualização automática no histórico.",
-     "linha": 139
+     "linha": 202
     }
    ]
   },
@@ -8064,7 +8331,7 @@
   {
    "caminho": "packages/portal/src/lib/tipos.ts",
    "linguagem": "typescript",
-   "linhas": 337,
+   "linhas": 386,
    "doc": "Tipos do contrato dos feeds da aba Eleições (versão 1).\n\nEspelho de `packages/eleicoes/lumen_eleicoes/feeds.py`. Quem muda um lado\nmuda o outro: os testes de `validacao.test.ts` leem a amostra gerada pelo\nPython (`testes/fixtures/eleicoes_feed`) e falham se os dois divergirem.",
    "itens": [
     {
@@ -8176,149 +8443,212 @@
      "tipo": "interface",
      "nome": "Parte",
      "assinatura": "export interface Parte",
-     "doc": "Linha de uma abrangência filha (UF no Brasil, município na UF), para o mapa.",
-     "linha": 198
+     "doc": "Linha de uma abrangência filha (UF no Brasil, município na UF, zona\neleitoral no município), para o mapa e a tabela. Na zona, `codigo` é o\nnúmero da zona e `ibge` é null.",
+     "linha": 202
     },
     {
      "tipo": "interface",
      "nome": "FeedResultado",
      "assinatura": "export interface FeedResultado",
      "doc": "Arquivo de resultado (`br.json`, `uf-<sigla>.json`, `mu-<chave>.json`):\ncandidatos com votos, comparecimento e destino dos votos de uma\nabrangência, mais as `partes` filhas que pintam o mapa.",
-     "linha": 228
+     "linha": 232
     },
     {
      "tipo": "interface",
      "nome": "PlacarPartido",
      "assinatura": "export interface PlacarPartido",
      "doc": "Linha do placar por partido num panorama; o feed ordena por eleitos, depois partes lideradas e votos.",
-     "linha": 253
+     "linha": 261
     },
     {
      "tipo": "interface",
      "nome": "FeedPanorama",
      "assinatura": "export interface FeedPanorama",
      "doc": "Arquivo de panorama: o cargo visto de cima, onde não existe resultado\núnico (cargo municipal na UF ou no Brasil, cargo estadual no Brasil).\nTraz o placar por partido e o líder de cada parte, em vez de candidatos.",
-     "linha": 268
+     "linha": 276
     },
     {
      "tipo": "interface",
      "nome": "PontoEvolucao",
      "assinatura": "export interface PontoEvolucao",
      "doc": "Uma leitura da apuração no histórico: instante, seções totalizadas e votos por número de candidato.",
-     "linha": 285
+     "linha": 293
     },
     {
      "tipo": "interface",
      "nome": "FeedHistorico",
      "assinatura": "export interface FeedHistorico",
      "doc": "Arquivo `historico-<abrangência>.json`: a sequência de leituras que desenha o gráfico de evolução.",
-     "linha": 294
+     "linha": 302
     },
     {
      "tipo": "tipo",
      "nome": "Feed",
      "assinatura": "export type Feed = FeedResultado | FeedPanorama;",
      "doc": "Os dois tipos de arquivo que a tela principal exibe; o campo `tipo` os distingue.",
-     "linha": 307
+     "linha": 315
     },
     {
      "tipo": "interface",
      "nome": "Municipio",
      "assinatura": "export interface Municipio",
      "doc": "Município no cadastro TSE ↔ IBGE, usado pela busca.",
-     "linha": 310
+     "linha": 318
     },
     {
      "tipo": "interface",
      "nome": "CadastroMunicipios",
      "assinatura": "export interface CadastroMunicipios",
      "doc": "Conteúdo de `municipios.json`: o cadastro completo, baixado só quando a busca abre.",
-     "linha": 325
+     "linha": 333
+    },
+    {
+     "tipo": "tipo",
+     "nome": "LocalVotacao",
+     "assinatura": "export type LocalVotacao = [number, number, string, number, string];",
+     "doc": "Um local de votação no arquivo das zonas: longitude, latitude, número da\nzona, eleitores (soma das seções do local) e nome, como o TSE publica.",
+     "linha": 342
+    },
+    {
+     "tipo": "interface",
+     "nome": "ZonaDoMunicipio",
+     "assinatura": "export interface ZonaDoMunicipio",
+     "doc": "Uma zona eleitoral do município no arquivo das zonas.",
+     "linha": 345
+    },
+    {
+     "tipo": "interface",
+     "nome": "ArquivoZonas",
+     "assinatura": "export interface ArquivoZonas",
+     "doc": "Arquivo `geo/zonas-<ano>/mu-<ibge>.json`: as zonas de um município com mais\nde uma e os locais de votação de cada uma (ADR-029). Gravado por\n`lumen eleicoes zonas` a partir dos dados abertos do TSE.",
+     "linha": 359
+    },
+    {
+     "tipo": "interface",
+     "nome": "IndiceZonas",
+     "assinatura": "export interface IndiceZonas",
+     "doc": "Arquivo `geo/zonas-<ano>/indice.json`: código IBGE → número de zonas, dos municípios com mais de uma.",
+     "linha": 372
     },
     {
      "tipo": "interface",
      "nome": "Selecao",
      "assinatura": "export interface Selecao",
      "doc": "O que está selecionado na tela; vai para a URL (ver `estado-url.ts`).",
-     "linha": 331
+     "linha": 380
     }
    ]
   },
   {
    "caminho": "packages/portal/src/lib/topojson.ts",
    "linguagem": "typescript",
-   "linhas": 163,
-   "doc": "TopoJSON do IBGE → caminhos SVG, sem biblioteca.\n\nO IBGE publica as malhas em TopoJSON (`formato=application/json`): cada\nfronteira é um arco desenhado uma vez e compartilhado pelos dois vizinhos,\ncom coordenadas inteiras (quantizadas) e codificadas por diferença. Decodificar\né somar as diferenças e aplicar `transform`. São ~80 linhas; uma biblioteca\nde mapas traria centenas de KB para o navegador por isso.\n\nProjeção: equiretangular com correção do cosseno da latitude central. Para\num país inteiro na tela, a distorção é desprezível frente à de Mercator e o\ncálculo é trivial (DOC-04, princípio de não depender do que não se precisa).",
+   "linhas": 209,
+   "doc": "TopoJSON do IBGE → caminhos SVG, sem biblioteca.\n\nO IBGE publica as malhas em TopoJSON (`formato=application/json`): cada\nfronteira é um arco desenhado uma vez e compartilhado pelos dois vizinhos,\ncom coordenadas inteiras (quantizadas) e codificadas por diferença. Decodificar\né somar as diferenças e aplicar `transform`. São ~80 linhas; uma biblioteca\nde mapas traria centenas de KB para o navegador por isso.\n\nProjeção: equiretangular com correção do cosseno da latitude central. Para\num país inteiro na tela, a distorção é desprezível frente à de Mercator e o\ncálculo é trivial (DOC-04, princípio de não depender do que não se precisa).\nA projeção de um mapa fica guardada (`Projecao`): o contorno fino de um\nmunicípio e os locais de votação são desenhados por cima do mapa da UF no\nmesmo enquadramento (`projetarCom`, `pontoProjetado`).",
    "itens": [
     {
      "tipo": "interface",
      "nome": "Topologia",
      "assinatura": "export interface Topologia",
      "doc": "O arquivo TopoJSON como o IBGE publica: arcos compartilhados e objetos que os referenciam.",
-     "linha": 16
+     "linha": 19
     },
     {
      "tipo": "interface",
      "nome": "Geometria",
      "assinatura": "interface Geometria",
      "doc": "Uma área da malha (UF ou município). Os números em `arcs` são índices de\narcos; índice negativo `~i` indica o arco `i` percorrido ao contrário.",
-     "linha": 29
+     "linha": 32
     },
     {
      "tipo": "interface",
      "nome": "Forma",
      "assinatura": "export interface Forma",
      "doc": "Uma área pronta para o SVG.",
-     "linha": 36
+     "linha": 39
+    },
+    {
+     "tipo": "interface",
+     "nome": "Projecao",
+     "assinatura": "export interface Projecao",
+     "doc": "Como longitude e latitude viram coordenadas do SVG num mapa: o fator do\ncosseno (`k`), a origem e a escala. Com ela, outra malha ou um ponto caem\nno mesmo lugar do mapa já desenhado.",
+     "linha": 55
     },
     {
      "tipo": "interface",
      "nome": "MapaProjetado",
      "assinatura": "export interface MapaProjetado",
-     "doc": "Resultado de `projetar`: as formas e o tamanho do `viewBox` que as enquadra.",
-     "linha": 46
+     "doc": "Resultado de `projetar`: as formas, o tamanho do `viewBox` que as enquadra e a projeção usada.",
+     "linha": 63
     },
     {
      "tipo": "tipo",
      "nome": "Ponto",
      "assinatura": "type Ponto = [number, number];",
      "doc": "Par de coordenadas: [longitude, latitude] na malha decodificada, [x, y] depois da projeção.",
-     "linha": 54
+     "linha": 72
+    },
+    {
+     "tipo": "funcao",
+     "nome": "pontoProjetado",
+     "assinatura": "export function pontoProjetado(p: Projecao, lon: number, lat: number): [number, number]",
+     "doc": "Longitude e latitude → coordenadas do SVG, na projeção de um mapa.",
+     "linha": 75
     },
     {
      "tipo": "funcao",
      "nome": "decodificarArcos",
      "assinatura": "export function decodificarArcos(topo: Topologia): Ponto[][]",
      "doc": "Arcos em coordenadas reais. Com `transform`, soma as diferenças ponto a\nponto e aplica escala e translação; sem ele, as coordenadas já são reais.",
-     "linha": 60
+     "linha": 83
     },
     {
      "tipo": "funcao",
      "nome": "anel",
      "assinatura": "function anel(indices: number[], arcos: Ponto[][]): Ponto[]",
      "doc": "Costura os arcos de um anel (contorno fechado), invertendo os de índice negativo.",
-     "linha": 78
+     "linha": 101
     },
     {
      "tipo": "funcao",
      "nome": "aneisDaGeometria",
      "assinatura": "export function aneisDaGeometria(g: Geometria, arcos: Ponto[][]): Ponto[][]",
      "doc": "Anéis de um Polygon ou de todos os polígonos de um MultiPolygon; outros tipos não desenham nada.",
-     "linha": 91
+     "linha": 114
+    },
+    {
+     "tipo": "funcao",
+     "nome": "geometriasDe",
+     "assinatura": "function geometriasDe(topo: Topologia): { codigo: string; aneis: Ponto[][] }[]",
+     "doc": "Geometrias do primeiro objeto da malha, com o código e os anéis em longitude e latitude.",
+     "linha": 123
+    },
+    {
+     "tipo": "funcao",
+     "nome": "formasDe",
+     "assinatura": "function formasDe(geometrias: { codigo: string; aneis: Ponto[][] }[], p: Projecao, casas: number): Forma[]",
+     "doc": "Formas do SVG a partir de anéis em longitude e latitude, na projeção dada.\n`casas` é a precisão das coordenadas no `d`: uma casa basta para o mapa de\numa UF inteira; o contorno de um município visto de perto precisa de mais.",
+     "linha": 138
     },
     {
      "tipo": "funcao",
      "nome": "projetar",
      "assinatura": "export function projetar(topo: Topologia, largura = 1000): MapaProjetado",
      "doc": "Projeta e enquadra todas as geometrias do primeiro objeto num retângulo de `largura` px.",
-     "linha": 100
+     "linha": 170
+    },
+    {
+     "tipo": "funcao",
+     "nome": "projetarCom",
+     "assinatura": "export function projetarCom(topo: Topologia, projecao: Projecao, casas = 3): Forma[]",
+     "doc": "Formas de outra malha (o contorno fino de um município) no enquadramento de um mapa já projetado.",
+     "linha": 207
     }
    ]
   },
   {
    "caminho": "packages/portal/src/lib/validacao.ts",
    "linguagem": "typescript",
-   "linhas": 125,
+   "linhas": 156,
    "doc": "Conferência dos feeds na chegada.\n\nO portal recusa o que não reconhece em vez de exibir número errado: versão\ndiferente da esperada, tipo desconhecido ou campo obrigatório ausente viram\n`ErroFeed`, que a tela mostra como \"dados indisponíveis\". A conferência é\nestrutural e barata — o feed tem dezenas de KB e chega a cada 15 segundos\nna noite da apuração.",
    "itens": [
     {
@@ -8326,77 +8656,219 @@
      "nome": "ErroFeed",
      "assinatura": "export class ErroFeed extends Error",
      "doc": "Feed fora do contrato ou inacessível (sem resposta, HTTP de erro, conteúdo\nque não é JSON). A mensagem diz onde está o problema e é a que a tela\nmostra no aviso de dados indisponíveis.",
-     "linha": 25
+     "linha": 27
     },
     {
      "tipo": "tipo",
      "nome": "Objeto",
      "assinatura": "type Objeto = Record<string, unknown>;",
      "doc": "Objeto JSON ainda não conferido.",
-     "linha": 33
+     "linha": 35
     },
     {
      "tipo": "funcao",
      "nome": "objeto",
      "assinatura": "function objeto(valor: unknown, onde: string): Objeto",
      "doc": "Exige um objeto JSON (não lista, não null); `onde` entra na mensagem de erro.",
-     "linha": 36
+     "linha": 38
     },
     {
      "tipo": "funcao",
      "nome": "lista",
      "assinatura": "function lista(valor: unknown, onde: string): unknown[]",
      "doc": "Exige uma lista JSON.",
-     "linha": 44
+     "linha": 46
     },
     {
      "tipo": "funcao",
      "nome": "exigir",
      "assinatura": "function exigir(o: Objeto, campos: string[], onde: string): void",
      "doc": "Exige a presença dos campos (o valor pode ser null); a mensagem lista todos os ausentes de uma vez.",
-     "linha": 50
+     "linha": 52
     },
     {
      "tipo": "funcao",
      "nome": "versao",
      "assinatura": "function versao(o: Objeto, onde: string): void",
      "doc": "Recusa versão diferente de `VERSAO_FEED`. Igualdade estrita, nem maior nem\nmenor: mudança incompatível no contrato sobe a versão, e o portal não\ntenta adivinhar como ler o que não conhece.",
-     "linha": 60
+     "linha": 62
     },
     {
      "tipo": "funcao",
      "nome": "validarIndice",
      "assinatura": "export function validarIndice(bruto: unknown): Indice",
      "doc": "Confere o `indice.json`: versão, campos de cada eleição e de cada um dos seus cargos.",
-     "linha": 67
+     "linha": 69
     },
     {
      "tipo": "funcao",
      "nome": "validarFeed",
      "assinatura": "export function validarFeed(bruto: unknown, onde = \"feed\"): FeedResultado | FeedPanorama",
      "doc": "Confere um feed de resultado ou de panorama, decidido pelo campo `tipo`.\nNo resultado, cada candidato precisa ter `votos` numérico — é o número\nque a tela soma e compara. Tipo desconhecido é recusado.",
-     "linha": 87
+     "linha": 89
     },
     {
      "tipo": "funcao",
      "nome": "validarHistorico",
      "assinatura": "export function validarHistorico(bruto: unknown, onde = \"historico\"): FeedHistorico",
      "doc": "Confere o feed de evolução da apuração (`tipo: \"historico\"`).",
-     "linha": 110
+     "linha": 112
     },
     {
      "tipo": "funcao",
      "nome": "validarMunicipios",
      "assinatura": "export function validarMunicipios(bruto: unknown): CadastroMunicipios",
      "doc": "Confere o cadastro de municípios usado pela busca.",
-     "linha": 120
+     "linha": 122
+    },
+    {
+     "tipo": "funcao",
+     "nome": "validarIndiceZonas",
+     "assinatura": "export function validarIndiceZonas(bruto: unknown, onde = \"zonas/indice\"): IndiceZonas",
+     "doc": "Confere o índice das zonas de um ano (`geo/zonas-<ano>/indice.json`).",
+     "linha": 130
+    },
+    {
+     "tipo": "funcao",
+     "nome": "validarZonas",
+     "assinatura": "export function validarZonas(bruto: unknown, onde = \"zonas\"): ArquivoZonas",
+     "doc": "Confere o arquivo das zonas de um município. Cada local precisa de\nlongitude e latitude numéricas e de uma zona da lista: é o que vira ponto\ne área no mapa.",
+     "linha": 143
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/lib/voronoi.ts",
+   "linguagem": "typescript",
+   "linhas": 180,
+   "doc": "Diagrama de Voronoi: a região de cada ponto é a parte do plano mais perto\ndele que de qualquer outro. É o que desenha as zonas eleitorais no mapa do\nmunicípio (`zonas.ts`): cada local de votação fica com a área mais próxima,\ne a zona é a soma das áreas dos seus locais.\n\nSem biblioteca, como o resto do mapa. Cada célula começa como a caixa do\ndesenho e é cortada pelo semiplano de cada vizinho (a mediatriz entre os\ndois pontos). Os vizinhos vêm de uma grade, do anel mais perto para o mais\nlonge; um ponto a mais de duas vezes o raio da célula não a alcança e é\npulado, e os anéis param quando todos os que restam estão nessa situação.\n\nCada lado da célula guarda de quem é a mediatriz que o formou (ou -1, a\ncaixa): é assim que a fronteira entre duas zonas sai sem calcular união de\npolígonos — é o lado entre dois locais de zonas diferentes.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "Ponto",
+     "assinatura": "export type Ponto = [number, number];",
+     "doc": "Ponto [x, y] nas coordenadas do desenho.",
+     "linha": 19
+    },
+    {
+     "tipo": "tipo",
+     "nome": "Caixa",
+     "assinatura": "export type Caixa = [number, number, number, number];",
+     "doc": "Caixa do desenho: x mínimo, y mínimo, x máximo, y máximo.",
+     "linha": 22
+    },
+    {
+     "tipo": "interface",
+     "nome": "Celula",
+     "assinatura": "export interface Celula",
+     "doc": "Região de um ponto: os vértices em ordem e, para cada lado, o ponto do outro lado (-1: a caixa).",
+     "linha": 25
+    },
+    {
+     "tipo": "funcao",
+     "nome": "cortar",
+     "assinatura": "export function cortar(vertices: Ponto[], vizinhos: number[], a: Ponto, b: Ponto, vizinho: number): Celula | null",
+     "doc": "Corta o polígono pelo semiplano dos pontos mais perto de `a` que de `b`,\nmantendo de quem é cada lado. O lado novo, sobre a mediatriz, é de `vizinho`.",
+     "linha": 38
+    },
+    {
+     "tipo": "funcao",
+     "nome": "d2",
+     "assinatura": "function d2(a: Ponto, b: Ponto): number",
+     "doc": "Distância ao quadrado.",
+     "linha": 82
+    },
+    {
+     "tipo": "funcao",
+     "nome": "raioAoQuadrado",
+     "assinatura": "function raioAoQuadrado(p: Ponto, celula: Celula): number",
+     "doc": "Raio da célula ao quadrado: a maior distância do ponto dono a um vértice dela.",
+     "linha": 89
+    },
+    {
+     "tipo": "funcao",
+     "nome": "celulasVoronoi",
+     "assinatura": "export function celulasVoronoi(pontos: Ponto[], caixa: Caixa): (Celula | null)[]",
+     "doc": "Células de Voronoi dos `pontos`, cortadas pela `caixa`. Pontos repetidos\n(mesma coordenada) não formam célula própria: o primeiro fica com a área,\nos demais ficam sem célula (`null` na posição deles).",
+     "linha": 100
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/lib/zonas.ts",
+   "linguagem": "typescript",
+   "linhas": 167,
+   "doc": "Zonas eleitorais no mapa do município (ADR-029).\n\nA Justiça Eleitoral não publica os limites das zonas; publica onde fica\ncada local de votação e a zona dele (arquivo `geo/zonas-<ano>/mu-<ibge>.json`,\ngravado por `lumen eleicoes zonas`). O desenho dá a cada local a área mais\npróxima dele (Voronoi, `voronoi.ts`), recortada pelo contorno do município\nna tela, e a zona é a soma das áreas dos seus locais. É um contorno\naproximado e a tela diz isso.\n\nUm mesmo prédio pode ser local de duas zonas (seções de zonas diferentes\nno mesmo endereço). O ponto fica com a zona que tem mais eleitores ali; a\noutra continua com os seus outros locais.",
+   "itens": [
+    {
+     "tipo": "interface",
+     "nome": "LocalNoMapa",
+     "assinatura": "export interface LocalNoMapa",
+     "doc": "Um local de votação já projetado, para os pontos do mapa e a dica.",
+     "linha": 20
+    },
+    {
+     "tipo": "interface",
+     "nome": "ZonaDesenhada",
+     "assinatura": "export interface ZonaDesenhada",
+     "doc": "Uma zona desenhada: a área (as células dos locais dela) e o contorno, para o destaque.",
+     "linha": 29
+    },
+    {
+     "tipo": "interface",
+     "nome": "DesenhoZonas",
+     "assinatura": "export interface DesenhoZonas",
+     "doc": "O desenho das zonas de um município.",
+     "linha": 42
+    },
+    {
+     "tipo": "funcao",
+     "nome": "fmt",
+     "assinatura": "function fmt(v: number): string",
+     "doc": "Coordenada com poucas casas no `d`: 0,001 unidade do mapa é menos de 1 m numa UF.",
+     "linha": 50
+    },
+    {
+     "tipo": "funcao",
+     "nome": "acrescentar",
+     "assinatura": "function acrescentar(mapa: Map<string, string[]>, chave: string, valor: string): void",
+     "doc": "Acrescenta `valor` à lista da `chave`, criando a lista na primeira vez.",
+     "linha": 55
+    },
+    {
+     "tipo": "funcao",
+     "nome": "desenharZonas",
+     "assinatura": "export function desenharZonas(arquivo: ArquivoZonas, projetar: (lon: number, lat: number) => Ponto,",
+     "doc": "Desenha as zonas a partir dos locais de votação. `projetar` leva longitude\ne latitude ao SVG (a mesma projeção do mapa da UF); `caixa` limita as\ncélulas (a caixa do município, com folga: o recorte fino é o do contorno,\nfeito na tela por `clipPath`).",
+     "linha": 67
+    },
+    {
+     "tipo": "funcao",
+     "nome": "caixaComFolga",
+     "assinatura": "export function caixaComFolga(caixa: Caixa, fracao = 0.05): Caixa",
+     "doc": "Caixa com folga proporcional (`fracao` do maior lado), para as células irem além do contorno.",
+     "linha": 127
+    },
+    {
+     "tipo": "funcao",
+     "nome": "rotulosVisiveis",
+     "assinatura": "export function rotulosVisiveis(zonas: ZonaDesenhada[], distancia: number): Set<string>",
+     "doc": "Números das zonas que cabem sem encostar uns nos outros: a zona com mais\neleitores escolhe primeiro, e um rótulo a menos de `distancia` de outro já\nposto fica de fora (aparece ao aproximar; a dica e a tabela têm todos).",
+     "linha": 138
+    },
+    {
+     "tipo": "funcao",
+     "nome": "rarear",
+     "assinatura": "export function rarear(pontos: { x: number; y: number }[], distancia: number): number[]",
+     "doc": "Índices dos pontos que ficam quando eles se amontoam: no máximo um por casa\nde uma grade de lado `distancia`. Onde os locais são esparsos, ficam todos;\nno centro denso de uma capital, sobra uma amostra, e aproximar mostra o resto.",
+     "linha": 156
     }
    ]
   },
   {
    "caminho": "packages/portal/src/lib/zoom.ts",
    "linguagem": "typescript",
-   "linhas": 77,
+   "linhas": 121,
    "doc": "Aproximação e arrasto do mapa, como contas puras sobre a janela visível.\n\nO mapa é um SVG cuja `viewBox` é a janela: aproximar é encolher a janela em\ntorno de um ponto, arrastar é deslocá-la. As coordenadas são as da malha\nprojetada (as mesmas de `MapaProjetado`), não pixels — por isso nada aqui\ndepende do tamanho da tela, e as contas têm teste sem navegador.",
    "itens": [
     {
@@ -8475,6 +8947,34 @@
      "assinatura": "export function viewBox(v: Vista): string",
      "doc": "`viewBox` do SVG para a janela.",
      "linha": 75
+    },
+    {
+     "tipo": "funcao",
+     "nome": "enquadrar",
+     "assinatura": "export function enquadrar(caixa: [number, number, number, number], l: Limites, margem = 0.12): Vista",
+     "doc": "Janela que mostra a `caixa` inteira (x mínimo, y mínimo, x máximo, y\nmáximo, em coordenadas da malha) com uma `margem` em volta, na proporção do\nmapa e dentro dos limites. É o enquadramento do município aberto.",
+     "linha": 84
+    },
+    {
+     "tipo": "funcao",
+     "nome": "zoomMaximoPara",
+     "assinatura": "export function zoomMaximoPara(caixa: [number, number, number, number] | null, l: Omit<Limites, \"maxZoom\">): number",
+     "doc": "Aproximação máxima com um município aberto: a de sempre, ou mais, para o\nmenor município ainda poder ser visto de perto (quatro vezes o enquadramento dele).",
+     "linha": 97
+    },
+    {
+     "tipo": "funcao",
+     "nome": "interpolar",
+     "assinatura": "export function interpolar(a: Vista, b: Vista, t: number): Vista",
+     "doc": "Janela no instante `t` (0 a 1) da passagem de `a` para `b`. A largura\nvaria em escala logarítmica e o centro acompanha: aproximar oito vezes\nparece tão rápido no começo quanto no fim.",
+     "linha": 108
+    },
+    {
+     "tipo": "funcao",
+     "nome": "suavizar",
+     "assinatura": "export function suavizar(t: number): number",
+     "doc": "Curva da animação: começa rápida e desacelera no fim.",
+     "linha": 119
     }
    ]
   },
@@ -8752,107 +9252,170 @@
   {
    "caminho": "packages/portal/src/componentes/eleicoes/Mapa.tsx",
    "linguagem": "typescript",
-   "linhas": 422,
-   "doc": "Mapa coroplético das partes (UFs no Brasil, municípios na UF), desenhado em\nSVG a partir da malha do IBGE. Cada área leva a cor de quem está à frente,\nmas só as três primeiras posições da paleta são pintadas: da quarta em\ndiante a área fica cinza (\"Outros\"), porque só essas três passam na\nvalidação para daltonismo em todos os pares lado a lado (ADR-020). O nome\ne o percentual de quem lidera continuam na dica e na tabela.\n\nInterativo: botões + e −, Ctrl (ou ⌘) + rolagem e pinça no trackpad para\naproximar em torno do cursor; arrastar para mover quando aproximado; dois\ndedos na tela de toque; teclas +, − e 0 com o foco no mapa. A rolagem\nsimples continua rolando a página. As contas da janela estão em\n`lib/zoom.ts`; a ligação área ↔ parte, em `lib/areas.ts`.",
+   "linhas": 825,
+   "doc": "Mapa coroplético das partes (UFs no Brasil, municípios na UF), desenhado em\nSVG a partir da malha do IBGE. Cada área leva a cor de quem está à frente,\nmas só as três primeiras posições da paleta são pintadas: da quarta em\ndiante a área fica cinza (\"Outros\"), porque só essas três passam na\nvalidação para daltonismo em todos os pares lado a lado (ADR-020). O nome\ne o percentual de quem lidera continuam na dica e na tabela.\n\nCom um município aberto, o mapa da UF aproxima até ele (com animação, que\nrespeita a preferência por menos movimento), apaga os vizinhos e, se o\nmunicípio tem mais de uma zona eleitoral, mostra as zonas: a área de cada\numa é a mais perto dos seus locais de votação (ADR-029, `lib/zonas.ts`),\nrecortada pelo contorno fino do município, com a cor de quem lidera na\nzona quando o feed traz o resultado por zona. Os vizinhos continuam\nclicáveis: abrir outro município voa até ele.\n\nInterativo: botões + e −, Ctrl (ou ⌘) + rolagem e pinça no trackpad para\naproximar em torno do cursor; arrastar para mover quando aproximado; dois\ndedos na tela de toque; teclas +, − e 0 com o foco no mapa. A rolagem\nsimples continua rolando a página. As contas da janela estão em\n`lib/zoom.ts`; a ligação área ↔ parte, em `lib/areas.ts`.\n\nDesempenho: a camada das áreas é memorizada e os eventos do cursor são\ntratados num ouvinte só (pelo `data-*` do elemento sob o cursor), de modo\nque mover o cursor só redesenha a dica e o contorno de destaque.",
    "itens": [
+    {
+     "tipo": "interface",
+     "nome": "MunicipioAberto",
+     "assinatura": "export interface MunicipioAberto",
+     "doc": "O município aberto no mapa da UF, com o que for preciso para desenhar as zonas.",
+     "linha": 56
+    },
     {
      "tipo": "interface",
      "nome": "Props",
      "assinatura": "interface Props",
      "doc": "Entrada do mapa: a malha a desenhar, as partes do feed que a colorem e as ações de seleção.",
-     "linha": 40
+     "linha": 72
     },
     {
-     "tipo": "interface",
+     "tipo": "tipo",
      "nome": "Dica",
-     "assinatura": "interface Dica",
-     "doc": "Caixa flutuante da área sob o cursor ou com foco; `x` e `y` em pixels relativos ao contêiner do mapa.",
-     "linha": 55
+     "assinatura": "type Dica = { x: number; y: number } & (",
+     "doc": "Caixa flutuante do que está sob o cursor ou com foco; `x` e `y` em pixels relativos ao contêiner.",
+     "linha": 89
     },
     {
      "tipo": "interface",
      "nome": "Arrasto",
      "assinatura": "interface Arrasto",
      "doc": "Arrasto em curso: onde começou (pixels), a janela de então e a escala pixel → malha.",
-     "linha": 64
+     "linha": 96
     },
     {
      "tipo": "funcao",
      "nome": "pincaDe",
      "assinatura": "function pincaDe(dedos: Map<number, [number, number]>): { meio: [number, number]; distancia: number } | null",
      "doc": "Os dois toques de uma pinça e a distância entre eles, ou null se não há exatamente dois.",
-     "linha": 76
+     "linha": 113
     },
     {
      "tipo": "funcao",
      "nome": "pontoNaMalha",
      "assinatura": "function pontoNaMalha(svg: SVGSVGElement | null, cx: number, cy: number): [number, number] | null",
      "doc": "Ponto da tela (clientX, clientY) em coordenadas da malha, pela matriz atual do SVG.",
-     "linha": 83
+     "linha": 120
+    },
+    {
+     "tipo": "funcao",
+     "nome": "menosMovimento",
+     "assinatura": "function menosMovimento(): boolean",
+     "doc": "Se a pessoa pediu menos movimento ao sistema: aí o mapa muda de janela sem animação.",
+     "linha": 128
+    },
+    {
+     "tipo": "funcao",
+     "nome": "alvoDe",
+     "assinatura": "function alvoDe(el: EventTarget | null): { area?: string; zona?: string; local?: number } | null",
+     "doc": "O alvo do evento com `data-area`, `data-zona` ou `data-local`, subindo até o SVG.",
+     "linha": 133
+    },
+    {
+     "tipo": "funcao",
+     "nome": "degrau",
+     "assinatura": "function degrau(valor: number): number",
+     "doc": "Arredonda para um degrau de 25%: o que depende da escala muda pouco durante uma animação.",
+     "linha": 256
     },
     {
      "tipo": "componente",
      "nome": "Mapa",
-     "assinatura": "export function Mapa({ malha, nivel, partes, selecionado, onSelecionar, rotuloLider, titulo }: Props)",
+     "assinatura": "export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisualizar, rotuloLider, titulo }: Props)",
      "doc": "Baixa a malha (uma vez por visita, por `carregarMalha`), projeta e pinta.\nCada área com dados é um botão: clique, Enter ou espaço abre a parte, e o\nfoco pelo teclado mostra a mesma dica do cursor. Sem malha no servidor, o\nmapa dá lugar a um aviso e a tabela segue com os números. Partes sem área\nna malha (exterior, UFs que não existem mais) viram botões abaixo do mapa.",
-     "linha": 97
+     "linha": 267
+    },
+    {
+     "tipo": "componente",
+     "nome": "ConteudoDica",
+     "assinatura": "function ConteudoDica({ dica, rotuloLider }: { dica: Dica; rotuloLider: (p: Parte) => string })",
+     "doc": "O que a dica mostra para uma área, uma zona ou um local de votação.",
+     "linha": 765
+    },
+    {
+     "tipo": "componente",
+     "nome": "NotaZonas",
+     "assinatura": "function NotaZonas({ arquivo }: { arquivo: ArquivoZonas })",
+     "doc": "Nota de método sob o mapa das zonas: de onde vem o desenho e o que ficou de fora.",
+     "linha": 814
     }
    ]
   },
   {
    "caminho": "packages/portal/src/componentes/eleicoes/PainelEleicoes.tsx",
    "linguagem": "typescript",
-   "linhas": 522,
-   "doc": "Painel da aba Eleições: lê a seleção da URL, carrega índice e feeds e monta\na tela (mapa, gráfico de evolução, totais, candidatos ou panorama). O\nportal nunca fala com o TSE: tudo vem dos arquivos que o coletor grava.\nAo vivo, o feed é relido a cada 15 s enquanto a aba do navegador está\nvisível — sem WebSocket, só revalidação HTTP (ver `feeds.ts`).",
+   "linhas": 691,
+   "doc": "Painel da aba Eleições: lê a seleção da URL, carrega índice e feeds e monta\na tela (mapa, gráfico de evolução, totais, candidatos ou panorama). O\nportal nunca fala com o TSE: tudo vem dos arquivos que o coletor grava.\nAo vivo, o feed é relido a cada 15 s enquanto a aba do navegador está\nvisível — sem WebSocket, só revalidação HTTP (ver `feeds.ts`).\n\nNavegação sem piscar: enquanto o feed novo chega, a tela mantém o anterior\nesmaecido; o mapa da UF de um município é pedido junto com o feed dele (a\nUF sai do código na URL); os feeds de eleições encerradas ficam em memória\ne o cursor parado numa área do mapa já os pré-carrega. No município com\nmais de uma zona eleitoral, o mapa aproxima até ele e mostra as zonas, e a\ntabela das zonas fica ligada ao mapa (ADR-029).",
    "itens": [
     {
      "tipo": "interface",
      "nome": "EstadoFeed",
      "assinatura": "interface EstadoFeed",
      "doc": "Última leitura de um feed. A `chave` (\"eleição/cargo/abrangência\") diz a\nque seleção os dados pertencem, para a tela não exibir números de outra.",
-     "linha": 39
+     "linha": 62
     },
     {
      "tipo": "funcao",
      "nome": "useRelogio",
      "assinatura": "function useRelogio(ativo: boolean, intervalo: number): number",
      "doc": "Contador que avança a cada `intervalo` ms enquanto `ativo`; os efeitos que\ndependem dele releem os dados. Com a aba do navegador em segundo plano o\ncontador não avança, e nada é baixado sem ninguém olhando.",
-     "linha": 51
+     "linha": 74
     },
     {
      "tipo": "funcao",
      "nome": "useFeed",
      "assinatura": "function useFeed(chave: string | null, carregar: (sinal: AbortSignal) => Promise<Feed | null>, tique: number)",
-     "doc": "Carrega um feed por chave, mantendo o anterior na tela enquanto o novo chega.",
-     "linha": 64
+     "doc": "Carrega um feed por chave, mantendo o anterior na tela enquanto o novo chega. A resposta de uma chave\nque já saiu da tela (o feed guardado em memória não é cancelado) é descartada.",
+     "linha": 90
     },
     {
      "tipo": "funcao",
      "nome": "nomeAbrangencia",
-     "assinatura": "function nomeAbrangencia(abr: string, feed: Feed | null): string",
-     "doc": "Nome para o título: \"Brasil\", o nome que o feed traz ou, antes de ele chegar, o código em maiúsculas.",
-     "linha": 91
+     "assinatura": "function nomeAbrangencia(abr: string, feed: Feed | null, partesDaUf: Parte[] = []): string",
+     "doc": "Nome para o título: \"Brasil\", o nome que o feed traz ou, antes de ele chegar, o da UF (pela sigla) ou o\ndo município na lista do mapa da UF; sem nada disso, o código em maiúsculas.",
+     "linha": 124
+    },
+    {
+     "tipo": "interface",
+     "nome": "ZonasCarregadas",
+     "assinatura": "interface ZonasCarregadas",
+     "doc": "Zonas do município aberto, da chave \"ano/IBGE\": o arquivo dos locais e o contorno fino.",
+     "linha": 133
+    },
+    {
+     "tipo": "funcao",
+     "nome": "zonasDoMunicipio",
+     "assinatura": "async function zonasDoMunicipio(ano: number, ibge: string): Promise<Omit<ZonasCarregadas, \"chave\">>",
+     "doc": "Arquivo das zonas e contorno fino de um município, se o índice das zonas do ano o lista.",
+     "linha": 140
     },
     {
      "tipo": "componente",
      "nome": "PainelEleicoes",
      "assinatura": "export function PainelEleicoes()",
      "doc": "A URL é o estado: toda navegação (eleição, cargo, abrangência, modo TV)\ntroca os parâmetros com `router.replace`, e a tela se recalcula a partir\ndeles. No município, o mapa é o da UF, lido do feed da UF. Atalhos:\nCtrl+K ou \"/\" abre a busca; \"t\" alterna o modo TV (tema escuro e rodízio\nde cargos a cada 30 s); Esc sai dele.",
-     "linha": 103
+     "linha": 157
+    },
+    {
+     "tipo": "componente",
+     "nome": "Esqueleto",
+     "assinatura": "function Esqueleto()",
+     "doc": "Lugar dos números enquanto a primeira leitura não chega: blocos cinza no formato da tela.",
+     "linha": 622
     },
     {
      "tipo": "componente",
      "nome": "OpcaoEleicao",
      "assinatura": "function OpcaoEleicao({ e }: { e: EleicaoIndice })",
      "doc": "Uma eleição no seletor, com a marca de ao vivo.",
-     "linha": 469
+     "linha": 638
     },
     {
      "tipo": "componente",
      "nome": "TabelaPartes",
      "assinatura": "function TabelaPartes(",
      "doc": "Tabela das partes: a alternativa ao mapa para quem não usa o mapa (ou leitor de tela).",
-     "linha": 479
+     "linha": 648
     }
    ]
   },
@@ -8875,6 +9438,28 @@
      "assinatura": "export function Panorama({ feed, rotuloParte, onSelecionar }: Props)",
      "doc": "Placar por partido e a lista das partes com quem lidera em cada uma.",
      "linha": 24
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/eleicoes/TabelaZonas.tsx",
+   "linguagem": "typescript",
+   "linhas": 104,
+   "doc": "Tabela das zonas eleitorais do município aberto, ligada ao mapa: passar o\ncursor (ou o foco) numa linha destaca a zona no mapa, e o clique fixa o\ndestaque (o mesmo que clicar na zona). Quando o feed traz o resultado por\nzona (eleições lidas dos dados abertos do TSE), mostra quem lidera em cada\numa; ao vivo, o TSE só publica o resultado do município, e a tabela fica\ncom o eleitorado e os locais de votação de cada zona.",
+   "itens": [
+    {
+     "tipo": "interface",
+     "nome": "Props",
+     "assinatura": "interface Props",
+     "doc": "Entrada da tabela: o resultado e os números de cada zona, e as ações ligadas ao mapa.",
+     "linha": 17
+    },
+    {
+     "tipo": "componente",
+     "nome": "TabelaZonas",
+     "assinatura": "export function TabelaZonas({ partes, arquivo, rotulo, escolhida, onEscolher, onDestacar }: Props)",
+     "doc": "Uma linha por zona, em ordem numérica, juntando o resultado do feed e os números do arquivo das zonas.",
+     "linha": 31
     }
    ]
   },
@@ -9142,7 +9727,7 @@
   {
    "caminho": "packages/eleicoes/testes/test_dados_abertos.py",
    "doc": "Dados abertos do TSE: leitura dos CSV, agregação e geração dos feeds históricos.\n\nDuas fontes de teste:\n\n- as linhas reais em ``testes/fixtures/tse/dados_abertos`` (cabeçalho e\n  primeiras linhas dos arquivos de 2022), que garantem que o leitor entende\n  o formato publicado;\n- arquivos sintéticos montados aqui com o mesmo cabeçalho, pequenos o\n  bastante para conferir as somas à mão. Os números sintéticos não são de\n  eleição nenhuma: servem para testar a aritmética.",
-   "testes": 18
+   "testes": 21
   },
   {
    "caminho": "packages/eleicoes/testes/test_feeds.py",
@@ -9178,6 +9763,11 @@
    "caminho": "packages/eleicoes/testes/test_tse.py",
    "doc": "Leitura do sistema de divulgação de resultados do TSE, com arquivos reais.",
    "testes": 21
+  },
+  {
+   "caminho": "packages/eleicoes/testes/test_zonas.py",
+   "doc": "Locais de votação por zona: leitura do CSV do TSE, filtro pelo contorno do município e arquivos do mapa.\n\nOs recortes em ``testes/fixtures/tse/locais_votacao`` são linhas reais dos arquivos de 2024 e 2026, sem\nedição: São Caetano do Sul (SP), com as zonas 166 e 269, uma linha por local (mais uma segunda seção de um\nlocal e uma linha do 2º turno), e duas linhas de Bragança Paulista (zonas 27 e 298).",
+   "testes": 18
   },
   {
    "caminho": "packages/ingestao/testes/test_adaptador_pncp.py",
@@ -9328,6 +9918,11 @@
    "caminho": "packages/portal/src/lib/__testes__/validacao.test.ts",
    "doc": "Contrato entre o Python (que grava) e o portal (que lê): a amostra em\ntestes/fixtures/eleicoes_feed é gerada por `lumen eleicoes amostra` e\nconferida byte a byte do lado Python. Se um lado mudar sem o outro, um dos\ndois conjuntos de testes quebra.",
    "testes": 10
+  },
+  {
+   "caminho": "packages/portal/src/lib/__testes__/zonas.test.ts",
+   "doc": "Zonas eleitorais no mapa: Voronoi dos locais de votação, desenho das zonas, zoom até o município.",
+   "testes": 13
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/zoom.test.ts",

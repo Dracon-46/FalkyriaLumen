@@ -241,6 +241,7 @@ lumen eleicoes publicar                                # envia ao bucket os feed
 lumen eleicoes medir                                   # tamanho dos feeds contra os limites gratuitos
 lumen eleicoes municipios                              # cadastro TSE ↔ IBGE corrente (um já vem com o Lumen)
 lumen eleicoes mapas                                   # malhas do IBGE correntes (idem)
+lumen eleicoes zonas --anos 2026,2024                  # locais de votação: mapa das zonas eleitorais (ADR-029)
 lumen eleicoes historico baixar --anos 2022,1950       # dados abertos, 1933 a 2024 (ou --anos todos)
 lumen eleicoes historico processar --anos 2022,1950
 lumen eleicoes ao-vivo --eleicao 2026-1t-geral         # noite da apuração
@@ -340,7 +341,10 @@ diários.
 **Aba Eleições: pronta para uso.** Coleta ao vivo do sistema de resultados do TSE, eleições
 passadas desde 1933 pelos dados abertos (por município de 1994 em diante; antes, por estado),
 mapa interativo por estado e município, busca, modo TV, simulação de apuração e carga completa
-num comando (`lumen eleicoes preparar`, ou `preparar.cmd` no Windows).
+num comando (`lumen eleicoes preparar`, ou `preparar.cmd` no Windows). Escolher um município no
+mapa abre o município e, nos 190 com mais de uma zona eleitoral, mostra as zonas, com quem lidera
+em cada uma e uma tabela ligada ao mapa; o contorno das zonas é aproximado pelos locais de votação,
+e a tela diz isso (ADR-029).
 
 **Painéis de Contratações e Conformidade: no ar desde 14/10/2026.** Para o Brasil, cada ente e
 cada órgão (inclusive autarquias e empresas públicas municipais), o que foi publicado no PNCP; para
@@ -355,16 +359,18 @@ ordenação por risco (ADR-028).
 | Normalização | 116 |
 | Conformidade (SICONFI) | 14 |
 | Pipeline local | 8 |
-| Aba Eleições (Python, inclusive a publicação na nuvem) | 204 |
+| Aba Eleições (Python, inclusive a publicação na nuvem e as zonas) | 225 |
 | Painéis de contratações e conformidade | 28 |
 | Vocabulário controlado e referência técnica | 66 |
-| Portal (TypeScript) | 91 |
+| Portal (TypeScript) | 107 |
 
 Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (verificado por teste).
 
 ### Pendente
 
-- **Revisar as ADRs 011 a 028** (todas propostas, tomadas durante a implementação).
+- **Revisar as ADRs 011 a 029** (todas propostas, tomadas durante a implementação).
+- **Resultado por zona de 2026**: os dados abertos de votação de 2026 (453 MB) saíram em
+  15/10/2026; com 2026 em `ANOS_GERAIS`, o 1º turno passa a vir deles, com as zonas (ADR-029).
 - **Calibrar a regra A-05** sobre o relatório silencioso antes de qualquer publicação (ADR-027).
 - **Contas da hospedagem gratuita** (ADR-026): Cloudflare (R2 e Pages), segredos do GitHub e
   uma organização própria do projeto no Supabase para o núcleo (DOC-12, seção 9.5). Feeds das

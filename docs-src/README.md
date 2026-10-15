@@ -10,9 +10,10 @@ qualquer alteracao manual e perdida na proxima geracao.
 - `build_NN_*.js` — um script por documento. Contem o conteudo e chama `lib.buildDoc()`.
 - `diagrams/*.mmd` — fontes Mermaid dos diagramas, renderizados em `../docs/diagramas/`.
 - `../docs/diagramas/14_tela_aba_eleicoes.png`, `15_tela_modo_tv.png`, `16_tela_eleicao_1945.png`,
-  `17_tela_mapa_aproximado.png`, `19_tela_contratacoes.png` e `20_tela_conformidade.png` — capturas de
-  tela do portal (não vêm de `.mmd`): refaça-as com o portal rodando quando a interface mudar. As dos
-  painéis usam dados sintéticos de teste, ditos na legenda.
+  `17_tela_mapa_aproximado.png`, `19_tela_contratacoes.png`, `20_tela_conformidade.png` e
+  `21_tela_zonas.png` — capturas de tela do portal (não vêm de `.mmd`): refaça-as com o portal rodando
+  quando a interface mudar. As dos painéis usam dados sintéticos de teste, ditos na legenda; a das zonas,
+  os dados abertos de 2026 do TSE.
 - `referencia.json` — extração do código usada pelo DOC-11 (Referência Técnica). É gerado por
   `ferramentas/referencia/referencia.py`, regenerado por `make docs` antes dos `.docx` e fora do Git.
 
