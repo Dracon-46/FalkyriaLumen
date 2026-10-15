@@ -11,6 +11,7 @@ Exemplos::
     lumen bronze verificar                # reconfere o hash de toda a prova
     lumen eleicoes ...                    # aba Eleições (ver lumen_eleicoes)
     lumen mercado ...                     # referência de mercado fora do governo (ver lumen_mercado)
+    lumen painel ...                      # painéis de contratações e conformidade (ver lumen_painel)
 """
 
 from __future__ import annotations
@@ -56,10 +57,10 @@ def _lista_str(texto: str) -> tuple[str, ...]:
 def main(argv: list[str] | None = None) -> int:
     """Ponto de entrada do comando ``lumen``: interpreta os argumentos e despacha para a etapa pedida.
 
-    Os subcomandos ``eleicoes`` e ``mercado`` são repassados inteiros aos CLIs de ``lumen_eleicoes`` e
-    ``lumen_mercado``; ``coletar pncp_itens`` busca os itens dos processos da silver publicados na janela
-    (e cujo objeto casa com ``--objeto``, quando dado). Os demais leem a
-    configuração e imprimem o resumo em JSON. O código de saída é 2 para configuração ou argumento ausente e
+    Os subcomandos ``eleicoes``, ``mercado`` e ``painel`` são repassados inteiros aos CLIs de
+    ``lumen_eleicoes``, ``lumen_mercado`` e ``lumen_painel``; ``coletar pncp_itens`` busca os itens dos
+    processos da silver publicados na janela (e cujo objeto casa com ``--objeto``, quando dado). Os demais
+    leem a configuração e imprimem o resumo em JSON. O código de saída é 2 para configuração ou argumento ausente e
     1 quando a coleta tem falhas ou o bronze tem conteúdo corrompido, para que scripts e a CI percebam.
     """
     parser = argparse.ArgumentParser(prog="lumen", description="Pipeline local do Lumen")
@@ -87,6 +88,8 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("eleicoes", help="aba Eleições (repassa para lumen_eleicoes)", add_help=False)
     sub.add_parser("mercado", help="referência de mercado (repassa para lumen_mercado)", add_help=False)
+    sub.add_parser("painel", help="painéis de contratações e conformidade (repassa para lumen_painel)",
+                   add_help=False)
 
     args, resto = parser.parse_known_args(argv)
     saida_log = logging.StreamHandler()
@@ -99,6 +102,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.comando == "mercado":
         from lumen_mercado.cli import main as main_mercado
         return main_mercado(["--config", args.config, *resto] if args.config else resto)
+    if args.comando == "painel":
+        from lumen_painel.cli import main as main_painel
+        return main_painel(["--config", args.config, *resto] if args.config else resto)
     if resto:
         parser.error(f"argumentos não reconhecidos: {' '.join(resto)}")
 
