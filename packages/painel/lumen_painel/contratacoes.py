@@ -270,6 +270,19 @@ def municipios_da_uf(uf: str, painel: Painel, cadastro: Cadastro) -> list[dict]:
     return sorted(linhas, key=lambda x: (x["nome"].casefold(), x["codigo"]))
 
 
+def orgaos_para_busca(painel: Painel, gerado_em: str) -> dict:
+    """``orgaos.json``: todo órgão com publicação no período (CNPJ, razão social, ente e contagens), para a
+    busca do portal achar uma entidade pelo nome, como um serviço autônomo de água e esgoto municipal."""
+    linhas = []
+    for cnpj in sorted(painel.por_orgao):
+        t = painel.por_orgao[cnpj].totais
+        _, esfera, ente = (painel.orgaos.get(cnpj) or [None, None, None])[:3]
+        linhas.append([cnpj, _nome_orgao(painel, cnpj), ente if tipo_do_ente(ente) else None, esfera,
+                       t.processos, t.contratos])
+    return {"versao": 1, "tipo": "orgaos", "gerado_em": gerado_em,
+            "colunas": ["cnpj", "nome", "ente", "esfera", "processos", "contratos"], "orgaos": linhas}
+
+
 def panorama_para_json(painel: Painel, cadastro: Cadastro, gerado_em: str) -> dict:
     """``contratacoes/panorama.json``: o Brasil, por esfera, por UF (governo do estado e municípios), meses,
     modalidades e os fornecedores pessoa jurídica de maior valor no país."""

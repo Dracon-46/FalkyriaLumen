@@ -176,6 +176,7 @@ def cmd_publicar(args) -> int:
         site.gravar(f"contratacoes/orgao/{cnpj}.json",
                     contr.orgao_para_json(cnpj, acumulador, painel, cadastro, gerado_em))
     site.gravar("contratacoes/panorama.json", contr.panorama_para_json(painel, cadastro, gerado_em))
+    site.gravar("orgaos.json", contr.orgaos_para_busca(painel, gerado_em))
 
     avaliacao = conf.avaliar(estado.glob("conformidade-*.json.gz"), cadastro, hoje=hoje, gerado_em=gerado_em)
     for codigo, arquivo in avaliacao.entes.items():
