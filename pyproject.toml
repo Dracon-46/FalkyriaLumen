@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "falkyria-lumen"
-version = "0.6.0"
+version = "0.7.0"
 description = "Monitoramento de contratações e despesas públicas do Brasil. Publica indícios para análise, nunca conclusões."
 requires-python = ">=3.11"
 readme = "README.md"
@@ -32,6 +32,7 @@ where = [
   "packages/orquestracao",
   "packages/eleicoes",
   "packages/mercado",
+  "packages/painel",
 ]
 include = ["lumen_*"]
 
@@ -64,6 +65,7 @@ pythonpath = [
   "packages/orquestracao",
   "packages/eleicoes",
   "packages/mercado",
+  "packages/painel",
   "ferramentas/lint-vocabulario",
   "ferramentas/referencia",
 ]
@@ -76,6 +78,7 @@ testpaths = [
   "packages/orquestracao/testes",
   "packages/eleicoes/testes",
   "packages/mercado/testes",
+  "packages/painel/testes",
   "ferramentas/lint-vocabulario/testes",
   "ferramentas/referencia/testes",
   "testes/contrato",
@@ -92,7 +95,8 @@ markers = [
 
 [tool.ruff.lint.isort]
 known-first-party = ["lumen_canonico", "lumen_ingestao", "lumen_normalizacao", "lumen_deteccao",
-                     "lumen_conformidade", "lumen_orquestracao", "lumen_eleicoes", "lint_vocabulario", "conftest"]
+                     "lumen_conformidade", "lumen_orquestracao", "lumen_eleicoes", "lumen_painel", "lint_vocabulario",
+                     "conftest"]
 
 [tool.ruff.lint.per-file-ignores]
 # testes usam asserts, fixtures com nomes de parâmetro e imports locais
