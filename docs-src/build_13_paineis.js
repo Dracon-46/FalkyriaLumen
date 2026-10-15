@@ -122,6 +122,7 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["somar_dias", "Lê os dias em ordem e soma por ente, por órgão, por esfera e para o Brasil", "Linha sem ente reconhecido vai só para o Brasil e para sem_ente"],
   ["ente_para_json", "Arquivo de um ente; o de um estado traz os municípios da UF", "Municípios do cadastro e os que publicaram, por nome, com zero quando não publicaram"],
   ["orgao_para_json", "Arquivo de um órgão, com o ente a que pertence", "Para quem procura uma entidade: um serviço autônomo de água e esgoto, uma fundação, uma empresa pública"],
+  ["orgaos_para_busca", "Todo órgão com publicação no período: CNPJ, razão social, ente, esfera, processos e contratos", "Para a busca do portal achar uma entidade pelo nome, pela sigla ou pelo CNPJ"],
   ["panorama_para_json", "Brasil: esferas, UFs (governo do estado e municípios), meses, modalidades, 30 maiores fornecedores", "UFs em ordem alfabética; nada ordenado por risco"],
   ["Painel.cobertura", "Primeiro e último dia, quantos e os que faltam entre eles", "O portal mostra o período e os dias ainda sem coleta"],
 ], { monoCols: [0], size: 17 }));
@@ -174,6 +175,7 @@ body.push(t("Endereço: `https://dracon-46.github.io/FalkyriaLumen/` (variável 
 body.push(table(["Caminho", "tipo", "Conteúdo"], [3200, 2200, 4200], [
   ["indice.json", "—", "Quando foi gerado, data da avaliação, cobertura de cada painel"],
   ["entes.json", "—", "Cadastro para a busca: código, nome, UF, esfera, população"],
+  ["orgaos.json", "orgaos", "Órgãos para a busca: CNPJ, razão social, ente, esfera, processos, contratos"],
   ["contratacoes/panorama.json", "contratacoes-panorama", "Brasil: totais, esferas, UFs, meses, modalidades, fornecedores, recentes"],
   ["contratacoes/ente/<código>.json", "contratacoes-ente", "Um ente; o de um estado com os municípios da UF"],
   ["contratacoes/orgao/<CNPJ>.json", "contratacoes-orgao", "Um órgão, com o ente a que pertence"],
@@ -233,8 +235,8 @@ body.push(t("Contraste das quatro cores sobre a superfície do portal: de 4,8:1 
 
 body.push(h1("9. Portal"));
 body.push(table(["Arquivo", "Papel"], [4200, 5400], [
-  ["src/lib/paineis.ts", "Endereços (com validação de código, CNPJ e UF antes de virar caminho), tipos dos arquivos, leitura com conferência de versão e tipo, busca de entes, formatos de reais, meses, datas e CNPJ"],
-  ["src/componentes/paineis/Comuns.tsx", "Busca de ente (combobox com setas, Enter e Esc), aviso metodológico (PUB-08), número em destaque, gráfico de barras por mês com tabela recolhida, selo de resultado"],
+  ["src/lib/paineis.ts", "Endereços (com validação de código, CNPJ e UF antes de virar caminho), tipos dos arquivos, leitura com conferência de versão e tipo, busca de entes e de órgãos (nome, sigla pelas iniciais, município do órgão ou CNPJ), formatos de reais, meses, datas e CNPJ"],
+  ["src/componentes/paineis/Comuns.tsx", "Busca de ente e, em Contratações, de órgão (combobox com setas, Enter e Esc; \"SAAE Sorocaba\" acha o serviço autônomo de água e esgoto pela sigla e pelo município), aviso metodológico (PUB-08), número em destaque, gráfico de barras por mês com tabela recolhida, selo de resultado"],
   ["src/componentes/paineis/PainelContratacoes.tsx", "Brasil, ente (?ente=) e órgão (?orgao=); tabelas de modalidades, fornecedores, órgãos, UFs e municípios; publicações recentes com link do PNCP"],
   ["src/componentes/paineis/PainelConformidade.tsx", "Brasil, UF (?uf=) e ente (?ente=); obrigações por exercício, que viram blocos no celular"],
   ["src/app/contratacoes/page.tsx, src/app/conformidade/page.tsx", "Páginas estáticas que envolvem os painéis em Suspense (leem a URL no navegador)"],
@@ -285,8 +287,8 @@ body.push(b("Uma máquina do GitHub coleta perto de 8 minutos por dia do PNCP; u
 
 body.push(h1("11. Verificação"));
 body.push(table(["Conjunto", "Quantidade", "O que cobre"], [3000, 1400, 5200], [
-  ["packages/painel/testes", "28", "Dia compacto com as respostas reais do PNCP (01/09/2026), pessoa física sem identificação, dia incompleto não gravado (falha, resposta de erro, coleta interrompida), soma por ente, órgão, esfera e UF, cobertura e dias faltando, avaliação da conformidade com o extrato real de São Sepé (RS), instituição não identificada, obrigações só até a data, coleta por UF, comandos e publicação de ponta a ponta"],
-  ["packages/portal (vitest)", "7 novos", "Busca de entes, leitura do entes.json, validação de caminhos, conferência de versão e tipo, formatos e topo do eixo do gráfico"],
+  ["packages/painel/testes", "29", "Dia compacto com as respostas reais do PNCP (01/09/2026), pessoa física sem identificação, dia incompleto não gravado (falha, resposta de erro, coleta interrompida), soma por ente, órgão, esfera e UF, cobertura e dias faltando, avaliação da conformidade com o extrato real de São Sepé (RS), instituição não identificada, obrigações só até a data, coleta por UF, comandos e publicação de ponta a ponta"],
+  ["packages/portal (vitest)", "10 novos", "Busca de entes e de órgãos (sigla, município, CNPJ), leitura do entes.json e do orgaos.json, validação de caminhos, conferência de versão e tipo, formatos e topo do eixo do gráfico"],
 ], { size: 17 }));
 body.push(spacer(80));
 body.push(t("Conferência visual em navegador real (Playwright) com dados sintéticos: Brasil, município, órgão, estado, " +
@@ -308,7 +310,7 @@ L.buildDoc({
   codigo: "DOC-13",
   titulo: "Painéis de Contratações e Conformidade",
   subtitulo: "O que cada ente publicou no PNCP e as entregas da LRF ao Tesouro, com a fonte de cada número",
-  meta: { versao: "1.0", data: "14 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028",
+  meta: { versao: "1.1", data: "15 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028",
     verificado: "outubro de 2026" },
   body,
   outFile: path.join(__dirname, "..", "docs", "DOC-13_Paineis.docx"),
