@@ -11,8 +11,8 @@ import { usePathname } from "next/navigation";
 
 const ABAS = [
   { href: "/eleicoes/", rotulo: "Eleições", pronta: true },
-  { href: "/contratacoes/", rotulo: "Contratações", pronta: false },
-  { href: "/conformidade/", rotulo: "Conformidade", pronta: false },
+  { href: "/contratacoes/", rotulo: "Contratações", pronta: true },
+  { href: "/conformidade/", rotulo: "Conformidade", pronta: true },
 ] as const;
 
 /** Cabeçalho do Lumen: a marca e as abas. Cada aba é uma área do portal. */
