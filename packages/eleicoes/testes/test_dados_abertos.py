@@ -451,6 +451,71 @@ def test_processa_municipal_com_panorama(tmp_path):
     assert indice["eleicoes"][0]["cargos"][0]["slug"] == "prefeito"
 
 
+def test_zonas_no_feed_do_municipio(zips_2022, cadastro, tmp_path):
+    votacao, detalhe_zip = zips_2022
+    saida = tmp_path / "feeds"
+    ProcessadorAno(2022, EscritorFeeds(saida), cadastro).processar(votacao, detalhe_zip)
+
+    # Acrelândia tem as zonas 8 e 9 no Presidente: o feed do município leva as duas em `partes`
+    acre = ler_feed(saida, "2022-1t-geral", "presidente", "mu-1200013.json")
+    zonas = {p["codigo"]: p for p in acre["partes"]}
+    assert list(zonas) == ["8", "9"]
+    z8, z9 = zonas["8"], zonas["9"]
+    assert (z8["nome"], z8["ibge"], z8["lider"], z8["cor"], z8["eleitorado"]) == ("Zona 8", None, "22", 0, 200)
+    assert z8["pct"] == pytest.approx(100 * 100 / 150) and z8["margem"] == pytest.approx(100 * 50 / 150)
+    assert (z9["lider"], z9["cor"], z9["eleitorado"]) == ("13", 1, 60)       # as cores são as do Brasil
+    assert z9["pct"] == pytest.approx(80.0) and z9["finalizada"] is True
+    # A soma das zonas é o município
+    assert {c["numero"]: c["votos"] for c in acre["candidatos"]} == {"22": 110, "13": 90}
+
+    # Município de uma zona só: nada a dividir
+    assert ler_feed(saida, "2022-1t-geral", "presidente", "mu-1200054.json")["partes"] == []
+    assert ler_feed(saida, "2022-1t-geral", "presidente", "mu-3550308.json")["partes"] == []
+    # No Governador, Acrelândia só tem linhas da zona 8: sem partes
+    assert ler_feed(saida, "2022-1t-geral", "governador", "mu-1200013.json")["partes"] == []
+    # O feed da UF continua com os municípios, e não com as zonas
+    assert {p["codigo"] for p in ler_feed(saida, "2022-1t-geral", "presidente", "uf-ac.json")["partes"]} == {
+        "1200013", "1200054"}
+
+
+def test_municipios_com_zonas_saem_do_detalhe():
+    assert da.zona_da_linha("0008") == "8" and da.zona_da_linha("#NULO#") is None and da.zona_da_linha("0") is None
+    t = da.Totais()
+    totais = {("e", 1, ("zn", "ac", "01120", "8")): t, ("e", 1, ("zn", "ac", "01120", "9")): t,
+              ("e", 1, ("zn", "ac", "01570", "6")): t, ("e", 3, ("zn", "ac", "01570", "6")): t,
+              ("e", 1, ("mu", "ac", "01120")): t}
+    assert da.municipios_com_zonas(totais) == {("ac", "01120")}
+    assert da.abrangencias_da_linha(1, "ac", "01120", "8")[-1] == ("zn", "ac", "01120", "8")
+    # Sem a lista de municípios com zonas, o agregador não soma por zona
+    agg = da.AgregadorVotacao()
+    agg.ler(io.BytesIO(csv_bytes(CAB_VOTACAO, presidente())))
+    assert not any(k[2][0] == "zn" for k in agg.votos)
+    agg = da.AgregadorVotacao(zonas_de={("ac", "01120")})
+    agg.ler(io.BytesIO(csv_bytes(CAB_VOTACAO, presidente())))
+    assert sorted(k[2] for k in agg.votos if k[2][0] == "zn") == [("zn", "ac", "01120", "8"), ("zn", "ac", "01120", "9")]
+
+
+def test_zonas_de_cargo_proporcional_sem_bancada(tmp_path):
+    m = dict(ano=2024, turno=1, abr="M", uf="AP", ue="06009", mun=6009, nome_mun="MUNICÍPIO B", cd_eleicao=619)
+    linhas = [
+        voto(**m, zona=2, cargo=13, sq="1", nr=12111, urna="UM", partido="PDT", votos=300, situacao="ELEITO POR QP"),
+        voto(**m, zona=2, cargo=13, sq="2", nr=15111, urna="DOIS", partido="MDB", votos=100, situacao="SUPLENTE"),
+        voto(**m, zona=10, cargo=13, sq="1", nr=12111, urna="UM", partido="PDT", votos=50, situacao="ELEITO POR QP"),
+        voto(**m, zona=10, cargo=13, sq="2", nr=15111, urna="DOIS", partido="MDB", votos=150, situacao="SUPLENTE"),
+    ]
+    d = dict(ano=2024, turno=1, abr="M", uf="AP", ue="06009", mun=6009, cargo=13)
+    detalhes = [detalhe(**d, zona=2, aptos=500, comp=450, validos=400, brancos=30, nulos=20),
+                detalhe(**d, zona=10, aptos=250, comp=220, validos=200, brancos=10, nulos=10)]
+    votacao = zip_de(tmp_path / "v.zip", {"votacao_candidato_munzona_2024_AP.csv": csv_bytes(CAB_VOTACAO, linhas)})
+    det = zip_de(tmp_path / "d.zip", {"detalhe_votacao_munzona_2024_AP.csv": csv_bytes(CAB_DETALHE, detalhes)})
+    saida = tmp_path / "feeds"
+    ProcessadorAno(2024, EscritorFeeds(saida), CadastroMunicipios()).processar(votacao, det)
+    ver = ler_feed(saida, "2024-1t-municipal", "vereador", "mu-ap-06009.json")
+    assert [(p["codigo"], p["lider"]) for p in ver["partes"]] == [("2", "PDT"), ("10", "MDB")]   # ordem numérica
+    assert all("bancada" not in p for p in ver["partes"])
+    assert ver["partes"][1]["pct"] == pytest.approx(75.0) and ver["partes"][1]["eleitorado"] == 250
+
+
 def test_limite_de_candidatos_no_municipio(tmp_path):
     e = dict(ano=2022, turno=1, abr="E", uf="AC", ue="AC")
     linhas = [voto(**e, mun=1120, nome_mun="ACRELÂNDIA", zona=8, cargo=7, sq=str(i), nr=10000 + i, urna=f"C{i}",
