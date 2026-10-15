@@ -6,30 +6,53 @@
  * portal nunca fala com o TSE: tudo vem dos arquivos que o coletor grava.
  * Ao vivo, o feed é relido a cada 15 s enquanto a aba do navegador está
  * visível — sem WebSocket, só revalidação HTTP (ver `feeds.ts`).
+ *
+ * Navegação sem piscar: enquanto o feed novo chega, a tela mantém o anterior
+ * esmaecido; o mapa da UF de um município é pedido junto com o feed dele (a
+ * UF sai do código na URL); os feeds de eleições encerradas ficam em memória
+ * e o cursor parado numa área do mapa já os pré-carrega. No município com
+ * mais de uma zona eleitoral, o mapa aproxima até ele e mostra as zonas, e a
+ * tabela das zonas fica ligada ao mapa (ADR-029).
  */
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { type Achado } from "@/lib/busca";
-import { escreverSelecao, lerSelecao } from "@/lib/estado-url";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type Achado, UFS } from "@/lib/busca";
+import { escreverSelecao, lerSelecao, ufDaAbrangencia } from "@/lib/estado-url";
 import {
   carregarFeed,
   carregarHistorico,
   carregarIndice,
+  carregarIndiceZonas,
+  carregarMalha,
   carregarMunicipios,
+  carregarZonas,
   INTERVALO_AO_VIVO_MS,
+  preCarregarFeed,
   urls,
 } from "@/lib/feeds";
 import { dataPorExtenso, haQuanto, instante, percentual } from "@/lib/formato";
 import { cargoNaAbrangencia, escolherCargo, escolherEleicao, gruposDeEleicoes, tipoDeTela } from "@/lib/selecao";
-import type { CargoFeed, EleicaoIndice, Feed, FeedHistorico, Indice, Municipio, Parte, Selecao } from "@/lib/tipos";
+import type {
+  ArquivoZonas,
+  CargoFeed,
+  EleicaoIndice,
+  Feed,
+  FeedHistorico,
+  Indice,
+  Municipio,
+  Parte,
+  Selecao,
+} from "@/lib/tipos";
+import type { Topologia } from "@/lib/topojson";
 import { ErroFeed } from "@/lib/validacao";
 import { Busca } from "./Busca";
 import { Faixas, Origem } from "./Faixas";
 import { GraficoEvolucao } from "./GraficoEvolucao";
 import { ListaCandidatos } from "./ListaCandidatos";
-import { Mapa } from "./Mapa";
+import { Mapa, type MunicipioAberto } from "./Mapa";
 import { Panorama } from "./Panorama";
+import { TabelaZonas } from "./TabelaZonas";
 import { Totais } from "./Totais";
 
 /**
@@ -60,7 +83,10 @@ function useRelogio(ativo: boolean, intervalo: number): number {
   return tique;
 }
 
-/** Carrega um feed por chave, mantendo o anterior na tela enquanto o novo chega. */
+/**
+ * Carrega um feed por chave, mantendo o anterior na tela enquanto o novo chega. A resposta de uma chave
+ * que já saiu da tela (o feed guardado em memória não é cancelado) é descartada.
+ */
 function useFeed(chave: string | null, carregar: (sinal: AbortSignal) => Promise<Feed | null>, tique: number) {
   const [estado, setEstado] = useState<EstadoFeed | null>(null);
   useEffect(() => {
@@ -68,11 +94,12 @@ function useFeed(chave: string | null, carregar: (sinal: AbortSignal) => Promise
       setEstado(null);
       return;
     }
+    let vivo = true;
     const controle = new AbortController();
     carregar(controle.signal)
-      .then((feed) => setEstado({ chave, feed, erro: null }))
+      .then((feed) => vivo && setEstado({ chave, feed, erro: null }))
       .catch((e: Error) => {
-        if (e.name === "AbortError") return;
+        if (!vivo || e.name === "AbortError") return;
         setEstado((anterior) => ({
           chave,
           // Falha numa atualização ao vivo: mantém os números anteriores e avisa
@@ -80,17 +107,44 @@ function useFeed(chave: string | null, carregar: (sinal: AbortSignal) => Promise
           erro: e instanceof ErroFeed ? e.message : "falha ao carregar os dados",
         }));
       });
-    return () => controle.abort();
+    return () => {
+      vivo = false;
+      controle.abort();
+    };
     // `carregar` muda a cada render; a chave e o relógio decidem quando buscar de novo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chave, tique]);
   return estado;
 }
 
-/** Nome para o título: "Brasil", o nome que o feed traz ou, antes de ele chegar, o código em maiúsculas. */
-function nomeAbrangencia(abr: string, feed: Feed | null): string {
+/**
+ * Nome para o título: "Brasil", o nome que o feed traz ou, antes de ele chegar, o da UF (pela sigla) ou o
+ * do município na lista do mapa da UF; sem nada disso, o código em maiúsculas.
+ */
+function nomeAbrangencia(abr: string, feed: Feed | null, partesDaUf: Parte[] = []): string {
   if (abr === "br") return "Brasil";
-  return feed?.abrangencia.nome ?? abr.replace(/^(uf|mu)-/, "").toUpperCase();
+  if (feed?.abrangencia.nome) return feed.abrangencia.nome;
+  if (abr.startsWith("uf-")) return UFS[abr.slice(3)] ?? abr.slice(3).toUpperCase();
+  const codigo = abr.slice(3);
+  return partesDaUf.find((p) => p.codigo === codigo)?.nome ?? codigo.toUpperCase();
+}
+
+/** Zonas do município aberto, da chave "ano/IBGE": o arquivo dos locais e o contorno fino. */
+interface ZonasCarregadas {
+  chave: string;
+  arquivo: ArquivoZonas | null;
+  contorno: Topologia | null;
+}
+
+/** Arquivo das zonas e contorno fino de um município, se o índice das zonas do ano o lista. */
+async function zonasDoMunicipio(ano: number, ibge: string): Promise<Omit<ZonasCarregadas, "chave">> {
+  const indice = await carregarIndiceZonas(ano);
+  if (!indice?.municipios[ibge]) return { arquivo: null, contorno: null };
+  const [arquivo, contorno] = await Promise.all([
+    carregarZonas(ano, ibge),
+    carregarMalha(urls.contorno(ibge)).catch(() => null),
+  ]);
+  return { arquivo, contorno };
 }
 
 /**
@@ -139,15 +193,103 @@ export function PainelEleicoes() {
     [router, selecao, eleicao?.id, cargo?.slug],
   );
 
+  // Eleição encerrada: os feeds ficam em memória (voltar a um lugar já visto não espera a rede)
+  const guardar = !!eleicao && !aoVivo;
   const chaveFeed = eleicao && cargo ? `${eleicao.id}/${cargo.slug}/${abrangencia}` : null;
-  const principal = useFeed(chaveFeed, (s) => carregarFeed(eleicao!.id, cargo!.slug, abrangencia, s), tique);
-  const feed = principal?.chave === chaveFeed ? principal.feed : null;
+  const principal = useFeed(chaveFeed, (s) => carregarFeed(eleicao!.id, cargo!.slug, abrangencia, s, { guardar }), tique);
+  const feedAtual = principal?.chave === chaveFeed ? principal.feed : null;
   const carregando = chaveFeed !== null && principal?.chave !== chaveFeed;
+  // Enquanto o feed novo chega, a tela mantém o anterior, esmaecido, em vez de piscar "Carregando…"
+  const feed = feedAtual ?? (carregando ? (principal?.feed ?? null) : null);
 
-  // No município, o mapa é o da UF, com as partes do arquivo da UF
-  const ufDoMunicipio = abrangencia.startsWith("mu-") ? (feed?.abrangencia.uf ?? null) : null;
+  // No município, o mapa é o da UF, com as partes do arquivo da UF. A UF sai do código na URL: os dois
+  // feeds são pedidos juntos, e o mapa da UF (já em memória, vindo dela) fica onde está.
+  const ufDoMunicipio = abrangencia.startsWith("mu-")
+    ? (ufDaAbrangencia(abrangencia) ?? feedAtual?.abrangencia.uf ?? null)
+    : null;
   const chaveMapa = eleicao && cargo && ufDoMunicipio ? `${eleicao.id}/${cargo.slug}/uf-${ufDoMunicipio}` : null;
-  const doMapa = useFeed(chaveMapa, (s) => carregarFeed(eleicao!.id, cargo!.slug, `uf-${ufDoMunicipio}`, s), tique);
+  const doMapa = useFeed(chaveMapa,
+    (s) => carregarFeed(eleicao!.id, cargo!.slug, `uf-${ufDoMunicipio}`, s, { guardar }), tique);
+
+  // Zonas eleitorais do município aberto (só com código IBGE e nas eleições com resultado por município)
+  const ibgeAberto = /^mu-(\d{7})$/.exec(abrangencia)?.[1] ?? null;
+  const anoZonas = ibgeAberto && eleicao && eleicao.municipios !== false ? eleicao.ano : null;
+  const chaveZonas = anoZonas && ibgeAberto ? `${anoZonas}/${ibgeAberto}` : null;
+  const [zonas, setZonas] = useState<ZonasCarregadas | null>(null);
+  useEffect(() => {
+    if (!chaveZonas || !anoZonas || !ibgeAberto) return;
+    let vivo = true;
+    zonasDoMunicipio(anoZonas, ibgeAberto)
+      .catch(() => ({ arquivo: null, contorno: null }))
+      .then((r) => vivo && setZonas({ chave: chaveZonas, ...r }));
+    return () => {
+      vivo = false;
+    };
+  }, [chaveZonas, anoZonas, ibgeAberto]);
+  const zonasAtuais = zonas?.chave === chaveZonas ? zonas : null;
+  const [zonaEscolhida, setZonaEscolhida] = useState<string | null>(null);
+  const [zonaSobCursor, setZonaSobCursor] = useState<string | null>(null);
+  useEffect(() => {
+    setZonaEscolhida(null);
+    setZonaSobCursor(null);
+  }, [abrangencia]);
+  const partesZonas = useMemo(
+    () => (abrangencia.startsWith("mu-") && feedAtual?.tipo === "resultado" ? feedAtual.partes : []),
+    [abrangencia, feedAtual],
+  );
+  const escolherZona = useCallback((z: string) => setZonaEscolhida((atual) => (atual === z ? null : z)), []);
+  const municipioAberto: MunicipioAberto | null = useMemo(
+    () =>
+      ibgeAberto
+        ? {
+            codigo: ibgeAberto,
+            contorno: zonasAtuais?.contorno ?? null,
+            zonas: zonasAtuais?.arquivo ?? null,
+            partes: partesZonas,
+            destacada: zonaSobCursor ?? zonaEscolhida,
+            onZona: escolherZona,
+          }
+        : null,
+    [ibgeAberto, zonasAtuais, partesZonas, zonaSobCursor, zonaEscolhida, escolherZona],
+  );
+
+  const nivelMapa: "uf" | "mu" = abrangencia === "br" ? "uf" : "mu";
+  // O mapa nunca fica sem as partes durante uma troca: usa o feed mais recente do lugar que ele mostra (o
+  // Brasil ou a UF), lido agora ou numa tela anterior. Sem isso, o mapa sumiria por um quadro ao abrir um
+  // município e voltaria já no enquadramento final, sem a animação.
+  const vistos = useRef(new Map<string, Feed>());
+  for (const lido of [principal, doMapa]) {
+    if (lido?.feed) {
+      vistos.current.delete(lido.chave);
+      vistos.current.set(lido.chave, lido.feed);
+      if (vistos.current.size > 60) vistos.current.delete(vistos.current.keys().next().value as string);
+    }
+  }
+  const lugarDoMapa = abrangencia === "br" ? "br" : ufDoMunicipio ? `uf-${ufDoMunicipio}` : abrangencia;
+  const chaveDoMapa = eleicao && cargo ? `${eleicao.id}/${cargo.slug}/${lugarDoMapa}` : null;
+  const feedMapa = chaveDoMapa ? (vistos.current.get(chaveDoMapa) ?? null) : null;
+  const porPartido = feedMapa?.tipo === "panorama" || cargo?.tipo === "proporcional";
+  // Estável entre renderizações: a camada das áreas do mapa é memorizada
+  const rotuloLider = useCallback(
+    (p: Parte) =>
+      porPartido
+        ? p.nome_urna
+          ? `${p.nome_urna} (${p.partido ?? "—"})`
+          : (p.partido ?? p.lider ?? "—")
+        : (p.nome_urna ?? p.lider ?? "—"),
+    [porPartido],
+  );
+  // Cursor parado numa área: pré-carrega o feed que o clique vai abrir e, no município, as zonas
+  const previsualizar = useCallback(
+    (p: Parte) => {
+      if (!eleicao || !cargo) return;
+      if (!aoVivo) preCarregarFeed(eleicao.id, cargo.slug, nivelMapa === "uf" ? `uf-${p.codigo}` : `mu-${p.codigo}`);
+      if (nivelMapa === "mu" && p.ibge && eleicao.municipios !== false) {
+        zonasDoMunicipio(eleicao.ano, p.ibge).catch(() => undefined);
+      }
+    },
+    [eleicao, cargo, aoVivo, nivelMapa],
+  );
 
   const [historico, setHistorico] = useState<FeedHistorico | null>(null);
   // Evolução da apuração: não existe para as eleições de 1933 a 1990, publicadas só com o resultado final
@@ -183,11 +325,15 @@ export function PainelEleicoes() {
         navegar({ tv: !selecao.tv });
       } else if (e.key === "Escape" && selecao.tv) {
         navegar({ tv: false });
+      } else if (e.key === "Escape" && !buscaAberta && !digitando && abrangencia.startsWith("mu-")) {
+        // Esc no município: primeiro solta a zona escolhida; depois volta para a UF
+        if (zonaEscolhida) setZonaEscolhida(null);
+        else navegar({ abrangencia: ufDoMunicipio && ufDoMunicipio !== "zz" ? `uf-${ufDoMunicipio}` : "br" });
       }
     };
     window.addEventListener("keydown", tecla);
     return () => window.removeEventListener("keydown", tecla);
-  }, [navegar, selecao.tv]);
+  }, [navegar, selecao.tv, buscaAberta, abrangencia, zonaEscolhida, ufDoMunicipio]);
 
   useEffect(() => {
     if (buscaAberta && municipios.length === 0) {
@@ -253,8 +399,7 @@ export function PainelEleicoes() {
   }
 
   const tela = tipoDeTela(cargo, abrangencia);
-  const nomeAbr = nomeAbrangencia(abrangencia, feed);
-  const nivelMapa: "uf" | "mu" = abrangencia === "br" ? "uf" : "mu";
+  const nomeAbr = nomeAbrangencia(abrangencia, feedAtual, doMapa?.feed?.partes);
   const ufMapa = abrangencia.startsWith("uf-") ? abrangencia.slice(3) : ufDoMunicipio;
   const malha =
     abrangencia === "br"
@@ -262,21 +407,18 @@ export function PainelEleicoes() {
       : porMunicipio && ufMapa && ufMapa !== "zz"
         ? urls.malhaUf(ufMapa)
         : null;
-  const feedMapa = abrangencia.startsWith("mu-") ? (doMapa?.feed ?? null) : feed;
-  const rotuloLider = (p: Parte) =>
-    feedMapa?.tipo === "panorama" || cargo.tipo === "proporcional"
-      ? p.nome_urna
-        ? `${p.nome_urna} (${p.partido ?? "—"})`
-        : (p.partido ?? p.lider ?? "—")
-      : (p.nome_urna ?? p.lider ?? "—");
   const selecionarParte = (p: Parte) =>
     navegar({ abrangencia: nivelMapa === "uf" ? `uf-${p.codigo}` : `mu-${p.codigo}` });
 
   const progresso =
     feed?.tipo === "resultado" ? feed.totalizacao.pct_secoes : feed?.tipo === "panorama" ? feed.totalizacao.pct_partes : null;
   const finalizada = feed?.tipo === "resultado" ? feed.totalizacao.finalizada : !feed?.ao_vivo;
-  const tituloMapa =
-    tela === "panorama"
+  const comZonas = !!zonasAtuais?.arquivo || partesZonas.length > 1;
+  const tituloMapa = comZonas
+    ? partesZonas.length
+      ? `${cargo.nome}: mais votado em cada zona eleitoral de ${nomeAbr}`
+      : `Zonas eleitorais de ${nomeAbr}`
+    : tela === "panorama"
       ? `${cargo.nome}: quem está à frente em cada ${nivelMapa === "uf" ? "estado" : "município"}`
       : `${cargo.nome}: mais votado em cada ${nivelMapa === "uf" ? "estado" : "município"}`;
 
@@ -398,7 +540,7 @@ export function PainelEleicoes() {
         </div>
       )}
 
-      {carregando && !feed && <p>Carregando…</p>}
+      {carregando && !feed && <Esqueleto />}
       {!carregando && !feed && !principal?.erro && (
         <div className="cartao cartao-corpo">
           <p>
@@ -414,7 +556,7 @@ export function PainelEleicoes() {
       )}
 
       {feed && (
-        <div className="grade" style={{ opacity: carregando ? 0.6 : 1 }}>
+        <div className={carregando ? "grade grade-carregando" : "grade"} aria-busy={carregando}>
           <div className="coluna">
             {malha && feedMapa && (
               <section className="cartao cartao-corpo" aria-label={tituloMapa}>
@@ -423,12 +565,23 @@ export function PainelEleicoes() {
                   malha={malha}
                   nivel={nivelMapa}
                   partes={feedMapa.partes}
-                  selecionado={abrangencia.startsWith("mu-") ? abrangencia.slice(3) : null}
+                  municipio={municipioAberto}
                   onSelecionar={selecionarParte}
+                  onPrevisualizar={previsualizar}
                   rotuloLider={rotuloLider}
                   titulo={tituloMapa}
                 />
               </section>
+            )}
+            {comZonas && (
+              <TabelaZonas
+                partes={partesZonas}
+                arquivo={zonasAtuais?.arquivo ?? null}
+                rotulo={rotuloLider}
+                escolhida={zonaEscolhida}
+                onEscolher={escolherZona}
+                onDestacar={setZonaSobCursor}
+              />
             )}
             {!malha && !porMunicipio && abrangencia !== "br" && (
               <p className="cartao cartao-corpo candidato-detalhe">
@@ -442,7 +595,7 @@ export function PainelEleicoes() {
             {feed.tipo === "resultado" ? (
               <>
                 <ListaCandidatos feed={feed} />
-                {feed.partes.length > 0 && (
+                {feed.partes.length > 0 && !abrangencia.startsWith("mu-") && (
                   <TabelaPartes partes={feed.partes} rotulo={rotuloLider} nivel={nivelMapa} onSelecionar={selecionarParte} />
                 )}
               </>
@@ -461,6 +614,22 @@ export function PainelEleicoes() {
         onFechar={() => setBuscaAberta(false)}
         onEscolher={escolherBusca}
       />
+    </div>
+  );
+}
+
+/** Lugar dos números enquanto a primeira leitura não chega: blocos cinza no formato da tela. */
+function Esqueleto() {
+  return (
+    <div className="grade esqueleto" aria-busy="true" aria-label="Carregando os resultados">
+      <div className="coluna">
+        <div className="cartao esqueleto-bloco esqueleto-mapa" />
+      </div>
+      <div className="coluna coluna-principal">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="cartao esqueleto-bloco esqueleto-linha" />
+        ))}
+      </div>
     </div>
   );
 }
