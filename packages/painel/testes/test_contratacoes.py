@@ -264,3 +264,51 @@ def test_nome_de_reserva_sem_cadastro(estado_sintetico):
     assert contratacoes.ente_para_json("35", painel.entes["35"], painel, vazio, "G")["ente"]["nome"] == "São Paulo"
     assert vazio.nome("3550308") == "3550308" and vazio.nome("53") == "Distrito Federal"
     assert len(gzip.compress(b"x")) > 0
+
+
+def test_valor_acima_do_teto_fica_fora_das_somas(estado_sintetico):
+    orgaos = {"00000000000100": ["MUNICIPIO X", "M", "3550308"], "00000000000500": ["MUNICIPIO PEQUENO", "M", "3509502"],
+              "00000000000300": ["UNIAO", "F", "1"]}
+    comum.gravar_json(estado_sintetico / "contratacoes-2026-02-05.json.gz", _dia_sintetico("2026-02-05", [
+        _p("00000000000500-1-000001/2026", "00000000000500", "3509502", 6, 30_000_000_000.0),   # acima de R$ 10 bi
+    ], [
+        _c("00000000000300-2-000009/2026", "00000000000300", "1", cnpj="33333333000133", nome="C",
+           valor=239_842_000_000.0),
+        _c("00000000000500-2-000009/2026", "00000000000500", "3509502", cnpj="44444444000144", nome="D",
+           valor=25_000_000_000.0),
+        _c("00000000000500-2-000010/2026", "00000000000500", "3509502", cnpj="44444444000144", nome="D",
+           valor=1_000.0),
+        _c("00000000000500-2-000011/2026", "00000000000500", "3509502", cnpj="55555555000155", nome="E",
+           valor=300_000_000.0),                                                       # acima de R$ 200 mi
+    ], orgaos), comprimir=True)
+    cadastro = _cadastro()
+    cadastro.entes["3509502"] = Ente("3509502", "Cidade Pequena", "SP", "M", 10_000)
+    assert contratacoes.teto_do_ente("3509502", cadastro) == 200_000_000.0          # R$ 20 mil × 10 mil
+    assert contratacoes.teto_do_ente("3550308", cadastro) == contratacoes.TETO_ABSOLUTO
+    assert contratacoes.teto_do_ente("1", cadastro) == contratacoes.TETO_ABSOLUTO
+    assert contratacoes.teto_do_ente("3509502", None) == contratacoes.TETO_ABSOLUTO
+
+    painel = contratacoes.somar_dias(estado_sintetico.glob("contratacoes-*.json.gz"), cadastro)
+    campinas = contratacoes.ente_para_json("3509502", painel.entes["3509502"], painel, cadastro, "G")
+    t = campinas["totais"]
+    assert (t["processos"], t["valor_estimado"], t["processos_sem_valor"]) == (1, 0.0, 0)
+    assert (t["contratos"], t["valor_contratos"], t["valores_a_conferir"]) == (3, 1_000.0, 3)
+    assert campinas["fornecedores"][0] == {"cnpj": "44444444000144", "nome": "D", "contratos": 2, "valor": 1_000.0}
+    assert campinas["fornecedores"][1]["valor"] == 0.0
+    assert [(x["tipo"], x["valor"]) for x in campinas["a_conferir"]] == [
+        ("contrato", 300_000_000.0), ("contrato", 25_000_000_000.0), ("processo", 30_000_000_000.0)]
+    assert campinas["a_conferir"][1]["link"] == "https://pncp.gov.br/app/contratos/00000000000500/2026/9"
+    assert campinas["a_conferir"][1]["fornecedor"] == "D" and campinas["a_conferir"][2]["fornecedor"] is None
+    assert [c["a_conferir"] for c in campinas["contratos_recentes"]] == [True, False, True]
+
+    p = contratacoes.panorama_para_json(painel, cadastro, "G")
+    assert p["totais"]["valor_contratos"] == 1_000.0 + 60.0 + 40.0 + 500.0 + 90.0      # sem os 3 valores
+    assert p["totais"]["valores_a_conferir"] == 4 and len(p["a_conferir"]) == 4
+    assert p["totais"]["contratos"] == 4 + 4
+    assert all(f["cnpj"] != "33333333000133" or f["valor"] == 0 for f in p["fornecedores"])
+    federal = next(e for e in p["esferas"] if e["esfera"] == "F")
+    assert federal["valor_contratos"] == 500.0 and federal["valores_a_conferir"] == 1
+    sp = next(u for u in p["ufs"] if u["uf"] == "SP")
+    assert sp["municipios"]["valores_a_conferir"] == 3
+    o = contratacoes.orgao_para_json("00000000000500", painel.por_orgao["00000000000500"], painel, cadastro, "G")
+    assert o["totais"]["valores_a_conferir"] == 3 and len(o["a_conferir"]) == 3
