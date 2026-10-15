@@ -21,11 +21,17 @@ export default function Inicio() {
         </Link>
         <Link href="/contratacoes/" className="cartao inicio-cartao">
           <h2>Contratações</h2>
-          <p>Compras e contratos publicados no PNCP por União, estados e municípios. Em construção.</p>
+          <p>
+            O que a União, os estados e os municípios publicaram no PNCP: processos de contratação, contratos, órgãos e
+            fornecedores, mês a mês, com o link de cada publicação.
+          </p>
         </Link>
         <Link href="/conformidade/" className="cartao inicio-cartao">
           <h2>Conformidade</h2>
-          <p>Entrega dos relatórios fiscais obrigatórios ao Tesouro Nacional, ente por ente. Em construção.</p>
+          <p>
+            Se as contas anuais, o RREO e o RGF de cada estado e município constam do extrato do Tesouro Nacional, e em
+            que data, contra o prazo da Lei de Responsabilidade Fiscal.
+          </p>
         </Link>
       </div>
     </>

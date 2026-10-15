@@ -23,6 +23,10 @@
   --aviso-borda: #e7c35a;
   --simulacao-fundo: #f3e8ff;
   --simulacao-borda: #a785d6;
+  --estado-ok: #0a7a33;
+  --estado-atraso: #9a6500;
+  --estado-ausente: #b42318;
+  --estado-indeterminado: #5e5d58;
 
   --serie-1: #2a78d6;
   --serie-2: #eb6834;
@@ -61,6 +65,10 @@
     --aviso-borda: #8a6d1a;
     --simulacao-fundo: #241b33;
     --simulacao-borda: #7a5bb0;
+    --estado-ok: #5fd08a;
+    --estado-atraso: #e6b04a;
+    --estado-ausente: #ff8a7a;
+    --estado-indeterminado: #b5b4ab;
     --serie-1: #3987e5;
     --serie-2: #d95926;
     --serie-3: #199e70;
@@ -94,6 +102,10 @@
   --aviso-borda: #8a6d1a;
   --simulacao-fundo: #241b33;
   --simulacao-borda: #7a5bb0;
+  --estado-ok: #5fd08a;
+  --estado-atraso: #e6b04a;
+  --estado-ausente: #ff8a7a;
+  --estado-indeterminado: #b5b4ab;
   --serie-1: #3987e5;
   --serie-2: #d95926;
   --serie-3: #199e70;
@@ -984,6 +996,244 @@ table.tabela {
 
 .texto-corrido p {
   margin: 12px 0;
+}
+
+/* ------------------------------------------------------------ painéis de contratações e conformidade */
+
+.painel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.painel-topo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.painel-periodo {
+  margin: 0;
+  color: var(--texto-2);
+  font-size: 14px;
+}
+
+.painel-ente {
+  font-size: 22px;
+}
+
+.aviso-metodologico {
+  margin-bottom: 0;
+}
+
+.situacao-painel {
+  color: var(--texto-2);
+}
+
+.busca-ente {
+  position: relative;
+  width: min(420px, 100%);
+}
+
+.busca-ente input {
+  width: 100%;
+  padding: 10px 12px;
+  min-height: 44px;
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio);
+  background: var(--superficie);
+}
+
+.busca-ente-lista {
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: 50vh;
+  overflow: auto;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 18%);
+}
+
+.busca-ente-lista li button {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: none;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.busca-ente-lista li button[aria-selected="true"],
+.busca-ente-lista li button:hover {
+  background: var(--destaque-suave);
+}
+
+.grade-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .grade-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.filtro-tabela {
+  width: min(320px, 100%);
+  margin-bottom: 8px;
+}
+
+.lista-publicacoes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lista-publicacoes li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--borda);
+  overflow-wrap: anywhere;
+}
+
+.lista-publicacoes li:last-child {
+  border-bottom: 0;
+}
+
+.publicacao-cabeca {
+  font-size: 13px;
+  color: var(--texto-2);
+}
+
+.grafico-barras .barra-mes {
+  fill: var(--serie-1);
+}
+
+.grafico-barras .barra-ativa {
+  fill: var(--destaque);
+}
+
+.grafico-barras g:focus-visible {
+  outline: none;
+}
+
+.grafico-barras g:focus-visible .barra-mes {
+  stroke: var(--texto);
+  stroke-width: 1.5;
+}
+
+.grafico .grafico-valor {
+  fill: var(--texto);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.grafico-tabela {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--texto-2);
+}
+
+.grafico-tabela summary {
+  cursor: pointer;
+}
+
+.resultado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.resultado-icone {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.resultado-cumpre {
+  color: var(--estado-ok);
+}
+
+.resultado-cumpre_parcialmente {
+  color: var(--estado-atraso);
+}
+
+.resultado-nao_cumpre {
+  color: var(--estado-ausente);
+}
+
+.resultado-indeterminado {
+  color: var(--estado-indeterminado);
+}
+
+.tabela-obrigacoes td {
+  vertical-align: top;
+}
+
+.painel .tabela td.n {
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .resultado {
+    white-space: normal;
+  }
+
+  /* No celular, cada obrigação vira um bloco: nome, prazo e entrega lado a lado, resultado embaixo */
+  .tabela-obrigacoes thead {
+    display: none;
+  }
+
+  .tabela-obrigacoes tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--borda);
+  }
+
+  .tabela-obrigacoes td {
+    border: 0;
+    padding: 0;
+  }
+
+  .tabela-obrigacoes td:first-child,
+  .tabela-obrigacoes td:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .painel .tabela-obrigacoes td.n {
+    text-align: left;
+    font-size: 13px;
+  }
+
+  .tabela-obrigacoes td.n::before {
+    content: attr(data-rotulo) ": ";
+    color: var(--texto-3);
+  }
 }
 
 /* ------------------------------------------------------------ modo TV */
