@@ -32,6 +32,7 @@ export function codigoSeguro(codigo: string): string {
 export const urlsPainel = {
   indice: () => `${BASE_PAINEL}/indice.json`,
   entes: () => `${BASE_PAINEL}/entes.json`,
+  orgaos: () => `${BASE_PAINEL}/orgaos.json`,
   contratacoesPanorama: () => `${BASE_PAINEL}/contratacoes/panorama.json`,
   contratacoesEnte: (codigo: string) => `${BASE_PAINEL}/contratacoes/ente/${codigoSeguro(codigo)}.json`,
   contratacoesOrgao: (cnpj: string) => {
@@ -67,6 +68,22 @@ export interface EnteBusca {
   uf: string | null;
   esfera: string | null;
   populacao: number | null;
+}
+
+/**
+ * Linha do `orgaos.json` para a busca: um órgão com publicação no período, com o nome e a UF do ente a que
+ * pertence (do cadastro) e as palavras e a sigla do nome já normalizadas.
+ */
+export interface OrgaoBusca {
+  cnpj: string;
+  nome: string;
+  ente: string | null;
+  enteNome: string | null;
+  uf: string | null;
+  esfera: string | null;
+  publicacoes: number;
+  palavras: string[];
+  sigla: string;
 }
 
 /** Dias do PNCP somados no painel: o primeiro, o último, quantos e os que faltam entre eles. */
@@ -297,6 +314,106 @@ export function lerEntes(bruto: unknown): EnteBusca[] {
       esfera: (l[ie] as string | null) ?? null,
       populacao: (l[ip] as number | null) ?? null,
     }));
+}
+
+let cacheOrgaos: Promise<OrgaoBusca[]> | null = null;
+
+/** Órgãos para a busca, com o cadastro de entes, baixados uma vez por visita; lista vazia sem o arquivo. */
+export function carregarOrgaos(): Promise<OrgaoBusca[]> {
+  if (!cacheOrgaos) {
+    cacheOrgaos = Promise.all([obterJson(urlsPainel.orgaos()), carregarEntes()]).then(([bruto, entes]) =>
+      lerOrgaos(bruto, entes),
+    );
+    cacheOrgaos.catch(() => {
+      cacheOrgaos = null;
+    });
+  }
+  return cacheOrgaos;
+}
+
+/** Palavras de ligação que não entram na sigla de um nome. */
+const LIGACOES = new Set(["a", "as", "o", "os", "de", "da", "do", "das", "dos", "e", "em", "na", "no"]);
+
+/** Sigla pelas iniciais das palavras do nome, sem as de ligação: "Serviço Autônomo de Água e Esgoto" → "saae". */
+export function siglaDoNome(nome: string): string {
+  return normalizar(nome)
+    .split(" ")
+    .filter((p) => p && !LIGACOES.has(p))
+    .map((p) => p[0])
+    .join("");
+}
+
+/** Converte o `orgaos.json` (linhas em lista, na ordem de `colunas`) em objetos prontos para a busca. */
+export function lerOrgaos(bruto: unknown, entes: EnteBusca[]): OrgaoBusca[] {
+  const o = bruto as { versao?: number; colunas?: string[]; orgaos?: unknown[][] } | null;
+  if (!o || o.versao !== 1 || !Array.isArray(o.orgaos) || !Array.isArray(o.colunas)) return [];
+  const c = o.colunas;
+  const [ic, inome, iente, iesfera, ip, ict] = ["cnpj", "nome", "ente", "esfera", "processos", "contratos"].map(
+    (n) => c.indexOf(n),
+  ) as [number, number, number, number, number, number];
+  const porCodigo = new Map(entes.map((e) => [e.codigo, e]));
+  return o.orgaos
+    .filter((l) => Array.isArray(l) && typeof l[ic] === "string" && /^\d{14}$/.test(l[ic] as string))
+    .map((l) => {
+      const cnpjOrgao = l[ic] as string;
+      const nome = (l[inome] as string | null) || cnpjOrgao;
+      const ente = (l[iente] as string | null) ?? null;
+      const doEnte = ente ? porCodigo.get(ente) : undefined;
+      const enteNome = doEnte?.nome ?? null;
+      return {
+        cnpj: cnpjOrgao,
+        nome,
+        ente,
+        enteNome,
+        uf: doEnte?.uf ?? null,
+        esfera: (l[iesfera] as string | null) ?? null,
+        publicacoes: ((l[ip] as number) || 0) + ((l[ict] as number) || 0),
+        palavras: normalizar(`${nome} ${enteNome ?? ""}`).split(" "),
+        sigla: siglaDoNome(nome),
+      };
+    });
+}
+
+/**
+ * Até `limite` órgãos que casam com o termo. Cada palavra do termo precisa começar uma palavra do nome do órgão
+ * ou do ente a que ele pertence, ou, com três letras ou mais, aparecer na sigla do nome ("saae sorocaba" acha o
+ * Serviço Autônomo de Água e Esgoto de Sorocaba). Termo só de dígitos busca pelo começo do CNPJ. Quem começa com
+ * o termo vem antes; empate por mais publicações e depois pelo nome.
+ */
+export function buscarOrgaos(termo: string, orgaos: OrgaoBusca[], limite = 8): OrgaoBusca[] {
+  const t = normalizar(termo);
+  if (!t) return [];
+  const digitos = termo.replace(/\D/g, "");
+  const soDigitos = !/[a-z]/.test(t) && digitos.length >= 4;
+  const palavras = t.split(" ");
+  const pontuados: { o: OrgaoBusca; p: number }[] = [];
+  for (const o of orgaos) {
+    let p: number;
+    if (soDigitos) {
+      if (!o.cnpj.startsWith(digitos)) continue;
+      p = 0;
+    } else {
+      const casa = palavras.every(
+        (w) => o.palavras.some((q) => q.startsWith(w)) || (w.length >= 3 && o.sigla.includes(w)),
+      );
+      if (!casa) continue;
+      p = normalizar(o.nome).startsWith(t) ? 0 : 1;
+    }
+    pontuados.push({ o, p });
+  }
+  pontuados.sort((a, b) => a.p - b.p || b.o.publicacoes - a.o.publicacoes || a.o.nome.localeCompare(b.o.nome));
+  return pontuados.slice(0, limite).map((x) => x.o);
+}
+
+const ESFERAS: Record<string, string> = { M: "municipal", E: "estadual", D: "distrital", F: "federal" };
+
+/** Descrição curta do órgão: "Órgão municipal · Sorocaba (SP)", "Órgão federal" ou só "Órgão". */
+export function descreverOrgao(o: Pick<OrgaoBusca, "esfera" | "ente" | "enteNome" | "uf">): string {
+  const esfera = o.esfera ? ESFERAS[o.esfera] : undefined;
+  const base = esfera ? `Órgão ${esfera}` : "Órgão";
+  if (!o.ente || tipoDoCodigo(o.ente) === "uniao") return base;
+  if (tipoDoCodigo(o.ente) === "municipio" && o.enteNome) return `${base} · ${o.enteNome}${o.uf ? ` (${o.uf})` : ""}`;
+  return o.uf ? `${base} · ${o.uf}` : base;
 }
 
 // ------------------------------------------------------------------------------------------ busca
