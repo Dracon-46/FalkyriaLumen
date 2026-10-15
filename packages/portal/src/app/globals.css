@@ -39,6 +39,7 @@
   --serie-outros: #b9b7b0;
   --mapa-sem-lider: #e6e4df;
   --mapa-borda: #fcfcfb;
+  --zona-neutra: #d9d6ce;
 
   --raio: 8px;
   --sombra: 0 1px 2px rgb(0 0 0 / 6%), 0 2px 8px rgb(0 0 0 / 4%);
@@ -80,6 +81,7 @@
     --serie-outros: #5b5a55;
     --mapa-sem-lider: #2b2b27;
     --mapa-borda: #1a1a19;
+    --zona-neutra: #3a3a34;
   }
 }
 
@@ -117,6 +119,7 @@
   --serie-outros: #5b5a55;
   --mapa-sem-lider: #2b2b27;
   --mapa-borda: #1a1a19;
+  --zona-neutra: #3a3a34;
 }
 
 *,
@@ -451,6 +454,46 @@ h2 {
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+  transition: opacity 0.2s ease;
+}
+
+/* O feed novo ainda não chegou: o anterior fica na tela, esmaecido */
+.grade-carregando {
+  opacity: 0.55;
+}
+
+/* Lugar dos números antes da primeira leitura */
+.esqueleto-bloco {
+  background: linear-gradient(90deg, var(--superficie-2) 0%, var(--superficie) 50%, var(--superficie-2) 100%);
+  background-size: 200% 100%;
+  animation: brilho 1.4s ease-in-out infinite;
+  border: 1px solid var(--borda);
+}
+
+.esqueleto-mapa {
+  aspect-ratio: 4 / 3;
+}
+
+.esqueleto-linha {
+  height: 72px;
+}
+
+@keyframes brilho {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .esqueleto-bloco {
+    animation: none;
+  }
+
+  .grade,
+  .mapa .areas,
+  .mapa path {
+    transition: none;
+  }
 }
 
 @media (max-width: 900px) {
@@ -578,7 +621,89 @@ h2 {
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: fill 0.35s ease;
+}
+
+/*
+ * Município aberto: os vizinhos ficam apagados (e clicáveis: abrir outro voa até ele). A opacidade é do
+ * grupo, uma camada só; nos 645 caminhos de uma UF, uma por caminho deixaria a animação pesada.
+ */
+.mapa .areas {
+  transition: opacity 0.25s ease;
+}
+
+.mapa .areas-apagadas {
+  opacity: 0.38;
+}
+
+.mapa path.municipio-fundo {
+  pointer-events: none;
+}
+
+/*
+ * Zona eleitoral: várias células (uma por local de votação) num caminho só. O traço da mesma cor do
+ * preenchimento cobre a costura entre as células de uma zona; as fronteiras vêm por cima.
+ */
+.mapa path.zona {
+  fill: var(--cor-zona);
+  stroke: var(--cor-zona);
+  stroke-width: 0.8;
+}
+
+.mapa path.zona:focus-visible {
+  stroke: var(--texto);
+  stroke-width: 2.5;
+}
+
+.mapa path.zona-fronteiras {
+  fill: none;
+  stroke: var(--mapa-borda);
+  stroke-width: 1.4;
+  pointer-events: none;
+}
+
+.mapa path.zona-cursor {
+  fill: none;
+  stroke: var(--texto);
+  stroke-width: 1.75;
+  stroke-opacity: 0.75;
+  pointer-events: none;
+}
+
+.mapa path.zona-destaque {
+  fill: none;
+  stroke: var(--texto);
+  stroke-width: 3;
+  pointer-events: none;
+}
+
+.mapa .locais circle {
+  fill: var(--texto);
+  fill-opacity: 0.5;
+  stroke: var(--superficie);
+  stroke-width: 0.75;
+  vector-effect: non-scaling-stroke;
+}
+
+.mapa .locais circle:hover {
+  fill-opacity: 0.95;
+}
+
+.mapa .rotulos-zonas text {
+  text-anchor: middle;
+  font-weight: 700;
+  fill: var(--texto);
+  stroke: var(--superficie);
+  stroke-linejoin: round;
+  paint-order: stroke;
+  pointer-events: none;
+}
+
+.nota-mapa {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--texto-3);
+  margin: 10px 0 0;
 }
 
 .mapa path:focus-visible {
@@ -660,6 +785,37 @@ h2 {
   text-align: center;
   color: var(--texto-2);
   font-size: 14px;
+}
+
+.mapa-carregando {
+  min-height: 280px;
+  display: grid;
+  place-items: center;
+}
+
+/* ------------------------------------------------------------ zonas eleitorais */
+
+.tabela-rolavel {
+  max-height: 440px;
+  overflow: auto;
+  margin-top: 8px;
+}
+
+.tabela-zonas thead th {
+  position: sticky;
+  top: 0;
+  background: var(--superficie);
+}
+
+.tabela-zonas .botao-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.tabela-zonas tr.linha-escolhida {
+  background: var(--destaque-suave);
 }
 
 /* ------------------------------------------------------------ candidatos */
