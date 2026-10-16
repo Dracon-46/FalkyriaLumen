@@ -121,6 +121,18 @@ class TipoPessoa(str, Enum):
     ESTRANGEIRA = "PE"
 
 
+class CadastroSancao(str, Enum):
+    """Cadastro da CGU de onde vem a sanção ou o impedimento (Portal da Transparência).
+
+    CEIS: empresas inidôneas e suspensas; CNEP: empresas punidas pela Lei 12.846/2013; CEPIM: entidades
+    privadas sem fins lucrativos impedidas de receber transferências da União.
+    """
+
+    CEIS = "CEIS"
+    CNEP = "CNEP"
+    CEPIM = "CEPIM"
+
+
 # ---------------------------------------------------------------------------
 # Base comum
 # ---------------------------------------------------------------------------
@@ -673,6 +685,81 @@ class EntregaSiconfi(RegistroCanonico):
     marcacoes_qualidade: list[str] = field(default_factory=list)
 
 
+@dataclass
+class Sancao(RegistroCanonico):
+    """Sanção ou impedimento de pessoa física ou jurídica num cadastro da CGU (CEIS, CNEP ou CEPIM).
+
+    Chave: cadastro + código da sanção no Portal (no CEPIM, que não tem código, CNPJ + convênio). É fato
+    publicado pela CGU, como veio: o Lumen não decide se a sanção alcança uma contratação; isso é a regra
+    J-01 da Fase 2, com a abrangência, o órgão sancionador e as datas daqui (ADR-030).
+
+    Cada arquivo do Portal é o retrato do cadastro inteiro num dia. ``data_referencia`` é o dia do retrato:
+    uma sanção que sai do cadastro deixa de aparecer nos retratos seguintes, e o que está no cadastro hoje é
+    o que tem a ``data_referencia`` mais recente. ``fornecedor_id`` é o mesmo id do fornecedor no PNCP
+    (CNPJ; CPF mascarado mais nome), o que permite cruzar as duas fontes sem o CPF inteiro.
+
+    O CEPIM não publica datas: ``data_inicio`` e ``data_fim`` ficam nulas, e o impedimento vale enquanto a
+    entidade estiver no retrato. Observações livres, nome fantasia e o nome informado pelo órgão ficam no
+    bronze e não vêm para cá (minimização, DOC-08, seção 5).
+    """
+
+    ENTIDADE: ClassVar[str] = "sancao"
+    SENSIBILIDADE: ClassVar[dict[str, Sensibilidade]] = {
+        "cadastro": Sensibilidade.PUBLICO,
+        "data_referencia": Sensibilidade.PUBLICO,
+        "fornecedor_id": Sensibilidade.INTERNO,
+        "documento": Sensibilidade.SENSIVEL,
+        "tipo_pessoa": Sensibilidade.PUBLICO,
+        "nome": Sensibilidade.PUBLICO,
+        "razao_social_receita": Sensibilidade.PUBLICO,
+        "categoria": Sensibilidade.PUBLICO,
+        "numero_processo": Sensibilidade.PUBLICO,
+        "numero_convenio": Sensibilidade.PUBLICO,
+        "valor_multa": Sensibilidade.PUBLICO,
+        "data_inicio": Sensibilidade.PUBLICO,
+        "data_fim": Sensibilidade.PUBLICO,
+        "data_publicacao": Sensibilidade.PUBLICO,
+        "data_transito_julgado": Sensibilidade.PUBLICO,
+        "data_origem_informacao": Sensibilidade.PUBLICO,
+        "meio_publicacao": Sensibilidade.PUBLICO,
+        "abrangencia": Sensibilidade.PUBLICO,
+        "orgao_sancionador": Sensibilidade.PUBLICO,
+        "uf_orgao_sancionador": Sensibilidade.PUBLICO,
+        "esfera_orgao_sancionador": Sensibilidade.PUBLICO,
+        "fundamentacao_legal": Sensibilidade.PUBLICO,
+        "origem_informacao": Sensibilidade.PUBLICO,
+    }
+
+    id: str
+    cadastro: CadastroSancao
+    data_referencia: date | None
+    fornecedor_id: str | None
+    documento: str | None            # CNPJ inteiro; CPF sempre mascarado (***.456.789-**)
+    tipo_pessoa: TipoPessoa | None
+    nome: str
+    razao_social_receita: str | None
+    categoria: str | None            # CEIS e CNEP: categoria da sanção; CEPIM: motivo do impedimento
+    numero_processo: str | None
+    numero_convenio: str | None      # só no CEPIM
+    valor_multa: Decimal | None      # só no CNEP
+    data_inicio: date | None
+    data_fim: date | None            # nula: sem prazo determinado ou não publicada
+    data_publicacao: date | None
+    data_transito_julgado: date | None
+    data_origem_informacao: date | None
+    meio_publicacao: str | None
+    abrangencia: str | None
+    orgao_sancionador: str | None    # no CEPIM, o órgão concedente
+    uf_orgao_sancionador: str | None
+    esfera_orgao_sancionador: Esfera | None
+    fundamentacao_legal: str | None
+    origem_informacao: str | None
+    chave_origem: str | None = None
+    fonte_id: str | None = None
+    documento_fonte_id: str | None = None
+    marcacoes_qualidade: list[str] = field(default_factory=list)
+
+
 ENTIDADES_FATO: tuple[type[RegistroCanonico], ...] = (
     EnteFederativo,
     Orgao,
@@ -684,4 +771,5 @@ ENTIDADES_FATO: tuple[type[RegistroCanonico], ...] = (
     Contrato,
     AtaRegistroPreco,
     EntregaSiconfi,
+    Sancao,
 )

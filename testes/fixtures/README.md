@@ -23,6 +23,19 @@ quantidade de itens em `data` ou `items`.
 | `siconfi/entes_amostra.json` | 5 dos 5.598 entes; `count` ajustado para 5 |
 | `siconfi/rreo_anexo02_amostra.json` | 4 linhas; `count` ajustado para 4 |
 | `ibge/municipios_nivelado_amostra.json` | 2 dos 5.571 municípios |
+| `cgu/ceis_amostra.zip` | 5 das 23.787 linhas do `20261015_CEIS.csv`, capturado em 16/10/2026, mais 1 linha fictícia de pessoa física (abaixo) |
+| `cgu/cnep_amostra.zip` | 2 das 1.840 linhas do `20261015_CNEP.csv`, mais 1 linha fictícia de pessoa física |
+| `cgu/cepim_amostra.zip` | 3 das 3.521 linhas do `20261014_CEPIM.csv` |
+| `cgu/pagina_download_ceis.html` | só o bloco `<script>` da página de download do CEIS que declara a data do arquivo |
+
+Nos ZIPs da CGU, as linhas mantidas são os bytes originais do CSV (ISO-8859-1,
+`;`, fim de linha CRLF), e o ZIP foi refeito com elas. **Exceção ao "nunca
+editadas":** o CEIS e o CNEP publicam o CPF inteiro e o nome de pessoas
+físicas sancionadas, e dado pessoal real não entra no repositório (DOC-08,
+seção 5). A linha de pessoa física de cada amostra parte de uma linha real,
+com CPF, nomes, número do processo e código da sanção trocados por valores
+fictícios (CPF `123.456.789-09`, nome `PESSOA FISICA FICTICIA DE TESTE`,
+códigos `900000001` e `900000002`) e as observações apagadas.
 
 Os demais arquivos estão inteiros.
 
@@ -46,6 +59,17 @@ Cada uma delas tem teste que garante o tratamento correto:
 - **PNCP, erro 422 com `status` em texto** (`"422"`), e erro 400 com número.
 - **SICONFI, `capital` com espaços** (`"1  "`) e **estado com `uf = "BR"`**.
 - **SICONFI, União com `cod_ibge = 1`** e população claramente inválida.
+- **CGU, sanção "com prazo determinado" que termina em 31/12/2099 ou
+  19/09/2099** (COESA, no CEIS). Mantida como publicada, com a marcação
+  `data_fim_distante`, em vez de ir para a quarentena.
+- **CGU, sancionado estrangeiro sem tipo de pessoa e com documento de 9
+  dígitos** (Davati Medical Supply LLC). O documento não segue; o nome, sim.
+- **CGU, "Sem Informação" e "SEM INFORMACAO"** em abrangência, meio de
+  publicação e razão social. Viram nulo.
+- **CGU, esfera do órgão sancionador vazia** (DCS, no CEIS). Nula, com
+  marcação.
+- **CGU, o CEPIM não tem datas nem código da sanção.** A chave é CNPJ mais
+  convênio.
 
 ## Como recapturar
 

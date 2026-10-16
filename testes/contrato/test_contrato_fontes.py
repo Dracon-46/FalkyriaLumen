@@ -230,3 +230,25 @@ def test_anp_pagina_semanal_lista_planilhas_recentes():
     semanas = links_semanais(html)
     assert semanas, "nenhuma planilha revendas_lpc na página: revisar o padrão de links_semanais"
     assert semanas[-1].fim >= date.today() - timedelta(days=35), f"planilha mais nova termina em {semanas[-1].fim}"
+
+
+@pytest.mark.parametrize("cadastro", ["ceis", "cnep", "cepim"])
+def test_cgu_cadastro_mantem_as_colunas_lidas(cadastro):
+    """A página de download do cadastro declara a data, e o CSV do dia tem as colunas que ``cgu.py`` lê.
+
+    Baixa o ZIP inteiro (o do CEIS tem perto de 3,5 MB): o Portal não oferece amostra do arquivo.
+    """
+    import csv
+    import io
+
+    from lumen_ingestao.adaptadores.api.cgu import BASE_PORTAL, data_do_arquivo
+    from lumen_normalizacao.cgu import COLUNAS_CEPIM, COLUNAS_SANCAO, abrir_arquivo, decodificar
+    html = _obter_bytes(f"{BASE_PORTAL}/download-de-dados/{cadastro}").decode("utf-8", errors="replace")
+    dia = data_do_arquivo(html, cadastro)
+    assert dia >= date.today() - timedelta(days=10), f"o arquivo mais novo do {cadastro} é de {dia}"
+    nome, dados = abrir_arquivo(_obter_bytes(f"{BASE_PORTAL}/download-de-dados/{cadastro}/{dia:%Y%m%d}"))
+    assert nome and nome.upper().endswith(f"{dia:%Y%m%d}_{cadastro.upper()}.CSV"), nome
+    cabecalho = next(csv.reader(io.StringIO(decodificar(dados.split(b"\n", 1)[0])), delimiter=";"))
+    exigidas = COLUNAS_CEPIM if cadastro == "cepim" else COLUNAS_SANCAO
+    faltando = set(exigidas) - {c.strip() for c in cabecalho}
+    assert not faltando, f"o {cadastro} deixou de ter as colunas {sorted(faltando)}"

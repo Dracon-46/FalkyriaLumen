@@ -246,8 +246,12 @@ def _amparo(ctx: Contexto, dados: dict | None) -> AmparoLegal | None:
     )
 
 
-def _fornecedor(documento: Any, tipo_pessoa: Any, nome: Any) -> tuple[str | None, str | None, TipoPessoa | None, list[str]]:
-    """(fornecedor_id, documento publicável, tipo, marcações)."""
+def identificar_fornecedor(documento: Any, tipo_pessoa: Any, nome: Any) -> tuple[str | None, str | None, TipoPessoa | None, list[str]]:
+    """(fornecedor_id, documento publicável, tipo, marcações) do fornecedor; também usado pelas sanções da CGU.
+
+    CNPJ dá o id pelo próprio CNPJ; CPF dá o id pela máscara mais o nome, porque um id derivado do CPF
+    inteiro seria reversível. Documento inválido não segue e vira marcação.
+    """
     marcas: list[str] = []
     tipo_txt = (texto_ou_nulo(tipo_pessoa) or "").strip().upper() or None
     try:
@@ -424,7 +428,7 @@ def normalizar_itens(
 def _resultado(ctx: Contexto, processo_chave: str, d: dict) -> list:
     """Converte um resultado de item (o fornecedor e os valores homologados) em ``ResultadoItem``.
 
-    O documento do fornecedor passa por ``_fornecedor``: CPF segue mascarado e documento inválido vira nulo
+    O documento do fornecedor passa por ``identificar_fornecedor``: CPF segue mascarado e documento inválido vira nulo
     com marcação. O resultado fica marcado como cancelado quando a fonte informa data de cancelamento.
     """
     numero_item = converter(inteiro_ou_nulo, d, "numeroItem")
@@ -433,8 +437,8 @@ def _resultado(ctx: Contexto, processo_chave: str, d: dict) -> list:
         raise RegistroRejeitado("campo obrigatório ausente", "numeroItem")
     if sequencial is None:
         raise RegistroRejeitado("campo obrigatório ausente", "sequencialResultado")
-    fid, documento, tipo, marcas = _fornecedor(d.get("niFornecedor"), d.get("tipoPessoa"),
-                                               d.get("nomeRazaoSocialFornecedor"))
+    fid, documento, tipo, marcas = identificar_fornecedor(d.get("niFornecedor"), d.get("tipoPessoa"),
+                                                          d.get("nomeRazaoSocialFornecedor"))
     return [ResultadoItem(
         id=id_canonico("resultado_item", processo_chave, numero_item, sequencial),
         item_id=id_canonico("item_contratacao", processo_chave, numero_item),
@@ -492,8 +496,8 @@ def _contrato(ctx: Contexto, d: dict) -> list:
     if sequencial is None:
         raise RegistroRejeitado("campo obrigatório ausente", "sequencialContrato")
     objeto = texto_ou_nulo(obrigatorio(d, "objetoContrato"))
-    fid, documento, tipo, marcas_f = _fornecedor(d.get("niFornecedor"), d.get("tipoPessoa"),
-                                                 d.get("nomeRazaoSocialFornecedor"))
+    fid, documento, tipo, marcas_f = identificar_fornecedor(d.get("niFornecedor"), d.get("tipoPessoa"),
+                                                            d.get("nomeRazaoSocialFornecedor"))
     marcas.extend(marcas_f)
     processo_chave = texto_ou_nulo(d.get("numeroControlePncpCompra"))
     unidade = d.get("unidadeOrgao") or {}

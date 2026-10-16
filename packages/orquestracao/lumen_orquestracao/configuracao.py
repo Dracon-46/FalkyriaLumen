@@ -42,6 +42,10 @@ LIMITES_PADRAO = {
     "siconfi_rreo": 50,
     "siconfi_rgf": 50,
     "siconfi_dca": 50,
+    # Arquivos de dados abertos da CGU: duas requisições por coleta (página e ZIP), sem chave.
+    "cgu_ceis": 10,
+    "cgu_cnep": 10,
+    "cgu_cepim": 10,
     "anp_precos_combustiveis": 10,
     "varejo_mercadolivre": 30,
 }
