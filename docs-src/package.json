@@ -9,7 +9,7 @@
     "diagrams": "mkdir -p ../docs/diagramas && cd diagrams && for f in *.mmd; do mmdc -i \"$f\" -o \"../../docs/diagramas/${f%.mmd}.png\" -b white -s 2 -c mconf.json -p puppeteer.json --quiet; done"
   },
   "dependencies": {
-    "docx": "^9.7.2"
+    "docx": "^9.10.0"
   },
   "devDependencies": {
     "@mermaid-js/mermaid-cli": "^11.0.0"
