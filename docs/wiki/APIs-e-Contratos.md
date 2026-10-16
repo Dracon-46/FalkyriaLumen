@@ -53,6 +53,18 @@ Base `https://apidatalake.tesouro.gov.br/ords/siconfi/tt`. Código:
 | `https://servicodados.ibge.gov.br/api/v3/agregados/6579/periodos/<período>/variaveis/9324` | População estimada (`ibge_populacao`) |
 | `https://servicodados.ibge.gov.br/api/v3/malhas` | Malhas do mapa da aba Eleições (`lumen eleicoes mapas`); as do Brasil por UF e das UFs por município, na qualidade mínima, já vêm com o Lumen |
 
+### CGU — Portal da Transparência
+
+| Endereço | Uso |
+|---|---|
+| `https://portaldatransparencia.gov.br/download-de-dados/ceis` (e `cnep`, `cepim`) | Página de download: declara a data do arquivo mais recente |
+| `https://portaldatransparencia.gov.br/download-de-dados/ceis/AAAAMMDD` | ZIP do dia (redireciona para `dadosabertos-download.cgu.gov.br`), com um CSV em ISO-8859-1 separado por `;` (`cgu_ceis`, `cgu_cnep`, `cgu_cepim`) |
+
+Sem chave: são os arquivos de dados abertos, e não a API, que pede `chave-api-dados`
+([ADR-030](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-030.md)). Cada arquivo é o
+cadastro inteiro num dia; a normalização grava `sancao` na silver, com o CPF de pessoa física mascarado e
+a `data_referencia` do retrato.
+
 ### TSE
 
 | Endereço | Uso |
@@ -213,7 +225,7 @@ decisão 8). Contrato com pessoa física ou estrangeira só entra numa soma anô
 
 | Comando | O que faz |
 |---|---|
-| `lumen coletar <fonte> --de AAAA-MM-DD [--ate AAAA-MM-DD]` | Coleta uma fonte para o bronze. Fontes: `ibge_localidades`, `ibge_populacao`, `pncp_atas`, `pncp_atas_atualizacao`, `pncp_contratacoes`, `pncp_contratacoes_atualizacao`, `pncp_contratos`, `pncp_contratos_atualizacao`, `pncp_itens`, `siconfi_entes`, `siconfi_extrato` |
+| `lumen coletar <fonte> --de AAAA-MM-DD [--ate AAAA-MM-DD]` | Coleta uma fonte para o bronze. Fontes: `ibge_localidades`, `ibge_populacao`, `pncp_atas`, `pncp_atas_atualizacao`, `pncp_contratacoes`, `pncp_contratacoes_atualizacao`, `pncp_contratos`, `pncp_contratos_atualizacao`, `pncp_itens`, `siconfi_entes`, `siconfi_extrato`, `cgu_ceis`, `cgu_cnep`, `cgu_cepim` (estas três sem `--de`: a coleta pega o retrato mais recente) |
 | `… --modalidades 6,8` | Só PNCP contratações: códigos de modalidade |
 | `… --entes <IBGE> --exercicio <ano>` | Só SICONFI extrato |
 | `… --objeto "<expressão>" [--sem-resultados] [--so-comparaveis]` | Só PNCP itens: itens dos processos da silver cujo objeto casa com a expressão |

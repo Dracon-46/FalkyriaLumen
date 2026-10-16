@@ -120,9 +120,10 @@ body.push(callout("A lacuna do SICONFI também é dado", [
 body.push(h2("2.3 Portal da Transparência — CGU"));
 body.push(table(null, [2200, 7400], [
   ["Operador", "Controladoria-Geral da União"],
-  ["Endpoint", "https://api.portaldatransparencia.gov.br"],
-  ["Autenticação", "Token gratuito, obtido por cadastro de e-mail"],
-  ["Limite de taxa", "400 requisições por minuto entre 6h e 23h59; 700 entre 0h e 5h59"],
+  ["Endpoint da API", "https://api.portaldatransparencia.gov.br (cabeçalho chave-api-dados; 15 registros por página)"],
+  ["Arquivos de dados abertos", "https://portaldatransparencia.gov.br/download-de-dados/<conjunto>/AAAAMMDD, que redireciona para dadosabertos-download.cgu.gov.br; ZIP com um CSV em ISO-8859-1, separado por ;"],
+  ["Autenticação", "API: token gratuito, obtido por cadastro de e-mail. Arquivos: nenhuma"],
+  ["Limite de taxa", "API: 400 requisições por minuto entre 6h e 23h59; 700 entre 0h e 5h59. Arquivos: o Lumen faz duas requisições por cadastro e por dia, com limite de 10 por minuto"],
   ["Base legal de uso", "Livre utilização conforme o Decreto 8.777/2016"],
   ["Recomendação oficial", "Para volume alto, usar os arquivos de dados abertos em vez da API"],
 ], { boldFirstCol: true }));
@@ -130,12 +131,19 @@ body.push(table(["Conjunto", "Conteúdo", "Uso no Lumen"], [2200, 3600, 3800], [
   ["Despesas públicas", "Documentos de despesa do Executivo federal", "Cadeia de empenho, liquidação e pagamento"],
   ["Convênios", "Transferências a estados e municípios", "Rastrear destino de recurso federal"],
   ["Emendas parlamentares", "Emendas e documentos vinculados", "Vincular emenda ao executor final"],
-  ["CEIS", "Empresas inidôneas e suspensas", "Regra de contratação de sancionado"],
-  ["CNEP", "Empresas punidas", "Regra de contratação de sancionado"],
-  ["CEPIM", "Entidades sem fins lucrativos impedidas", "Convênios com entidades impedidas"],
+  ["CEIS", "Empresas inidôneas e suspensas (23.787 sanções em 15/10/2026)", "Coletado (cgu_ceis, ADR-030); regra J-01 na Fase 2"],
+  ["CNEP", "Empresas punidas pela Lei 12.846/2013 (1.840)", "Coletado (cgu_cnep); regra J-01 na Fase 2"],
+  ["CEPIM", "Entidades sem fins lucrativos impedidas (3.521)", "Coletado (cgu_cepim); convênios com entidades impedidas"],
   ["Licitações e contratos", "Contratações do Executivo federal", "Complemento ao PNCP na esfera federal"],
   ["Notas fiscais", "Notas fiscais eletrônicas publicadas", "Confronto entre contratado e efetivamente faturado"],
 ]));
+
+body.push(p("CEIS, CNEP e CEPIM vêm dos arquivos de dados abertos, e não da API (ADR-030). Cada arquivo é o " +
+  "retrato do cadastro inteiro num dia; a página de download declara a data do mais recente, que em " +
+  "16/10/2026 era 15/10 no CEIS e no CNEP e 14/10 no CEPIM. Comportamento observado em 16/10/2026: o CEIS publica o CPF inteiro das pessoas físicas " +
+  "sancionadas (9.170 linhas), que o Lumen mascara na normalização; \"Sem Informação\" marca campo não " +
+  "informado; há sanções com prazo determinado que terminam em 31/12/2099; sancionados estrangeiros vêm sem " +
+  "tipo de pessoa e com documento de 7 a 9 dígitos; o CEPIM não tem datas nem código da sanção."));
 
 body.push(h2("2.4 Receita Federal — base pública de CNPJ"));
 body.push(p("Distribuída como arquivos completos para download, e não como API de consulta. Traz quadro " +
@@ -339,7 +347,7 @@ body.push(table(["Fonte", "Situação", "Observação"], [3000, 2400, 4200], [
   ["IBGE — localidades e população", "Integrado", "Cadastro de entes, população aplicada aos municípios"],
   ["IBGE — malhas", "Integrado (aba Eleições)", "Mapa"],
   ["TSE — resultados e dados abertos", "Integrado (aba Eleições)", "DOC-12"],
-  ["Portal da Transparência (CGU)", "Pendente", "Exige token; previsto na Fase 1"],
+  ["Portal da Transparência (CGU)", "CEIS, CNEP e CEPIM em uso", "Pelos arquivos de dados abertos, sem chave (ADR-030); despesas, convênios e emendas pendentes"],
   ["Receita Federal — CNPJ", "Pendente", "Arquivos completos; base da família D"],
   ["TSE — prestação de contas", "Pendente", "Pré-requisito da K-01; revisão editorial antes de qualquer uso"],
   ["ANP — preços de combustíveis e GLP", "Integrado (regra A-05)", "Série semestral (ca e glp) e planilhas semanais; formato real conferido na primeira execução do fluxo mercado-referencia (9/10/2026), sem linha descartada"],
@@ -367,7 +375,7 @@ L.buildDoc({
   codigo: "DOC-06",
   titulo: "Catálogo de Fontes",
   subtitulo: "Fontes por esfera, estratégia de cobertura nacional e coleta responsável",
-  meta: { versao: "1.3", data: "9 de outubro de 2026",
+  meta: { versao: "1.4", data: "16 de outubro de 2026",
     situacao: "Atualizado com o comportamento real das fontes da Fase 1, as da aba Eleições e as de referência de mercado (seção 2.8)",
     verificado: "outubro de 2026" },
   body,

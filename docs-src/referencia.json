@@ -95,7 +95,7 @@
   {
    "caminho": "packages/canonico/lumen_canonico/fato.py",
    "linguagem": "python",
-   "linhas": 688,
+   "linhas": 776,
    "doc": "Bloco de fato administrativo do esquema canônico (DOC-05, seção 3.1).\n\nEste é o bloco que o README deixou de propósito para depois: o DOC-05 foi\nescrito a partir da documentação do PNCP, e o esquema deveria nascer das\nrespostas reais da API, que costumam divergir da documentação. Ele nasceu\ndelas: os campos abaixo foram desenhados sobre respostas capturadas da API de\nconsulta do PNCP em 05/10/2026 (as amostras estão em\n``testes/fixtures/pncp/``). As divergências encontradas entre o DOC-05 e a\nfonte real estão registradas na ADR-017 e resumidas aqui:\n\n1. **Ente federativo, órgão e unidade gestora são três coisas.** O PNCP\n   identifica quem contrata pelo CNPJ do órgão (``orgaoEntidade``), que pode\n   ser a prefeitura, mas também uma câmara, uma autarquia ou uma empresa\n   pública municipal. O código IBGE que vem junto é o do município onde fica\n   a unidade, não o do ente: uma secretaria estadual em Fortaleza traz o\n   código de Fortaleza. O ente federativo (União, estado, DF ou município) é\n   resolvido a partir da esfera do órgão, e quando a fonte não informa a\n   esfera ele fica explicitamente nulo, à espera de resolução.\n2. **\"Não se aplica\" vira nulo.** O PNCP usa ``N`` em ``esferaId`` e\n   ``poderId`` tanto para \"não se aplica\" quanto, na prática, para \"não\n   informado\" (um município com ``poderId = N``). Pelo princípio 4 do DOC-05\n   nada é preenchido por inferência: o valor fica nulo e a ausência é\n   registrada como marcação de qualidade.\n3. **A modalidade tem mais valores que os do DOC-05.** O domínio oficial do\n   PNCP tem 19 modalidades, entre elas credenciamento, pré-qualificação,\n   manifestação de interesse, inaplicabilidade e chamada pública. O enum\n   canônico foi ampliado, e o código original da fonte é preservado ao lado.\n4. **O agente que autorizou não vem na API.** Nenhum dos recursos de\n   consulta do PNCP traz o signatário do ato. Ele aparece, quando aparece,\n   nos documentos anexos (aviso de contratação direta, ato de autorização).\n   O ``AtoAutorizativo`` do DOC-05 continua no modelo, mas sua fonte passa a\n   ser a extração de documentos da fase 4, e a ausência desse dado na API é,\n   ela mesma, insumo para o módulo de conformidade.\n5. **O software que publicou vem na API.** ``usuarioNome`` identifica o\n   sistema que enviou o registro ao PNCP (por exemplo, o fornecedor do\n   portal do município). É exatamente o sinal de \"família de plataforma\" de\n   que a fase 4 precisa, e passa a ser guardado em ``sistema_origem``.\n\nDinheiro é sempre ``Decimal``; datas sem hora são ``date``; instantes são\n``datetime`` com fuso. O PNCP publica instantes sem fuso, no horário de\nBrasília; a normalização atribui UTC-3 fixo, correto para todo o período\ncoberto pela Lei 14.133 (o horário de verão foi extinto em 2019).",
    "itens": [
     {
@@ -141,109 +141,123 @@
      "linha": 112
     },
     {
+     "tipo": "classe",
+     "nome": "CadastroSancao",
+     "assinatura": "class CadastroSancao(str, Enum)",
+     "doc": "Cadastro da CGU de onde vem a sanção ou o impedimento (Portal da Transparência).\n\nCEIS: empresas inidôneas e suspensas; CNEP: empresas punidas pela Lei 12.846/2013; CEPIM: entidades\nprivadas sem fins lucrativos impedidas de receber transferências da União.",
+     "linha": 124
+    },
+    {
      "tipo": "funcao",
      "nome": "_serializar",
      "assinatura": "def _serializar(valor: Any) -> Any",
      "doc": "Converte um valor para tipos aceitos pelo JSON, percorrendo listas e dicionários.\n\n``Decimal`` vira texto, e não número, para que o valor monetário chegue à silver sem passar por\n``float``; datas e instantes viram ISO 8601 e enums viram o seu valor.",
-     "linha": 128
+     "linha": 140
     },
     {
      "tipo": "classe",
      "nome": "RegistroCanonico",
      "assinatura": "class RegistroCanonico",
      "doc": "Campos de proveniência que todo registro de fato carrega (princípio 2).",
-     "linha": 148
+     "linha": 160
     },
     {
      "tipo": "metodo",
      "nome": "RegistroCanonico.__post_init__",
      "assinatura": "def __post_init__(self) -> None",
      "doc": "Recusa a criação do registro se algum campo não tiver classificação de sensibilidade (RNF-18).",
-     "linha": 154
+     "linha": 166
     },
     {
      "tipo": "metodo",
      "nome": "RegistroCanonico.sensibilidade_completa",
      "assinatura": "def sensibilidade_completa(cls) -> dict[str, Sensibilidade]",
      "doc": "Mapa campo → sensibilidade: os campos de proveniência comuns somados ao ``SENSIBILIDADE`` da subclasse.",
-     "linha": 167
+     "linha": 179
     },
     {
      "tipo": "metodo",
      "nome": "RegistroCanonico.para_dict",
      "assinatura": "def para_dict(self) -> dict[str, Any]",
      "doc": "Dicionário serializável do registro, com ``_entidade`` indicando a entidade canônica.\n\nÉ a forma gravada na silver, uma linha JSON por registro.",
-     "linha": 179
+     "linha": 191
     },
     {
      "tipo": "classe",
      "nome": "EnteFederativo",
      "assinatura": "class EnteFederativo(RegistroCanonico)",
      "doc": "União, estado, Distrito Federal ou município. Chave: código IBGE.\n\nA União não tem código IBGE de município nem de UF; o SICONFI usa ``1``\npara ela, e o Lumen adota a mesma convenção.",
-     "linha": 194
+     "linha": 206
     },
     {
      "tipo": "classe",
      "nome": "Orgao",
      "assinatura": "class Orgao(RegistroCanonico)",
      "doc": "Pessoa jurídica de direito público ou estatal que contrata. Chave: CNPJ.",
-     "linha": 233
+     "linha": 245
     },
     {
      "tipo": "classe",
      "nome": "UnidadeGestora",
      "assinatura": "class UnidadeGestora(RegistroCanonico)",
      "doc": "Unidade do órgão que conduziu o ato. Chave: CNPJ do órgão + código.\n\nÉ a unidade gestora que o art. 75, § 1º, I, da Lei 14.133 usa para somar\nas dispensas no exercício. Sem ela a família B agregaria unidades\nautônomas que a lei conta separadamente (falso positivo conhecido da B-01).",
-     "linha": 260
+     "linha": 272
     },
     {
      "tipo": "classe",
      "nome": "AmparoLegal",
      "assinatura": "class AmparoLegal(RegistroCanonico)",
      "doc": "Dispositivo invocado. Chave: código do domínio do PNCP.\n\n``descricao_publicada`` é guardada como a fonte publica, sem edição. Ela\npode citar valores defasados: no domínio do PNCP o art. 75, II ainda diz\n\"inferiores a R$ 50.000,00\", o valor original da lei. O limite usado pelas\nregras vem sempre de ``parametros_legais``, nunca deste texto.",
-     "linha": 298
+     "linha": 310
     },
     {
      "tipo": "classe",
      "nome": "ProcessoContratacao",
      "assinatura": "class ProcessoContratacao(RegistroCanonico)",
      "doc": "Licitação, dispensa ou inexigibilidade. Chave: numeroControlePNCP.",
-     "linha": 329
+     "linha": 341
     },
     {
      "tipo": "classe",
      "nome": "ItemContratacao",
      "assinatura": "class ItemContratacao(RegistroCanonico)",
      "doc": "Item de um processo. Chave: processo + número do item.\n\nÉ a base das regras de preço (família A). O PNCP publica o item no\nprocesso, com valor estimado, e o preço efetivo no resultado do item\n(``ResultadoItem``); os dois ficam separados porque um item pode ter mais\nde um resultado, e porque estimado e homologado são fatos distintos.",
-     "linha": 402
+     "linha": 414
     },
     {
      "tipo": "classe",
      "nome": "ResultadoItem",
      "assinatura": "class ResultadoItem(RegistroCanonico)",
      "doc": "Resultado homologado de um item, com o fornecedor. Chave: item + sequencial.",
-     "linha": 455
+     "linha": 467
     },
     {
      "tipo": "classe",
      "nome": "Contrato",
      "assinatura": "class Contrato(RegistroCanonico)",
      "doc": "Contrato ou empenho com força de contrato. Chave: numeroControlePNCP.\n\nO recurso ``/v1/contratos`` do PNCP mistura contrato (termo inicial),\nempenho, carta-contrato e outros instrumentos; o tipo fica em\n``tipo_instrumento``. ``valor_acumulado`` é o valor já executado segundo a\nfonte, e vem zerado com frequência em contratos recém-publicados.",
-     "linha": 498
+     "linha": 510
     },
     {
      "tipo": "classe",
      "nome": "AtaRegistroPreco",
      "assinatura": "class AtaRegistroPreco(RegistroCanonico)",
      "doc": "Ata de registro de preços. Chave: numeroControlePNCPAta. Base da regra A-03.",
-     "linha": 587
+     "linha": 599
     },
     {
      "tipo": "classe",
      "nome": "EntregaSiconfi",
      "assinatura": "class EntregaSiconfi(RegistroCanonico)",
      "doc": "Uma entrega declarada ao SICONFI (extrato de entregas do Tesouro).\n\nChave: ente + instituição + entregável + exercício + período. É fato\npublicado pelo Tesouro sobre o ente, e é a base objetiva da família I: o\nque não aparece aqui, para um ente com coleta bem-sucedida, não foi\nentregue.",
-     "linha": 632
+     "linha": 644
+    },
+    {
+     "tipo": "classe",
+     "nome": "Sancao",
+     "assinatura": "class Sancao(RegistroCanonico)",
+     "doc": "Sanção ou impedimento de pessoa física ou jurídica num cadastro da CGU (CEIS, CNEP ou CEPIM).\n\nChave: cadastro + código da sanção no Portal (no CEPIM, que não tem código, CNPJ + convênio). É fato\npublicado pela CGU, como veio: o Lumen não decide se a sanção alcança uma contratação; isso é a regra\nJ-01 da Fase 2, com a abrangência, o órgão sancionador e as datas daqui (ADR-030).\n\nCada arquivo do Portal é o retrato do cadastro inteiro num dia. ``data_referencia`` é o dia do retrato:\numa sanção que sai do cadastro deixa de aparecer nos retratos seguintes, e o que está no cadastro hoje é\no que tem a ``data_referencia`` mais recente. ``fornecedor_id`` é o mesmo id do fornecedor no PNCP\n(CNPJ; CPF mascarado mais nome), o que permite cruzar as duas fontes sem o CPF inteiro.\n\nO CEPIM não publica datas: ``data_inicio`` e ``data_fim`` ficam nulas, e o impedimento vale enquanto a\nentidade estiver no retrato. Observações livres, nome fantasia e o nome informado pelo órgão ficam no\nbronze e não vêm para cá (minimização, DOC-08, seção 5).",
+     "linha": 689
     }
    ]
   },
@@ -978,7 +992,7 @@
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/carga.py",
    "linguagem": "python",
-   "linhas": 218,
+   "linhas": 235,
    "doc": "Carga das eleições passadas: baixar e processar um ano dos dados abertos do TSE.\n\nUsado por ``lumen eleicoes historico baixar|processar`` e por ``lumen eleicoes\npreparar``. Dois formatos, escolhidos pelo ano:\n\n- 1994 a 2024 (``dados_abertos`` e ``historico``): votação por município e\n  zona, detalhe da apuração e, a partir de 2014, o histórico da totalização\n  do Presidente. Endereços do pacote do CKAN, com os da CDN como reserva.\n- 1933 a 1990 (``antigas``): votação por candidato, detalhe e votação por\n  partido, só por UF. Endereços fixos da CDN; o TSE não os lista de outro\n  jeito estável.\n\nEm todos os anos, só a votação por candidato é obrigatória: o detalhe, a\nvotação por partido e o histórico da totalização enriquecem o resultado, e um\n404 neles vira aviso, não erro (o de partido de 1989 não existe na fonte).",
    "itens": [
     {
@@ -986,84 +1000,91 @@
      "nome": "_aviso_padrao",
      "assinatura": "def _aviso_padrao(msg: str) -> None",
      "doc": "Escreve o aviso no stderr.",
-     "linha": 43
+     "linha": 45
     },
     {
      "tipo": "funcao",
      "nome": "anos_disponiveis",
      "assinatura": "def anos_disponiveis() -> list[int]",
      "doc": "Todos os anos com eleição ordinária nos dados abertos, do mais recente ao mais antigo.",
-     "linha": 48
+     "linha": 50
     },
     {
      "tipo": "classe",
      "nome": "ArquivoAusente",
      "assinatura": "class ArquivoAusente(FileNotFoundError)",
      "doc": "Falta o ZIP de votação de um ano: é preciso baixar antes de processar.",
-     "linha": 53
+     "linha": 55
     },
     {
      "tipo": "funcao",
      "nome": "urls_do_ano",
      "assinatura": "def urls_do_ano(cliente: ClienteHttp, ano: int, aviso: Aviso=_aviso_padrao) -> dict[str, list[str]]",
      "doc": "Endereços dos ZIPs de um ano de 1994 em diante, por conjunto: votação, detalhe e histórico.\n\nParte dos endereços conhecidos da CDN e os troca pelos que o pacote do CKAN lista. Se o CKAN\nfalhar ou responder algo ilegível, ficam os conhecidos, sem o histórico da totalização (que só o\nCKAN informa).",
-     "linha": 59
+     "linha": 61
     },
     {
      "tipo": "funcao",
      "nome": "alvos_do_ano",
      "assinatura": "def alvos_do_ano(cliente: ClienteHttp, ano: int, aviso: Aviso=_aviso_padrao) -> list[tuple[str, str, bool]]",
      "doc": "(conjunto, URL, obrigatório) de cada arquivo a baixar no ano.\n\nAté 1990, os três conjuntos por UF nos endereços fixos da CDN; depois, os do CKAN (``urls_do_ano``).\nSó a votação por candidato é obrigatória.",
-     "linha": 83
+     "linha": 85
     },
     {
      "tipo": "funcao",
      "nome": "registrar_manifesto",
      "assinatura": "def registrar_manifesto(bronze: ArmazemBronze | None, manifesto: Manifesto) -> None",
      "doc": "Guarda o manifesto no bronze: o arquivo grande fica fora, o SHA-256 dele entra (ADR-021).",
-     "linha": 95
+     "linha": 97
     },
     {
      "tipo": "funcao",
      "nome": "progresso_mb",
      "assinatura": "def progresso_mb(passo: int=50 * 1024 * 1024, saida: Callable[[str], None] | None=None)",
      "doc": "Função de andamento para ``baixar_arquivo``: uma linha a cada ``passo`` bytes recebidos.",
-     "linha": 107
+     "linha": 109
     },
     {
      "tipo": "funcao",
      "nome": "baixar_ano",
      "assinatura": "def baixar_ano(cfg: ConfiguracaoEleicoes, cliente: ClienteHttp, ano: int, *, bronze: ArmazemBronze | None, atualizar: bool=False, saida: Callable[[str], None] | None=None, aviso: Aviso=_aviso_padrao) -> list[Manifesto]",
      "doc": "Baixa os ZIPs de um ano para ``<arquivos>/<ano>/`` e devolve os manifestos dos que vieram.\n\nArquivo já baixado da mesma URL não é baixado de novo (``atualizar`` consulta o servidor). Um 404\nnum conjunto opcional vira aviso; no obrigatório, ou qualquer outro erro, levanta\n``ErroTransferencia``.",
-     "linha": 120
+     "linha": 122
     },
     {
      "tipo": "classe",
      "nome": "ResultadoAno",
      "assinatura": "class ResultadoAno",
      "doc": "O que o processamento de um ano produziu, no formato do resumo da linha de comando.",
-     "linha": 150
+     "linha": 152
     },
     {
      "tipo": "metodo",
      "nome": "ResultadoAno.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "Dicionário para imprimir em JSON.",
-     "linha": 161
+     "linha": 163
     },
     {
      "tipo": "funcao",
      "nome": "_opcional",
      "assinatura": "def _opcional(caminho, progresso: Callable[[str], None])",
      "doc": "O ZIP de um conjunto opcional, se existe e é um ZIP válido; senão None, com aviso no segundo caso.\n\nUm arquivo que a fonte entregou corrompido (ou uma página de erro com HTTP 200) não pode derrubar\no ano inteiro: o resultado sai sem esse conjunto, como quando ele não existe.",
-     "linha": 166
+     "linha": 168
+    },
+    {
+     "tipo": "funcao",
+     "nome": "fotos_da_coleta",
+     "assinatura": "def fotos_da_coleta(dir_estado: Path, ano: int) -> dict[str, set[str]]",
+     "doc": "Fotos que a coleta ao vivo baixou, por eleição do ano: o ``sq`` de cada candidato com foto, lido do\nestado do coletor (``coleta-<eleição>.json``, restaurado da nuvem com o resto do estado).",
+     "linha": 182
     },
     {
      "tipo": "funcao",
      "nome": "processar_ano",
      "assinatura": "def processar_ano(cfg: ConfiguracaoEleicoes, ano: int, *, escritor: EscritorFeeds, cadastro: CadastroMunicipios, limite_municipio: int=50, progresso: Callable[[str], None] | None=None) -> ResultadoAno",
      "doc": "Gera os feeds de um ano a partir dos ZIPs já baixados; levanta ``ArquivoAusente`` sem o de votação.\n\nAté 1990, ``antigas.ProcessadorAnoAntigo`` com os três conjuntos por UF. Depois, ``ProcessadorAno``,\nmais a evolução da totalização do Presidente quando há ``Historico_Totalizacao`` do ano na pasta.",
-     "linha": 180
+     "linha": 196
     }
    ]
   },
@@ -1084,7 +1105,7 @@
      "tipo": "funcao",
      "nome": "_anos",
      "assinatura": "def _anos(texto: str) -> list[int]",
-     "doc": "Tipo do argparse para ``--anos``: anos sem repetição, do mais recente ao mais antigo.\n\n``todos`` são todos os anos dos dados abertos, de 2024 a 1933. Recusa ano sem eleição ordinária nos\ndados abertos (fora de ``carga.anos_disponiveis``).",
+     "doc": "Tipo do argparse para ``--anos``: anos sem repetição, do mais recente ao mais antigo.\n\n``todos`` são todos os anos dos dados abertos, de 2026 a 1933. Recusa ano sem eleição ordinária nos\ndados abertos (fora de ``carga.anos_disponiveis``).",
      "linha": 59
     },
     {
@@ -1196,7 +1217,7 @@
      "tipo": "funcao",
      "nome": "cmd_preparar",
      "assinatura": "def cmd_preparar(cfg, args) -> int",
-     "doc": "Deixa a aba pronta: mapa, portal, 2026 do sistema de resultados e os dados abertos de 1933 a 2024.\n\nRetomável; imprime o andamento e, no fim, o resumo em JSON. Devolve 1 se alguma etapa falhou.",
+     "doc": "Deixa a aba pronta: mapa, portal, 2026 do sistema de resultados e os dados abertos de 1933 a 2026.\n\nRetomável; imprime o andamento e, no fim, o resumo em JSON. Devolve 1 se alguma etapa falhou.",
      "linha": 328
     },
     {
@@ -1563,7 +1584,7 @@
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/dados_abertos.py",
    "linguagem": "python",
-   "linhas": 755,
+   "linhas": 758,
    "doc": "Dados abertos do TSE: resultados de todas as eleições desde 1994.\n\nO sistema de divulgação de resultados só mantém as eleições recentes (ver\n``tse.py``). As anteriores vêm do Portal de Dados Abertos\n(``dadosabertos.tse.jus.br``, CKAN), que aponta para arquivos ZIP na CDN do\ntribunal. Um pacote por ano (``resultados-AAAA``), com, entre outros:\n\n``votacao_candidato_munzona_AAAA.zip``\n    votos de cada candidato em cada zona de cada município. Um CSV por UF\n    (cargos estaduais e municipais), um ``_BR.csv`` com o cargo de\n    Presidente em todos os municípios e no exterior, e um ``_BRASIL.csv``\n    que é a concatenação de todos — este é ignorado, para não contar duas\n    vezes.\n``detalhe_votacao_munzona_AAAA.zip``\n    por zona: aptos, comparecimento, abstenção, brancos, nulos, válidos e\n    votos de legenda. Mesma divisão em arquivos.\n``Historico_Totalizacao_Presidente_BR_<T>T_AAAA.zip``\n    (2018 em diante) a evolução da totalização do Presidente, minuto a\n    minuto, que alimenta o gráfico de evolução.\n\nFormato observado em 05/10/2026, de 1994 a 2024 (ver ``testes/fixtures/tse``):\nCSV com cabeçalho, separador ``;``, aspas duplas, codificação Latin-1.\nValores ausentes como ``#NULO#``, ``#NULO``, ``#NE`` ou códigos ``-1``/``-3``.\nO número de colunas varia por ano (38, 44 ou 50), e por isso a leitura é\nsempre pelo nome da coluna, nunca pela posição.\n\nDiferenças entre anos que mudam o resultado e são tratadas aqui:\n\n- ``QT_VOTOS_NOMINAIS_VALIDOS`` e ``NM_TIPO_DESTINACAO_VOTOS`` não existem\n  nos arquivos de 2002 a 2014. Nesses anos a fonte não distingue voto válido\n  de voto anulado por candidatura indeferida; o feed registra o aviso.\n- Em 2000, ``QT_VOTOS_NOMINAIS`` vem zerado e o voto está em\n  ``QT_VOTOS_NOMINAIS_VALIDOS``: a votação do candidato é o maior dos dois.\n- Em 1994, os totais do detalhe vêm parcialmente zerados\n  (``QT_TOTAL_VOTOS_VALIDOS`` = 0 com ``QT_VOTOS_NOMINAIS_VALIDOS`` > 0). Os\n  totais são reconciliados pelas parcelas (``_reconciliar``).",
    "itens": [
     {
@@ -1571,287 +1592,287 @@
      "nome": "aviso_validos_da_epoca",
      "assinatura": "def aviso_validos_da_epoca(ano: int) -> str | None",
      "doc": "Aviso sobre o que contava como voto válido no ano, ou None a partir de 1998.\n\nPelo Leia-me do TSE, votos nulos foram considerados válidos até o Código Eleitoral de 1965 (Lei\n4.737/65) e votos em branco até a Lei 9.504/97. O Lumen calcula os percentuais sempre do mesmo\njeito — sobre os votos dados a candidatos e legendas —, e por isso eles podem diferir dos da época.",
-     "linha": 91
+     "linha": 94
     },
     {
      "tipo": "classe",
      "nome": "FormatoNaoReconhecido",
      "assinatura": "class FormatoNaoReconhecido(ValueError)",
      "doc": "O arquivo não tem as colunas mínimas esperadas.",
-     "linha": 108
+     "linha": 111
     },
     {
      "tipo": "funcao",
      "nome": "url_pacote",
      "assinatura": "def url_pacote(ano: int) -> str",
      "doc": "URL do ``package_show`` do CKAN para o pacote ``resultados-<ano>``.",
-     "linha": 114
+     "linha": 117
     },
     {
      "tipo": "funcao",
      "nome": "url_conjunto",
      "assinatura": "def url_conjunto(conjunto: str, ano: int) -> str",
      "doc": "Endereço conhecido do ZIP de um conjunto na CDN do TSE, usado quando o CKAN não informa outro.",
-     "linha": 119
+     "linha": 122
     },
     {
      "tipo": "funcao",
      "nome": "url_historico_presidente",
      "assinatura": "def url_historico_presidente(ano: int, turno: int) -> str",
      "doc": "Endereço do ZIP com a evolução da totalização do Presidente num turno (2018 em diante).",
-     "linha": 124
+     "linha": 127
     },
     {
      "tipo": "funcao",
      "nome": "tipo_do_ano",
      "assinatura": "def tipo_do_ano(ano: int) -> str",
      "doc": "Eleições ordinárias: gerais nos anos pares não múltiplos de 4.",
-     "linha": 129
+     "linha": 132
     },
     {
      "tipo": "classe",
      "nome": "Recurso",
      "assinatura": "class Recurso",
      "doc": "Um arquivo listado num pacote do CKAN: nome, URL e formato declarado.",
-     "linha": 135
+     "linha": 138
     },
     {
      "tipo": "funcao",
      "nome": "ler_pacote",
      "assinatura": "def ler_pacote(conteudo: bytes | str | dict) -> list[Recurso]",
      "doc": "Resposta de ``package_show`` do CKAN → recursos do pacote.",
-     "linha": 143
+     "linha": 146
     },
     {
      "tipo": "funcao",
      "nome": "classificar_recursos",
      "assinatura": "def classificar_recursos(recursos: Iterable[Recurso]) -> dict[str, list[Recurso]]",
      "doc": "Agrupa pelo conjunto, reconhecido pela URL (o nome do recurso varia).",
-     "linha": 153
+     "linha": 156
     },
     {
      "tipo": "funcao",
      "nome": "entradas_csv",
      "assinatura": "def entradas_csv(nomes: Iterable[str]) -> list[str]",
      "doc": "CSVs a ler de um ZIP: os por UF e o ``_BR``; o ``_BRASIL`` só se for o único.\n\nO ``_BR`` vem primeiro: as linhas de Presidente são lidas dele, e os\narquivos por UF as pulam (ver ``ler_linhas``).",
-     "linha": 171
+     "linha": 174
     },
     {
      "tipo": "funcao",
      "nome": "tem_arquivo_br",
      "assinatura": "def tem_arquivo_br(nomes: Iterable[str]) -> bool",
      "doc": "O ZIP tem o ``_BR.csv``? Se tiver, o Presidente vem dele e é pulado nos arquivos por UF.",
-     "linha": 183
+     "linha": 186
     },
     {
      "tipo": "funcao",
      "nome": "_texto",
      "assinatura": "def _texto(valor: str | None) -> str | None",
      "doc": "Valor da célula sem espaços nas pontas; os marcadores de ausência do TSE (``NULOS``) viram ``None``.",
-     "linha": 188
+     "linha": 191
     },
     {
      "tipo": "funcao",
      "nome": "_int",
      "assinatura": "def _int(valor: str | None) -> int",
      "doc": "Valor da célula como inteiro não negativo: vazio, ``#...``, texto e códigos negativos viram 0.",
-     "linha": 196
+     "linha": 199
     },
     {
      "tipo": "classe",
      "nome": "Linhas",
      "assinatura": "class Linhas",
      "doc": "Iterador sobre um CSV do TSE dentro do ZIP, com acesso por nome de coluna.",
-     "linha": 210
+     "linha": 213
     },
     {
      "tipo": "metodo",
      "nome": "Linhas.__init__",
      "assinatura": "def __init__(self, fluxo: io.BufferedIOBase | io.RawIOBase, obrigatorias: Iterable[str]=())",
      "doc": "Lê o cabeçalho (Latin-1, separador ``;``) e confere as colunas obrigatórias.\n\nOs nomes de coluna perdem espaços e um eventual BOM no início. Levanta ``FormatoNaoReconhecido``\nse o arquivo estiver vazio ou faltar coluna obrigatória.",
-     "linha": 213
+     "linha": 216
     },
     {
      "tipo": "metodo",
      "nome": "Linhas.tem",
      "assinatura": "def tem(self, coluna: str) -> bool",
      "doc": "A coluna existe neste arquivo? O conjunto de colunas varia por ano.",
-     "linha": 230
+     "linha": 233
     },
     {
      "tipo": "metodo",
      "nome": "Linhas.indice",
      "assinatura": "def indice(self, coluna: str) -> int | None",
      "doc": "Posição da coluna no arquivo, ou ``None`` se ela não existe.",
-     "linha": 234
+     "linha": 237
     },
     {
      "tipo": "metodo",
      "nome": "Linhas.__iter__",
      "assinatura": "def __iter__(self) -> Iterator[list[str]]",
      "doc": "Linhas de dados como listas de texto, pulando as vazias.",
-     "linha": 238
+     "linha": 241
     },
     {
      "tipo": "funcao",
      "nome": "id_eleicao",
      "assinatura": "def id_eleicao(ano: int, turno: int, tp_abrangencia: str | None) -> str",
      "doc": "Id da eleição no feed, ``<ano>-<turno>t-<tipo>``; ``TP_ABRANGENCIA`` = ``M`` é municipal, o resto geral.",
-     "linha": 247
+     "linha": 250
     },
     {
      "tipo": "funcao",
      "nome": "abrangencias_da_linha",
      "assinatura": "def abrangencias_da_linha(cargo: int, uf: str, municipio: str, zona: str | None=None) -> list[Abr]",
      "doc": "Abrangências em que uma linha de zona é somada: é assim que as zonas viram município, UF e Brasil.\n\nSempre o município; também a UF, se o cargo é estadual ou nacional; e o Brasil, se é nacional. Com\n``zona``, também a própria zona dentro do município (``(\"zn\", uf, município, zona)``).",
-     "linha": 258
+     "linha": 261
     },
     {
      "tipo": "funcao",
      "nome": "zona_da_linha",
      "assinatura": "def zona_da_linha(valor: str | None) -> str | None",
      "doc": "Número da zona como texto sem zeros à esquerda (``\"0001\"`` → ``\"1\"``); None se ausente ou zero.",
-     "linha": 275
+     "linha": 278
     },
     {
      "tipo": "funcao",
      "nome": "municipios_com_zonas",
      "assinatura": "def municipios_com_zonas(totais: dict[tuple[str, int, Abr], 'Totais']) -> set[tuple[str, str]]",
      "doc": "Municípios, como ``(uf, código TSE)``, que o detalhe da apuração divide em duas zonas ou mais.\n\nSão os únicos em que o resultado por zona diz algo além do resultado do município: nos outros, a\núnica zona do município tem os mesmos números que ele.",
-     "linha": 281
+     "linha": 284
     },
     {
      "tipo": "classe",
      "nome": "Totais",
      "assinatura": "class Totais",
      "doc": "Totais do detalhe da apuração de um recorte, somados zona a zona.\n\n``ultima_totalizacao`` fica com o instante mais recente entre as zonas; ``reconciliado`` marca que\n``reconciliar`` precisou recompor algum total, o que vira aviso no feed.",
-     "linha": 297
+     "linha": 300
     },
     {
      "tipo": "metodo",
      "nome": "Totais.somar",
      "assinatura": "def somar(self, outro: 'Totais') -> None",
      "doc": "Soma as contagens de ``outro`` a estas e fica com a mais recente das duas últimas totalizações.",
-     "linha": 321
+     "linha": 324
     },
     {
      "tipo": "metodo",
      "nome": "Totais.reconciliar",
      "assinatura": "def reconciliar(self) -> None",
      "doc": "Totais zerados com parcelas positivas (1994): recompõe pelas parcelas.",
-     "linha": 331
+     "linha": 334
     },
     {
      "tipo": "funcao",
      "nome": "_instante_br",
      "assinatura": "def _instante_br(data: str | None, hora: str | None) -> datetime | None",
      "doc": "Data (``dd/mm/aaaa``) e hora do TSE → ``datetime`` no horário de Brasília; sem hora, meia-noite.\n\nDevolve ``None`` se a data faltar ou não estiver nesse formato.",
-     "linha": 354
+     "linha": 357
     },
     {
      "tipo": "funcao",
      "nome": "ler_detalhe",
      "assinatura": "def ler_detalhe(fluxos: Iterable[tuple[str, io.BufferedIOBase]], *, pular_presidente_nos_estados: bool) -> dict[tuple[str, int, Abr], Totais]",
      "doc": "Totais por eleição, cargo e abrangência, somados das zonas.\n\nCada zona também fica com os próprios totais (abrangência ``(\"zn\", uf, município, zona)``), que dão o\neleitorado e o comparecimento das zonas no feed do município. ``fluxos`` é uma sequência de (nome do arquivo, fluxo binário), na ordem\nde ``entradas_csv``. Com ``pular_presidente_nos_estados``, as linhas de\nPresidente (``SG_UE`` = BR) dos arquivos por UF são puladas: vêm do\n``_BR``.",
-     "linha": 368
+     "linha": 371
     },
     {
      "tipo": "funcao",
      "nome": "situacao_publicada",
      "assinatura": "def situacao_publicada(texto: str | None) -> str",
      "doc": "Situação do candidato no turno (``DS_SIT_TOT_TURNO``) como o feed a mostra.\n\nUnifica as grafias que mudam entre anos (``MEDIA``/``MÉDIA``, ``2O TURNO``/``2º TURNO``); situação\nfora de ``SITUACOES`` sai só com a inicial maiúscula, e a ausente sai vazia.",
-     "linha": 454
+     "linha": 457
     },
     {
      "tipo": "classe",
      "nome": "_Meta",
      "assinatura": "class _Meta",
      "doc": "Metadados de um candidato, guardados uma vez por (eleição, cargo, ``SQ_CANDIDATO``), e não por linha.",
-     "linha": 465
+     "linha": 468
     },
     {
      "tipo": "classe",
      "nome": "AgregadorVotacao",
      "assinatura": "class AgregadorVotacao",
      "doc": "Soma os votos por candidato em cada abrangência, a partir das zonas.\n\nMantém só inteiros por (eleição, cargo, abrangência, candidato) e os\nmetadados do candidato uma vez; é o que permite ler o arquivo de São\nPaulo de 2018 (1,2 GB) sem carregar o arquivo na memória.",
-     "linha": 480
+     "linha": 483
     },
     {
      "tipo": "metodo",
      "nome": "AgregadorVotacao.ler",
      "assinatura": "def ler(self, fluxo: io.BufferedIOBase) -> None",
      "doc": "Lê um CSV de votação e soma os votos de cada candidato em todas as abrangências da linha.\n\nPula eleição não ordinária, cargo fora de ``CARGOS`` e, com ``pular_presidente``, o Presidente.\nPor candidato acumula [votos, válidos]: o voto é o maior entre nominais e válidos (2000 traz os\nnominais zerados); sem a coluna de válidos, a eleição entra em ``sem_destinacao``. Nos municípios de\n``zonas_de``, soma também na zona da linha. Colhe também a data e o código TSE de cada eleição e o\nnome de cada município.",
-     "linha": 501
+     "linha": 504
     },
     {
      "tipo": "metodo",
      "nome": "AgregadorVotacao.chaves",
      "assinatura": "def chaves(self) -> list[tuple[str, int, Abr]]",
      "doc": "Chaves (eleição, cargo, abrangência) em ordem estável: dentro de eleição e cargo, Brasil, UFs,\nmunicípios e zonas.",
-     "linha": 578
+     "linha": 581
     },
     {
      "tipo": "metodo",
      "nome": "AgregadorVotacao.resultado",
      "assinatura": "def resultado(self, chave: tuple[str, int, Abr], totais: Totais | None) -> ResultadoAbrangencia",
      "doc": "Monta o ``ResultadoAbrangencia`` de uma chave, com os totais do detalhe quando os há.\n\nSem detalhe, os válidos saem da soma dos candidatos, com aviso. Percentuais sobre os válidos;\ncandidatos em ordem de votação, com os de voto não válido no fim; vagas = número de eleitos. A\ntotalização vem como finalizada (dado definitivo), e as agremiações só nos cargos proporcionais.",
-     "linha": 584
+     "linha": 587
     },
     {
      "tipo": "metodo",
      "nome": "AgregadorVotacao.limpar",
      "assinatura": "def limpar(self) -> None",
      "doc": "Libera votos e metadados depois de emitidos, para não segurar na memória o arquivo já lido.",
-     "linha": 645
+     "linha": 648
     },
     {
      "tipo": "funcao",
      "nome": "_agremiacoes",
      "assinatura": "def _agremiacoes(candidatos: list[Candidato], legenda: int) -> list[Agremiacao]",
      "doc": "Votação nominal por partido (a de legenda por partido não está neste arquivo).",
-     "linha": 651
+     "linha": 654
     },
     {
      "tipo": "classe",
      "nome": "PontoHistorico",
      "assinatura": "class PontoHistorico",
      "doc": "Um ponto da evolução da totalização: instante, percentual de seções e votos acumulados por rótulo.",
-     "linha": 670
+     "linha": 673
     },
     {
      "tipo": "funcao",
      "nome": "ler_historico_totalizacao",
      "assinatura": "def ler_historico_totalizacao(fluxo: io.BufferedIOBase, *, maximo_pontos: int=400) -> list[PontoHistorico]",
      "doc": "``Historico_Totalizacao_*`` → série acumulada, reduzida a ``maximo_pontos``.\n\nAs colunas por candidato são ``<RÓTULO>_QT_VOTOS_TOT_ACUMULADO``; brancos\ne nulos (``BRANCO_``, ``NULO_``) ficam de fora da série, que é de votos\nválidos. A redução preserva o primeiro e o último ponto.",
-     "linha": 678
+     "linha": 681
     },
     {
      "tipo": "funcao",
      "nome": "reduzir",
      "assinatura": "def reduzir(pontos: list, maximo: int) -> list",
      "doc": "Reduz a série a ``maximo`` pontos igualmente espaçados, mantendo o primeiro e o último.",
-     "linha": 712
+     "linha": 715
     },
     {
      "tipo": "funcao",
      "nome": "casar_rotulo",
      "assinatura": "def casar_rotulo(rotulo: str, candidatos: Iterable[Candidato]) -> str | None",
      "doc": "Rótulo do histórico (``JAIR_BOLSONARO``) → número do candidato.",
-     "linha": 720
+     "linha": 723
     },
     {
      "tipo": "funcao",
      "nome": "abrir_zip",
      "assinatura": "def abrir_zip(caminho: Path | str) -> zipfile.ZipFile",
      "doc": "Abre um ZIP dos dados abertos para leitura.",
-     "linha": 739
+     "linha": 742
     },
     {
      "tipo": "funcao",
      "nome": "fluxos_do_zip",
      "assinatura": "def fluxos_do_zip(zf: zipfile.ZipFile, filtro: Callable[[str], bool] | None=None) -> Iterator[tuple[str, io.BufferedIOBase]]",
      "doc": "Gera (nome, fluxo binário) dos CSVs do ZIP na ordem de ``entradas_csv``, aplicando ``filtro``.\n\nLê direto do ZIP, sem extrair para o disco; cada fluxo fica aberto só enquanto é consumido.",
-     "linha": 744
+     "linha": 747
     }
    ]
   },
@@ -2252,7 +2273,7 @@
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/historico.py",
    "linguagem": "python",
-   "linhas": 417,
+   "linhas": 430,
    "doc": "Eleições passadas: dos arquivos de dados abertos aos feeds do portal.\n\nUm ano por vez. O detalhe da apuração (pequeno) é lido inteiro primeiro; o\narquivo de votação (grande) é lido um CSV por vez — o ``_BR`` com o\nPresidente e depois um por UF —, e cada CSV vira os feeds do que ele contém\nantes de o próximo ser aberto. Assim a memória fica proporcional à maior UF,\nnão ao Brasil.\n\nO que sai, por eleição (ano e turno) e cargo:\n\n- cargo nacional (Presidente): ``br``, ``uf-*`` e ``mu-*``;\n- cargo estadual: ``uf-*``, ``mu-*`` e o panorama ``br`` (quem lidera em cada UF);\n- cargo municipal: ``mu-*`` e os panoramas ``uf-*`` e ``br``.\n\nNo município com duas zonas eleitorais ou mais, o feed ``mu-*`` leva as zonas em ``partes`` (quem lidera em\ncada zona, com as cores do próprio feed). Quais municípios têm mais de uma zona sai do detalhe da apuração;\nsem ele, os feeds saem sem zonas.",
    "itens": [
     {
@@ -2293,8 +2314,8 @@
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno.__init__",
-     "assinatura": "def __init__(self, ano: int, escritor: EscritorFeeds, cadastro: CadastroMunicipios, *, origem_votacao: Manifesto | None=None, origem_detalhe: Manifesto | None=None, limite_candidatos_municipio: int=LIMITE_CANDIDATOS_MUNICIPIO, progresso: Callable[[str], None] | None=None)",
-     "doc": "Prepara o estado que se acumula ao longo do ano.\n\nA origem dos feeds vem do manifesto do ZIP de votação quando há um (URL, SHA-256 e instante do\ndownload); sem ele, só a URL oficial do conjunto. Os dicionários guardam o que só pode ser emitido no\nfim — índice, panoramas nacionais, vagas somadas das UFs —, porque cada CSV é emitido e descartado\nantes de o próximo ser aberto.",
+     "assinatura": "def __init__(self, ano: int, escritor: EscritorFeeds, cadastro: CadastroMunicipios, *, origem_votacao: Manifesto | None=None, origem_detalhe: Manifesto | None=None, limite_candidatos_municipio: int=LIMITE_CANDIDATOS_MUNICIPIO, progresso: Callable[[str], None] | None=None, fotos_ao_vivo: Mapping[str, Iterable[str]] | None=None)",
+     "doc": "Prepara o estado que se acumula ao longo do ano.\n\nA origem dos feeds vem do manifesto do ZIP de votação quando há um (URL, SHA-256 e instante do\ndownload); sem ele, só a URL oficial do conjunto. Os dicionários guardam o que só pode ser emitido no\nfim — índice, panoramas nacionais, vagas somadas das UFs —, porque cada CSV é emitido e descartado\nantes de o próximo ser aberto. ``fotos_ao_vivo`` (id da eleição → ``sq`` dos candidatos cuja foto a\ncoleta ao vivo baixou) deixa os feeds com as fotos que já estão publicadas.",
      "linha": 107
     },
     {
@@ -2302,70 +2323,77 @@
      "nome": "ProcessadorAno.processar",
      "assinatura": "def processar(self, zip_votacao: Path | str, zip_detalhe: Path | str | None) -> ResumoAno",
      "doc": "Lê os ZIPs do ano, grava todos os feeds e devolve o resumo.\n\nO detalhe da apuração, quando informado, é lido inteiro antes e dá os totais de cada abrangência\n(comparecimento, brancos, nulos, seções). A votação é lida um CSV por vez, cada um com um agregador\npróprio, emitido e limpo antes do próximo. Se o ZIP tem o arquivo ``_BR``, o Presidente vem só dele e\né pulado nos arquivos por UF. Os municípios com duas zonas ou mais, conhecidos pelo detalhe, também\ntêm a votação somada por zona. No fim, emite os panoramas nacionais e atualiza o índice.",
-     "linha": 144
+     "linha": 147
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno._eleicao",
      "assinatura": "def _eleicao(self, eid: str, agregador: da.AgregadorVotacao) -> Eleicao",
      "doc": "``Eleicao`` do id (``\"2022-1t-geral\"``), criada na primeira vez em que aparece.\n\nA data vem do agregador; se o primeiro CSV não a trazia, é preenchida quando um seguinte trouxer.",
-     "linha": 183
+     "linha": 186
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno._registrar_cargo",
      "assinatura": "def _registrar_cargo(self, e: Eleicao, cargo: Cargo) -> None",
      "doc": "Acrescenta o cargo à eleição, se ainda não estiver lá, mantendo a lista ordenada por código.",
-     "linha": 199
+     "linha": 202
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno._abr",
      "assinatura": "def _abr(self, chave: da.Abr, agregador: da.AgregadorVotacao) -> Abrangencia",
      "doc": "Converte a chave do agregador (``(\"br\",)``, ``(\"uf\", uf)`` ou ``(\"mu\", uf, tse)``) em ``Abrangencia``.\n\nMunicípio fora do cadastro entra por ``CadastroMunicipios.completar``, com o nome publicado no CSV;\nos do Brasil que ficam sem código IBGE são anotados no resumo.",
-     "linha": 205
+     "linha": 208
+    },
+    {
+     "tipo": "metodo",
+     "nome": "ProcessadorAno._fotos",
+     "assinatura": "def _fotos(self, e: Eleicao, cargo: Cargo, pasta: str) -> dict[str, str]",
+     "doc": "``sq`` → caminho da foto que a coleta ao vivo da mesma eleição baixou, no mesmo desenho do\ncoletor (``fotos/<ciclo>/<eleição no TSE>/<br ou UF>/<sq>.jpeg``; ver ``coletor._fotos``).",
+     "linha": 226
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno._emitir",
      "assinatura": "def _emitir(self, agregador: da.AgregadorVotacao, totais: dict) -> None",
      "doc": "Emite os feeds de tudo o que um CSV agregou.\n\nAgrupa os resultados por eleição e cargo, registra o cargo na eleição, acompanha o instante mais\nrecente e as UFs com resultado (para o índice) e despacha para a emissão municipal ou para a dos\ncargos nacional e estaduais, conforme o nível do cargo. Os resultados por zona vão à parte, por\nmunicípio, para entrar no feed do município.",
-     "linha": 225
+     "linha": 236
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno._emitir_majoritario_ou_estadual",
      "assinatura": "def _emitir_majoritario_ou_estadual(self, e: Eleicao, cargo: Cargo, resultados: dict[da.Abr, ResultadoAbrangencia], agregador: da.AgregadorVotacao, nivel: Nivel, zonas: Zonas | None=None) -> None",
      "doc": "Grava os feeds de cargo nacional ou estadual: municípios, UFs e, para o Presidente, o Brasil.\n\nAs cores do Presidente são as do resultado nacional, as mesmas em todas as UFs; nos cargos estaduais,\ncada UF tem as suas, pela ordem dos candidatos (ou dos partidos, nos proporcionais). O feed de UF leva\nas partes dos municípios e o do Brasil, as das UFs; nos proporcionais, o de município fica com os\n``limite`` mais votados e os eleitos, e o de município com mais de uma zona, as zonas em ``partes``.\nNum cargo estadual, a parte de cada UF fica guardada para o panorama nacional, emitido no fim do ano.",
-     "linha": 259
+     "linha": 270
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno._emitir_municipal",
      "assinatura": "def _emitir_municipal(self, e: Eleicao, cargo: Cargo, resultados: dict[da.Abr, ResultadoAbrangencia], agregador: da.AgregadorVotacao, zonas: Zonas | None=None) -> None",
      "doc": "Grava os feeds de cargo municipal: um por município, com as zonas quando há mais de uma, e o\npanorama de cada UF.\n\nCada município tem as próprias cores (por candidato, ou por partido nos proporcionais), que valem\ntambém para as zonas dele. O panorama de cada UF fica guardado para o panorama nacional, emitido no\nfim do ano.",
-     "linha": 321
+     "linha": 334
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno._emitir_panoramas_nacionais",
      "assinatura": "def _emitir_panoramas_nacionais(self) -> None",
      "doc": "Grava o feed ``br`` dos cargos sem resultado nacional próprio, com o que foi guardado durante o ano.\n\nCargo municipal: o panorama nacional junta os panoramas das UFs. Cargo estadual: um panorama com uma\nparte por UF (governadores, senadores, bancadas), em ordem de UF.",
-     "linha": 358
+     "linha": 371
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno._atualizar_indice",
      "assinatura": "def _atualizar_indice(self) -> None",
      "doc": "Registra no índice cada eleição do ano como histórica (``ao_vivo=False``), com UFs, vagas e o\ninstante mais recente.",
-     "linha": 377
+     "linha": 390
     },
     {
      "tipo": "metodo",
      "nome": "ProcessadorAno.gravar_evolucao",
      "assinatura": "def gravar_evolucao(self, turno: int, fluxo) -> bool",
      "doc": "Grava ``historico-br.json`` do Presidente a partir do Historico_Totalizacao.",
-     "linha": 387
+     "linha": 400
     }
    ]
   },
@@ -2760,7 +2788,7 @@
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/preparacao.py",
    "linguagem": "python",
-   "linhas": 600,
+   "linhas": 621,
    "doc": "``lumen eleicoes preparar``: a aba Eleições pronta num comando.\n\nO repositório traz o código, o mapa e o cadastro de municípios, mas não os\nresultados: os arquivos do TSE somam vários GB (só a votação por município de\n2022 tem 642 MB compactados) e são publicados e corrigidos pelo próprio\ntribunal. Este comando busca tudo na fonte oficial uma vez, guarda os ZIPs\ncom o SHA-256 de cada um (ADR-021) e gera os feeds que o portal lê:\n\n1. instala as referências embutidas (malhas do IBGE e cadastro TSE ↔ IBGE)\n   no diretório dos feeds (``referencias.instalar``);\n2. gera o portal estático quando ele não existe ou o código mudou depois da\n   última geração (``npm ci`` e ``npm run build``);\n3. com ``--servir``, sobe o servidor local e abre o navegador antes da carga:\n   cada eleição aparece no portal assim que fica pronta;\n4. coleta, no sistema de resultados, as eleições ordinárias que já\n   aconteceram e ainda não estão nos dados abertos (em outubro de 2026, o 1º\n   turno de 2026), até a totalização terminar, com todos os municípios;\n5. baixa os locais de votação de 2026 a 2018 e grava o mapa das zonas\n   eleitorais dos municípios com mais de uma zona (``zonas.py``, ADR-029);\n6. baixa e processa os dados abertos de 1933 a 1990 (resultados por UF);\n7. baixa e processa os dados abertos de 2024 a 1994, do mais recente para o\n   mais antigo, com todos os municípios e, onde há mais de uma, as zonas.\n\nÉ retomável. ``<estado>/preparar.json`` registra cada etapa concluída e o\nSHA-256 dos arquivos de entrada; rodar de novo pula o que já está pronto\n(``--refazer`` ignora o registro, ``--atualizar`` consulta a fonte e só\nreprocessa o ano cujos arquivos mudaram). Um ano de 1994 em diante processado\npor uma versão anterior do processamento (``VERSAO_PROCESSAMENTO``) é refeito\numa vez: foi assim que os feeds dos municípios ganharam as zonas eleitorais. Um erro num ano não interrompe os\noutros: o resumo final lista o que falhou e o comando devolve 1.\n\nNa nuvem (``--nuvem``, ADR-026), a mesma sequência roda numa máquina que\ncomeça vazia: antes de tudo, ``publicacao.Nuvem.restaurar`` traz o índice\npublicado e o estado; depois de cada ano e de cada passada do sistema de\nresultados, ``sincronizar`` publica o que mudou e guarda o estado. Com\n``--limite-minutos``, a carga para sozinha antes do prazo da máquina, e a\nexecução seguinte continua de onde esta parou.",
    "itens": [
     {
@@ -2878,8 +2906,8 @@
     {
      "tipo": "funcao",
      "nome": "eleicoes_ao_vivo",
-     "assinatura": "def eleicoes_ao_vivo(eleicoes: list[Eleicao], hoje: date) -> tuple[list[Eleicao], list[Eleicao]]",
-     "doc": "Separa as eleições do sistema de resultados em (coletar agora, ainda por acontecer).\n\nEntram as ordinárias (geral e municipal) cujo ano ainda não está nos dados abertos; as que já estão\nsão processadas pelos arquivos completos. Eleição com data futura fica para a noite da apuração.",
+     "assinatura": "def eleicoes_ao_vivo(eleicoes: list[Eleicao], hoje: date, processadas: Iterable[str]=()) -> tuple[list[Eleicao], list[Eleicao]]",
+     "doc": "Separa as eleições do sistema de resultados em (coletar agora, ainda por acontecer).\n\nEntram as ordinárias (geral e municipal) que os dados abertos ainda não trazem; as que já trazem são\nprocessadas pelos arquivos completos. Nos anos fechados vale o ano; no ano em aberto\n(``da.ANO_EM_ABERTO``), a eleição: o 1º turno de 2026 sai dos dados abertos depois de processado\n(``processadas``, os ids que o processamento gravou), e o 2º turno continua ao vivo. Eleição com data\nfutura fica para a noite da apuração.",
      "linha": 209
     },
     {
@@ -2887,154 +2915,154 @@
      "nome": "OpcoesPreparacao",
      "assinatura": "class OpcoesPreparacao",
      "doc": "O que ``preparar`` deve fazer; os padrões fazem tudo.",
-     "linha": 225
+     "linha": 236
     },
     {
      "tipo": "classe",
      "nome": "ResumoPreparacao",
      "assinatura": "class ResumoPreparacao",
      "doc": "O que aconteceu, etapa por etapa, para o resumo impresso no fim.",
-     "linha": 248
+     "linha": 259
     },
     {
      "tipo": "metodo",
      "nome": "ResumoPreparacao.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "Dicionário para imprimir em JSON.",
-     "linha": 261
+     "linha": 272
     },
     {
      "tipo": "classe",
      "nome": "Preparacao",
      "assinatura": "class Preparacao",
      "doc": "Executa as etapas de ``preparar`` na ordem do módulo, registrando o andamento.\n\nOs clientes HTTP, o construtor do portal, o navegador, a espera e a data de hoje são injetáveis (testes).",
-     "linha": 268
+     "linha": 279
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.__init__",
      "assinatura": "def __init__(self, cfg: ConfiguracaoEleicoes, opcoes: OpcoesPreparacao, *, cliente_resultados: ClienteHttp | None=None, cliente_dados: ClienteHttp | None=None, parar: Callable[[], bool]=lambda: False, saida: Callable[[str], None] | None=None, construir: Callable[[], None] | None=None, abrir: Callable[[str], object]=webbrowser.open, hoje: date | None=None, portal: Path=DIR_PORTAL, dormir: Callable[[float], None]=time.sleep, nuvem=None, relogio: Callable[[], float]=time.monotonic)",
      "doc": "Guarda configuração, opções e dependências; nada é feito até ``executar``.\n\n``nuvem`` (``publicacao.Nuvem``) liga a restauração e a publicação; ``relogio`` mede o prazo de\n``limite_minutos``.",
-     "linha": 274
+     "linha": 285
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.parar",
      "assinatura": "def parar(self) -> bool",
      "doc": "Se é hora de parar: Ctrl+C (ou sinal) ou o prazo de ``limite_minutos`` vencido.",
-     "linha": 311
+     "linha": 322
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.prazo_da_publicacao",
      "assinatura": "def prazo_da_publicacao(self) -> bool",
      "doc": "Se a publicação deve parar: ``FOLGA_PUBLICACAO`` depois do prazo da carga, para a máquina não ser\nderrubada no meio de um envio (o que faltar sobe na execução seguinte).",
-     "linha": 322
+     "linha": 333
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.sincronizar",
      "assinatura": "def sincronizar(self) -> None",
      "doc": "Na nuvem, publica o que mudou e guarda o estado; falha vira erro do resumo, sem derrubar a carga.",
-     "linha": 327
+     "linha": 338
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao._etapa",
      "assinatura": "def _etapa(self, titulo: str) -> None",
      "doc": "Título de etapa no andamento.",
-     "linha": 342
+     "linha": 353
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.cadastro",
      "assinatura": "def cadastro(self) -> CadastroMunicipios",
      "doc": "Cadastro de municípios do diretório dos feeds (instalado na etapa 1), carregado uma vez.",
-     "linha": 346
+     "linha": 357
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.anos_historicos",
      "assinatura": "def anos_historicos(self) -> tuple[list[int], list[int]]",
      "doc": "Anos a carregar: (1933 a 1990, em ordem cronológica — são poucos e rápidos; 1994 em diante, do mais\nrecente ao mais antigo, para as eleições mais procuradas ficarem prontas primeiro).",
-     "linha": 354
+     "linha": 365
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.instalar_referencias",
      "assinatura": "def instalar_referencias(self) -> None",
      "doc": "Etapa 1: mapa e cadastro no diretório dos feeds.",
-     "linha": 364
+     "linha": 375
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.preparar_portal",
      "assinatura": "def preparar_portal(self) -> None",
      "doc": "Etapa 2: gera o portal se preciso. Falha aqui não impede a carga dos dados.",
-     "linha": 372
+     "linha": 383
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.iniciar_servidor",
      "assinatura": "def iniciar_servidor(self) -> None",
      "doc": "Etapa 3: sobe o servidor numa thread e abre o navegador. Porta ocupada: o sistema escolhe outra.",
-     "linha": 391
+     "linha": 402
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.coletar_ao_vivo",
      "assinatura": "def coletar_ao_vivo(self) -> None",
      "doc": "Etapa 4: eleições do sistema de resultados ainda fora dos dados abertos.",
-     "linha": 408
+     "linha": 419
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao._coletar",
      "assinatura": "def _coletar(self, e: Eleicao) -> dict",
      "doc": "Coleta uma eleição e devolve o resumo dela.\n\nPara quando a totalização terminou e a fila de municípios esvaziou; ou, se a apuração ainda não\nterminou, quando uma passada não traz nada novo (``preparar`` tira uma fotografia; acompanhar a\napuração é o trabalho de ``lumen eleicoes ao-vivo``); ou em ``MAX_PASSADAS``.",
-     "linha": 433
+     "linha": 445
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.anos_das_zonas",
      "assinatura": "def anos_das_zonas(self) -> list[int]",
      "doc": "Anos com locais de votação (2026 a 2018), limitados aos de ``anos`` quando a opção é dada.",
-     "linha": 477
+     "linha": 489
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.carregar_zonas",
      "assinatura": "def carregar_zonas(self, ano: int) -> None",
-     "doc": "Etapa 5, um ano: baixa os locais de votação, confere se mudaram e grava o mapa das zonas.",
-     "linha": 481
+     "doc": "Etapa 5, um ano: baixa os locais de votação, confere se mudaram e grava o mapa das zonas.\n\nO ano em aberto é sempre conferido na fonte (o eleitorado do 2º turno muda o arquivo).",
+     "linha": 493
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.carregar_ano",
      "assinatura": "def carregar_ano(self, ano: int) -> None",
-     "doc": "Etapas 6 e 7, um ano: baixa, confere se mudou, processa e registra. Erro vira item do resumo.",
-     "linha": 510
+     "doc": "Etapas 6 e 7, um ano: baixa, confere se mudou, processa e registra. Erro vira item do resumo.\n\nO ano em aberto (``da.ANO_EM_ABERTO``) é sempre conferido na fonte, como com ``--atualizar``: o TSE\nacrescenta o 2º turno ao mesmo arquivo depois da eleição.",
+     "linha": 526
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.executar",
      "assinatura": "def executar(self) -> ResumoPreparacao",
      "doc": "Roda as etapas pedidas nas opções, na ordem do módulo, e devolve o resumo.\n\nNa nuvem, restaura antes de começar e sincroniza no fim (além de depois de cada etapa).",
-     "linha": 542
+     "linha": 563
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao._executar_etapas",
      "assinatura": "def _executar_etapas(self) -> None",
      "doc": "As etapas de ``executar``, sem a restauração e a sincronização final da nuvem.",
-     "linha": 561
+     "linha": 582
     },
     {
      "tipo": "metodo",
      "nome": "Preparacao.aguardar",
      "assinatura": "def aguardar(self) -> None",
      "doc": "Com o servidor no ar, segue servindo até ``parar()``; depois o encerra.",
-     "linha": 589
+     "linha": 610
     }
    ]
   },
@@ -3953,14 +3981,14 @@
    "caminho": "packages/ingestao/lumen_ingestao/adaptadores/__init__.py",
    "linguagem": "python",
    "linhas": 8,
-   "doc": "Adaptadores da porta FonteDados (DOC-04, seção 3.1).\n\n``api/``         fontes federais com API estruturada (PNCP, SICONFI, IBGE)\n``declarativo/`` motor de especificações YAML — fase 3\n``plataforma/``  famílias de portal municipal — fase 4\n``documento/``   extração de PDF, planilha e HTML — fase 4",
+   "doc": "Adaptadores da porta FonteDados (DOC-04, seção 3.1).\n\n``api/``         fontes federais estruturadas (PNCP, SICONFI, IBGE e os arquivos de sanções da CGU)\n``declarativo/`` motor de especificações YAML — fase 3\n``plataforma/``  famílias de portal municipal — fase 4\n``documento/``   extração de PDF, planilha e HTML — fase 4",
    "itens": []
   },
   {
    "caminho": "packages/ingestao/lumen_ingestao/adaptadores/api/__init__.py",
    "linguagem": "python",
    "linhas": 2,
-   "doc": "Adaptadores de fontes federais com API estruturada: PNCP, SICONFI e IBGE.",
+   "doc": "Adaptadores de fontes federais estruturadas: PNCP, SICONFI, IBGE e os cadastros de sanções da CGU.",
    "itens": []
   },
   {
@@ -4130,6 +4158,84 @@
      "assinatura": "def _quantidade(artefato: ArtefatoBruto) -> int",
      "doc": "Quantos itens a página ORDS trouxe em ``items``; 0 se o corpo não for legível.",
      "linha": 152
+    }
+   ]
+  },
+  {
+   "caminho": "packages/ingestao/lumen_ingestao/adaptadores/api/cgu.py",
+   "linguagem": "python",
+   "linhas": 124,
+   "doc": "Adaptadores do Portal da Transparência (CGU): cadastros de sanções CEIS, CNEP e CEPIM.\n\nOs três cadastros vêm dos arquivos de dados abertos, e não da API: a API pede\nchave (``chave-api-dados``) e devolve 15 registros por página, e o próprio\nPortal recomenda os arquivos para volume alto. Os arquivos não pedem chave\n(ADR-030).\n\n- Página de download: ``https://portaldatransparencia.gov.br/download-de-dados/<cadastro>``.\n  O HTML declara a data do arquivo mais recente num ``arquivos.push({\"ano\" :\n  \"2026\", \"mes\" : \"10\", \"dia\" : \"15\", \"origem\" : \"CEIS\"})``.\n- Arquivo: ``.../download-de-dados/<cadastro>/AAAAMMDD``, que redireciona para\n  ``dadosabertos-download.cgu.gov.br/.../AAAAMMDD_<CADASTRO>.zip``. O ZIP\n  traz um CSV só, em ISO-8859-1, separado por ``;``.\n\nCada arquivo é o retrato completo do cadastro no dia, e não um incremento: a\njanela da coleta não se aplica, e cada coleta guarda no bronze o retrato mais\nrecente (o bronze não duplica o conteúdo se o retrato não mudou). O CEIS de\n15/10/2026 tinha 23.787 sanções em 3,4 MB; o CNEP, 1.840; o CEPIM, 3.521\nimpedimentos.",
+   "itens": [
+    {
+     "tipo": "classe",
+     "nome": "DataDoArquivoAusente",
+     "assinatura": "class DataDoArquivoAusente(ErroColeta)",
+     "doc": "A página de download respondeu, mas sem a data do arquivo: o formato da página mudou ou ela falhou.",
+     "linha": 41
+    },
+    {
+     "tipo": "funcao",
+     "nome": "data_do_arquivo",
+     "assinatura": "def data_do_arquivo(html: str, cadastro: str) -> date",
+     "doc": "Data do arquivo mais recente do ``cadastro`` declarada na página de download.\n\nCom mais de uma data declarada, vale a mais recente. Sem nenhuma, levanta ``DataDoArquivoAusente``.",
+     "linha": 45
+    },
+    {
+     "tipo": "classe",
+     "nome": "FonteCguCadastro",
+     "assinatura": "class FonteCguCadastro(FonteListaFixa)",
+     "doc": "Base dos cadastros de sanções da CGU: descobre a data do arquivo na página de download e baixa o ZIP.\n\nA subclasse define ``fonte_id`` e ``cadastro`` (o nome no caminho do Portal: ``ceis``, ``cnep``,\n``cepim``). A página de download conta como consulta para ``reportar_conformidade``, como o arquivo.",
+     "linha": 57
+    },
+    {
+     "tipo": "metodo",
+     "nome": "FonteCguCadastro.__init__",
+     "assinatura": "def __init__(self, cliente, base: str=BASE_PORTAL)",
+     "doc": "Usa ``BASE_PORTAL`` como base padrão.",
+     "linha": 69
+    },
+    {
+     "tipo": "metodo",
+     "nome": "FonteCguCadastro._pedir",
+     "assinatura": "def _pedir(self, url: str, aceita: str) -> ArtefatoBruto",
+     "doc": "GET com o ``Accept`` dado, contado como respondido ou falho como em ``FonteListaFixa._obter``.",
+     "linha": 73
+    },
+    {
+     "tipo": "metodo",
+     "nome": "FonteCguCadastro.listar",
+     "assinatura": "def listar(self, janela: Janela) -> Iterator[ReferenciaArtefato]",
+     "doc": "Uma referência, a do arquivo mais recente; a janela não se aplica (cada arquivo é o cadastro inteiro).\n\nA página de download que responde com erro, ou sem a data do arquivo, levanta ``ErroColeta``:\nsem a data não há o que baixar, e a coleta inteira falha com o motivo.",
+     "linha": 86
+    },
+    {
+     "tipo": "metodo",
+     "nome": "FonteCguCadastro.baixar",
+     "assinatura": "def baixar(self, ref: ReferenciaArtefato) -> ArtefatoBruto",
+     "doc": "Baixa o ZIP do dia, seguindo o redirecionamento para o servidor de arquivos da CGU.",
+     "linha": 100
+    },
+    {
+     "tipo": "classe",
+     "nome": "FonteCguCeis",
+     "assinatura": "class FonteCguCeis(FonteCguCadastro)",
+     "doc": "CEIS: Cadastro Nacional de Empresas Inidôneas e Suspensas (Lei 12.846/2013, art. 23; Lei 14.133/2021, art. 161).",
+     "linha": 105
+    },
+    {
+     "tipo": "classe",
+     "nome": "FonteCguCnep",
+     "assinatura": "class FonteCguCnep(FonteCguCadastro)",
+     "doc": "CNEP: Cadastro Nacional de Empresas Punidas (Lei 12.846/2013, art. 22).",
+     "linha": 112
+    },
+    {
+     "tipo": "classe",
+     "nome": "FonteCguCepim",
+     "assinatura": "class FonteCguCepim(FonteCguCadastro)",
+     "doc": "CEPIM: entidades privadas sem fins lucrativos impedidas de receber transferências da União (Decreto 7.592/2011).",
+     "linha": 119
     }
    ]
   },
@@ -6048,6 +6154,91 @@
    "itens": []
   },
   {
+   "caminho": "packages/normalizacao/lumen_normalizacao/cgu.py",
+   "linguagem": "python",
+   "linhas": 258,
+   "doc": "Normalização dos cadastros de sanções da CGU (CEIS, CNEP e CEPIM) para ``Sancao``.\n\nO artefato do bronze é o ZIP do Portal da Transparência, com um CSV só\n(``AAAAMMDD_CEIS.csv``), em ISO-8859-1, separado por ``;``. O dia no nome do\nCSV é a ``data_referencia`` dos registros: cada arquivo é o retrato do\ncadastro inteiro naquele dia (ADR-030).\n\nTrês cuidados:\n\n- **CPF mascarado.** O CEIS publica o CPF inteiro das pessoas físicas\n  sancionadas. Ele passa por ``identificar_fornecedor``, o mesmo caminho dos\n  fornecedores do PNCP: o documento sai mascarado (``***.456.789-**``) e o id\n  do fornecedor sai da máscara mais o nome, nunca do CPF inteiro.\n- **\"Sem Informação\" é ausência.** A CGU escreve \"Sem Informação\" em\n  abrangência e meio de publicação quando o órgão não informou; vira nulo.\n- **Fim da sanção muito distante é o que foi publicado.** Há sanções \"com\n  prazo determinado\" que terminam em 31/12/2099. A data é mantida como veio,\n  com a marcação ``data_fim_distante``, em vez de mandar a sanção para a\n  quarentena como erro de digitação.",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "decodificar",
+     "assinatura": "def decodificar(conteudo: bytes) -> str",
+     "doc": "Texto do CSV: UTF-8 se for, senão Windows-1252, senão ISO-8859-1 (que aceita qualquer byte).\n\nA CGU publica em ISO-8859-1; o Windows-1252 vem antes porque coincide com ele em todo texto\nimprimível e ainda lê aspas e travessões que o ISO-8859-1 trocaria por caracteres de controle.",
+     "linha": 62
+    },
+    {
+     "tipo": "funcao",
+     "nome": "abrir_arquivo",
+     "assinatura": "def abrir_arquivo(conteudo: bytes) -> tuple[str | None, bytes]",
+     "doc": "(nome do CSV, bytes do CSV) do artefato: o CSV dentro do ZIP, ou o próprio conteúdo se não for ZIP.\n\nZIP sem CSV, ou com mais de um, levanta ``ValueError``: não há como saber qual é o cadastro.",
+     "linha": 76
+    },
+    {
+     "tipo": "funcao",
+     "nome": "data_do_nome",
+     "assinatura": "def data_do_nome(nome: str | None) -> date | None",
+     "doc": "Dia do retrato a partir do nome do CSV (``20261015_CEIS.csv`` → 15/10/2026); None se não houver.",
+     "linha": 90
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_informado",
+     "assinatura": "def _informado(valor: object) -> str | None",
+     "doc": "Texto como publicado, com vazio e \"Sem Informação\" virando nulo.",
+     "linha": 101
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_data_fim",
+     "assinatura": "def _data_fim(ctx: Contexto, d: dict, campo: str, marcas: list[str]) -> date | None",
+     "doc": "Data final da sanção; fora da faixa plausível, fica como publicada e ganha ``data_fim_distante``.",
+     "linha": 109
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_esfera",
+     "assinatura": "def _esfera(valor: object, marcas: list[str]) -> Esfera | None",
+     "doc": "Esfera do órgão sancionador; ausente ou desconhecida fica nula com ``esfera_nao_informada``.",
+     "linha": 126
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_uf",
+     "assinatura": "def _uf(valor: object) -> str | None",
+     "doc": "Sigla da UF do órgão sancionador, só se for uma das 27; o resto (vazio, ``BR``) vira nulo.",
+     "linha": 135
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_sancao",
+     "assinatura": "def _sancao(ctx: Contexto, d: dict, cadastro_fonte: CadastroSancao | None, referencia: date | None) -> list",
+     "doc": "Uma linha do CEIS ou do CNEP como ``Sancao``.\n\nCódigo da sanção, nome do sancionado e início da sanção são obrigatórios. Linha de um cadastro\ndiferente do da fonte (um CNEP dentro do arquivo do CEIS) é rejeitada.",
+     "linha": 141
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_impedimento",
+     "assinatura": "def _impedimento(ctx: Contexto, d: dict, referencia: date | None) -> list",
+     "doc": "Uma linha do CEPIM como ``Sancao``: entidade, convênio, órgão concedente e motivo, sem datas.\n\nCNPJ, nome da entidade e número do convênio são obrigatórios; o CEPIM não tem código de sanção, e a\nchave é CNPJ mais convênio.",
+     "linha": 185
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_quarentena_do_artefato",
+     "assinatura": "def _quarentena_do_artefato(ctx: Contexto, motivo: str, valor: object=None) -> ResultadoNormalizacao",
+     "doc": "Resultado com uma entrada só na quarentena, para o artefato que não pôde ser lido como cadastro.",
+     "linha": 209
+    },
+    {
+     "tipo": "funcao",
+     "nome": "normalizar_sancoes",
+     "assinatura": "def normalizar_sancoes(conteudo: bytes, *, fonte_id: str, documento_fonte_id: str, hoje: date | None=None) -> ResultadoNormalizacao",
+     "doc": "Arquivo do CEIS, do CNEP ou do CEPIM como registros ``Sancao``, um por linha do CSV.\n\nO formato (sanção ou impedimento) sai do cabeçalho; o cadastro esperado sai da fonte\n(``cgu_ceis`` → CEIS). Artefato ilegível ou com coluna faltando vai inteiro para a quarentena; cada\nlinha com problema vai sozinha, e o resto segue (RF-NO-08).",
+     "linha": 218
+    }
+   ]
+  },
+  {
    "caminho": "packages/normalizacao/lumen_normalizacao/comum.py",
    "linguagem": "python",
    "linhas": 125,
@@ -6157,7 +6348,7 @@
   {
    "caminho": "packages/normalizacao/lumen_normalizacao/pncp.py",
    "linguagem": "python",
-   "linhas": 602,
+   "linhas": 606,
    "doc": "Normalização das respostas do PNCP para o esquema canônico.\n\nEntrada: o conteúdo bruto de um artefato da camada bronze, exatamente como a\nAPI respondeu. Saída: registros canônicos (``lumen_canonico.fato``) e a\nquarentena. A função é pura e determinística: o mesmo artefato produz sempre\nos mesmos registros, com os mesmos ids (RF-NO-11), o que permite apagar a\nsilver e regerá-la a partir do bronze a qualquer momento (RF-NO-12).\n\nMapeamento dos códigos do PNCP\n------------------------------\nOs domínios abaixo foram lidos dos endpoints oficiais\n(``/api/pncp/v1/modalidades`` e afins) em 05/10/2026. Código desconhecido não\nderruba o registro: vira nulo com marcação, porque o PNCP acrescenta códigos\nde tempos em tempos e uma modalidade nova não deve tirar contratações\ninteiras da análise.\n\nResolução do ente federativo\n----------------------------\nO PNCP informa a esfera do órgão (``esferaId``) e o município onde fica a\nunidade (``unidadeOrgao.codigoIbge``). O ente sai da combinação:\n\n======== =====================================================\nesfera   ente\n======== =====================================================\nM        o município da unidade (código IBGE de 7 dígitos)\nE        o estado, pelos 2 primeiros dígitos do código IBGE\nD        o Distrito Federal (``53``)\nF        a União (``1``, convenção do SICONFI)\nN/vazio  não resolvido: nulo, com marcação, para resolução por CNPJ\n======== =====================================================",
    "itens": [
     {
@@ -6190,9 +6381,9 @@
     },
     {
      "tipo": "funcao",
-     "nome": "_fornecedor",
-     "assinatura": "def _fornecedor(documento: Any, tipo_pessoa: Any, nome: Any) -> tuple[str | None, str | None, TipoPessoa | None, list[str]]",
-     "doc": "(fornecedor_id, documento publicável, tipo, marcações).",
+     "nome": "identificar_fornecedor",
+     "assinatura": "def identificar_fornecedor(documento: Any, tipo_pessoa: Any, nome: Any) -> tuple[str | None, str | None, TipoPessoa | None, list[str]]",
+     "doc": "(fornecedor_id, documento publicável, tipo, marcações) do fornecedor; também usado pelas sanções da CGU.\n\nCNPJ dá o id pelo próprio CNPJ; CPF dá o id pela máscara mais o nome, porque um id derivado do CPF\ninteiro seria reversível. Documento inválido não segue e vira marcação.",
      "linha": 249
     },
     {
@@ -6200,77 +6391,77 @@
      "nome": "_contratacao",
      "assinatura": "def _contratacao(ctx: Contexto, d: dict) -> list",
      "doc": "Converte uma contratação do PNCP em órgão, unidade gestora, amparo legal e processo de contratação.\n\nNúmero de controle, ano, sequencial, objeto e data de publicação são obrigatórios, e valores negativos\nrejeitam o registro. Modalidade desconhecida, valor estimado zerado e valor homologado ausente não\nrejeitam: o processo segue com marcação de qualidade.",
-     "linha": 276
+     "linha": 280
     },
     {
      "tipo": "funcao",
      "nome": "normalizar_contratacoes",
      "assinatura": "def normalizar_contratacoes(conteudo: bytes, *, fonte_id: str, documento_fonte_id: str, hoje: date | None=None) -> ResultadoNormalizacao",
      "doc": "Página de ``/v1/contratacoes/publicacao`` ou ``/v1/contratacoes/atualizacao``.",
-     "linha": 357
+     "linha": 361
     },
     {
      "tipo": "funcao",
      "nome": "normalizar_contratacao_detalhe",
      "assinatura": "def normalizar_contratacao_detalhe(conteudo: bytes, *, fonte_id: str, documento_fonte_id: str, hoje: date | None=None) -> ResultadoNormalizacao",
      "doc": "Resposta de ``/v1/orgaos/{cnpj}/compras/{ano}/{sequencial}`` (objeto único).",
-     "linha": 366
+     "linha": 370
     },
     {
      "tipo": "funcao",
      "nome": "_item",
      "assinatura": "def _item(ctx: Contexto, processo_chave: str, d: dict) -> list",
      "doc": "Converte um item da contratação em ``ItemContratacao``, ligado ao processo pela chave de origem.\n\nNúmero do item e descrição são obrigatórios; quantidade ou valor negativo rejeita o item.",
-     "linha": 379
+     "linha": 383
     },
     {
      "tipo": "funcao",
      "nome": "normalizar_itens",
      "assinatura": "def normalizar_itens(conteudo: bytes, *, processo_chave_origem: str, fonte_id: str, documento_fonte_id: str, hoje: date | None=None) -> ResultadoNormalizacao",
      "doc": "Itens de uma contratação (``/v1/orgaos/{cnpj}/compras/{ano}/{sequencial}/itens``), em lista sem paginação.\n\nA chave do processo vem de quem chama (``processo_chave_origem``) e compõe o id e a chave de origem de\ncada item.",
-     "linha": 410
+     "linha": 414
     },
     {
      "tipo": "funcao",
      "nome": "_resultado",
      "assinatura": "def _resultado(ctx: Contexto, processo_chave: str, d: dict) -> list",
-     "doc": "Converte um resultado de item (o fornecedor e os valores homologados) em ``ResultadoItem``.\n\nO documento do fornecedor passa por ``_fornecedor``: CPF segue mascarado e documento inválido vira nulo\ncom marcação. O resultado fica marcado como cancelado quando a fonte informa data de cancelamento.",
-     "linha": 424
+     "doc": "Converte um resultado de item (o fornecedor e os valores homologados) em ``ResultadoItem``.\n\nO documento do fornecedor passa por ``identificar_fornecedor``: CPF segue mascarado e documento inválido vira nulo\ncom marcação. O resultado fica marcado como cancelado quando a fonte informa data de cancelamento.",
+     "linha": 428
     },
     {
      "tipo": "funcao",
      "nome": "normalizar_resultados",
      "assinatura": "def normalizar_resultados(conteudo: bytes, *, processo_chave_origem: str, fonte_id: str, documento_fonte_id: str, hoje: date | None=None) -> ResultadoNormalizacao",
      "doc": "Resultados dos itens de uma contratação, em lista sem paginação, ligados por ``processo_chave_origem``.",
-     "linha": 460
+     "linha": 464
     },
     {
      "tipo": "funcao",
      "nome": "_contrato",
      "assinatura": "def _contrato(ctx: Contexto, d: dict) -> list",
      "doc": "Converte um contrato do PNCP em órgão, unidade gestora e ``Contrato``.\n\nNúmero de controle, ano, sequencial e objeto são obrigatórios. O processo de origem, quando informado, é\nligado pelo mesmo id determinístico da contratação, e as marcações do órgão e do fornecedor seguem\njuntas no contrato.",
-     "linha": 475
+     "linha": 479
     },
     {
      "tipo": "funcao",
      "nome": "normalizar_contratos",
      "assinatura": "def normalizar_contratos(conteudo: bytes, *, fonte_id: str, documento_fonte_id: str, hoje: date | None=None) -> ResultadoNormalizacao",
      "doc": "Página de ``/v1/contratos`` ou ``/v1/contratos/atualizacao``.",
-     "linha": 549
+     "linha": 553
     },
     {
      "tipo": "funcao",
      "nome": "_ata",
      "assinatura": "def _ata(ctx: Contexto, d: dict) -> list",
      "doc": "Converte uma ata de registro de preços em ``AtaRegistroPreco``.\n\nO órgão vem só como CNPJ e nome no registro da ata, sem gerar ``Orgao``; CNPJ ausente ou inválido\nrejeita a ata. O processo de origem, quando informado, é ligado pelo id determinístico da contratação.",
-     "linha": 562
+     "linha": 566
     },
     {
      "tipo": "funcao",
      "nome": "normalizar_atas",
      "assinatura": "def normalizar_atas(conteudo: bytes, *, fonte_id: str, documento_fonte_id: str, hoje: date | None=None) -> ResultadoNormalizacao",
      "doc": "Página de ``/v1/atas`` ou ``/v1/atas/atualizacao``.",
-     "linha": 595
+     "linha": 599
     }
    ]
   },
@@ -6547,7 +6738,7 @@
   {
    "caminho": "packages/orquestracao/lumen_orquestracao/cli.py",
    "linguagem": "python",
-   "linhas": 177,
+   "linhas": 185,
    "doc": "Linha de comando do pipeline local.\n\nExemplos::\n\n    lumen coletar pncp_contratacoes --de 2026-09-01 --modalidades 8,9\n    lumen coletar pncp_contratos --de 2026-09-01 --ate 2026-09-07\n    lumen coletar ibge_localidades --de 2026-10-05\n    lumen coletar siconfi_extrato --de 2026-10-05 --entes 4319604,3550308 --exercicio 2025\n    lumen coletar pncp_itens --de 2026-03-01 --ate 2026-03-31 --objeto \"combust|gasolina|diesel\" --so-comparaveis\n    lumen normalizar                      # bronze inteiro → silver\n    lumen bronze verificar                # reconfere o hash de toda a prova\n    lumen eleicoes ...                    # aba Eleições (ver lumen_eleicoes)\n    lumen mercado ...                     # referência de mercado fora do governo (ver lumen_mercado)\n    lumen painel ...                      # painéis de contratações e conformidade (ver lumen_painel)",
    "itens": [
     {
@@ -6555,42 +6746,42 @@
      "nome": "FormatoComCampos",
      "assinatura": "class FormatoComCampos(logging.Formatter)",
      "doc": "Formato do log que acrescenta os campos de ``extra=`` (fonte, url, status, tentativa) à mensagem.\n\nSem isso, ``tentativa_com_erro`` aparece no registro da CI sem dizer qual status a fonte respondeu.",
-     "linha": 34
+     "linha": 35
     },
     {
      "tipo": "metodo",
      "nome": "FormatoComCampos.format",
      "assinatura": "def format(self, record: logging.LogRecord) -> str",
      "doc": "A linha padrão seguida de ``campo=valor`` para cada campo extra, em ordem alfabética.",
-     "linha": 40
+     "linha": 41
     },
     {
      "tipo": "funcao",
      "nome": "_lista_int",
      "assinatura": "def _lista_int(texto: str) -> tuple[int, ...]",
      "doc": "Converte ``8,9`` em ``(8, 9)``, ignorando itens vazios; usado como ``type`` do argparse.",
-     "linha": 47
+     "linha": 48
     },
     {
      "tipo": "funcao",
      "nome": "_lista_str",
      "assinatura": "def _lista_str(texto: str) -> tuple[str, ...]",
      "doc": "Converte ``a, b`` em ``(\"a\", \"b\")``, sem espaços nas pontas e ignorando itens vazios.",
-     "linha": 52
+     "linha": 53
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada do comando ``lumen``: interpreta os argumentos e despacha para a etapa pedida.\n\nOs subcomandos ``eleicoes``, ``mercado`` e ``painel`` são repassados inteiros aos CLIs de\n``lumen_eleicoes``, ``lumen_mercado`` e ``lumen_painel``; ``coletar pncp_itens`` busca os itens dos\nprocessos da silver publicados na janela (e cujo objeto casa com ``--objeto``, quando dado). Os demais\nleem a configuração e imprimem o resumo em JSON. O código de saída é 2 para configuração ou argumento ausente e\n1 quando a coleta tem falhas ou o bronze tem conteúdo corrompido, para que scripts e a CI percebam.",
-     "linha": 57
+     "linha": 58
     }
    ]
   },
   {
    "caminho": "packages/orquestracao/lumen_orquestracao/configuracao.py",
    "linguagem": "python",
-   "linhas": 100,
+   "linhas": 104,
    "doc": "Configuração do pipeline local, lida de ``lumen.toml`` e do ambiente.\n\nPrecedência: variável de ambiente > arquivo > padrão. Nada sensível vive no\narquivo: o Lumen não usa credencial nas fontes da fase 1 (o token da CGU, que\nentra depois, virá só de variável de ambiente ou cofre — RNF-13).\n\nExemplo de ``lumen.toml``::\n\n    [coleta]\n    contato = \"contato@falkyria.com.br\"   # vai no User-Agent (RF-CO-09)\n\n    [dados]\n    raiz = \"dados\"                        # bronze/ e silver/ ficam aqui\n\n    [limites_rpm]                         # por fonte; o padrão é conservador\n    pncp_contratacoes = 60",
    "itens": [
     {
@@ -6598,49 +6789,49 @@
      "nome": "Configuracao",
      "assinatura": "class Configuracao",
      "doc": "Configuração resolvida do pipeline: contato da coleta, raiz dos dados e limites de requisições por minuto.",
-     "linha": 51
+     "linha": 55
     },
     {
      "tipo": "metodo",
      "nome": "Configuracao.bronze",
      "assinatura": "def bronze(self) -> Path",
      "doc": "Diretório da camada bronze, sob a raiz dos dados.",
-     "linha": 59
+     "linha": 63
     },
     {
      "tipo": "metodo",
      "nome": "Configuracao.silver",
      "assinatura": "def silver(self) -> Path",
      "doc": "Diretório da camada silver, sob a raiz dos dados.",
-     "linha": 64
+     "linha": 68
     },
     {
      "tipo": "metodo",
      "nome": "Configuracao.rpm",
      "assinatura": "def rpm(self, fonte_id: str) -> int",
      "doc": "Limite de requisições por minuto da fonte; 30 quando a fonte não tem limite configurado.",
-     "linha": 68
+     "linha": 72
     },
     {
      "tipo": "classe",
      "nome": "ConfiguracaoAusente",
      "assinatura": "class ConfiguracaoAusente(Exception)",
      "doc": "Falta configuração obrigatória: hoje, o contato que identifica a coleta no User-Agent.",
-     "linha": 73
+     "linha": 77
     },
     {
      "tipo": "funcao",
      "nome": "carregar",
      "assinatura": "def carregar(caminho: Path | None=None) -> Configuracao",
      "doc": "Monta a ``Configuracao`` a partir do arquivo e do ambiente, com o ambiente prevalecendo.\n\nO arquivo é ``caminho``, ``LUMEN_CONFIG`` ou ``lumen.toml``, e pode não existir. ``LUMEN_CONTATO`` e\n``LUMEN_DADOS`` substituem o contato e a raiz; os limites do arquivo sobrescrevem os padrões fonte a\nfonte. Sem contato, levanta ``ConfiguracaoAusente``: toda requisição precisa se identificar (RF-CO-09).",
-     "linha": 78
+     "linha": 82
     }
    ]
   },
   {
    "caminho": "packages/orquestracao/lumen_orquestracao/etapas.py",
    "linguagem": "python",
-   "linhas": 236,
+   "linhas": 243,
    "doc": "Etapas do pipeline como funções sobre diretórios (futuros ativos do Dagster).",
    "itens": [
     {
@@ -6648,70 +6839,70 @@
      "nome": "cliente",
      "assinatura": "def cliente(cfg: Configuracao, fonte_id: str) -> ClienteHttp",
      "doc": "Cliente HTTP da fonte, com o User-Agent do Lumen (versão e contato) e o limite de requisições dela.",
-     "linha": 38
+     "linha": 40
     },
     {
      "tipo": "funcao",
      "nome": "coletar",
      "assinatura": "def coletar(cfg: Configuracao, fonte_id: str, janela: Janela, armazem: ArmazemBronze | None=None, **opcoes) -> ResumoColeta",
      "doc": "Coleta a janela de uma fonte para o bronze e devolve o resumo da coleta.\n\nA fonte é criada pela fábrica de ``FABRICAS``, com as ``opcoes`` específicas dela (modalidades, entes,\nexercício). Sem ``armazem``, usa o bronze local da configuração.",
-     "linha": 60
+     "linha": 65
     },
     {
      "tipo": "funcao",
      "nome": "sem_acento",
      "assinatura": "def sem_acento(texto: str) -> str",
      "doc": "Texto em minúsculas e sem acentos, para comparar descrições escritas de jeitos diferentes.",
-     "linha": 80
+     "linha": 85
     },
     {
      "tipo": "funcao",
      "nome": "processos_da_silver",
      "assinatura": "def processos_da_silver(cfg: Configuracao, *, de: date | None=None, ate: date | None=None, objeto: str | None=None) -> list[dict]",
      "doc": "Processos de contratação já normalizados, consolidados (um por id), filtrados por data e objeto.\n\n``de`` e ``ate`` comparam a data de publicação no PNCP, com as duas pontas inclusivas. ``objeto`` é uma\nexpressão regular procurada no objeto da compra sem acento e sem caixa (``combust|gasolina``).",
-     "linha": 86
+     "linha": 91
     },
     {
      "tipo": "funcao",
      "nome": "coletar_itens",
      "assinatura": "def coletar_itens(cfg: Configuracao, processos: Iterable[dict], armazem: ArmazemBronze | None=None, *, com_resultados: bool=True, base: str=BASE_PNCP, filtro_resultados: Callable[[dict], bool] | None=None) -> ResumoColeta",
      "doc": "Coleta para o bronze os itens (e os resultados) dos processos dados, lidos da silver.\n\nÉ a coleta sob demanda da família A: as contratações chegam primeiro pela janela de publicação, e só\nas que interessam (por exemplo, as de combustível) têm os itens buscados. Processo cuja chave não é um\n``numeroControlePNCP`` de contratação fica de fora. ``filtro_resultados`` restringe os resultados aos\nitens que ele aceita (ver ``FontePncpItens``).",
-     "linha": 105
+     "linha": 110
     },
     {
      "tipo": "funcao",
      "nome": "chave_da_url_itens",
      "assinatura": "def chave_da_url_itens(url: str) -> tuple[str, bool] | None",
      "doc": "``numeroControlePNCP`` do processo e se a URL é de resultados; None se não for URL de itens.",
-     "linha": 134
+     "linha": 139
     },
     {
      "tipo": "funcao",
      "nome": "_normalizador_de",
      "assinatura": "def _normalizador_de(registro: RegistroColeta) -> Callable[[bytes, str], ResultadoNormalizacao] | None",
      "doc": "Escolhe o normalizador do artefato pela fonte e, no IBGE, pela URL pedida; None se não houver.\n\nDevolve uma função que recebe só o conteúdo, com a proveniência (fonte e id do registro no bronze) já\naplicada.",
-     "linha": 145
+     "linha": 150
     },
     {
      "tipo": "classe",
      "nome": "ResumoNormalizacao",
      "assinatura": "class ResumoNormalizacao",
      "doc": "Contagens de uma rodada de normalização.\n\nArtefatos processados e ignorados, registros gravados, entradas de quarentena e, em ``por_fonte``,\nquantos artefatos de cada fonte foram processados.",
-     "linha": 183
+     "linha": 190
     },
     {
      "tipo": "funcao",
      "nome": "normalizar",
      "assinatura": "def normalizar(cfg: Configuracao, fontes: Iterable[str] | None=None, armazem: ArmazemBronzeLocal | None=None) -> ResumoNormalizacao",
      "doc": "Reprocessa o bronze inteiro (ou as fontes pedidas) para a silver.\n\nÉ idempotente (RF-NO-11) e pode ser rodada a qualquer momento: apagar a\nsilver e rodar de novo reconstrói tudo sem tocar nas fontes (RF-NO-12).\nRespostas de erro (4xx/5xx) ficam no bronze como prova e não geram linha.",
-     "linha": 197
+     "linha": 204
     },
     {
      "tipo": "funcao",
      "nome": "janela_de",
      "assinatura": "def janela_de(de: str, ate: str | None=None) -> Janela",
      "doc": "Janela de coleta a partir de datas ``AAAA-MM-DD``; sem ``ate``, a janela é só o dia ``de``.",
-     "linha": 228
+     "linha": 235
     }
    ]
   },
@@ -9748,7 +9939,7 @@
   {
    "caminho": "packages/eleicoes/testes/test_dados_abertos.py",
    "doc": "Dados abertos do TSE: leitura dos CSV, agregação e geração dos feeds históricos.\n\nDuas fontes de teste:\n\n- as linhas reais em ``testes/fixtures/tse/dados_abertos`` (cabeçalho e\n  primeiras linhas dos arquivos de 2022), que garantem que o leitor entende\n  o formato publicado;\n- arquivos sintéticos montados aqui com o mesmo cabeçalho, pequenos o\n  bastante para conferir as somas à mão. Os números sintéticos não são de\n  eleição nenhuma: servem para testar a aritmética.",
-   "testes": 21
+   "testes": 22
   },
   {
    "caminho": "packages/eleicoes/testes/test_feeds.py",
@@ -9789,6 +9980,11 @@
    "caminho": "packages/eleicoes/testes/test_zonas.py",
    "doc": "Locais de votação por zona: leitura do CSV do TSE, filtro pelo contorno do município e arquivos do mapa.\n\nOs recortes em ``testes/fixtures/tse/locais_votacao`` são linhas reais dos arquivos de 2024 e 2026, sem\nedição: São Caetano do Sul (SP), com as zonas 166 e 269, uma linha por local (mais uma segunda seção de um\nlocal e uma linha do 2º turno), e duas linhas de Bragança Paulista (zonas 27 e 298).",
    "testes": 21
+  },
+  {
+   "caminho": "packages/ingestao/testes/test_adaptador_cgu.py",
+   "doc": "Adaptadores dos cadastros de sanções da CGU contra um servidor local com as fixtures reais.\n\nO servidor imita o Portal da Transparência: a página de download declara a data, e o arquivo do dia\nredireciona para o servidor de arquivos, como o Portal faz.",
+   "testes": 9
   },
   {
    "caminho": "packages/ingestao/testes/test_adaptador_pncp.py",
@@ -9856,6 +10052,11 @@
    "testes": 6
   },
   {
+   "caminho": "packages/normalizacao/testes/test_normalizacao_cgu.py",
+   "doc": "Normalização dos cadastros de sanções da CGU (CEIS, CNEP, CEPIM) com as amostras reais.",
+   "testes": 17
+  },
+  {
    "caminho": "packages/normalizacao/testes/test_normalizacao_ibge_siconfi.py",
    "doc": "Normalização das respostas reais do IBGE (localidades e população) e do SICONFI (entes e extrato).",
    "testes": 12
@@ -9886,6 +10087,11 @@
    "testes": 13
   },
   {
+   "caminho": "packages/orquestracao/testes/test_pipeline_cgu.py",
+   "doc": "Pipeline dos cadastros de sanções da CGU: Portal (servidor local com a fixture real) → bronze → silver.",
+   "testes": 4
+  },
+  {
    "caminho": "packages/painel/testes/test_cli.py",
    "doc": "``lumen painel``: dias a coletar, divisão em blocos e os comandos de ponta a ponta (ADR-028).",
    "testes": 8
@@ -9903,7 +10109,7 @@
   {
    "caminho": "testes/contrato/test_contrato_fontes.py",
    "doc": "Testes de contrato contra as fontes reais (DOC-09, seção 3.2).\n\nValidam só o **esquema** — que os campos que o normalizador lê continuam\nexistindo, com o tipo esperado —, nunca o conteúdo. Rodam diariamente por\nagendamento na CI e não bloqueiam entrega: quando falham, alarmam, porque\nsignificam que a fonte mudou de formato sem aviso (risco R-03).\n\n    LUMEN_TESTE_CONTRATO=1 python -m pytest -m contrato\n\nO esquema de referência é o das fixtures de ``testes/fixtures``: se a fonte\nreal deixar de ter um campo que a fixture tem, o teste acusa.",
-   "testes": 12
+   "testes": 13
   },
   {
    "caminho": "testes/integracao/test_migracao_postgres.py",

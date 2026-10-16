@@ -243,8 +243,8 @@ Situação descrita no DOC-10 (seção 9), no README e nas ADRs:
   com conector pronto e normalização pendente). Bronze com SHA-256, URL, instante e cabeçalhos;
   nada sobrescrito; respostas de erro HTTP guardadas como prova
   ([ADR-012](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-012.md)); limite de
-  taxa, retentativa com recuo e User-Agent com contato. Portal da Transparência (CGU) e base de CNPJ
-  pendentes.
+  taxa, retentativa com recuo e User-Agent com contato. Cadastros de sanções da CGU (CEIS, CNEP e
+  CEPIM, RF-CO-03 em parte) coletados pelos arquivos de dados abertos; base de CNPJ pendente.
 - **Normalização:** esquema canônico do bloco de fatos, quarentena, silver idempotente e
   reconstruível do bronze, sensibilidade por campo e CPF mascarado
   ([ADR-016](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-016.md),
