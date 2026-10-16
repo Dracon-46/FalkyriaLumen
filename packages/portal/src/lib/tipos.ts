@@ -12,6 +12,13 @@
  */
 export const VERSAO_FEED = 1;
 
+/**
+ * Versão do formato do mapa das zonas (`geo/zonas-<ano>/`), espelho de
+ * `zonas.VERSAO_ZONAS` no Python. É independente da dos feeds: um lado pode
+ * mudar sem o outro.
+ */
+export const VERSAO_ZONAS = 1;
+
 /** Majoritário (vence quem tem mais votos) ou proporcional (vagas repartidas pelo quociente eleitoral). */
 export type TipoCargo = "majoritario" | "proporcional";
 /** Onde o cargo é disputado: Brasil (Presidente), UF (Governador, Senador, deputados) ou município. */
@@ -364,8 +371,8 @@ export interface ArquivoZonas {
   origem: Origem;
   zonas: ZonaDoMunicipio[];
   locais: LocalVotacao[];
-  /** Locais deixados de fora: sem coordenada, ou com coordenada fora do município. */
-  descartados: { sem_coordenada: number; fora_do_municipio: number };
+  /** Locais deixados de fora: sem coordenada, ou com coordenada fora do município. Opcional na leitura. */
+  descartados?: { sem_coordenada: number; fora_do_municipio: number };
 }
 
 /** Arquivo `geo/zonas-<ano>/indice.json`: código IBGE → número de zonas, dos municípios com mais de uma. */

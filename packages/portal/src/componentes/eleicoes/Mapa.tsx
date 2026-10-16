@@ -812,7 +812,7 @@ function ConteudoDica({ dica, rotuloLider }: { dica: Dica; rotuloLider: (p: Part
 
 /** Nota de método sob o mapa das zonas: de onde vem o desenho e o que ficou de fora. */
 function NotaZonas({ arquivo }: { arquivo: ArquivoZonas }) {
-  const { sem_coordenada: sem, fora_do_municipio: fora } = arquivo.descartados;
+  const { sem_coordenada: sem = 0, fora_do_municipio: fora = 0 } = arquivo.descartados ?? {};
   const descartados = sem + fora;
   return (
     <p className="nota-mapa">

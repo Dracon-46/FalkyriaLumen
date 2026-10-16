@@ -10,6 +10,7 @@
 
 import {
   VERSAO_FEED,
+  VERSAO_ZONAS,
   type ArquivoZonas,
   type CadastroMunicipios,
   type FeedHistorico,
@@ -59,9 +60,9 @@ function exigir(o: Objeto, campos: string[], onde: string): void {
  * menor: mudança incompatível no contrato sobe a versão, e o portal não
  * tenta adivinhar como ler o que não conhece.
  */
-function versao(o: Objeto, onde: string): void {
-  if (o.versao !== VERSAO_FEED) {
-    throw new ErroFeed(`${onde}: versão ${String(o.versao)} não suportada (esperada ${VERSAO_FEED})`);
+function versao(o: Objeto, onde: string, esperada: number = VERSAO_FEED): void {
+  if (o.versao !== esperada) {
+    throw new ErroFeed(`${onde}: versão ${String(o.versao)} não suportada (esperada ${esperada})`);
   }
 }
 
@@ -129,7 +130,7 @@ export function validarMunicipios(bruto: unknown): CadastroMunicipios {
 /** Confere o índice das zonas de um ano (`geo/zonas-<ano>/indice.json`). */
 export function validarIndiceZonas(bruto: unknown, onde = "zonas/indice"): IndiceZonas {
   const o = objeto(bruto, onde);
-  versao(o, onde);
+  versao(o, onde, VERSAO_ZONAS);
   if (o.tipo !== "zonas-indice") throw new ErroFeed(`${onde}: tipo ${String(o.tipo)} não é índice de zonas`);
   objeto(o.municipios, `${onde}.municipios`);
   return o as unknown as IndiceZonas;
@@ -142,7 +143,7 @@ export function validarIndiceZonas(bruto: unknown, onde = "zonas/indice"): Indic
  */
 export function validarZonas(bruto: unknown, onde = "zonas"): ArquivoZonas {
   const o = objeto(bruto, onde);
-  versao(o, onde);
+  versao(o, onde, VERSAO_ZONAS);
   if (o.tipo !== "zonas") throw new ErroFeed(`${onde}: tipo ${String(o.tipo)} não é de zonas`);
   exigir(o, ["ano", "municipio", "origem", "zonas", "locais"], onde);
   const zonas = new Set(lista(o.zonas, `${onde}.zonas`).map((z) => String(objeto(z, `${onde}.zonas`).zona)));
