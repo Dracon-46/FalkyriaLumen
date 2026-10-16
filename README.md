@@ -359,10 +359,10 @@ ordenação por risco (ADR-028).
 | Normalização | 116 |
 | Conformidade (SICONFI) | 14 |
 | Pipeline local | 8 |
-| Aba Eleições (Python, inclusive a publicação na nuvem e as zonas) | 225 |
+| Aba Eleições (Python, inclusive a publicação na nuvem e as zonas) | 228 |
 | Painéis de contratações e conformidade | 28 |
 | Vocabulário controlado e referência técnica | 66 |
-| Portal (TypeScript) | 107 |
+| Portal (TypeScript) | 110 |
 
 Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (verificado por teste).
 

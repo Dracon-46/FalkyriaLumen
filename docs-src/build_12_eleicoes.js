@@ -632,6 +632,7 @@ body.push(table(["Comando", "O que faz"], [4400, 5200], [
   ["lumen eleicoes municipios [--eleicao <id>]", "Grava municipios.json (TSE ↔ IBGE)"],
   ["lumen eleicoes mapas [--ufs] [--qualidade]", "Baixa as malhas do IBGE"],
   ["lumen eleicoes zonas [--anos]", "Baixa os locais de votação (2018 a 2026) e grava o mapa das zonas (seção 6.4)"],
+  ["lumen eleicoes mapas --contornos", "Baixa o contorno fino dos municípios listados nos índices das zonas (seção 6.4)"],
   ["lumen eleicoes ao-vivo --eleicao <id> [--nuvem]", "Coleta a apuração em andamento (seção 5); com --nuvem, publica a cada passada"],
   ["lumen eleicoes historico baixar --anos", "Baixa os ZIPs dos dados abertos (1933 a 2024)"],
   ["lumen eleicoes historico processar --anos", "Gera os feeds das eleições passadas"],
