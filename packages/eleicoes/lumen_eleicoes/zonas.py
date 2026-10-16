@@ -31,6 +31,7 @@ Arquivos gravados no diretório dos feeds::
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import math
@@ -53,6 +54,10 @@ from .transferencia import Manifesto, baixar_arquivo
 ANOS_LOCAIS = (2026, 2024, 2022, 2020, 2018)
 CONJUNTO_LOCAIS = "eleitorado_locais_votacao"
 VERSAO_ZONAS = 1
+# Revisão do cálculo (filtro dos locais, campos gravados). Sobe quando o que sai do mesmo ZIP muda: o
+# ``preparar`` grava de novo os anos gravados por uma revisão anterior. É independente de ``VERSAO_ZONAS``,
+# a versão do formato que o portal lê.
+REVISAO_ZONAS = 1
 DIR_ZONAS = "geo/zonas-{ano}"
 
 COLUNAS_LOCAIS = ("NR_TURNO", "SG_UF", "CD_MUNICIPIO", "NR_ZONA", "NR_LOCAL_VOTACAO", "NM_LOCAL_VOTACAO",
@@ -284,12 +289,34 @@ class ResumoZonas:
     sem_coordenada: int = 0
     fora_do_municipio: int = 0
     sem_malha: list[str] = field(default_factory=list)
+    # Municípios (código IBGE) sem o contorno fino: conferidos pela malha simplificada da UF.
+    # ``lumen eleicoes mapas --contornos`` baixa o que falta.
+    sem_contorno: list[str] = field(default_factory=list)
+    removidos: int = 0
 
     def para_json(self) -> dict:
         """Dicionário para imprimir em JSON."""
         return {"ano": self.ano, "municipios": self.municipios, "zonas": self.zonas, "locais": self.locais,
                 "sem_coordenada": self.sem_coordenada, "fora_do_municipio": self.fora_do_municipio,
-                "sem_malha": self.sem_malha}
+                "sem_malha": self.sem_malha, "sem_contorno": self.sem_contorno, "removidos": self.removidos}
+
+
+def assinatura_contornos() -> str:
+    """SHA-256 dos contornos finos que vêm com o pacote (nome e conteúdo de cada um, em ordem): mudou um
+    contorno, o mapa das zonas precisa ser gravado de novo."""
+    h = hashlib.sha256()
+    for p in sorted((DIR_DADOS / "geo" / "mu").glob("*.json")):
+        h.update(p.name.encode())
+        h.update(p.read_bytes())
+    return h.hexdigest()
+
+
+def municipios_dos_indices(raiz_feeds: Path | str) -> set[str]:
+    """Códigos IBGE de todos os municípios listados nos índices ``geo/zonas-<ano>/indice.json``."""
+    codigos: set[str] = set()
+    for indice in Path(raiz_feeds).glob("geo/zonas-*/indice.json"):
+        codigos.update(json.loads(indice.read_text(encoding="utf-8")).get("municipios") or {})
+    return codigos
 
 
 def arquivo_municipio(m: LocaisMunicipio, *, ano: int, ibge: str, nome: str, origem: dict,
@@ -337,7 +364,9 @@ def gravar_zonas(ano: int, zip_locais: Path | str, raiz_feeds: Path | str, cadas
     ou mais e o índice. Devolve o resumo.
 
     O contorno de cada município vem de ``malhas`` (por padrão, o ``geo`` do diretório dos feeds e, na
-    falta, o do pacote): o fino, ``mu/<ibge>.json``, quando existe, e a malha da UF. Município sem código IBGE ou sem área na malha da
+    falta, o do pacote): o fino, ``mu/<ibge>.json``, quando existe, e a malha da UF. Arquivo de município
+    que ficou de fora nesta gravação (deixou de ter mais de uma zona, por exemplo) é apagado: o portal só
+    lê os que o índice lista, mas o diretório fica igual ao que foi gravado. Município sem código IBGE ou sem área na malha da
     UF fica de fora (o portal não teria onde desenhá-lo) e é anotado no resumo.
     """
     raiz = Path(raiz_feeds)
@@ -374,6 +403,8 @@ def gravar_zonas(ano: int, zip_locais: Path | str, raiz_feeds: Path | str, cadas
             vizinhos = [a for codigo, a in aneis_uf.items() if codigo != cad.ibge]
             topo_fino = malha(f"mu/{cad.ibge}.json")
             fino = aneis_da_malha(topo_fino).get(cad.ibge) if topo_fino else None
+            if fino is None:
+                resumo.sem_contorno.append(cad.ibge)
             dados, sem, fora = arquivo_municipio(m, ano=ano, ibge=cad.ibge, nome=cad.nome, origem=origem,
                                                  aneis=aneis_uf[cad.ibge], vizinhos=vizinhos, fino=fino)
             _gravar_json(destino / f"mu-{cad.ibge}.json", dados)
@@ -383,6 +414,10 @@ def gravar_zonas(ano: int, zip_locais: Path | str, raiz_feeds: Path | str, cadas
             resumo.locais += len(dados["locais"])
             resumo.sem_coordenada += sem
             resumo.fora_do_municipio += fora
+    for antigo in destino.glob("mu-*.json") if destino.exists() else ():
+        if antigo.stem[3:] not in indice:
+            antigo.unlink()
+            resumo.removidos += 1
     _gravar_json(destino / "indice.json", {"versao": VERSAO_ZONAS, "tipo": "zonas-indice", "ano": ano,
                                            "origem": origem, "municipios": dict(sorted(indice.items()))})
     escrever(f"{ano}: {resumo.municipios} municípios com mais de uma zona, {resumo.locais} locais")

@@ -17,7 +17,7 @@ validados)::
     geo/br-uf.json          Brasil, uma geometria por UF (codarea = código da UF)
     geo/uf-<sigla>-mu.json  UF, uma geometria por município (codarea = código IBGE)
     geo/mu/<ibge>.json      contorno de um município na qualidade ``maxima``, para os que têm mais de
-                            uma zona eleitoral (``baixar_contornos``)
+                            uma zona eleitoral (``baixar_contornos``, ``lumen eleicoes mapas --contornos``)
 
 Na qualidade ``minima``, um município pequeno vira um polígono de quatro ou
 cinco pontos (Taboão da Serra, SP: 4; Olinda, PE: 6), bom para o mapa da UF e

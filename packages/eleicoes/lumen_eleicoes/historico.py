@@ -157,6 +157,8 @@ class ProcessadorAno:
                 self.progresso(f"{self.ano}: lendo detalhe da apuração")
                 totais = da.ler_detalhe(da.fluxos_do_zip(zf), pular_presidente_nos_estados=br)
             self.zonas_de = da.municipios_com_zonas(totais)
+            # Totais de zona só servem aos municípios com mais de uma; os demais sairiam da memória só no fim
+            totais = {k: t for k, t in totais.items() if k[2][0] != "zn" or (k[2][1], k[2][2]) in self.zonas_de}
         with da.abrir_zip(zip_votacao) as zf:
             nomes = zf.namelist()
             br = da.tem_arquivo_br(nomes)

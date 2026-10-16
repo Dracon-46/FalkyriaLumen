@@ -465,6 +465,8 @@ def test_zonas_no_feed_do_municipio(zips_2022, cadastro, tmp_path):
     assert z8["pct"] == pytest.approx(100 * 100 / 150) and z8["margem"] == pytest.approx(100 * 50 / 150)
     assert (z9["lider"], z9["cor"], z9["eleitorado"]) == ("13", 1, 60)       # as cores são as do Brasil
     assert z9["pct"] == pytest.approx(80.0) and z9["finalizada"] is True
+    # Quem se elege ou vai ao 2º turno é decidido no município, não na zona
+    assert not {"eleito", "segundo_turno", "bancada"} & (set(z8) | set(z9))
     # A soma das zonas é o município
     assert {c["numero"]: c["votos"] for c in acre["candidatos"]} == {"22": 110, "13": 90}
 
