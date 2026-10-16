@@ -24,7 +24,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterable, Mapping
 
 from . import dados_abertos as da
 from .feeds import (
@@ -107,13 +107,15 @@ class ProcessadorAno:
     def __init__(self, ano: int, escritor: EscritorFeeds, cadastro: CadastroMunicipios, *,
                  origem_votacao: Manifesto | None = None, origem_detalhe: Manifesto | None = None,
                  limite_candidatos_municipio: int = LIMITE_CANDIDATOS_MUNICIPIO,
-                 progresso: Callable[[str], None] | None = None):
+                 progresso: Callable[[str], None] | None = None,
+                 fotos_ao_vivo: Mapping[str, Iterable[str]] | None = None):
         """Prepara o estado que se acumula ao longo do ano.
 
         A origem dos feeds vem do manifesto do ZIP de votação quando há um (URL, SHA-256 e instante do
         download); sem ele, só a URL oficial do conjunto. Os dicionários guardam o que só pode ser emitido no
         fim — índice, panoramas nacionais, vagas somadas das UFs —, porque cada CSV é emitido e descartado
-        antes de o próximo ser aberto.
+        antes de o próximo ser aberto. ``fotos_ao_vivo`` (id da eleição → ``sq`` dos candidatos cuja foto a
+        coleta ao vivo baixou) deixa os feeds com as fotos que já estão publicadas.
         """
         self.ano = ano
         self.escritor = escritor
@@ -138,6 +140,7 @@ class ProcessadorAno:
         self.ultimo_estadual: dict[tuple[str, int], datetime] = {}
         self.finais_br: dict[tuple[str, int], ResultadoAbrangencia] = {}
         self.zonas_de: set[tuple[str, str]] = set()
+        self.fotos_ao_vivo = {eid: set(sqs) for eid, sqs in (fotos_ao_vivo or {}).items()}
 
     # ------------------------------------------------------------ entrada
 
@@ -220,6 +223,14 @@ class ProcessadorAno:
             self.resumo.municipios_sem_ibge.add(f"{uf}{tse}")
         return abrangencia_municipio(m)
 
+    def _fotos(self, e: Eleicao, cargo: Cargo, pasta: str) -> dict[str, str]:
+        """``sq`` → caminho da foto que a coleta ao vivo da mesma eleição baixou, no mesmo desenho do
+        coletor (``fotos/<ciclo>/<eleição no TSE>/<br ou UF>/<sq>.jpeg``; ver ``coletor._fotos``)."""
+        sqs = self.fotos_ao_vivo.get(e.id)
+        if not sqs or not cargo.eleicao_tse:
+            return {}
+        return {sq: f"fotos/ele{e.ano}/{cargo.eleicao_tse}/{pasta}/{sq}.jpeg" for sq in sqs}
+
     # ------------------------------------------------------------ emissão
 
     def _emitir(self, agregador: da.AgregadorVotacao, totais: dict) -> None:
@@ -276,7 +287,9 @@ class ProcessadorAno:
             topo = resultados[("br",)]
             cores_br = atribuir_cores(_ordem_cores(topo))
         partes_br = []
+        fotos_br = self._fotos(e, cargo, "br")
         for uf in ufs:
+            fotos = fotos_br if nivel is Nivel.BRASIL else self._fotos(e, cargo, uf)
             r_uf = resultados[("uf", uf)]
             if nivel is Nivel.BRASIL:
                 cores = cores_br
@@ -291,11 +304,11 @@ class ProcessadorAno:
                 self.escritor.gravar(e.id, cargo.slug, abr_mu, feed_resultado(
                     eleicao=e, cargo=cargo, abr=abr_mu, resultado=r_mu, cores=cores, origem=self.origem,
                     limite_candidatos=self.limite if por_partido else None,
-                    partes=_partes_zonas(chave, zonas, cores, por_partido)))
+                    partes=_partes_zonas(chave, zonas, cores, por_partido), fotos=fotos))
             abr_uf = abrangencia_uf(uf)
             self.escritor.gravar(e.id, cargo.slug, abr_uf, feed_resultado(
                 eleicao=e, cargo=cargo, abr=abr_uf, resultado=r_uf, cores=cores, origem=self.origem,
-                partes=partes_uf))
+                partes=partes_uf, fotos=fotos))
             if r_uf.vagas:
                 self.vagas[e.id][cargo.codigo] = self.vagas[e.id].get(cargo.codigo, 0) + r_uf.vagas
             if nivel is Nivel.BRASIL:
@@ -313,7 +326,7 @@ class ProcessadorAno:
             r_br = resultados[("br",)]
             self.escritor.gravar(e.id, cargo.slug, abrangencia_brasil(), feed_resultado(
                 eleicao=e, cargo=cargo, abr=abrangencia_brasil(), resultado=r_br, cores=cores_br,
-                origem=self.origem, partes=partes_br))
+                origem=self.origem, partes=partes_br, fotos=fotos_br))
             self.finais_br[(e.id, cargo.codigo)] = r_br
             if r_br.vagas:
                 self.vagas[e.id][cargo.codigo] = r_br.vagas
@@ -339,7 +352,7 @@ class ProcessadorAno:
                 cores = atribuir_cores(_ordem_cores(r))
             self.escritor.gravar(e.id, cargo.slug, abr, feed_resultado(
                 eleicao=e, cargo=cargo, abr=abr, resultado=r, cores=cores, origem=self.origem,
-                partes=_partes_zonas(chave, zonas, cores, por_partido)))
+                partes=_partes_zonas(chave, zonas, cores, por_partido), fotos=self._fotos(e, cargo, chave[1])))
             # No panorama, a linha do município mostra o partido do líder (ou,
             # para vereador, o partido mais votado e a bancada eleita); a cor
             # é atribuída lá, pela ordem do placar.

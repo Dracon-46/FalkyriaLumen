@@ -59,7 +59,7 @@ def _lista(texto: str | None) -> list[str] | None:
 def _anos(texto: str) -> list[int]:
     """Tipo do argparse para ``--anos``: anos sem repetição, do mais recente ao mais antigo.
 
-    ``todos`` são todos os anos dos dados abertos, de 2024 a 1933. Recusa ano sem eleição ordinária nos
+    ``todos`` são todos os anos dos dados abertos, de 2026 a 1933. Recusa ano sem eleição ordinária nos
     dados abertos (fora de ``carga.anos_disponiveis``).
     """
     if texto.strip().lower() == "todos":
@@ -326,7 +326,7 @@ def cmd_historico_processar(cfg, args) -> int:
 
 
 def cmd_preparar(cfg, args) -> int:
-    """Deixa a aba pronta: mapa, portal, 2026 do sistema de resultados e os dados abertos de 1933 a 2024.
+    """Deixa a aba pronta: mapa, portal, 2026 do sistema de resultados e os dados abertos de 1933 a 2026.
 
     Retomável; imprime o andamento e, no fim, o resumo em JSON. Devolve 1 se alguma etapa falhou.
     """
@@ -465,7 +465,7 @@ def construir_parser() -> argparse.ArgumentParser:
 
     c = sub.add_parser("preparar", help="tudo num comando: mapa, portal e as eleições de 1933 a 2026")
     c.add_argument("--servir", action="store_true", help="sobe o portal e abre o navegador antes da carga")
-    c.add_argument("--anos", type=_anos, help="anos dos dados abertos (padrão: todos, de 2024 a 1933)")
+    c.add_argument("--anos", type=_anos, help="anos dos dados abertos (padrão: todos, de 2026 a 1933)")
     c.add_argument("--sem-ao-vivo", action="store_true", help="não coleta o sistema de resultados (2026)")
     c.add_argument("--sem-historico", action="store_true", help="não baixa os dados abertos")
     c.add_argument("--sem-zonas", action="store_true", help="não baixa os locais de votação (mapa das zonas)")

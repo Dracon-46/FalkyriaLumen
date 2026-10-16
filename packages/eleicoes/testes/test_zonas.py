@@ -253,7 +253,7 @@ def test_comando_zonas(cfg, cdn, capsys, monkeypatch):
         cli._anos_locais("2016")
 
 
-def test_etapa_das_zonas_no_preparar(cfg, cdn):
+def test_etapa_das_zonas_no_preparar(cfg, cdn, monkeypatch):
     linhas = []
     op = preparacao.OpcoesPreparacao(anos=[2026], ao_vivo=False, portal=False, bronze=False, apagar_arquivos=True)
     prep = preparacao.Preparacao(cfg, op, saida=linhas.append, hoje=date(2026, 10, 15), dormir=lambda s: None)
@@ -261,12 +261,13 @@ def test_etapa_das_zonas_no_preparar(cfg, cdn):
     assert prep.resumo.zonas == [{"ano": 2026, "situacao": "gravadas", "municipios": 2, "locais": 33}]
     assert prep.estado.zonas_prontas(2026) and not (cfg.arquivos / "locais" / "eleitorado_local_votacao_2026.zip").exists()
     assert prep.anos_das_zonas() == [2026]
-    prep.carregar_zonas(2026)
-    assert prep.resumo.zonas[-1] == {"ano": 2026, "situacao": "já gravadas"}
-    # Com --atualizar e a mesma fonte: não grava de novo
-    prep.op.atualizar = True
+    # 2026 é o ano em aberto: conferido na fonte a cada execução, e com a mesma fonte não grava de novo
     prep.carregar_zonas(2026)
     assert prep.resumo.zonas[-1] == {"ano": 2026, "situacao": "sem mudança na fonte"}
+    # Ano fechado já gravado: nem consulta a fonte
+    monkeypatch.setattr(preparacao.da, "ANO_EM_ABERTO", 2030)
+    prep.carregar_zonas(2026)
+    assert prep.resumo.zonas[-1] == {"ano": 2026, "situacao": "já gravadas"}
     # Ano que a fonte não tem: vira erro do resumo, sem derrubar a carga
     prep.carregar_zonas(2024)
     assert prep.resumo.zonas[-1] == {"ano": 2024, "situacao": "erro"} and prep.resumo.erros

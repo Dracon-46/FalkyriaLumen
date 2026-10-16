@@ -553,3 +553,29 @@ def test_evolucao_do_presidente(zips_2022, cadastro, tmp_path):
     assert numeros[:2] == ["22", "13"] and "OUTRO" in numeros
     # Sem a eleição processada, não há o que casar
     assert not ProcessadorAno(2018, EscritorFeeds(saida), cadastro).gravar_evolucao(1, io.BytesIO(b""))
+
+
+def test_fotos_da_coleta_ao_vivo_ficam_no_feed_dos_dados_abertos(zips_2022, cadastro, tmp_path):
+    from lumen_eleicoes import carga
+    estado = tmp_path / "estado"
+    estado.mkdir()
+    (estado / "coleta-2022-1t-geral.json").write_text(json.dumps({"fotos": ["1", "10"]}), encoding="utf-8")
+    (estado / "coleta-2022-2t-geral.json").write_text("{}", encoding="utf-8")       # sem fotos
+    (estado / "coleta-2022-x.json").write_text("ilegível", encoding="utf-8")
+    fotos = carga.fotos_da_coleta(estado, 2022)
+    assert fotos == {"2022-1t-geral": {"1", "10"}}
+    votacao, detalhe_zip = zips_2022
+    saida = tmp_path / "feeds"
+    ProcessadorAno(2022, EscritorFeeds(saida), cadastro, fotos_ao_vivo=fotos).processar(votacao, detalhe_zip)
+    br = ler_feed(saida, "2022-1t-geral", "presidente", "br.json")
+    por_numero = {c["numero"]: c["foto"] for c in br["candidatos"]}
+    # Presidente: pasta "br" e o código da eleição no TSE; quem não tem foto na coleta fica sem
+    assert por_numero["22"] == "fotos/ele2022/546/br/1.jpeg" and por_numero["13"] is None
+    gov = ler_feed(saida, "2022-1t-geral", "governador", "uf-ac.json")
+    assert {c["numero"]: c["foto"] for c in gov["candidatos"]}["45"] == "fotos/ele2022/546/ac/10.jpeg"
+    mu = ler_feed(saida, "2022-1t-geral", "presidente", "mu-1200013.json")
+    assert {c["numero"]: c["foto"] for c in mu["candidatos"]}["22"] == "fotos/ele2022/546/br/1.jpeg"
+    # Sem coleta ao vivo, sem foto
+    outra = tmp_path / "f2"
+    ProcessadorAno(2022, EscritorFeeds(outra), cadastro).processar(votacao, detalhe_zip)
+    assert all(c["foto"] is None for c in ler_feed(outra, "2022-1t-geral", "presidente", "br.json")["candidatos"])

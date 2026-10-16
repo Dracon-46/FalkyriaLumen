@@ -47,7 +47,7 @@ import webbrowser
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterable
 
 from lumen_ingestao.bronze import ArmazemBronze, ArmazemBronzeLocal
 from lumen_ingestao.cliente_http import ClienteHttp
@@ -206,14 +206,25 @@ def dentro_de(caminho: Path, pasta: Path) -> bool:
 
 # ---------------------------------------------------------------- sistema de resultados
 
-def eleicoes_ao_vivo(eleicoes: list[Eleicao], hoje: date) -> tuple[list[Eleicao], list[Eleicao]]:
+def eleicoes_ao_vivo(eleicoes: list[Eleicao], hoje: date, processadas: Iterable[str] = (),
+                     ) -> tuple[list[Eleicao], list[Eleicao]]:
     """Separa as eleições do sistema de resultados em (coletar agora, ainda por acontecer).
 
-    Entram as ordinárias (geral e municipal) cujo ano ainda não está nos dados abertos; as que já estão
-    são processadas pelos arquivos completos. Eleição com data futura fica para a noite da apuração.
+    Entram as ordinárias (geral e municipal) que os dados abertos ainda não trazem; as que já trazem são
+    processadas pelos arquivos completos. Nos anos fechados vale o ano; no ano em aberto
+    (``da.ANO_EM_ABERTO``), a eleição: o 1º turno de 2026 sai dos dados abertos depois de processado
+    (``processadas``, os ids que o processamento gravou), e o 2º turno continua ao vivo. Eleição com data
+    futura fica para a noite da apuração.
     """
     nos_dados_abertos = set(da.ANOS_GERAIS) | set(da.ANOS_MUNICIPAIS)
-    candidatas = [e for e in eleicoes if e.tipo in TIPOS_AO_VIVO and e.ano not in nos_dados_abertos]
+    feitas = set(processadas)
+
+    def nos_arquivos(e: Eleicao) -> bool:
+        if e.ano == da.ANO_EM_ABERTO:
+            return e.id in feitas
+        return e.ano in nos_dados_abertos
+
+    candidatas = [e for e in eleicoes if e.tipo in TIPOS_AO_VIVO and not nos_arquivos(e)]
     agora = [e for e in candidatas if e.data is None or e.data <= hoje]
     futuras = [e for e in candidatas if e.data is not None and e.data > hoje]
     return agora, futuras
@@ -417,7 +428,8 @@ class Preparacao:
             self.resumo.erros.append(f"catálogo do sistema de resultados: {erro}")
             self.saida(f"erro: catálogo do sistema de resultados: {erro}")
             return
-        agora, futuras = eleicoes_ao_vivo(catalogo, self.hoje)
+        processadas = {eid for registro in self.estado.anos.values() for eid in registro.get("eleicoes") or ()}
+        agora, futuras = eleicoes_ao_vivo(catalogo, self.hoje, processadas)
         for e in futuras:
             self.saida(f"{e.id}: em {e.data:%d/%m/%Y}; na noite da apuração rode "
                        f"`lumen eleicoes ao-vivo --eleicao {e.id}`")
@@ -479,14 +491,18 @@ class Preparacao:
         return [a for a in zonas.ANOS_LOCAIS if not self.op.anos or a in self.op.anos]
 
     def carregar_zonas(self, ano: int) -> None:
-        """Etapa 5, um ano: baixa os locais de votação, confere se mudaram e grava o mapa das zonas."""
-        if self.estado.zonas_prontas(ano) and not (self.op.refazer or self.op.atualizar):
+        """Etapa 5, um ano: baixa os locais de votação, confere se mudaram e grava o mapa das zonas.
+
+        O ano em aberto é sempre conferido na fonte (o eleitorado do 2º turno muda o arquivo).
+        """
+        atualizar = self.op.atualizar or ano == da.ANO_EM_ABERTO
+        if self.estado.zonas_prontas(ano) and not (self.op.refazer or atualizar):
             self.saida(f"{ano}: zonas já gravadas")
             self.resumo.zonas.append({"ano": ano, "situacao": "já gravadas"})
             return
         try:
             caminho, manifesto = zonas.baixar_locais(self.cfg, ano, bronze=self.bronze,
-                                                     atualizar=self.op.atualizar, saida=self.saida)
+                                                     atualizar=atualizar, saida=self.saida)
             entradas = {manifesto.arquivo: manifesto.sha256}
             if (self.estado.zonas_prontas(ano) and not self.op.refazer
                     and entradas == self.estado.entradas_das_zonas(ano)):
@@ -508,14 +524,19 @@ class Preparacao:
         self.sincronizar()
 
     def carregar_ano(self, ano: int) -> None:
-        """Etapas 6 e 7, um ano: baixa, confere se mudou, processa e registra. Erro vira item do resumo."""
-        if self.estado.ano_pronto(ano) and not (self.op.refazer or self.op.atualizar):
+        """Etapas 6 e 7, um ano: baixa, confere se mudou, processa e registra. Erro vira item do resumo.
+
+        O ano em aberto (``da.ANO_EM_ABERTO``) é sempre conferido na fonte, como com ``--atualizar``: o TSE
+        acrescenta o 2º turno ao mesmo arquivo depois da eleição.
+        """
+        atualizar = self.op.atualizar or ano == da.ANO_EM_ABERTO
+        if self.estado.ano_pronto(ano) and not (self.op.refazer or atualizar):
             self.saida(f"{ano}: já processado")
             self.resumo.anos.append({"ano": ano, "situacao": "já processado"})
             return
         try:
             manifestos = carga.baixar_ano(self.cfg, self.cliente_dados, ano, bronze=self.bronze,
-                                          atualizar=self.op.atualizar, saida=self.saida, aviso=self.saida)
+                                          atualizar=atualizar, saida=self.saida, aviso=self.saida)
             entradas = {m.arquivo: m.sha256 for m in manifestos}
             if (self.estado.ano_pronto(ano) and not self.op.refazer
                     and entradas == self.estado.entradas_do_ano(ano)):
