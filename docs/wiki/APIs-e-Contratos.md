@@ -65,6 +65,16 @@ Sem chave: são os arquivos de dados abertos, e não a API, que pede `chave-api-
 cadastro inteiro num dia; a normalização grava `sancao` na silver, com o CPF de pessoa física mascarado e
 a `data_referencia` do retrato.
 
+### PNTP — Radar da Transparência Pública (tribunais de contas e Atricon)
+
+| Endereço | Uso |
+|---|---|
+| `https://radardatransparencia.atricon.org.br/downloads.html` | Lista as bases por ciclo |
+| `https://radardatransparencia.atricon.org.br/dados/dados_pntp_AAAA.zip` | Base do ciclo (338 MB em 2025); o Lumen lê só `pntp_AAAA/avaliacoes_pntp_AAAA.xlsx`, por `Range` (`pntp_avaliacoes`) |
+
+Uma linha por entidade avaliada (11.697 em 2025): índice e nível de transparência e endereço do portal
+([ADR-032](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-032.md)).
+
 ### TSE
 
 | Endereço | Uso |
@@ -225,7 +235,8 @@ decisão 8). Contrato com pessoa física ou estrangeira só entra numa soma anô
 
 | Comando | O que faz |
 |---|---|
-| `lumen coletar <fonte> --de AAAA-MM-DD [--ate AAAA-MM-DD]` | Coleta uma fonte para o bronze. Fontes: `ibge_localidades`, `ibge_populacao`, `pncp_atas`, `pncp_atas_atualizacao`, `pncp_contratacoes`, `pncp_contratacoes_atualizacao`, `pncp_contratos`, `pncp_contratos_atualizacao`, `pncp_itens`, `siconfi_entes`, `siconfi_extrato`, `cgu_ceis`, `cgu_cnep`, `cgu_cepim` (estas três sem `--de`: a coleta pega o retrato mais recente) |
+| `lumen coletar <fonte> --de AAAA-MM-DD [--ate AAAA-MM-DD]` | Coleta uma fonte para o bronze. Fontes: `ibge_localidades`, `ibge_populacao`, `pncp_atas`, `pncp_atas_atualizacao`, `pncp_contratacoes`, `pncp_contratacoes_atualizacao`, `pncp_contratos`, `pncp_contratos_atualizacao`, `pncp_itens`, `siconfi_entes`, `siconfi_extrato`, `cgu_ceis`, `cgu_cnep`, `cgu_cepim` (estas três sem `--de`: a coleta pega o retrato mais recente), `pntp_avaliacoes` (sem `--de`; `--ciclos 2024,2025`) |
+| `lumen deteccao j01 --estado DIR [--saida ARQ] [--resumo ARQ] [--privado]` | Regra J-01 em modo silencioso: contratos do painel × CEIS e CNEP; imprime só contagens (ADR-031) |
 | `… --modalidades 6,8` | Só PNCP contratações: códigos de modalidade |
 | `… --entes <IBGE> --exercicio <ano>` | Só SICONFI extrato |
 | `… --objeto "<expressão>" [--sem-resultados] [--so-comparaveis]` | Só PNCP itens: itens dos processos da silver cujo objeto casa com a expressão |

@@ -109,9 +109,11 @@ Da seção "Pendente" do README:
 - **Fonte para "quem autorizou o ato".** A API do PNCP não publica o agente
   ([ADR-017](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-017.md)), e o DOC-08
   exige essa informação para publicar indício.
-- **Portais da transparência municipais** (ADR-028): o que não passa pelo PNCP. Próximos passos:
-  cadastro do portal de cada município, conformidade de transparência (RF-CF-01, 03 e 04) e leitura
-  por fornecedor de sistema.
+- **Portais da transparência municipais** (ADR-028): o que não passa pelo PNCP. O cadastro dos
+  portais de todos os entes vem do PNTP (ADR-032). Próximos passos: o nível do PNTP nos painéis e a
+  leitura dos próprios portais, por fornecedor de sistema.
+- **Regra J-01** (ADR-031): sanções da CGU × contratos do painel, em modo silencioso a cada carga;
+  calibrar e revisar antes de publicar.
 - **Fase 1 restante:** base de CNPJ da Receita Federal, grupos de pares e painel operacional. Os
   cadastros de sanções da CGU já entram no pipeline; o cruzamento com as contratações é a regra J-01 da
   Fase 2.

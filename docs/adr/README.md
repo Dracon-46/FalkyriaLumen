@@ -36,9 +36,11 @@ nunca apagadas: uma ADR substituída continua aqui, marcada como tal.
 | [028](ADR-028.md) | Painéis de contratações e de conformidade: fatos publicados, sem indício | **proposta** |
 | [029](ADR-029.md) | Zonas eleitorais no mapa do município: resultado por zona e contorno aproximado | **proposta** |
 | [030](ADR-030.md) | Sanções da CGU (CEIS, CNEP e CEPIM) pelos arquivos de dados abertos, em retrato diário e com CPF mascarado | **proposta** |
+| [031](ADR-031.md) | Regra J-01 em modo silencioso: contratos do painel cruzados com o CEIS e o CNEP a cada carga | **proposta** |
+| [032](ADR-032.md) | Cadastro nacional dos portais de transparência pelo PNTP, lido por partes de dentro do ZIP | **proposta** |
 
 As ADRs 011 a 015 foram tomadas durante a implementação da Fase 0, e as 016 a
-030 durante a Fase 1 e a criação da aba Eleições; todas aguardam revisão. Para aceitar, troque a situação para `aceita`. Para rejeitar, marque
+032 durante a Fase 1 e a criação da aba Eleições; todas aguardam revisão. Para aceitar, troque a situação para `aceita`. Para rejeitar, marque
 `rejeitada` com o motivo — não apague o arquivo.
 
 ## Nova ADR
