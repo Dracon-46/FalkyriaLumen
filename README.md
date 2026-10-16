@@ -41,7 +41,9 @@ não é refeito. Detalhes no DOC-12, seção 9.1.
 
 A carga, a publicação e o portal rodam em serviços gratuitos (ADR-026): a carga no GitHub
 Actions, os feeds no Cloudflare R2 e o portal no Cloudflare Pages. A carga é retomável entre
-execuções: o estado fica num bucket privado, e cada execução só envia o que mudou.
+execuções: o estado fica num bucket privado, e cada execução só envia o que mudou. Em uso desde
+14/10/2026: feeds no Supabase Storage e portal na Vercel (abaixo, "Sem cartão" e "Portal na
+Vercel"); R2 e Pages continuam como alternativa.
 
 | Fluxo | Quando | O que faz |
 |---|---|---|
@@ -156,6 +158,32 @@ Os diagramas estão em [`docs/diagramas/`](docs/diagramas/) em PNG. As decisões
 arquiteturais estão em [`docs/adr/`](docs/adr/README.md); o histórico de versões, no
 [CHANGELOG](CHANGELOG.md).
 
+### Guia do projeto (Wiki)
+
+A [Wiki](https://github.com/Dracon-46/FalkyriaLumen/wiki) resume os documentos em páginas curtas.
+As páginas ficam em [`docs/wiki/`](docs/wiki/Home.md), passam por revisão no PR e o fluxo `wiki.yml`
+as publica a cada mudança na `main`.
+
+| Assunto | Página |
+|---|---|
+| Objetivo, problema, público e escopo | [Visão geral](docs/wiki/Visao-Geral.md) |
+| Requisitos funcionais e não funcionais | [Requisitos](docs/wiki/Requisitos.md) |
+| Arquitetura e fluxo dos dados | [Arquitetura](docs/wiki/Arquitetura.md) |
+| Tecnologias e o porquê de cada uma | [Tecnologias](docs/wiki/Tecnologias.md) |
+| Organização dos pacotes e componentes | [Componentes](docs/wiki/Componentes.md) |
+| Pré-requisitos, instalação e execução | [Instalação e execução](docs/wiki/Instalacao-e-Execucao.md) |
+| `lumen.toml`, variáveis de ambiente e segredos | [Configuração e variáveis](docs/wiki/Configuracao-e-Variaveis.md) |
+| Fontes consumidas, contrato dos feeds e comandos | [APIs e contratos](docs/wiki/APIs-e-Contratos.md) |
+| Modelo de dados e migrações | [Banco de dados](docs/wiki/Banco-de-Dados.md) |
+| Suíte, CI e fixtures | [Testes](docs/wiki/Testes.md) |
+| Publicação, cargas e noite da eleição | [Deploy e operação](docs/wiki/Deploy-e-Operacao.md) |
+| Fases e pendências | [Roadmap](docs/wiki/Roadmap.md) |
+
+Para contribuir: [CONTRIBUTING](CONTRIBUTING.md), [código de conduta](CODE_OF_CONDUCT.md) e,
+para relatar uma falha de segurança em privado, [SECURITY](SECURITY.md). Rótulos e marcos do
+repositório ficam em [`.github/organizacao.json`](.github/organizacao.json) (fluxo
+`organizacao.yml`); cada tag `vX.Y.Z` gera a release com as notas do CHANGELOG (`release.yml`).
+
 ## Princípios inegociáveis
 
 Têm precedência sobre qualquer requisito funcional. Em caso de conflito, a funcionalidade é
@@ -181,11 +209,11 @@ descartada ou redesenhada.
 | Camada bronze (prova) | Disco local ou armazenamento de objetos S3 com Object Lock (ADR-018) | em uso |
 | Camada silver | JSON Lines particionado, lido por DuckDB (ADR-016) | em uso |
 | Domínio, indícios e auditoria | PostgreSQL 16; na nuvem, Supabase Free (ADR-026) | migração testada |
-| Portal | Next.js com exportação estática (ADR-019) | aba Eleições |
+| Portal | Next.js com exportação estática (ADR-019) | Eleições, Contratações e Conformidade |
 | Orquestração | Dagster | Fase 2 |
 | Busca textual | OpenSearch | Fase 3 |
 | API pública | Node.js + TypeScript | Fase 3 |
-| Hospedagem sem custo | Cloudflare R2 (feeds, estado, Parquet), Cloudflare Pages (portal), GitHub Actions (carga) — ADR-026 | fluxos prontos |
+| Hospedagem sem custo | GitHub Actions (carga), Supabase Storage (feeds e estado) e Vercel (portal); Cloudflare R2 e Pages como alternativa — ADR-026 | em uso |
 
 A justificativa de cada escolha está registrada como ADR (DOC-04 e `docs/adr/`).
 

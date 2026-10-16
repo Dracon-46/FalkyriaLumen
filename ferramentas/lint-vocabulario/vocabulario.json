@@ -73,7 +73,13 @@
     "packages/conformidade/**/*.py",
     "packages/eleicoes/lumen_eleicoes/**/*.py", "packages/mercado/lumen_mercado/**/*.py", "packages/painel/lumen_painel/**/*.py",
     "conteudo/**/*.md",
-    "README.md"
+    "README.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "CODE_OF_CONDUCT.md",
+    "docs/wiki/**/*.md",
+    ".github/pull_request_template.md",
+    ".github/ISSUE_TEMPLATE/*.yml"
   ],
   "_nota_isentos": "Arquivos que legitimamente armazenam texto de terceiros, como a manifestacao enviada por um ente na contestacao, que pode conter qualquer palavra.",
   "isentos": [
