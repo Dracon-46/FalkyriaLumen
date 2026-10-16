@@ -73,6 +73,7 @@
     "packages/deteccao/lumen_deteccao/**/*.py",
     "packages/conformidade/**/*.py",
     "packages/eleicoes/lumen_eleicoes/**/*.py", "packages/mercado/lumen_mercado/**/*.py", "packages/painel/lumen_painel/**/*.py",
+    "packages/economia/lumen_economia/**/*.py",
     "conteudo/**/*.md",
     "README.md",
     "CONTRIBUTING.md",

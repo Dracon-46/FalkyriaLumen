@@ -6,7 +6,8 @@
 #    contratacoes-AAAA-MM-DD.json.gz, guardado nos anexos da versão
 #    "painel-estado" do repositório; um dia com falha na coleta não é gravado
 #    e volta na execução seguinte. Atualiza também o cadastro de entes do
-#    SICONFI (uma requisição).
+#    SICONFI (uma requisição) e as séries de Economia e Contas Públicas do
+#    SGS do Banco Central (uma requisição por série, ADR-033).
 # 2. conformidade (segundas-feiras, ou à mão): o extrato de entregas do
 #    SICONFI de todos os entes, em cinco grupos de UFs em paralelo, para o
 #    exercício anterior e o corrente; um arquivo por UF no mesmo lugar.
@@ -77,6 +78,12 @@ jobs:
         run: |
           lumen painel cadastro --estado estado
           gh release upload "$TAG" estado/cadastro-entes.json.gz --clobber
+      - name: Economia (séries do SGS do Banco Central)
+        continue-on-error: true
+        run: |
+          gh release download "$TAG" -p economia-sgs.json.gz -D estado --clobber || true
+          lumen economia coletar --estado estado
+          gh release upload "$TAG" estado/economia-sgs.json.gz --clobber
       - name: Dias do PNCP que faltam
         run: lumen painel contratacoes --estado estado --ultimos "$ULTIMOS" --limite-minutos 240
       - name: Guardar os dias novos

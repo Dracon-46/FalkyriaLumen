@@ -13,6 +13,7 @@ Exemplos::
     lumen mercado ...                     # referência de mercado fora do governo (ver lumen_mercado)
     lumen painel ...                      # painéis de contratações e conformidade (ver lumen_painel)
     lumen deteccao ...                    # regras de detecção em modo silencioso (ver lumen_deteccao)
+    lumen economia ...                    # Economia e Contas Públicas: séries do Banco Central (ver lumen_economia)
 """
 
 from __future__ import annotations
@@ -59,8 +60,8 @@ def _lista_str(texto: str) -> tuple[str, ...]:
 def main(argv: list[str] | None = None) -> int:
     """Ponto de entrada do comando ``lumen``: interpreta os argumentos e despacha para a etapa pedida.
 
-    Os subcomandos ``eleicoes``, ``mercado``, ``painel`` e ``deteccao`` são repassados inteiros aos CLIs de
-    ``lumen_eleicoes``, ``lumen_mercado``, ``lumen_painel`` e ``lumen_deteccao``; ``coletar pncp_itens`` busca os itens dos
+    Os subcomandos ``eleicoes``, ``mercado``, ``painel``, ``deteccao`` e ``economia`` são repassados inteiros
+    aos CLIs de ``lumen_eleicoes``, ``lumen_mercado``, ``lumen_painel``, ``lumen_deteccao`` e ``lumen_economia``; ``coletar pncp_itens`` busca os itens dos
     processos da silver publicados na janela (e cujo objeto casa com ``--objeto``, quando dado). Os demais
     leem a configuração e imprimem o resumo em JSON. O código de saída é 2 para configuração ou argumento ausente e
     1 quando a coleta tem falhas ou o bronze tem conteúdo corrompido, para que scripts e a CI percebam.
@@ -95,6 +96,7 @@ def main(argv: list[str] | None = None) -> int:
                    add_help=False)
     sub.add_parser("deteccao", help="regras de detecção em modo silencioso (repassa para lumen_deteccao)",
                    add_help=False)
+    sub.add_parser("economia", help="Economia e Contas Públicas (repassa para lumen_economia)", add_help=False)
 
     args, resto = parser.parse_known_args(argv)
     saida_log = logging.StreamHandler()
@@ -107,6 +109,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.comando == "mercado":
         from lumen_mercado.cli import main as main_mercado
         return main_mercado(["--config", args.config, *resto] if args.config else resto)
+    if args.comando == "economia":
+        from lumen_economia.cli import main as main_economia
+        return main_economia(["--config", args.config, *resto] if args.config else resto)
     if args.comando == "deteccao":
         from lumen_deteccao.cli import main as main_deteccao
         return main_deteccao(["--config", args.config, *resto] if args.config else resto)

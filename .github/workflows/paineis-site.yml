@@ -55,6 +55,10 @@ jobs:
           ls estado | sed -e 's/-[0-9-]*\.json\.gz$//' -e 's/-[A-Z]*\.json\.gz$//' | sort | uniq -c
       - name: Montar o site
         run: lumen painel publicar --estado estado --saida site | tee resumo.json
+      - name: Economia e Contas Públicas
+        run: |
+          if [ -s estado/economia-sgs.json.gz ]; then lumen economia publicar --estado estado --saida site
+          else echo "::notice::Sem estado da economia ainda: a página fica sem dados até a primeira coleta."; fi
       - name: Resumo
         run: |
           {

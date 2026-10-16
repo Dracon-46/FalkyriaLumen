@@ -33,6 +33,7 @@ where = [
   "packages/eleicoes",
   "packages/mercado",
   "packages/painel",
+  "packages/economia",
 ]
 include = ["lumen_*"]
 
@@ -66,6 +67,7 @@ pythonpath = [
   "packages/eleicoes",
   "packages/mercado",
   "packages/painel",
+  "packages/economia",
   "ferramentas/lint-vocabulario",
   "ferramentas/referencia",
 ]
@@ -79,6 +81,7 @@ testpaths = [
   "packages/eleicoes/testes",
   "packages/mercado/testes",
   "packages/painel/testes",
+  "packages/economia/testes",
   "ferramentas/lint-vocabulario/testes",
   "ferramentas/referencia/testes",
   "testes/contrato",
