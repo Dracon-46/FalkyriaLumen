@@ -1,0 +1,53 @@
+# Rótulos e marcos do repositório a partir de .github/organizacao.json.
+#
+# Como a Wiki, a organização do repositório fica versionada: mudar um rótulo ou
+# um marco é um PR neste arquivo, e o fluxo aplica a mudança na main. Cria o
+# que falta e atualiza cor, descrição e data do que já existe; nunca apaga
+# (rótulo ou marco em uso não some por engano).
+
+name: organizacao
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/organizacao.json"
+      - ".github/workflows/organizacao.yml"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  aplicar:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Rótulos
+        run: |
+          set -euo pipefail
+          jq -c '.rotulos[]' .github/organizacao.json | while read -r r; do
+            nome=$(jq -r .nome <<<"$r"); cor=$(jq -r .cor <<<"$r"); desc=$(jq -r .descricao <<<"$r")
+            gh label create "$nome" --color "$cor" --description "$desc" --force
+          done
+      - name: Marcos
+        run: |
+          set -euo pipefail
+          existentes=$(gh api "repos/$GH_REPO/milestones?state=all&per_page=100")
+          jq -c '.marcos[]' .github/organizacao.json | while read -r m; do
+            titulo=$(jq -r .titulo <<<"$m"); data=$(jq -r .data <<<"$m"); desc=$(jq -r .descricao <<<"$m")
+            numero=$(jq -r --arg t "$titulo" '.[] | select(.title == $t) | .number' <<<"$existentes")
+            if [ -n "$numero" ]; then
+              gh api -X PATCH "repos/$GH_REPO/milestones/$numero" -f description="$desc" -f due_on="${data}T23:59:59Z" >/dev/null
+              echo "atualizado: #$numero $titulo"
+            else
+              numero=$(gh api -X POST "repos/$GH_REPO/milestones" -f title="$titulo" -f description="$desc" \
+                -f due_on="${data}T23:59:59Z" --jq .number)
+              echo "criado: #$numero $titulo"
+            fi
+            echo "- #$numero $titulo ($data)" >> "$GITHUB_STEP_SUMMARY"
+          done

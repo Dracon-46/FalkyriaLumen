@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Vulnerabilidade de segurança
+    url: https://github.com/Dracon-46/FalkyriaLumen/security/advisories/new
+    about: Relate falhas de segurança em privado, pelo GitHub Security Advisories. Não abra issue pública.
+  - name: Documentação do projeto (Wiki)
+    url: https://github.com/Dracon-46/FalkyriaLumen/wiki
+    about: Instalação, configuração, contratos dos feeds e operação, antes de abrir uma issue.

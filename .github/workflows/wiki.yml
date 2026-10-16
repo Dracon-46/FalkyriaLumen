@@ -1,0 +1,58 @@
+# Wiki do GitHub a partir de docs/wiki/.
+#
+# As páginas da Wiki vivem no repositório (docs/wiki/*.md), passam por revisão
+# no PR e pelo verificador de vocabulário como qualquer texto público, e este
+# fluxo as copia para a Wiki a cada mudança na main. Editar a Wiki pela
+# interface do GitHub não adianta: a próxima publicação sobrescreve.
+#
+# Configuração, uma vez: Settings → General → Features → Wikis ligado, e a
+# primeira página criada pela interface (o GitHub só cria o repositório da Wiki
+# depois dela). Sem isso, o fluxo avisa e termina sem falhar.
+
+name: wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/wiki/**"
+      - ".github/workflows/wiki.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Copiar docs/wiki para a Wiki
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          url="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.wiki.git"
+          if ! git clone --depth 1 "$url" wiki 2>/dev/null; then
+            echo "::notice::A Wiki ainda não existe: ligue-a em Settings → Features e crie a primeira página pela interface; depois rode este fluxo de novo."
+            exit 0
+          fi
+          rsync -a --delete --exclude .git docs/wiki/ wiki/
+          cd wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki já está igual a docs/wiki."
+            exit 0
+          fi
+          git commit -q -m "Wiki: docs/wiki em ${GITHUB_SHA::7}"
+          git push -q origin HEAD
+          echo "## Wiki publicada" >> "$GITHUB_STEP_SUMMARY"
+          echo "https://github.com/${REPO}/wiki" >> "$GITHUB_STEP_SUMMARY"

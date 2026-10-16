@@ -1,0 +1,58 @@
+name: Proposta de melhoria
+description: Uma funcionalidade nova ou uma melhoria no que já existe.
+title: "[melhoria] "
+labels: [melhoria]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Propostas são avaliadas contra os princípios do projeto (DOC-01): evidência antes de afirmação, linguagem neutra,
+        reprodutibilidade, simetria de correção, ausência de dado como informação e coleta responsável.
+        Em caso de conflito com um princípio, a funcionalidade é descartada ou redesenhada.
+  - type: textarea
+    id: problema
+    attributes:
+      label: Problema ou necessidade
+      description: O que hoje não dá para fazer, ou é difícil, e para quem (cidadão, jornalista, órgão de controle, pesquisador, equipe).
+    validations:
+      required: true
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Proposta
+      description: O que você sugere e como imagina o uso.
+    validations:
+      required: true
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas consideradas
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options:
+        - Aba Eleições
+        - Painéis de Contratações e Conformidade
+        - Coleta e normalização (ingestão, bronze, silver)
+        - Detecção e regras (DOC-07)
+        - Portal
+        - Infraestrutura e GitHub Actions
+        - Documentação
+        - Outra
+    validations:
+      required: true
+  - type: input
+    id: referencias
+    attributes:
+      label: Requisitos, documentos ou ADRs relacionados
+      placeholder: "ex.: RF-PU-06, DOC-12, ADR-028"
+  - type: checkboxes
+    id: confirmacoes
+    attributes:
+      label: Confirmações
+      options:
+        - label: A proposta usa fontes públicas, pela API oficial quando existe, sem contornar controle técnico de acesso.
+          required: true
+        - label: A proposta não exige publicar conclusão sobre conduta de pessoas ou órgãos.
+          required: true

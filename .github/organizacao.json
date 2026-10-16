@@ -1,0 +1,27 @@
+{
+  "rotulos": [
+    {"nome": "eleicoes", "cor": "1c5cab", "descricao": "Aba Eleições: coletor do TSE, dados abertos, feeds, mapa"},
+    {"nome": "paineis", "cor": "0a7a33", "descricao": "Painéis de contratações e de conformidade"},
+    {"nome": "deteccao", "cor": "9a6500", "descricao": "Motor de detecção e regras (DOC-07)"},
+    {"nome": "ingestao", "cor": "52514e", "descricao": "Conectores das fontes, bronze e silver"},
+    {"nome": "portal", "cor": "2a78d6", "descricao": "Portal estático (Next.js)"},
+    {"nome": "infraestrutura", "cor": "74726d", "descricao": "GitHub Actions, hospedagem, armazenamento"},
+    {"nome": "documentacao", "cor": "c7c4bc", "descricao": "DOCs, ADRs, README, Wiki"},
+    {"nome": "juridico", "cor": "b42318", "descricao": "Revisão jurídica ou editorial necessária (DOC-08)"},
+    {"nome": "decisao", "cor": "e87ba4", "descricao": "Pede decisão do responsável antes de seguir"},
+    {"nome": "erro", "cor": "d73a4a", "descricao": "Algo não funciona como deveria"},
+    {"nome": "melhoria", "cor": "a2eeef", "descricao": "Proposta de melhoria ou funcionalidade"},
+    {"nome": "dado-divergente", "cor": "eda100", "descricao": "Número diferente do publicado pela fonte oficial"},
+    {"nome": "acessibilidade", "cor": "4a3aa7", "descricao": "WCAG, leitores de tela, teclado, contraste"},
+    {"nome": "seguranca", "cor": "e34948", "descricao": "Segurança e privacidade"},
+    {"nome": "dependencias", "cor": "0366d6", "descricao": "Atualização de dependências (Dependabot)"},
+    {"nome": "prioridade: alta", "cor": "b60205", "descricao": "Antes do próximo marco"},
+    {"nome": "prioridade: media", "cor": "fbca04", "descricao": "No marco em curso"},
+    {"nome": "prioridade: baixa", "cor": "c2e0c6", "descricao": "Quando houver tempo"}
+  ],
+  "marcos": [
+    {"titulo": "2º turno de 2026", "data": "2026-10-25", "descricao": "Coleta ao vivo do 2º turno das eleições gerais de 2026 e o resultado no portal"},
+    {"titulo": "Fase 1: espinha dorsal nacional", "data": "2026-12-18", "descricao": "Restante da Fase 1 do DOC-10: Portal da Transparência (CGU), base de CNPJ, grupos de pares, painel operacional"},
+    {"titulo": "Antes da publicação", "data": "2027-03-31", "descricao": "Definições pendentes do DOC-10: nome, natureza institucional, abertura do código, apoio jurídico, revisão das ADRs"}
+  ]
+}
