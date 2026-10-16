@@ -80,8 +80,10 @@ Configuração de build: `NEXT_PUBLIC_DADOS_ELEICOES` muda a base dos feeds
 **Vercel (em uso desde 14/10/2026).** O projeto `falkyria-lumen` da Vercel (plano
 Hobby, gratuito) importa este repositório com *Root Directory* `packages/portal`
 e gera o site a cada push na main que mexe nesta pasta: o `vercel.json` daqui
-roda `git diff --quiet HEAD^ HEAD -- .` e cancela a geração quando o portal não
-mudou. A variável `NEXT_PUBLIC_DADOS_ELEICOES` fica no projeto da Vercel, com o
+compara esta pasta com a do último deploy (`VERCEL_GIT_PREVIOUS_SHA`) e cancela a
+geração quando o portal não mudou. Sem esse commit no clone, compara com o commit
+anterior. Comparar só com o commit anterior pulava o deploy quando o último commit
+de um push com vários (um merge linear, por exemplo) não mexia no portal. A variável `NEXT_PUBLIC_DADOS_ELEICOES` fica no projeto da Vercel, com o
 endereço público do bucket `lumen-eleicoes` no Supabase Storage
 (`https://<ref>.supabase.co/storage/v1/object/public/lumen-eleicoes`), que libera
 leitura de qualquer origem. Nenhum token fica no GitHub.
