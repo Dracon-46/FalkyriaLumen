@@ -33,6 +33,14 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   `geo/mu/`; `geo.baixar_contornos` os baixa de novo.
 - `lumen eleicoes verificar` confere os arquivos das zonas e não trata mais as
   malhas de `geo/` como feeds.
+- `lumen eleicoes mapas --contornos` baixa o contorno fino de cada município
+  dos índices das zonas; o resumo de `zonas` lista os que ficaram sem ele.
+- O mapa das zonas é gravado de novo quando o cálculo muda (`REVISAO_ZONAS`) ou
+  os contornos embutidos mudam; o arquivo de um município que deixou de ter
+  mais de uma zona é apagado. A zona não traz `eleito` nem `segundo_turno`
+  (quem se elege é decidido no município, na UF ou no Brasil).
+- O arquivo das zonas tem versão própria (`VERSAO_ZONAS`, a mesma no Python e no
+  portal, conferida por teste), independente da dos feeds.
 
 ### Navegação mais fluida na aba Eleições
 
@@ -49,6 +57,13 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   opacidade só, do grupo. Num navegador sem GPU, o voo até a capital paulista
   passou de 4 quadros travados para 32 quadros de 16 ms.
 - Esc no município solta a zona escolhida e, de novo, volta para a UF.
+- Cache dos feeds descarta o usado há mais tempo (e não o mais antigo), e uma
+  falha atrasada não apaga a leitura que a substituiu.
+- Acessibilidade (auditoria axe-core, WCAG 2 AA): o cinza do texto secundário
+  passa a ter contraste de 4,5:1 ou mais em todos os fundos claros, e a página
+  das eleições tem de novo o seu título de nível 1 para leitores de tela (fora
+  do modo TV ele ficava escondido de todos). Nenhuma violação nas páginas do
+  Brasil, da UF e do município, nos temas claro e escuro.
 - Documentação: ADR-029.
 
 ## 0.7.1 — 2026-10-15
