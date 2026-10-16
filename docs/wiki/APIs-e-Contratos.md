@@ -65,6 +65,16 @@ Sem chave: são os arquivos de dados abertos, e não a API, que pede `chave-api-
 cadastro inteiro num dia; a normalização grava `sancao` na silver, com o CPF de pessoa física mascarado e
 a `data_referencia` do retrato.
 
+### Banco Central — SGS (Economia e Contas Públicas)
+
+| Endereço | Uso |
+|---|---|
+| `https://api.bcb.gov.br/dados/serie/bcdata.sgs.<código>/dados?formato=json` | Série inteira, sem chave: IPCA (433), INPC (188), Selic no mês (4390) e anualizada (4189), dívida bruta do governo geral (13762), DLSP (4513), NFSP primária (5793) e nominal (5727) em 12 meses, PIB em 12 meses (4382), variação real do PIB (7326), IBC-Br (24363) |
+
+O catálogo, com unidade, definição e limitações de cada série, fica em
+`packages/economia/lumen_economia/catalogo.py`; o portal lê `economia/indicadores.json`, publicado com os
+painéis ([ADR-033](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-033.md)).
+
 ### PNTP — Radar da Transparência Pública (tribunais de contas e Atricon)
 
 | Endereço | Uso |
