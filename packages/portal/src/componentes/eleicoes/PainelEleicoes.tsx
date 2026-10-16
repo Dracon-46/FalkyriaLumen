@@ -17,7 +17,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { type Achado, UFS } from "@/lib/busca";
+import { type Achado, normalizar, UFS } from "@/lib/busca";
 import { escreverSelecao, lerSelecao, ufDaAbrangencia } from "@/lib/estado-url";
 import {
   carregarFeed,
@@ -46,6 +46,9 @@ import type {
 } from "@/lib/tipos";
 import type { Topologia } from "@/lib/topojson";
 import { ErroFeed } from "@/lib/validacao";
+import { Escolha } from "@/componentes/Escolha";
+import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
+import type { Opcao } from "@/lib/escolha";
 import { Busca } from "./Busca";
 import { Faixas, Origem } from "./Faixas";
 import { GraficoEvolucao } from "./GraficoEvolucao";
@@ -162,6 +165,7 @@ export function PainelEleicoes() {
   const [indice, setIndice] = useState<Indice | null | undefined>(undefined);
   const [erroIndice, setErroIndice] = useState<string | null>(null);
   const [buscaAberta, setBuscaAberta] = useState(false);
+  const [termoBusca, setTermoBusca] = useState("");
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
 
   const algumaAoVivo = !!indice?.eleicoes.some((e) => e.ao_vivo);
@@ -438,30 +442,34 @@ export function PainelEleicoes() {
       </div>
 
       <div className="controles">
-        <label className="so-leitor" htmlFor="seletor-eleicao">
-          Eleição
-        </label>
-        <select
-          id="seletor-eleicao"
-          className="seletor"
-          value={eleicao.id}
-          onChange={(e) => navegar({ eleicao: e.target.value, cargo: null, abrangencia: "br" })}
-        >
-          {gruposDeEleicoes(indice.eleicoes).map(([rotulo, lista]) =>
-            rotulo === null ? (
-              lista.map((e) => <OpcaoEleicao key={e.id} e={e} />)
-            ) : (
-              <optgroup key={rotulo} label={rotulo}>
-                {lista.map((e) => (
-                  <OpcaoEleicao key={e.id} e={e} />
-                ))}
-              </optgroup>
-            ),
-          )}
-        </select>
-        <button type="button" className="botao" onClick={() => setBuscaAberta(true)}>
-          Buscar estado ou município <span className="tecla so-largo">Ctrl K</span>
-        </button>
+        <Escolha
+          rotulo="Eleição"
+          className="seletor-eleicao"
+          opcoes={opcoesDeEleicoes(indice.eleicoes)}
+          valor={eleicao.id}
+          onEscolher={(id) => navegar({ eleicao: id, cargo: null, abrangencia: "br" })}
+          vazio="Nenhuma eleição com esse nome ou ano."
+        />
+        <span className="campo-busca">
+          <input
+            className="seletor"
+            value=""
+            placeholder="Buscar estado ou município"
+            aria-label="Buscar estado ou município (Ctrl K)"
+            aria-haspopup="dialog"
+            onClick={() => {
+              setTermoBusca("");
+              setBuscaAberta(true);
+            }}
+            onChange={(e) => {
+              setTermoBusca(e.target.value);
+              setBuscaAberta(true);
+            }}
+          />
+          <span className="tecla so-largo" aria-hidden="true">
+            Ctrl K
+          </span>
+        </span>
         <button
           type="button"
           className="botao so-largo"
@@ -614,8 +622,12 @@ export function PainelEleicoes() {
       <Busca
         aberta={buscaAberta}
         municipios={municipios}
-        onFechar={() => setBuscaAberta(false)}
+        onFechar={() => {
+          setBuscaAberta(false);
+          setTermoBusca("");
+        }}
         onEscolher={escolherBusca}
+        termoInicial={termoBusca}
       />
     </div>
   );
@@ -637,13 +649,14 @@ function Esqueleto() {
   );
 }
 
-/** Uma eleição no seletor, com a marca de ao vivo. */
-function OpcaoEleicao({ e }: { e: EleicaoIndice }) {
-  return (
-    <option value={e.id}>
-      {e.nome}
-      {e.ao_vivo ? " · ao vivo" : ""}
-    </option>
+/** As eleições como opções da caixa de escolha, nos grupos do índice e com a marca de ao vivo. */
+function opcoesDeEleicoes(eleicoes: EleicaoIndice[]): Opcao[] {
+  return gruposDeEleicoes(eleicoes).flatMap(([grupo, lista]) =>
+    lista.map((e) => ({
+      valor: e.id,
+      rotulo: `${e.nome}${e.ao_vivo ? " · ao vivo" : ""}`,
+      grupo: grupo ?? undefined,
+    })),
   );
 }
 
@@ -659,12 +672,29 @@ function TabelaPartes({
   nivel: "uf" | "mu";
   onSelecionar: (p: Parte) => void;
 }) {
-  const ordenadas = [...partes].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  const [filtro, setFiltro] = useState("");
+  const ordenadas = useMemo(() => {
+    const termo = normalizar(filtro);
+    return [...partes]
+      .filter((p) => !termo || normalizar(p.nome).includes(termo))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [partes, filtro]);
+  const pagina = usePaginacao(ordenadas);
   return (
     <details className="cartao cartao-corpo so-tela" open={partes.length <= 28}>
       <summary>
         {nivel === "uf" ? "Por estado" : "Por município"} ({partes.length})
       </summary>
+      {partes.length > 20 && (
+        <input
+          className="seletor filtro-tabela"
+          style={{ marginTop: 8 }}
+          value={filtro}
+          placeholder="Filtrar pelo nome"
+          aria-label={`Filtrar ${nivel === "uf" ? "estados" : "municípios"} pelo nome`}
+          onChange={(e) => setFiltro(e.target.value)}
+        />
+      )}
       <table className="tabela" style={{ marginTop: 8 }}>
         <thead>
           <tr>
@@ -675,7 +705,7 @@ function TabelaPartes({
           </tr>
         </thead>
         <tbody>
-          {ordenadas.slice(0, 700).map((p) => (
+          {pagina.visiveis.map((p) => (
             <tr key={p.codigo}>
               <td>
                 <button type="button" className="botao-link" onClick={() => onSelecionar(p)}>
@@ -689,6 +719,7 @@ function TabelaPartes({
           ))}
         </tbody>
       </table>
+      <Paginacao {...pagina} rotulo={nivel === "uf" ? "estados" : "municípios"} />
     </details>
   );
 }

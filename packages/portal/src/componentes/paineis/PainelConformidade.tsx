@@ -11,8 +11,10 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import { instante, numero, percentual } from "@/lib/formato";
 import {
+  type Obrigacao,
   carregarConformidadeEnte,
   carregarConformidadePanorama,
   carregarConformidadeUf,
@@ -122,6 +124,8 @@ function Resumo({ r, titulo }: { r: ResumoConformidade; titulo: string }) {
 
 /** O Brasil: resumo, por obrigação e por UF (em ordem de UF). */
 function Panorama({ dados, onUf }: { dados: ConformidadePanorama; onUf: (uf: string) => void }) {
+  const criterios = usePaginacao(dados.criterios);
+  const ufs = usePaginacao(dados.ufs);
   return (
     <>
       <p className="painel-periodo">
@@ -143,7 +147,7 @@ function Panorama({ dados, onUf }: { dados: ConformidadePanorama; onUf: (uf: str
               </tr>
             </thead>
             <tbody>
-              {dados.criterios.map((c) => (
+              {criterios.visiveis.map((c) => (
                 <tr key={c.criterio}>
                   <td>{c.nome}</td>
                   <td className="n">{numero(c.cumpre)}</td>
@@ -154,6 +158,7 @@ function Panorama({ dados, onUf }: { dados: ConformidadePanorama; onUf: (uf: str
               ))}
             </tbody>
           </table>
+          <Paginacao {...criterios} rotulo="obrigações" />
         </section>
         <section className="cartao cartao-corpo">
           <h2 className="titulo-secao">Por UF</h2>
@@ -167,7 +172,7 @@ function Panorama({ dados, onUf }: { dados: ConformidadePanorama; onUf: (uf: str
               </tr>
             </thead>
             <tbody>
-              {dados.ufs.map((u) => (
+              {ufs.visiveis.map((u) => (
                 <tr key={u.uf} className="clicavel">
                   <td>
                     {u.entes ? (
@@ -185,6 +190,7 @@ function Panorama({ dados, onUf }: { dados: ConformidadePanorama; onUf: (uf: str
               ))}
             </tbody>
           </table>
+          <Paginacao {...ufs} rotulo="UFs" />
         </section>
       </div>
     </>
@@ -198,6 +204,7 @@ function Uf({ dados, onEnte, onBrasil }: { dados: ConformidadeUf; onEnte: (c: st
     () => dados.entes.filter((e) => e.nome.toLocaleLowerCase("pt-BR").includes(filtro.toLocaleLowerCase("pt-BR"))),
     [dados.entes, filtro],
   );
+  const pagina = usePaginacao(entes);
   return (
     <>
       <nav className="trilha" aria-label="Onde você está">
@@ -229,7 +236,7 @@ function Uf({ dados, onEnte, onBrasil }: { dados: ConformidadeUf; onEnte: (c: st
             </tr>
           </thead>
           <tbody>
-            {entes.map((e) => (
+            {pagina.visiveis.map((e) => (
               <tr key={e.codigo} className="clicavel">
                 <td>
                   <button type="button" className="botao-link" onClick={() => onEnte(e.codigo)}>
@@ -245,6 +252,7 @@ function Uf({ dados, onEnte, onBrasil }: { dados: ConformidadeUf; onEnte: (c: st
             ))}
           </tbody>
         </table>
+        <Paginacao {...pagina} rotulo="entes" />
       </section>
     </>
   );
@@ -282,45 +290,53 @@ function Ente({ dados, onUf }: { dados: ConformidadeEnte; onUf: (uf: string | nu
       </p>
       <Resumo r={dados.resumo} titulo="Obrigações avaliadas" />
       {exercicios.map((ano) => (
-        <section key={ano} className="cartao cartao-corpo">
-          <h2 className="titulo-secao">Exercício de {ano}</h2>
-          <table className="tabela tabela-obrigacoes">
-            <thead>
-              <tr>
-                <th>Obrigação</th>
-                <th className="n">Prazo</th>
-                <th className="n">Entregue em</th>
-                <th>Resultado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dados.obrigacoes
-                .filter((o) => o.exercicio === ano)
-                .map((o) => (
-                  <tr key={`${o.periodo}-${o.criterio}-${o.poder ?? ""}`}>
-                    <td>
-                      {o.rotulo}
-                      <div className="busca-detalhe">{o.dispositivo}</div>
-                    </td>
-                    <td className="n" data-rotulo="Prazo">
-                      {dataCurta(o.prazo)}
-                    </td>
-                    <td className="n" data-rotulo="Entregue em">
-                      {dataCurta(o.entregue_em)}
-                    </td>
-                    <td>
-                      <SeloResultado resultado={o.resultado} rotulo={o.rotulo_resultado} />
-                      {o.motivo && <div className="busca-detalhe">{o.motivo}</div>}
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </section>
+        <Exercicio key={ano} ano={ano} obrigacoes={dados.obrigacoes} />
       ))}
       <p className="busca-detalhe">
         Contratações publicadas por este ente: <Link href={`/contratacoes/?ente=${e.codigo}`}>Contratações</Link>.
       </p>
     </>
+  );
+}
+
+/** As obrigações de um exercício, 20 por página. */
+function Exercicio({ ano, obrigacoes }: { ano: number; obrigacoes: Obrigacao[] }) {
+  const doAno = useMemo(() => obrigacoes.filter((o) => o.exercicio === ano), [obrigacoes, ano]);
+  const pagina = usePaginacao(doAno);
+  return (
+    <section className="cartao cartao-corpo">
+      <h2 className="titulo-secao">Exercício de {ano}</h2>
+      <table className="tabela tabela-obrigacoes">
+        <thead>
+          <tr>
+            <th>Obrigação</th>
+            <th className="n">Prazo</th>
+            <th className="n">Entregue em</th>
+            <th>Resultado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {pagina.visiveis.map((o) => (
+            <tr key={`${o.periodo}-${o.criterio}-${o.poder ?? ""}`}>
+              <td>
+                {o.rotulo}
+                <div className="busca-detalhe">{o.dispositivo}</div>
+              </td>
+              <td className="n" data-rotulo="Prazo">
+                {dataCurta(o.prazo)}
+              </td>
+              <td className="n" data-rotulo="Entregue em">
+                {dataCurta(o.entregue_em)}
+              </td>
+              <td>
+                <SeloResultado resultado={o.resultado} rotulo={o.rotulo_resultado} />
+                {o.motivo && <div className="busca-detalhe">{o.motivo}</div>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <Paginacao {...pagina} rotulo={`obrigações de ${ano}`} />
+    </section>
   );
 }

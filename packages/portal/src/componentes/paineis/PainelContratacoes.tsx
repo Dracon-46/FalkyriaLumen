@@ -11,7 +11,9 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Escolha } from "@/componentes/Escolha";
+import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import { instante } from "@/lib/formato";
 import { numero } from "@/lib/formato";
 import {
@@ -30,6 +32,16 @@ import {
   type ContratacoesPanorama,
   type SecoesContratacoes,
 } from "@/lib/paineis";
+import {
+  lerPeriodo,
+  mesesDoArquivo,
+  recortarMunicipios,
+  recortarPanorama,
+  recortarSecoes,
+  temMesAMes,
+  temRecorte,
+  type PeriodoMeses,
+} from "@/lib/periodo";
 import { AvisoMetodologico, BuscaEnte, GraficoBarras, Numero, Situacao } from "./Comuns";
 
 const CODIGO_UF: Record<string, string> = {
@@ -66,9 +78,18 @@ export function PainelContratacoes() {
     return () => c.abort();
   }, [ente, orgao]);
 
+  const periodo = lerPeriodo(params);
+  // O período escolhido acompanha a navegação entre entes e órgãos
+  const sufixo = (p: PeriodoMeses) => `${p.de ? `&de=${p.de}` : ""}${p.ate ? `&ate=${p.ate}` : ""}`;
   const ir = (codigo: string | null) =>
-    router.push(codigo ? `/contratacoes/?ente=${codigo}` : "/contratacoes/", { scroll: true });
-  const irOrgao = (cnpj: string) => router.push(`/contratacoes/?orgao=${cnpj}`, { scroll: true });
+    router.push(codigo ? `/contratacoes/?ente=${codigo}${sufixo(periodo)}` : `/contratacoes/?${sufixo(periodo).slice(1)}`,
+                { scroll: true });
+  const irOrgao = (cnpj: string) => router.push(`/contratacoes/?orgao=${cnpj}${sufixo(periodo)}`, { scroll: true });
+  const mudarPeriodo = (p: PeriodoMeses) => {
+    const base = ente ? `ente=${ente}` : orgao ? `orgao=${orgao}` : "";
+    const consulta = `${base}${sufixo(p)}`.replace(/^&/, "");
+    router.replace(`/contratacoes/${consulta ? `?${consulta}` : ""}`, { scroll: false });
+  };
 
   return (
     <div className="painel">
@@ -94,13 +115,18 @@ export function PainelContratacoes() {
       {!estado.carregando && !estado.erro && estado.dados === null && (
         <SemDados ente={ente} orgao={orgao} onVoltar={() => ir(null)} />
       )}
+      {!estado.carregando && estado.dados && (
+        <FiltroPeriodo dados={estado.dados} periodo={periodo} onMudar={mudarPeriodo} />
+      )}
       {!estado.carregando && estado.dados?.tipo === "contratacoes-panorama" && (
-        <Panorama dados={estado.dados} onEnte={ir} />
+        <Panorama dados={estado.dados} periodo={periodo} onEnte={ir} />
       )}
       {!estado.carregando && estado.dados?.tipo === "contratacoes-ente" && (
-        <Ente dados={estado.dados} onEnte={ir} onOrgao={irOrgao} />
+        <Ente dados={estado.dados} periodo={periodo} onEnte={ir} onOrgao={irOrgao} />
       )}
-      {!estado.carregando && estado.dados?.tipo === "contratacoes-orgao" && <Orgao dados={estado.dados} onEnte={ir} />}
+      {!estado.carregando && estado.dados?.tipo === "contratacoes-orgao" && (
+        <Orgao dados={estado.dados} periodo={periodo} onEnte={ir} />
+      )}
     </div>
   );
 }
@@ -124,6 +150,77 @@ function SemDados({ ente, orgao, onVoltar }: { ente: string | null; orgao: strin
         <button type="button" className="botao" onClick={onVoltar}>
           Ver o Brasil
         </button>
+      )}
+    </section>
+  );
+}
+
+/** Filtro do período: de um mês a outro, com atalhos; fica na URL (`?de=AAAA-MM&ate=AAAA-MM`). */
+function FiltroPeriodo({
+  dados,
+  periodo,
+  onMudar,
+}: {
+  dados: ContratacoesEnte | ContratacoesOrgao | ContratacoesPanorama;
+  periodo: PeriodoMeses;
+  onMudar: (p: PeriodoMeses) => void;
+}) {
+  const meses = mesesDoArquivo(dados);
+  if (meses.length < 2) return null;
+  if (!temMesAMes(dados)) {
+    return (
+      <p className="busca-detalhe">
+        O filtro de período aparece na próxima atualização dos dados, quando o arquivo trouxer o mês a mês.
+      </p>
+    );
+  }
+  const opcoes = [...meses].reverse().map((m) => ({ valor: m, rotulo: mesCurto(m), detalhe: m.slice(0, 4) }));
+  const ultimo = meses[meses.length - 1]!;
+  const atras = (n: number) => meses[Math.max(0, meses.length - n)]!;
+  const anos = Array.from(new Set(meses.map((m) => m.slice(0, 4))));
+  const atalhos: { rotulo: string; p: PeriodoMeses }[] = [
+    { rotulo: "Tudo", p: { de: null, ate: null } },
+    { rotulo: "Último mês", p: { de: ultimo, ate: ultimo } },
+    { rotulo: "Últimos 3 meses", p: { de: atras(3), ate: ultimo } },
+    ...anos.map((a) => ({ rotulo: a, p: { de: `${a}-01`, ate: `${a}-12` } })),
+  ];
+  const igual = (a: PeriodoMeses, b: PeriodoMeses) =>
+    (a.de ?? meses[0]) === (b.de ?? meses[0]) && (a.ate ?? ultimo) === (b.ate ?? ultimo);
+  return (
+    <section className="cartao cartao-corpo filtro-periodo" aria-label="Período">
+      <span className="filtro-periodo-titulo">Período</span>
+      <Escolha
+        rotulo="Primeiro mês"
+        opcoes={opcoes}
+        valor={periodo.de ?? meses[0]!}
+        onEscolher={(de) => onMudar({ de, ate: periodo.ate && periodo.ate < de ? de : periodo.ate })}
+      />
+      <span aria-hidden="true">a</span>
+      <Escolha
+        rotulo="Último mês"
+        opcoes={opcoes}
+        valor={periodo.ate ?? ultimo}
+        onEscolher={(ate) => onMudar({ de: periodo.de && periodo.de > ate ? ate : periodo.de, ate })}
+      />
+      <span className="filtro-periodo-atalhos">
+        {atalhos.map((a) => (
+          <button
+            key={a.rotulo}
+            type="button"
+            className="botao"
+            aria-pressed={igual(periodo, a.p)}
+            onClick={() => onMudar(a.p)}
+          >
+            {a.rotulo}
+          </button>
+        ))}
+      </span>
+      {temRecorte(periodo) && (
+        <p className="busca-detalhe filtro-periodo-nota">
+          Totais, gráficos e tabelas refeitos só com os meses escolhidos. Os fornecedores são os de maior valor no
+          período coletado inteiro, reordenados no período escolhido; as listas de publicações recentes mostram as que
+          caem nele.
+        </p>
       )}
     </section>
   );
@@ -156,6 +253,12 @@ function Secoes({
   orgaoUnico?: boolean;
 }) {
   const t = dados.totais;
+  const modalidades = usePaginacao(dados.modalidades);
+  const fornecedores = usePaginacao(dados.fornecedores);
+  const orgaos = usePaginacao(dados.orgaos ?? []);
+  const aConferir = usePaginacao(dados.a_conferir ?? []);
+  const recentes = usePaginacao(dados.recentes);
+  const contratos = usePaginacao(dados.contratos_recentes);
   return (
     <>
       <section className="cartao cartao-corpo" aria-labelledby="titulo-totais-c">
@@ -219,7 +322,7 @@ function Secoes({
               </tr>
             </thead>
             <tbody>
-              {dados.modalidades.map((m) => (
+              {modalidades.visiveis.map((m) => (
                 <tr key={String(m.codigo)}>
                   <td>{m.nome}</td>
                   <td className="n">{numero(m.processos)}</td>
@@ -228,6 +331,7 @@ function Secoes({
               ))}
             </tbody>
           </table>
+          <Paginacao {...modalidades} rotulo="modalidades" />
         </section>
         <section className="cartao cartao-corpo">
           <h2 className="titulo-secao">Fornecedores com maior valor contratado</h2>
@@ -240,9 +344,10 @@ function Secoes({
               </tr>
             </thead>
             <tbody>
-              {dados.fornecedores.map((f) => (
+              {fornecedores.visiveis.map((f, i) => (
                 <tr key={f.cnpj}>
                   <td>
+                    <span className="num posicao">{numero((fornecedores.pagina - 1) * fornecedores.porPagina + i + 1)}.</span>{" "}
                     {f.nome ?? "—"}
                     <div className="busca-detalhe num">{cnpj(f.cnpj)}</div>
                   </td>
@@ -250,7 +355,7 @@ function Secoes({
                   <td className="n">{moedaCompacta(f.valor)}</td>
                 </tr>
               ))}
-              {dados.pessoas_fisicas.contratos > 0 && (
+              {dados.pessoas_fisicas.contratos > 0 && fornecedores.pagina === 1 && (
                 <tr>
                   <td>Pessoas físicas e estrangeiras (somadas, sem identificação)</td>
                   <td className="n">{numero(dados.pessoas_fisicas.contratos)}</td>
@@ -260,6 +365,7 @@ function Secoes({
             </tbody>
           </table>
           {dados.fornecedores.length === 0 && <p className="busca-detalhe">Nenhum contrato com pessoa jurídica.</p>}
+          <Paginacao {...fornecedores} rotulo="fornecedores" />
         </section>
       </div>
 
@@ -281,7 +387,7 @@ function Secoes({
               </tr>
             </thead>
             <tbody>
-              {dados.orgaos.map((o) => (
+              {orgaos.visiveis.map((o) => (
                 <tr key={o.cnpj} className="clicavel">
                   <td>
                     {onOrgao ? (
@@ -301,6 +407,7 @@ function Secoes({
               ))}
             </tbody>
           </table>
+          <Paginacao {...orgaos} rotulo="órgãos" />
         </section>
       )}
 
@@ -316,7 +423,7 @@ function Secoes({
             digitação. Não é juízo sobre o órgão nem sobre o fornecedor.
           </p>
           <ul className="lista-publicacoes">
-            {dados.a_conferir.map((x) => (
+            {aConferir.visiveis.map((x) => (
               <li key={`${x.tipo}-${x.chave}`}>
                 <div className="publicacao-cabeca">
                   <span className="num">{dataCurta(x.data)}</span> ·{" "}
@@ -340,13 +447,15 @@ function Secoes({
               </li>
             ))}
           </ul>
+          <Paginacao {...aConferir} rotulo="valores a conferir" />
         </section>
       )}
 
       <section className="cartao cartao-corpo">
         <h2 className="titulo-secao">Processos publicados mais recentemente</h2>
+        {dados.recentes.length === 0 && <p className="busca-detalhe">Nenhum dos processos mais recentes cai no período.</p>}
         <ul className="lista-publicacoes">
-          {dados.recentes.map((p) => (
+          {recentes.visiveis.map((p) => (
             <li key={p.chave}>
               <div className="publicacao-cabeca">
                 <span className="num">{dataCurta(p.data)}</span> · {p.modalidade ?? "Modalidade não informada"} ·{" "}
@@ -368,13 +477,14 @@ function Secoes({
             </li>
           ))}
         </ul>
+        <Paginacao {...recentes} rotulo="processos recentes" />
       </section>
 
       {dados.contratos_recentes.length > 0 && (
         <section className="cartao cartao-corpo">
           <h2 className="titulo-secao">Contratos publicados mais recentemente</h2>
           <ul className="lista-publicacoes">
-            {dados.contratos_recentes.map((c) => (
+            {contratos.visiveis.map((c) => (
               <li key={c.chave}>
                 <div className="publicacao-cabeca">
                   <span className="num">{dataCurta(c.data)}</span> · {c.instrumento ?? "Contrato"} ·{" "}
@@ -398,6 +508,7 @@ function Secoes({
               </li>
             ))}
           </ul>
+          <Paginacao {...contratos} rotulo="contratos recentes" />
         </section>
       )}
     </>
@@ -405,7 +516,20 @@ function Secoes({
 }
 
 /** O Brasil: totais, esferas, UFs e as seções comuns. */
-function Panorama({ dados, onEnte }: { dados: ContratacoesPanorama; onEnte: (codigo: string) => void }) {
+function Panorama({
+  dados: originais,
+  periodo,
+  onEnte,
+}: {
+  dados: ContratacoesPanorama;
+  periodo: PeriodoMeses;
+  onEnte: (codigo: string) => void;
+}) {
+  const dados = useMemo(
+    () => (temMesAMes(originais) ? recortarPanorama(originais, periodo) : originais),
+    [originais, periodo],
+  );
+  const ufs = usePaginacao(dados.ufs);
   return (
     <>
       <Periodo cobertura={dados.cobertura} gerado={dados.gerado_em} />
@@ -457,7 +581,7 @@ function Panorama({ dados, onEnte }: { dados: ContratacoesPanorama; onEnte: (cod
               </tr>
             </thead>
             <tbody>
-              {dados.ufs.map((u) => (
+              {ufs.visiveis.map((u) => (
                 <tr key={u.uf} className="clicavel">
                   <td>
                     <button type="button" className="botao-link" onClick={() => onEnte(CODIGO_UF[u.uf] ?? "1")}>
@@ -474,7 +598,11 @@ function Panorama({ dados, onEnte }: { dados: ContratacoesPanorama; onEnte: (cod
               ))}
             </tbody>
           </table>
-          <p className="busca-detalhe">Processos publicados pelo governo do estado (ou do DF) e pelos municípios da UF.</p>
+          <Paginacao {...ufs} rotulo="UFs" />
+          <p className="busca-detalhe">
+            Processos publicados pelo governo do estado (ou do DF) e pelos municípios da UF.
+            {temRecorte(periodo) && " A coluna dos municípios que publicaram é do período coletado inteiro."}
+          </p>
         </section>
       </div>
     </>
@@ -483,20 +611,32 @@ function Panorama({ dados, onEnte }: { dados: ContratacoesPanorama; onEnte: (cod
 
 /** Um ente: o caminho (Brasil › UF), as seções comuns e, no estado, os municípios. */
 function Ente({
-  dados,
+  dados: originais,
+  periodo,
   onEnte,
   onOrgao,
 }: {
   dados: ContratacoesEnte;
+  periodo: PeriodoMeses;
   onEnte: (codigo: string | null) => void;
   onOrgao: (cnpj: string) => void;
 }) {
   const [filtro, setFiltro] = useState("");
+  const dados = useMemo(() => {
+    if (!temMesAMes(originais)) return originais;
+    const secoes = recortarSecoes(originais, periodo);
+    return originais.municipios ? { ...secoes, municipios: recortarMunicipios(originais.municipios, periodo) } : secoes;
+  }, [originais, periodo]);
   const e = dados.ente;
   const tipo = tipoDoCodigo(e.codigo);
-  const municipios = (dados.municipios ?? []).filter((m) =>
-    m.nome.toLocaleLowerCase("pt-BR").includes(filtro.toLocaleLowerCase("pt-BR")),
+  const municipios = useMemo(
+    () =>
+      (dados.municipios ?? []).filter((m) =>
+        m.nome.toLocaleLowerCase("pt-BR").includes(filtro.toLocaleLowerCase("pt-BR")),
+      ),
+    [dados.municipios, filtro],
   );
+  const paginaMunicipios = usePaginacao(municipios);
   return (
     <>
       <nav className="trilha" aria-label="Onde você está">
@@ -547,7 +687,7 @@ function Ente({
               </tr>
             </thead>
             <tbody>
-              {municipios.map((m) => (
+              {paginaMunicipios.visiveis.map((m) => (
                 <tr key={m.codigo} className="clicavel">
                   <td>
                     <button type="button" className="botao-link" onClick={() => onEnte(m.codigo)}>
@@ -562,6 +702,7 @@ function Ente({
               ))}
             </tbody>
           </table>
+          <Paginacao {...paginaMunicipios} rotulo="municípios" />
         </section>
       )}
       <p className="busca-detalhe">
@@ -572,7 +713,19 @@ function Ente({
 }
 
 /** Um órgão: o ente a que pertence e as seções comuns. */
-function Orgao({ dados, onEnte }: { dados: ContratacoesOrgao; onEnte: (codigo: string | null) => void }) {
+function Orgao({
+  dados: originais,
+  periodo,
+  onEnte,
+}: {
+  dados: ContratacoesOrgao;
+  periodo: PeriodoMeses;
+  onEnte: (codigo: string | null) => void;
+}) {
+  const dados = useMemo(
+    () => (temMesAMes(originais) ? recortarSecoes(originais, periodo) : originais),
+    [originais, periodo],
+  );
   const ente = dados.ente;
   return (
     <>

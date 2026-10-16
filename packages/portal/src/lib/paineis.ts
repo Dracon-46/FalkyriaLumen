@@ -120,14 +120,22 @@ export interface ValorAConferir {
   link: string | null;
 }
 
+/**
+ * Mês a mês de uma linha de tabela: `[mês, processos, valor estimado, contratos, valor dos contratos]` (órgãos,
+ * municípios, esferas), `[mês, processos, valor estimado]` (modalidades), `[mês, contratos, valor]`
+ * (fornecedores, pessoas físicas) ou `[mês, processos do estado, processos dos municípios]` (UFs). Ausente nos
+ * arquivos gerados antes de existir o filtro de período.
+ */
+export type MesesLinha = [string, ...number[]][];
+
 /** Seções comuns ao panorama, a um ente e a um órgão (`_secoes` no Python). */
 export interface SecoesContratacoes {
   totais: TotaisContratacoes & { orgaos: number; fornecedores: number };
   meses: (TotaisContratacoes & { mes: string })[];
-  modalidades: { codigo: number | null; nome: string; processos: number; valor_estimado: number }[];
-  orgaos: (TotaisContratacoes & { cnpj: string; nome: string | null })[];
-  fornecedores: { cnpj: string; nome: string | null; contratos: number; valor: number }[];
-  pessoas_fisicas: { contratos: number; valor: number };
+  modalidades: { codigo: number | null; nome: string; processos: number; valor_estimado: number; meses?: MesesLinha }[];
+  orgaos: (TotaisContratacoes & { cnpj: string; nome: string | null; meses?: MesesLinha })[];
+  fornecedores: { cnpj: string; nome: string | null; contratos: number; valor: number; meses?: MesesLinha }[];
+  pessoas_fisicas: { contratos: number; valor: number; meses?: MesesLinha };
   recentes: {
     data: string;
     chave: string;
@@ -162,7 +170,7 @@ export interface ContratacoesEnte extends SecoesContratacoes {
   gerado_em: string;
   cobertura: Cobertura;
   ente: EnteResumo;
-  municipios?: (TotaisContratacoesSimples & { codigo: string; nome: string })[];
+  municipios?: (TotaisContratacoesSimples & { codigo: string; nome: string; meses?: MesesLinha })[];
 }
 
 /** Arquivo `contratacoes/orgao/<CNPJ>.json`: um órgão, com o ente a que pertence (ou null sem esfera). */
@@ -189,7 +197,7 @@ export interface ContratacoesPanorama extends SecoesContratacoes {
   tipo: "contratacoes-panorama";
   gerado_em: string;
   cobertura: Cobertura;
-  esferas: (TotaisContratacoes & { esfera: string; nome: string })[];
+  esferas: (TotaisContratacoes & { esfera: string; nome: string; meses?: MesesLinha })[];
   sem_ente: TotaisContratacoes;
   ufs: {
     uf: string;
@@ -197,6 +205,7 @@ export interface ContratacoesPanorama extends SecoesContratacoes {
     municipios: TotaisContratacoes;
     municipios_com_publicacao: number;
     municipios_no_cadastro: number;
+    meses?: MesesLinha;
   }[];
   entes_com_publicacao: number;
 }
