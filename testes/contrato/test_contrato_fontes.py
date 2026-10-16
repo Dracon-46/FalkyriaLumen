@@ -271,3 +271,18 @@ def test_pntp_ciclo_mais_recente_mantem_as_colunas_lidas():
     cabecalho = {c.strip() for c in next(linhas(m.conteudo))}
     faltando = set(COLUNAS) - cabecalho
     assert not faltando, f"a planilha de {ciclos[-1]} deixou de ter as colunas {sorted(faltando)}"
+
+
+def test_sgs_series_da_economia_respondem_e_ipca_confere_com_o_sidra():
+    """Cada série do catálogo responde no SGS com a lista de observações, e o IPCA do SGS é o do IBGE."""
+    from lumen_economia.catalogo import SERIES, url_sgs
+    from lumen_economia.coleta import ler_resposta
+    for s in SERIES:
+        obs = ler_resposta(_obter_bytes(url_sgs(s.codigo).replace("dados?", "dados/ultimos/3?")))
+        assert obs, f"série {s.codigo} ({s.id}) sem observações"
+    sgs = dict(ler_resposta(_obter_bytes(url_sgs(433).replace("dados?", "dados/ultimos/12?"))))
+    sidra = json.loads(_obter_bytes("https://apisidra.ibge.gov.br/values/t/1737/n1/all/v/63/p/last%2012"))[1:]
+    pares = [(f"{x['D3C'][:4]}-{x['D3C'][4:]}-01", x["V"]) for x in sidra]
+    comuns = [(m, v) for m, v in pares if m in sgs]
+    assert comuns, "nenhum mês em comum entre o SGS e o SIDRA"
+    assert all(float(sgs[m]) == float(v) for m, v in comuns), "IPCA do SGS diverge do SIDRA"
