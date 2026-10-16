@@ -196,3 +196,33 @@ def test_falha_de_rede_vira_erro_sem_derrubar(tmp_path):
     coletor = ColetorAoVivo(c, EscritorFeeds(tmp_path), plano, base="http://127.0.0.1:9/oficial")
     r = coletor.passada()
     assert r.erros and r.baixados == 0
+
+
+def test_executar_para_quando_estavel_sem_marca_de_finalizada(ambiente, monkeypatch):
+    """Rondônia em 2026: 100% das seções e o TSE sem ``tf = "s"``; o coletor para depois do tempo estável."""
+    cen, srv, tmp = ambiente
+    coletor, _, _ = montar(srv, tmp, cargos=["governador"], ufs=["sp"])
+    monkeypatch.setattr(coletor, "_finalizada", lambda: False)
+    agora = [0.0]
+
+    def dormir(_s):
+        cen.avancar()
+        agora[0] += 600
+
+    avisos = []
+    coletor.executar(intervalo_s=0, max_passadas=20, dormir=dormir, aviso=avisos.append, estavel_s=1800,
+                     relogio=lambda: agora[0])
+    assert coletor.secoes_completas()
+    assert coletor.pendentes_ao_parar == []          # a fixture marca tudo como finalizado no fim
+    assert 3 < len(avisos) < 20                       # parou pela estabilidade, não pelo limite de passadas
+    limite = len(avisos) + 3                          # max_passadas conta as passadas desde o início
+    coletor.executar(intervalo_s=0, max_passadas=limite, dormir=dormir, estavel_s=None, relogio=lambda: agora[0])
+    assert coletor.passadas == limite                 # sem a parada por estabilidade, vai até o limite
+
+
+def test_sem_marca_de_finalizada_lista_os_resultados(ambiente):
+    cen, srv, tmp = ambiente
+    coletor, _, _ = montar(srv, tmp, cargos=["governador"], ufs=["sp"])
+    coletor.passada()
+    assert not coletor.secoes_completas()             # primeira etapa da fixture: apuração parcial
+    assert coletor.sem_marca_de_finalizada() == sorted(k for k in coletor.ultimo if "/mu-" not in k)

@@ -203,6 +203,7 @@ class ColetorAoVivo:
         self.baixados_alguma_vez: set[tuple[int, str, str]] = set()
         self.sujos: set[str] = set()
         self.passadas = 0
+        self.pendentes_ao_parar: list[str] = []      # resultados sem a marca de finalizada na parada por estabilidade
         self._resumo = ResumoPassada()
 
     # ------------------------------------------------------------ rede
@@ -297,16 +298,30 @@ class ColetorAoVivo:
 
     def executar(self, *, intervalo_s: float = 30, max_passadas: int | None = None,
                  parar: Callable[[], bool] = lambda: False, dormir: Callable[[float], None] = time.sleep,
-                 aviso: Callable[[ResumoPassada], None] | None = None) -> None:
-        """Passadas até a totalização terminar, ``parar()`` responder sim ou ``max_passadas``."""
+                 aviso: Callable[[ResumoPassada], None] | None = None, estavel_s: float | None = 3600,
+                 relogio: Callable[[], float] = time.monotonic) -> None:
+        """Passadas até a totalização terminar, ``parar()`` responder sim ou ``max_passadas``.
+
+        Também para quando todas as seções estão totalizadas e nada muda há ``estavel_s`` segundos, mesmo sem
+        a marca de finalizada do TSE: em 2026, os deputados de Rondônia ficaram com 100% das seções e
+        sem ``tf = "s"``, e o coletor rodaria até o prazo da máquina. Os resultados ainda sem a marca ficam em
+        ``pendentes_ao_parar``. ``estavel_s=None`` desliga essa parada.
+        """
+        self.pendentes_ao_parar = []
+        ultima_mudanca = relogio()
         try:
             while not parar():
                 resumo = self.passada()
+                if resumo.baixados or resumo.feeds:
+                    ultima_mudanca = relogio()
                 if aviso:
                     aviso(resumo)
                 if max_passadas is not None and self.passadas >= max_passadas:
                     break
                 if resumo.finalizada and not self.fila:
+                    break
+                if estavel_s is not None and self.secoes_completas() and relogio() - ultima_mudanca >= estavel_s:
+                    self.pendentes_ao_parar = self.sem_marca_de_finalizada()
                     break
                 # Com fila de municípios, a próxima passada vem logo.
                 dormir(intervalo_s if not self.fila else min(intervalo_s, 5))
@@ -607,6 +622,15 @@ class ColetorAoVivo:
             origem["simulacao"] = True
         self.escritor.gravar_historico(self.e.id, cargo.slug, abr, feed_historico(
             eleicao=self.e, cargo=cargo, abr=abr, pontos=pontos, candidatos=candidatos, origem=origem))
+
+    def secoes_completas(self) -> bool:
+        """Todos os resultados de topo com 100% das seções totalizadas e a fila de municípios vazia."""
+        topo = [r for k, (r, _) in self.ultimo.items() if "/mu-" not in k]
+        return bool(topo) and not self.fila and all((r.totalizacao.pct_secoes or 0) >= 100 for r in topo)
+
+    def sem_marca_de_finalizada(self) -> list[str]:
+        """Resultados de topo (``código do cargo/arquivo``) que o TSE ainda não marcou como finalizados."""
+        return sorted(k for k, (r, _) in self.ultimo.items() if "/mu-" not in k and not r.totalizacao.finalizada)
 
     def _finalizada(self) -> bool:
         """A totalização terminou? Havendo resultado de topo, quando todos estão finalizados.
