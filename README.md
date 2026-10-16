@@ -260,7 +260,8 @@ lumen coletar cgu_ceis           # sanções da CGU: o retrato do dia, sem --de 
 lumen coletar pntp_avaliacoes    # portais de transparência de todos os entes (PNTP), sem --de
 lumen deteccao j01 --estado DIR  # regra J-01 em modo silencioso: contratos do painel × sanções
 lumen economia coletar --estado DIR      # séries do SGS do Banco Central (inflação, juros, dívida, fiscal, PIB)
-lumen economia publicar --estado DIR --saida SITE   # economia/indicadores.json para o portal
+lumen economia estatais --estado DIR     # estatais: demonstrações (CVM) e dispêndios federais (SEST)
+lumen economia publicar --estado DIR --saida SITE   # economia/indicadores.json e estatais.json para o portal
 lumen normalizar                 # bronze → silver, idempotente
 lumen bronze verificar           # reconfere o hash de toda a prova
 ```

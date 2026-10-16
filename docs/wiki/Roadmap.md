@@ -114,10 +114,12 @@ Da seção "Pendente" do README:
   leitura dos próprios portais, por fornecedor de sistema.
 - **Economia e Contas Públicas** (ADR-033): no ar com inflação, juros, dívida, resultado fiscal e
   atividade, e a comparação de períodos. Próximos: desemprego e rendimento (PNAD), receitas e despesas por
-  função, séries fiscais de estados e municípios com grupos de pares, filtros e paginação comuns.
-- **Gastos das estatais**: as estatais seguem a Lei 13.303/2016 e não publicam no PNCP. Próximo passo:
-  as demonstrações financeiras das estatais com ações em bolsa (CVM, dados abertos) e a verificação da base
-  da Secretaria das Estatais (SEST) para as federais sem ações.
+  função, séries fiscais de estados e municípios com grupos de pares. Paginação (20 por página) e filtro de
+  período nas Contratações já no ar.
+- **Gastos das estatais** (ADR-034): no ar. As federais pelo PDG da SEST (aprovado e realizado por
+  rubrica) e as com ações na bolsa pelas demonstrações da CVM, com o controle conferido no FRE. Próximos:
+  o Orçamento de Investimento (por ação e UF), as demonstrações trimestrais (ITR) e as estaduais e
+  municipais de capital fechado.
 - **Regra J-01** (ADR-031): sanções da CGU × contratos do painel, em modo silencioso a cada carga;
   calibrar e revisar antes de publicar.
 - **Fase 1 restante:** base de CNPJ da Receita Federal, grupos de pares e painel operacional. Os
