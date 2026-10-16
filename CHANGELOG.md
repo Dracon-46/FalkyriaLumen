@@ -5,6 +5,23 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Economia e Contas Públicas (ADR-033)
+
+- Aba nova **Economia** no portal: inflação (IPCA, INPC), juros (Selic, juro
+  real), dívida (bruta do governo geral, líquida do setor público), resultado
+  fiscal (primário, nominal, juros) e atividade (PIB, IBC-Br). Cada número
+  traz a fonte, o código da série, o período de referência, a data da coleta,
+  a definição, como ler o sinal e as limitações.
+- Comparação de dois períodos (mandatos presidenciais ou qualquer intervalo
+  de meses) para todos os indicadores, com a consulta na URL e o aviso de que
+  a comparação não atribui causa.
+- `lumen economia coletar` e `publicar`: séries do SGS do Banco Central,
+  coletadas todo dia pelo fluxo `paineis` e publicadas com os painéis. O IPCA
+  acumulado calculado confere com o do IBGE.
+- Busca de órgãos do painel de Contratações com o exemplo "Correios" (a
+  Petrobras não publica no PNCP: as estatais seguem a Lei 13.303/2016).
+- Abas do cabeçalho roláveis no celular.
+
 ### Sanções cruzadas com os contratos: regra J-01 em modo silencioso (ADR-031)
 
 - `lumen deteccao j01` cruza os contratos guardados pelo painel com o CEIS e o
