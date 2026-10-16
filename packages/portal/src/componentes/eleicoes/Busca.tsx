@@ -16,10 +16,12 @@ interface Props {
   municipios: Municipio[];
   onFechar: () => void;
   onEscolher: (achado: Achado) => void;
+  /** O que a pessoa já escreveu no campo da página antes de a busca abrir. */
+  termoInicial?: string;
 }
 
 /** Busca de estado ou município (Ctrl+K ou "/"). Setas escolhem, Enter abre, Esc fecha. */
-export function Busca({ aberta, municipios, onFechar, onEscolher }: Props) {
+export function Busca({ aberta, municipios, onFechar, onEscolher, termoInicial = "" }: Props) {
   const [termo, setTermo] = useState("");
   const [indice, setIndice] = useState(0);
   const campo = useRef<HTMLInputElement>(null);
@@ -27,11 +29,11 @@ export function Busca({ aberta, municipios, onFechar, onEscolher }: Props) {
 
   useEffect(() => {
     if (aberta) {
-      setTermo("");
+      setTermo(termoInicial);
       setIndice(0);
       campo.current?.focus();
     }
-  }, [aberta]);
+  }, [aberta, termoInicial]);
 
   if (!aberta) return null;
 

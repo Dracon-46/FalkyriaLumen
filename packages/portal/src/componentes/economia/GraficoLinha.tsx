@@ -7,6 +7,7 @@
  */
 
 import { useMemo, useRef, useState } from "react";
+import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import { type Periodo, periodoCurto, valorNaUnidade } from "@/lib/economia";
 
 const L = 640;
@@ -43,6 +44,8 @@ export function GraficoLinha({
 }) {
   const [foco, setFoco] = useState<number | null>(null);
   const svg = useRef<SVGSVGElement>(null);
+  const invertida = useMemo(() => [...serie].reverse(), [serie]);
+  const tabela = usePaginacao(invertida);
   const dados = useMemo(() => {
     if (serie.length < 2) return null;
     const t0 = tempo(serie[0]![0]);
@@ -148,7 +151,7 @@ export function GraficoLinha({
               </tr>
             </thead>
             <tbody>
-              {[...serie].reverse().map(([k, v]) => (
+              {tabela.visiveis.map(([k, v]) => (
                 <tr key={k}>
                   <td>{periodoCurto(k)}</td>
                   <td className="num">{v.toLocaleString("pt-BR", { maximumFractionDigits: 4 })}</td>
@@ -157,6 +160,7 @@ export function GraficoLinha({
             </tbody>
           </table>
         </div>
+        <Paginacao {...tabela} rotulo="valores da série" />
       </details>
     </figure>
   );

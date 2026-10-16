@@ -206,9 +206,19 @@ def test_soma_por_ente_e_panorama(estado_sintetico):
         3, 400.0, 1, 3, 190.0)
     assert [m["mes"] for m in sp["meses"]] == ["2026-01", "2026-02"]
     assert sp["meses"][0]["processos"] == 2 and sp["meses"][1]["valor_contratos"] == 90.0
-    assert sp["modalidades"][0] == {"codigo": 8, "nome": "Dispensa", "processos": 2, "valor_estimado": 400.0}
-    assert sp["fornecedores"] == [{"cnpj": "11111111000111", "nome": "EMPRESA A NOVA", "contratos": 2, "valor": 150.0}]
-    assert sp["pessoas_fisicas"] == {"contratos": 1, "valor": 40.0}
+    assert {k: v for k, v in sp["modalidades"][0].items() if k != "meses"} == {
+        "codigo": 8, "nome": "Dispensa", "processos": 2, "valor_estimado": 400.0}
+    # o mês a mês de cada tabela soma o total, para o portal refazer as tabelas num período escolhido
+    assert sum(m[1] for m in sp["modalidades"][0]["meses"]) == 2
+    assert sum(m[2] for m in sp["modalidades"][0]["meses"]) == 400.0
+    assert sp["fornecedores"] == [{"cnpj": "11111111000111", "nome": "EMPRESA A NOVA", "contratos": 2, "valor": 150.0,
+                                   "meses": [m for m in sp["fornecedores"][0]["meses"]]}]
+    assert sum(m[1] for m in sp["fornecedores"][0]["meses"]) == 2
+    assert sum(m[2] for m in sp["fornecedores"][0]["meses"]) == 150.0
+    assert {k: v for k, v in sp["pessoas_fisicas"].items() if k != "meses"} == {"contratos": 1, "valor": 40.0}
+    assert sum(m[2] for m in sp["pessoas_fisicas"]["meses"]) == 40.0
+    o = sp["orgaos"][0]
+    assert sum(m[1] for m in o["meses"]) == o["processos"] and sum(m[4] for m in o["meses"]) == o["valor_contratos"]
     assert sp["recentes"][0]["chave"] == "00000000000100-1-000003/2026"          # mais recente primeiro
     assert sp["recentes"][0]["link"] == "https://pncp.gov.br/app/editais/00000000000100/2026/3"
     assert sp["recentes"][0]["orgao"] == "MUNICIPIO X" and sp["recentes"][0]["modalidade"] == "Dispensa"
@@ -219,6 +229,7 @@ def test_soma_por_ente_e_panorama(estado_sintetico):
     estado = contratacoes.ente_para_json("35", painel.entes["35"], painel, _cadastro(), "G")
     assert [m["nome"] for m in estado["municipios"]] == ["Campinas", "São Paulo"]
     assert estado["municipios"][0]["processos"] == 0 and estado["municipios"][1]["processos"] == 3
+    assert estado["municipios"][0]["meses"] == [] and sum(m[1] for m in estado["municipios"][1]["meses"]) == 3
 
     p = contratacoes.panorama_para_json(painel, _cadastro(), "G")
     assert p["totais"]["processos"] == 5 and p["totais"]["contratos"] == 4
@@ -227,6 +238,8 @@ def test_soma_por_ente_e_panorama(estado_sintetico):
     sp_uf = next(u for u in p["ufs"] if u["uf"] == "SP")
     assert sp_uf["estado"]["processos"] == 1 and sp_uf["municipios"]["processos"] == 3
     assert sp_uf["municipios_com_publicacao"] == 1 and sp_uf["municipios_no_cadastro"] == 2
+    assert sum(m[1] for m in sp_uf["meses"]) == 1 and sum(m[2] for m in sp_uf["meses"]) == 3
+    assert all(sum(m[1] for m in e["meses"]) == e["processos"] for e in p["esferas"])
     assert len(p["ufs"]) == 27
     assert p["fornecedores"][0]["cnpj"] == "22222222000122"
     assert contratacoes.Painel().cobertura() == {"de": None, "ate": None, "dias": 0, "faltando": []}
@@ -293,7 +306,9 @@ def test_valor_acima_do_teto_fica_fora_das_somas(estado_sintetico):
     t = campinas["totais"]
     assert (t["processos"], t["valor_estimado"], t["processos_sem_valor"]) == (1, 0.0, 0)
     assert (t["contratos"], t["valor_contratos"], t["valores_a_conferir"]) == (3, 1_000.0, 3)
-    assert campinas["fornecedores"][0] == {"cnpj": "44444444000144", "nome": "D", "contratos": 2, "valor": 1_000.0}
+    assert {k: v for k, v in campinas["fornecedores"][0].items() if k != "meses"} == {
+        "cnpj": "44444444000144", "nome": "D", "contratos": 2, "valor": 1_000.0}
+    assert campinas["fornecedores"][0]["meses"] == [["2026-02", 2, 1_000.0]]
     assert campinas["fornecedores"][1]["valor"] == 0.0
     assert [(x["tipo"], x["valor"]) for x in campinas["a_conferir"]] == [
         ("contrato", 300_000_000.0), ("contrato", 25_000_000_000.0), ("processo", 30_000_000_000.0)]

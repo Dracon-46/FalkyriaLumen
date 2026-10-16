@@ -7,6 +7,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import { normalizar } from "@/lib/busca";
 import { varCor } from "@/lib/cores";
 import { numero, percentual } from "@/lib/formato";
@@ -30,6 +31,8 @@ export function Panorama({ feed, rotuloParte, onSelecionar }: Props) {
     return [...lista].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   }, [feed.partes, filtro]);
   const plural = rotuloParte === "estado" ? "estados" : "municípios";
+  const paginaPartidos = usePaginacao(feed.partidos);
+  const paginaPartes = usePaginacao(partes);
   return (
     <section className="cartao cartao-corpo" aria-labelledby="titulo-panorama">
       <h2 id="titulo-panorama" className="titulo-secao">
@@ -44,7 +47,7 @@ export function Panorama({ feed, rotuloParte, onSelecionar }: Props) {
           </tr>
         </thead>
         <tbody>
-          {feed.partidos.slice(0, 30).map((p) => (
+          {paginaPartidos.visiveis.map((p) => (
             <tr key={p.partido}>
               <td>
                 <span className="legenda-item">
@@ -58,14 +61,12 @@ export function Panorama({ feed, rotuloParte, onSelecionar }: Props) {
           ))}
         </tbody>
       </table>
-      {feed.partidos.length > 30 && (
-        <p className="candidato-detalhe">Mais {numero(feed.partidos.length - 30)} partidos com menos votos.</p>
-      )}
+      <Paginacao {...paginaPartidos} rotulo="partidos" />
       <details style={{ marginTop: 16 }} open={feed.partes.length <= 30}>
         <summary>
           {rotuloParte === "estado" ? "Estados" : "Municípios"} ({numero(feed.partes.length)})
         </summary>
-        {feed.partes.length > 30 && (
+        {feed.partes.length > 20 && (
           <input
             className="seletor"
             style={{ width: "100%", margin: "8px 0" }}
@@ -84,7 +85,7 @@ export function Panorama({ feed, rotuloParte, onSelecionar }: Props) {
             </tr>
           </thead>
           <tbody>
-            {partes.slice(0, 400).map((p) => (
+            {paginaPartes.visiveis.map((p) => (
               <tr key={p.codigo} className="clicavel">
                 <td>
                   <button type="button" className="botao-link" onClick={() => onSelecionar(p)}>
@@ -103,6 +104,7 @@ export function Panorama({ feed, rotuloParte, onSelecionar }: Props) {
             ))}
           </tbody>
         </table>
+        <Paginacao {...paginaPartes} rotulo={plural} />
       </details>
     </section>
   );

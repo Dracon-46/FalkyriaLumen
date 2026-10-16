@@ -9,6 +9,8 @@
  * com o eleitorado e os locais de votação de cada zona.
  */
 
+import { useMemo } from "react";
+import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import { varCorMapa } from "@/lib/cores";
 import { numero, percentual } from "@/lib/formato";
 import type { ArquivoZonas, Parte } from "@/lib/tipos";
@@ -29,9 +31,13 @@ interface Props {
 
 /** Uma linha por zona, em ordem numérica, juntando o resultado do feed e os números do arquivo das zonas. */
 export function TabelaZonas({ partes, arquivo, rotulo, escolhida, onEscolher, onDestacar }: Props) {
-  const porZona = new Map(partes.map((p) => [p.codigo, p] as const));
-  const info = new Map((arquivo?.zonas ?? []).map((z) => [z.zona, z] as const));
-  const zonas = [...new Set([...porZona.keys(), ...info.keys()])].sort((a, b) => Number(a) - Number(b));
+  const porZona = useMemo(() => new Map(partes.map((p) => [p.codigo, p] as const)), [partes]);
+  const info = useMemo(() => new Map((arquivo?.zonas ?? []).map((z) => [z.zona, z] as const)), [arquivo]);
+  const zonas = useMemo(
+    () => [...new Set([...porZona.keys(), ...info.keys()])].sort((a, b) => Number(a) - Number(b)),
+    [porZona, info],
+  );
+  const pagina = usePaginacao(zonas);
   if (zonas.length < 2) return null;
   const comResultado = partes.length > 0;
   return (
@@ -61,7 +67,7 @@ export function TabelaZonas({ partes, arquivo, rotulo, escolhida, onEscolher, on
             </tr>
           </thead>
           <tbody onMouseLeave={() => onDestacar(null)}>
-            {zonas.map((z) => {
+            {pagina.visiveis.map((z) => {
               const p = porZona.get(z);
               const i = info.get(z);
               return (
@@ -99,6 +105,7 @@ export function TabelaZonas({ partes, arquivo, rotulo, escolhida, onEscolher, on
           </tbody>
         </table>
       </div>
+      <Paginacao {...pagina} rotulo="zonas" />
     </section>
   );
 }

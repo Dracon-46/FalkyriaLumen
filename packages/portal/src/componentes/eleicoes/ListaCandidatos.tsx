@@ -6,7 +6,9 @@
  * agremiação. A ordem é a do feed (mais votados primeiro).
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
+import { normalizar } from "@/lib/busca";
 import { varCor } from "@/lib/cores";
 import { urls } from "@/lib/feeds";
 import { iniciais, numero, percentual } from "@/lib/formato";
@@ -85,28 +87,56 @@ function Cartao({ c, maior, cargo }: { c: Candidato; maior: number; cargo: strin
 
 /**
  * Candidatos do resultado: os 12 primeiros (20 nos proporcionais), com botão
- * para ver todos. Avisa quando o arquivo do município deixou candidatos de
- * fora e, nos proporcionais, acrescenta a votação por agremiação.
+ * para ver todos, 20 por página e com busca por nome, número ou partido. Avisa
+ * quando o arquivo do município deixou candidatos de fora e, nos proporcionais,
+ * acrescenta a votação por agremiação.
  */
 export function ListaCandidatos({ feed }: { feed: FeedResultado }) {
   const [todos, setTodos] = useState(false);
+  const [filtro, setFiltro] = useState("");
   const proporcional = feed.cargo.tipo === "proporcional";
   const limite = proporcional ? VISIVEIS_PROPORCIONAL : VISIVEIS_MAJORITARIO;
-  const lista = todos ? feed.candidatos : feed.candidatos.slice(0, limite);
+  const filtrados = useMemo(() => {
+    const termo = normalizar(filtro);
+    if (!termo) return feed.candidatos;
+    return feed.candidatos.filter((c) =>
+      normalizar(`${c.nome_urna} ${c.numero} ${c.partido ?? ""} ${c.agremiacao ?? ""}`).includes(termo),
+    );
+  }, [feed.candidatos, filtro]);
+  const pagina = usePaginacao(filtrados);
+  const lista = todos ? pagina.visiveis : feed.candidatos.slice(0, limite);
   const maior = feed.candidatos.reduce((m, c) => (c.valido && c.votos > m ? c.votos : m), 0);
   return (
     <section aria-labelledby="titulo-candidatos">
       <h2 id="titulo-candidatos" className="titulo-secao">
         {proporcional ? "Candidatos mais votados" : "Candidatos"}
       </h2>
+      {todos && (
+        <input
+          className="seletor filtro-tabela"
+          value={filtro}
+          placeholder="Buscar candidato, número ou partido"
+          aria-label="Buscar candidato pelo nome, número ou partido"
+          onChange={(e) => setFiltro(e.target.value)}
+        />
+      )}
+      {todos && filtrados.length === 0 && <p className="candidato-detalhe">Nenhum candidato com esse nome ou número.</p>}
       <ul className="candidatos" style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {lista.map((c) => (
           <Cartao key={`${c.numero}-${c.nome_urna}`} c={c} maior={maior} cargo={feed.cargo.slug} />
         ))}
       </ul>
+      {todos && <Paginacao {...pagina} rotulo="candidatos" />}
       {feed.candidatos.length > limite && (
         <p>
-          <button type="button" className="botao" onClick={() => setTodos((v) => !v)}>
+          <button
+            type="button"
+            className="botao"
+            onClick={() => {
+              setTodos((v) => !v);
+              setFiltro("");
+            }}
+          >
             {todos ? "Mostrar menos" : `Mostrar todos os ${numero(feed.candidatos.length)} candidatos`}
           </button>
         </p>
@@ -124,6 +154,7 @@ export function ListaCandidatos({ feed }: { feed: FeedResultado }) {
 
 /** Votos e vagas por partido, federação ou coligação, com o quociente eleitoral; começa recolhida. */
 function Agremiacoes({ feed }: { feed: FeedResultado }) {
+  const pagina = usePaginacao(feed.agremiacoes);
   return (
     <details style={{ marginTop: 16 }}>
       <summary>Votação por partido, federação ou coligação</summary>
@@ -136,7 +167,7 @@ function Agremiacoes({ feed }: { feed: FeedResultado }) {
           </tr>
         </thead>
         <tbody>
-          {feed.agremiacoes.map((a) => (
+          {pagina.visiveis.map((a) => (
             <tr key={a.nome}>
               <td>
                 {a.nome}
@@ -150,6 +181,7 @@ function Agremiacoes({ feed }: { feed: FeedResultado }) {
           ))}
         </tbody>
       </table>
+      <Paginacao {...pagina} rotulo="agremiações" />
       {feed.quociente_eleitoral != null && (
         <p className="candidato-detalhe">Quociente eleitoral: {numero(feed.quociente_eleitoral)} votos.</p>
       )}
