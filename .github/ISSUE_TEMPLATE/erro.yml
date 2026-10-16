@@ -1,0 +1,76 @@
+name: Relato de erro
+description: Algo não funciona como deveria (comando, carga, portal, feed, fluxo do GitHub Actions).
+title: "[erro] "
+labels: [erro]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por relatar. Falha de segurança não vai aqui: use a aba **Security** → **Report a vulnerability**.
+        Se o problema é um número diferente do publicado pela fonte oficial, use o formulário **Dado divergente da fonte oficial**.
+  - type: dropdown
+    id: onde
+    attributes:
+      label: Onde
+      description: Em que parte do Lumen o erro aparece.
+      options:
+        - Portal — aba Eleições
+        - Portal — Contratações
+        - Portal — Conformidade
+        - Comando lumen (pipeline, eleições, painel, mercado)
+        - Fluxo do GitHub Actions
+        - Feeds publicados
+        - Documentação
+        - Outro
+    validations:
+      required: true
+  - type: input
+    id: endereco
+    attributes:
+      label: Endereço, comando ou fluxo
+      description: A URL da página, o comando completo (sem segredos) ou o nome do fluxo e o link da execução.
+      placeholder: "ex.: lumen eleicoes preparar --anos 2022, ou https://.../eleicoes/?e=2026-1t-geral&c=presidente"
+    validations:
+      required: true
+  - type: textarea
+    id: passos
+    attributes:
+      label: Passos para reproduzir
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: O que era esperado
+    validations:
+      required: true
+  - type: textarea
+    id: obtido
+    attributes:
+      label: O que aconteceu
+      description: Mensagem de erro, trecho do registro ou captura de tela. Não cole tokens, chaves nem dados pessoais.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: afetado
+    attributes:
+      label: Fonte, eleição ou ente afetado
+      description: "A fonte (PNCP, SICONFI, IBGE, TSE, ANP), a eleição e o cargo (ex.: 2026-1t-geral, presidente) ou o ente (nome e código IBGE), quando se aplica."
+      placeholder: "ex.: TSE, 2026-2t-geral, governador, uf-sp"
+  - type: input
+    id: versao
+    attributes:
+      label: Versão ou commit
+      description: A versão do Lumen (pyproject.toml) ou o commit em uso.
+      placeholder: "ex.: 0.8.0"
+  - type: input
+    id: ambiente
+    attributes:
+      label: Ambiente
+      description: Sistema operacional, versão do Python e do Node, navegador, quando se aplica.
+      placeholder: "ex.: Windows 11, Python 3.12, Node 22, Firefox"
