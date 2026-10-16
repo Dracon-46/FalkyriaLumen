@@ -65,8 +65,11 @@ CKAN = "https://dadosabertos.tse.jus.br/api/3/action/package_show"
 CDN = "https://cdn.tse.jus.br/estatistica/sead/odsele"
 CDN_ELEICOES = "https://cdn.tse.jus.br/estatistica/sead/eleicoes"
 
-ANOS_GERAIS = tuple(range(1994, 2023, 4))
+ANOS_GERAIS = tuple(range(1994, 2027, 4))
 ANOS_MUNICIPAIS = tuple(range(1996, 2025, 4))
+# Ano mais recente dos dados abertos: o TSE ainda acrescenta o 2º turno e corrige os arquivos. O ``preparar``
+# o confere na fonte a cada execução, e só a eleição (ano e turno) já processada sai da coleta ao vivo.
+ANO_EM_ABERTO = max(ANOS_GERAIS + ANOS_MUNICIPAIS)
 
 CONJUNTO_VOTACAO = "votacao_candidato_munzona"
 CONJUNTO_DETALHE = "detalhe_votacao_munzona"

@@ -94,9 +94,14 @@ def cdn_antiga(tmp_path, monkeypatch, zips_antigos):
 
 # ------------------------------------------------------------------ carga
 
-def test_anos_disponiveis_vao_de_2024_a_1933():
+def da_ano_em_aberto() -> int:
+    from lumen_eleicoes import dados_abertos
+    return dados_abertos.ANO_EM_ABERTO
+
+
+def test_anos_disponiveis_vao_de_2026_a_1933():
     anos = carga.anos_disponiveis()
-    assert anos[0] == 2024 and anos[-1] == 1933 and 1950 in anos and 1994 in anos and 1993 not in anos
+    assert anos[0] == 2026 and anos[-1] == 1933 and 2024 in anos and da_ano_em_aberto() == 2026 and 1950 in anos and 1994 in anos and 1993 not in anos
     assert cli._anos("todos") == anos and cli._anos("1950, 1989") == [1989, 1950]
     with pytest.raises(Exception):
         cli._anos("1951")
@@ -258,6 +263,9 @@ def test_quais_eleicoes_vem_do_sistema_de_resultados():
              e("2026-sup", 2026, "suplementar", date(2026, 3, 1)), e("2026-x", 2026, "geral", None)]
     agora, futuras = preparacao.eleicoes_ao_vivo(lista, date(2026, 10, 6))
     assert [x.id for x in agora] == ["2026-1t-geral", "2026-x"] and [x.id for x in futuras] == ["2026-2t-geral"]
+    # Com o 1º turno de 2026 já processado dos dados abertos, ele sai da coleta; o 2º turno continua
+    agora, futuras = preparacao.eleicoes_ao_vivo(lista, date(2026, 10, 26), {"2026-1t-geral"})
+    assert [x.id for x in agora] == ["2026-2t-geral", "2026-x"] and futuras == []
 
 
 def test_dentro_de(tmp_path):

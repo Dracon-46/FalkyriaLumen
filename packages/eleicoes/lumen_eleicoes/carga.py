@@ -17,10 +17,12 @@ votação por partido e o histórico da totalização enriquecem o resultado, e 
 
 from __future__ import annotations
 
+import json
 import sys
 import zipfile
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Callable
 
 from lumen_ingestao.bronze import ArmazemBronze, ArtefatoBruto
@@ -177,6 +179,20 @@ def _opcional(caminho, progresso: Callable[[str], None]):
     return caminho
 
 
+def fotos_da_coleta(dir_estado: Path, ano: int) -> dict[str, set[str]]:
+    """Fotos que a coleta ao vivo baixou, por eleição do ano: o ``sq`` de cada candidato com foto, lido do
+    estado do coletor (``coleta-<eleição>.json``, restaurado da nuvem com o resto do estado)."""
+    saida: dict[str, set[str]] = {}
+    for arquivo in sorted(Path(dir_estado).glob(f"coleta-{ano}-*.json")):
+        try:
+            dados = json.loads(arquivo.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if dados.get("fotos"):
+            saida[arquivo.stem[len("coleta-"):]] = {str(sq) for sq in dados["fotos"]}
+    return saida
+
+
 def processar_ano(cfg: ConfiguracaoEleicoes, ano: int, *, escritor: EscritorFeeds, cadastro: CadastroMunicipios,
                   limite_municipio: int = 50, progresso: Callable[[str], None] | None = None) -> ResultadoAno:
     """Gera os feeds de um ano a partir dos ZIPs já baixados; levanta ``ArquivoAusente`` sem o de votação.
@@ -201,7 +217,8 @@ def processar_ano(cfg: ConfiguracaoEleicoes, ano: int, *, escritor: EscritorFeed
         raise ArquivoAusente(str(votacao))
     proc = ProcessadorAno(ano, escritor, cadastro, origem_votacao=ler_manifesto(votacao),
                           origem_detalhe=ler_manifesto(detalhe) if detalhe.exists() else None,
-                          limite_candidatos_municipio=limite_municipio, progresso=progresso)
+                          limite_candidatos_municipio=limite_municipio, progresso=progresso,
+                          fotos_ao_vivo=fotos_da_coleta(cfg.estado, ano))
     resumo = proc.processar(votacao, detalhe if detalhe.exists() else None)
     evolucoes = []
     for zip_hist in sorted(pasta.glob("Historico_Totalizacao_Presidente_BR_*T_*.zip")):
