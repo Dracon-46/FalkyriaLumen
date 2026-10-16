@@ -138,8 +138,10 @@ class EstadoPreparacao:
         self.gravar()
 
     def zonas_prontas(self, ano: int) -> bool:
-        """Se o mapa das zonas do ano já foi gravado."""
-        return str(ano) in self.zonas
+        """Se o mapa das zonas do ano já foi gravado pela revisão atual do cálculo e com os contornos atuais."""
+        registro = self.zonas.get(str(ano))
+        return bool(registro) and registro.get("revisao") == zonas.REVISAO_ZONAS and (
+            registro.get("contornos") == zonas.assinatura_contornos())
 
     def entradas_das_zonas(self, ano: int) -> dict[str, str]:
         """{arquivo: SHA-256} do ZIP de locais com que o mapa das zonas do ano foi gravado."""
@@ -147,7 +149,8 @@ class EstadoPreparacao:
 
     def marcar_zonas(self, ano: int, entradas: dict[str, str], municipios: int) -> None:
         """Registra o mapa das zonas do ano como gravado e grava."""
-        self.zonas[str(ano)] = {"concluido_em": _agora(), "entradas": entradas, "municipios": municipios}
+        self.zonas[str(ano)] = {"concluido_em": _agora(), "entradas": entradas, "municipios": municipios,
+                                "revisao": zonas.REVISAO_ZONAS, "contornos": zonas.assinatura_contornos()}
         self.gravar()
 
     def ao_vivo_pronto(self, eleicao_id: str) -> bool:

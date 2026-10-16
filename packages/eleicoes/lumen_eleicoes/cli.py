@@ -8,6 +8,7 @@ Exemplos::
     lumen eleicoes catalogo                         # o que o TSE publica agora
     lumen eleicoes municipios                       # cadastro TSE ↔ IBGE (busca e mapa)
     lumen eleicoes mapas                            # malhas do IBGE para o mapa
+    lumen eleicoes mapas --contornos                # contornos finos dos municípios do mapa das zonas
     lumen eleicoes zonas --anos 2026,2024           # locais de votação: mapa das zonas eleitorais
     lumen eleicoes ao-vivo --eleicao 2026-1t-geral  # noite da apuração
     lumen eleicoes historico baixar --anos 2022,2018,1950
@@ -172,10 +173,23 @@ def cmd_municipios(cfg, args) -> int:
 
 
 def cmd_mapas(cfg, args) -> int:
-    """Baixa as malhas do IBGE para o mapa (todas as UFs ou as pedidas) e imprime os arquivos gravados."""
+    """Baixa as malhas do IBGE para o mapa (todas as UFs ou as pedidas) e imprime os arquivos gravados.
+
+    Com ``--contornos``, baixa em vez disso o contorno fino (qualidade ``maxima``) de cada município listado
+    nos índices do mapa das zonas (``geo/zonas-<ano>/indice.json``) do diretório dos feeds.
+    """
     bronze = None if args.sem_bronze else ArmazemBronzeLocal(cfg.bronze)
-    gravados = geo.baixar_malhas(_cliente(cfg, geo.FONTE_ID, cfg.rpm_ibge), cfg.saida, ufs=_lista(args.ufs),
-                                 qualidade=args.qualidade, bronze=bronze)
+    cliente = _cliente(cfg, geo.FONTE_ID, cfg.rpm_ibge)
+    if args.contornos:
+        codigos = zonas.municipios_dos_indices(cfg.saida)
+        if not codigos:
+            print("erro: nenhum índice das zonas no diretório dos feeds; rode `lumen eleicoes zonas` antes",
+                  file=sys.stderr)
+            return 2
+        gravados = geo.baixar_contornos(cliente, cfg.saida, codigos, bronze=bronze)
+        _imprimir({"contornos": [str(p) for p in gravados]})
+        return 0
+    gravados = geo.baixar_malhas(cliente, cfg.saida, ufs=_lista(args.ufs), qualidade=args.qualidade, bronze=bronze)
     _imprimir({"malhas": [str(p) for p in gravados]})
     return 0
 
@@ -487,6 +501,8 @@ def construir_parser() -> argparse.ArgumentParser:
     c = sub.add_parser("mapas", help="baixa as malhas do IBGE")
     c.add_argument("--ufs", help="siglas separadas por vírgula (padrão: todas)")
     c.add_argument("--qualidade", default="minima", choices=geo.QUALIDADES)
+    c.add_argument("--contornos", action="store_true",
+                   help="contorno fino dos municípios do mapa das zonas (geo/mu/), em vez das malhas das UFs")
     c.add_argument("--sem-bronze", action="store_true")
 
     c = sub.add_parser("zonas", help="locais de votação: mapa das zonas eleitorais (ADR-029)")

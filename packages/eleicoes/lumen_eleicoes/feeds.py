@@ -257,13 +257,14 @@ def parte_json(abr: Abrangencia, r: ResultadoAbrangencia, cores: Mapping[str, in
 
 def parte_zona_json(abr: Abrangencia, r: ResultadoAbrangencia, cores: Mapping[str, int], *,
                     por_partido: bool = False) -> dict:
-    """Uma zona no feed do município: como ``parte_json``, sem a bancada.
+    """Uma zona no feed do município: como ``parte_json``, sem a bancada nem os selos de eleito e de 2º turno.
 
-    Os eleitos de um cargo proporcional são do município (ou da UF) inteiro; contá-los por zona daria a
-    impressão de que cada zona elegeu alguém.
+    Quem se elege (ou vai ao 2º turno) é decidido no município, na UF ou no Brasil; na zona, esses campos
+    dariam a impressão de que cada zona elegeu alguém.
     """
     parte = parte_json(abr, r, cores, por_partido=por_partido)
-    parte.pop("bancada", None)
+    for campo in ("bancada", "eleito", "segundo_turno"):
+        parte.pop(campo, None)
     return parte
 
 

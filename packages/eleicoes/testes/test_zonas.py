@@ -374,3 +374,48 @@ def test_verificador_confere_o_mapa_das_zonas(zip_2026, tmp_path):
         r = Relatorio()
         verificar_zonas(caminho, estrago, r)
         assert esperado in r.problemas[0], estrago.get("tipo")
+
+
+def test_regravar_apaga_municipio_que_saiu_e_lista_os_sem_contorno(zip_2026, tmp_path):
+    raiz = tmp_path / "feeds"
+    antigo = raiz / "geo" / "zonas-2026" / "mu-9999999.json"
+    antigo.parent.mkdir(parents=True)
+    antigo.write_text("{}", encoding="utf-8")
+    r = zonas.gravar_zonas(2026, zip_2026, raiz, referencias.cadastro_embutido())
+    assert r.removidos == 1 and not antigo.exists() and r.sem_contorno == []
+    # Só com a malha da UF: os dois municípios ficam sem o contorno fino, e o resumo diz isso
+    malhas = tmp_path / "malhas"
+    malhas.mkdir()
+    (malhas / "uf-sp-mu.json").write_bytes((referencias.DIR_DADOS / "geo" / "uf-sp-mu.json").read_bytes())
+    r = zonas.gravar_zonas(2026, zip_2026, tmp_path / "f2", referencias.cadastro_embutido(), malhas=malhas)
+    assert sorted(r.sem_contorno) == [BRAGANCA, SAO_CAETANO] and r.para_json()["sem_contorno"]
+    assert zonas.municipios_dos_indices(raiz) == {BRAGANCA, SAO_CAETANO}
+    assert zonas.municipios_dos_indices(tmp_path / "vazio") == set()
+
+
+def test_revisao_ou_contornos_novos_regravam_as_zonas(tmp_path, monkeypatch):
+    estado = preparacao.EstadoPreparacao(tmp_path / "p.json")
+    estado.marcar_zonas(2026, {"x.zip": "ab"}, 2)
+    assert estado.zonas_prontas(2026)
+    monkeypatch.setattr(zonas, "REVISAO_ZONAS", zonas.REVISAO_ZONAS + 1)
+    assert not estado.zonas_prontas(2026)
+    monkeypatch.undo()
+    monkeypatch.setattr(zonas, "assinatura_contornos", lambda: "outra")
+    assert not estado.zonas_prontas(2026)
+    # Registro de antes da revisão: grava de novo
+    estado.zonas["2024"] = {"entradas": {}}
+    assert not estado.zonas_prontas(2024)
+
+
+def test_comando_mapas_contornos(cfg, monkeypatch, capsys):
+    monkeypatch.setattr(cli, "carregar", lambda *a, **k: cfg)
+    assert cli.main(["mapas", "--contornos", "--sem-bronze"]) == 2           # sem índice das zonas
+    indice = cfg.saida / "geo" / "zonas-2026" / "indice.json"
+    indice.parent.mkdir(parents=True)
+    indice.write_text(json.dumps({"municipios": {SAO_CAETANO: 2}}), encoding="utf-8")
+    pedidos = []
+    monkeypatch.setattr(geo, "baixar_contornos", lambda cliente, raiz, codigos, bronze=None: (
+        pedidos.append(sorted(codigos)) or [Path(raiz) / "geo" / "mu" / f"{c}.json" for c in codigos]))
+    capsys.readouterr()
+    assert cli.main(["mapas", "--contornos", "--sem-bronze"]) == 0
+    assert pedidos == [[SAO_CAETANO]] and "contornos" in json.loads(capsys.readouterr().out)
