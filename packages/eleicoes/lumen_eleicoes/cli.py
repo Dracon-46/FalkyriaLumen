@@ -282,7 +282,11 @@ def cmd_ao_vivo(cfg, args) -> int:
             publicar()
     try:
         coletor.executar(intervalo_s=args.intervalo, max_passadas=1 if args.uma_vez else None,
-                         parar=lambda: sinal[0], aviso=aviso)
+                         parar=lambda: sinal[0], aviso=aviso,
+                         estavel_s=args.parar_estavel * 60 if args.parar_estavel > 0 else None)
+        if coletor.pendentes_ao_parar:
+            print(f"parada: todas as seções totalizadas e nada mudou em {args.parar_estavel:g} min; o TSE ainda "
+                  f"não marcou como finalizados: {', '.join(coletor.pendentes_ao_parar)}", flush=True)
     finally:
         if nuvem is not None:
             publicar()
@@ -521,6 +525,8 @@ def construir_parser() -> argparse.ArgumentParser:
                    help="também deputados por município (muito mais arquivos)")
     c.add_argument("--fotos-municipais", action="store_true", help="também fotos de prefeito e vereador")
     c.add_argument("--uma-vez", action="store_true", help="uma passada só")
+    c.add_argument("--parar-estavel", type=float, default=60,
+                   help="minutos sem mudança, com todas as seções totalizadas, para parar (0 desliga)")
     c.add_argument("--sem-bronze", action="store_true", help="não guardar as respostas como prova")
     c.add_argument("--nuvem", action="store_true", help="publica no R2 a cada passada (ADR-026)")
     c.add_argument("--base", default=tse.BASE)
