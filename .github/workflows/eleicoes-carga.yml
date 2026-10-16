@@ -27,8 +27,10 @@
 #   variables R2_BUCKET_FEEDS    bucket público dos feeds (ex.: lumen-eleicoes)
 #             R2_BUCKET_ESTADO   bucket privado do estado (ex.: lumen-privado)
 #             R2_REGIAO          região da assinatura S3 (opcional; padrão auto, a do R2)
-#             ELEICOES_SEM_HISTORICO  "true" para carregar só 2026, sem os dados
-#                                abertos de 1933 a 2026 (opcional; a entrada
+#             ELEICOES_SEM_HISTORICO  "true" para carregar só o sistema de
+#                                resultados (2026 ao vivo), sem os dados abertos
+#                                de 1933 a 2026 nem as zonas; o 1º turno de 2026
+#                                continua ao vivo (opcional; a entrada
 #                                "historico" da execução manual passa por cima)
 #             PUBLICACAO_PARALELOS    envios simultâneos (opcional; padrão 32)
 #             PUBLICACAO_LIMITE_MB    teto do bucket público em MB (opcional; no

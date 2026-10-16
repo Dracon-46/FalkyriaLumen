@@ -1,0 +1,264 @@
+# APIs e contratos
+
+O Lumen não tem API HTTP própria de escrita. A API pública está prevista para a Fase 3 (RF-PU-08,
+UC-14). Hoje o projeto tem três tipos de interface:
+
+1. as **fontes oficiais** que ele consome;
+2. os **arquivos JSON** que ele publica e o portal lê (feeds das eleições e dados dos painéis);
+3. a **linha de comando** `lumen`.
+
+## Fontes consumidas
+
+Todas as requisições se identificam no User-Agent com a versão do Lumen e o contato configurado
+(RF-CO-09), respeitam o limite de taxa de cada fonte e preferem a API oficial (princípio P6). As
+respostas são guardadas na camada bronze como prova, inclusive as de erro HTTP.
+
+### PNCP — Portal Nacional de Contratações Públicas
+
+Código: [`adaptadores/api/pncp.py`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/packages/ingestao/lumen_ingestao/adaptadores/api/pncp.py).
+
+| Base | Recurso | Fonte no Lumen |
+|---|---|---|
+| `https://pncp.gov.br/api/consulta` | `/v1/contratacoes/publicacao` | `pncp_contratacoes` |
+| | `/v1/contratacoes/atualizacao` | `pncp_contratacoes_atualizacao` |
+| | `/v1/contratos` | `pncp_contratos` |
+| | `/v1/contratos/atualizacao` | `pncp_contratos_atualizacao` |
+| | `/v1/atas` (por vigência) | `pncp_atas` |
+| | `/v1/atas/atualizacao` | `pncp_atas_atualizacao` |
+| `https://pncp.gov.br/api/pncp` | `/v1/orgaos/<cnpj>/compras/<ano>/<sequencial>/…` (itens e resultados da contratação) | `pncp_itens` |
+| | `/v1/modalidades` (domínio oficial das modalidades) | — |
+
+Comportamentos registrados nas fixtures e no código: `codigoModalidadeContratacao` é obrigatório em
+`/v1/contratacoes/*`; página vazia responde 204 sem corpo; janela maior que 365 dias responde 422; o
+PNCP limita a vazão com 429, e o cliente reduz a taxa pela metade pelo resto da sessão. Os painéis
+apontam cada número para a página pública `https://pncp.gov.br/app/editais/…` ou
+`https://pncp.gov.br/app/contratos/…`.
+
+### SICONFI — Tesouro Nacional
+
+Base `https://apidatalake.tesouro.gov.br/ords/siconfi/tt`. Código:
+[`adaptadores/api/siconfi.py`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/packages/ingestao/lumen_ingestao/adaptadores/api/siconfi.py).
+
+| Recurso | Fonte no Lumen | Observação |
+|---|---|---|
+| `/entes` | `siconfi_entes` | Cadastro de entes |
+| `/extrato_entregas` | `siconfi_extrato` | O que cada ente entregou, por exercício; base da conformidade |
+| `/rreo`, `/rgf`, `/dca` | `siconfi_rreo`, `siconfi_rgf`, `siconfi_dca` | Conector pronto, normalização pendente; RGF com periodicidade `Q` ou `S` (LRF, art. 63) |
+
+### IBGE
+
+| Endereço | Uso |
+|---|---|
+| `https://servicodados.ibge.gov.br/api/v1/localidades/estados` e `/municipios` | Cadastro de UFs e municípios (`ibge_localidades`) |
+| `https://servicodados.ibge.gov.br/api/v3/agregados/6579/periodos/<período>/variaveis/9324` | População estimada (`ibge_populacao`) |
+| `https://servicodados.ibge.gov.br/api/v3/malhas` | Malhas do mapa da aba Eleições (`lumen eleicoes mapas`); as do Brasil por UF e das UFs por município, na qualidade mínima, já vêm com o Lumen |
+
+### TSE
+
+| Endereço | Uso |
+|---|---|
+| `https://resultados.tse.jus.br/oficial` | Sistema de divulgação de resultados: catálogo (`/comum/config/ele-c.json`), municípios, resultado por cargo e abrangência, andamento da totalização e fotos. Responde 304 a `If-Modified-Since` |
+| `https://dadosabertos.tse.jus.br/api/3/action/package_show` | Portal de Dados Abertos (CKAN): pacote `resultados-<ano>` |
+| `https://cdn.tse.jus.br/estatistica/sead/odsele` | ZIPs dos dados abertos (votação, detalhe da apuração, locais de votação `eleitorado_local_votacao_<ano>.zip`) |
+| `https://cdn.tse.jus.br/estatistica/sead/eleicoes` | Evolução da totalização do Presidente (2018 em diante) |
+
+Os ZIPs dos dados abertos ficam fora do bronze, com manifesto (URL, tamanho, SHA-256, ETag,
+Last-Modified) registrado no bronze
+([ADR-021](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-021.md)).
+
+### ANP e varejo (regra A-05, modo silencioso)
+
+| Endereço | Uso |
+|---|---|
+| `https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/arquivos/shpc/dsas` | Série semestral de preços de revenda (séries `ca` e `glp`) |
+| `https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/serie-historica-de-precos-de-combustiveis` | Página da série |
+| `https://www.gov.br/anp/pt-br/assuntos/precos-e-defesa-da-concorrencia/precos/levantamento-de-precos-de-combustiveis-ultimas-semanas-pesquisadas` | Página das planilhas semanais |
+| `https://api.mercadolibre.com/sites/MLB/search` | Ofertas do varejo; exige `LUMEN_ML_TOKEN` |
+
+Lojas sem API pública ficam de fora por decisão
+([ADR-027](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-027.md)).
+
+## Contrato dos feeds das eleições
+
+Definido em [`feeds.py`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/packages/eleicoes/lumen_eleicoes/feeds.py)
+e espelhado em [`tipos.ts`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/packages/portal/src/lib/tipos.ts)
+([ADR-019](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-019.md)).
+
+### Versão
+
+- Todo arquivo leva `versao`. A versão atual é **1** (`VERSAO_ESQUEMA_FEED` no Python,
+  `VERSAO_FEED` no portal).
+- O portal recusa versão desconhecida, tipo desconhecido ou campo obrigatório ausente
+  ([`validacao.ts`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/packages/portal/src/lib/validacao.ts)),
+  em vez de exibir número errado.
+- Mudança incompatível sobe a versão e atualiza os dois lados no mesmo commit. Campos opcionais e
+  aditivos não mudam a versão (por exemplo `sem_numero`, `municipios: false` e as zonas em `partes`).
+- O mapa das zonas tem versão própria, `VERSAO_ZONAS` = 1, igual no Python e no portal e conferida
+  por teste.
+- O contrato é testado dos dois lados: o Python gera a amostra versionada
+  [`testes/fixtures/eleicoes_feed`](https://github.com/Dracon-46/FalkyriaLumen/tree/main/testes/fixtures/eleicoes_feed),
+  conferida byte a byte, e os testes do portal leem a mesma amostra.
+
+### Regras gerais
+
+- Números são números (inteiros para votos, decimais com até 6 casas para percentuais), nunca texto
+  com vírgula. Datas em ISO 8601 com fuso.
+- Nenhum número é calculado além de somas e percentuais sobre os totais publicados; não há projeção.
+- O feed não traz cor: traz `cor`, um índice de 0 a 7 (ou -1, cinza), atribuído pela ordem de
+  votação no nível mais alto do cargo e fixo durante a noite. Nunca é cor de partido
+  ([ADR-020](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-020.md)).
+- O bloco `origem` liga cada número ao arquivo oficial: `fonte`, `url`, `sha256`, `coletado_em` e
+  `registro_bronze`.
+
+### Arquivos
+
+| Caminho | Tipo | Conteúdo |
+|---|---|---|
+| `indice.json` | índice | `versao`, `gerado_em` e `eleicoes`: id, nome, ano, turno, tipo, data, `origem` (`resultados` ou `dados_abertos`), `ao_vivo`, `atualizado_em`, `cargos` (com `ufs` por cargo) e `ufs`; `municipios: false` nas eleições de 1933 a 1990 |
+| `municipios.json` | cadastro | `versao` e `municipios` (UF, código TSE, código IBGE, nome, nome no TSE, capital), usado pela busca |
+| `geo/br-uf.json`, `geo/uf-<sigla>-mu.json` | malha | TopoJSON do IBGE |
+| `<eleição>/<cargo>/br.json` | `resultado` ou `panorama` | Brasil, com as UFs em `partes` |
+| `<eleição>/<cargo>/uf-<sigla>.json` | `resultado` ou `panorama` | UF, com os municípios em `partes` |
+| `<eleição>/<cargo>/mu-<chave>.json` | `resultado` | Município (a chave é o código IBGE quando há), com as zonas em `partes` quando ele tem mais de uma (só nos dados abertos) |
+| `<eleição>/<cargo>/historico-<abrangência>.json` | `historico` | Evolução da totalização |
+| `geo/zonas-<ano>/indice.json` | `zonas-indice` | Municípios com mais de uma zona e o número de zonas de cada um |
+| `geo/zonas-<ano>/mu-<ibge>.json` | `zonas` | Zonas e locais de votação de um município |
+| `fotos/…` | imagem | Fotos dos candidatos (sistema de resultados) |
+
+### Tipo `resultado`
+
+Campos: `versao`, `tipo: "resultado"`, `eleicao` (id, nome, ano, turno, tipo, data), `cargo` (slug,
+código, nome, tipo `majoritario` ou `proporcional`, nível `br`, `uf` ou `mu`, vagas), `abrangencia`
+(tipo, código, nome, UF, IBGE, TSE), `atualizado_em`, `ao_vivo`, `origem`, `totalizacao` (seções,
+seções totalizadas, `pct_secoes`, `finalizada`, `matematicamente_definida`), `comparecimento`
+(eleitorado, comparecimento, abstenção e percentuais), `votos` (válidos, brancos, nulos, anulados,
+legenda e percentuais), `quociente_eleitoral`, `candidatos`, `candidatos_omitidos`, `agremiacoes`,
+`partes` e `avisos`.
+
+Cada candidato: `numero`, `nome_urna`, `nome`, `partido`, `agremiacao`, `composicao`, `votos`,
+`pct`, `situacao`, `eleito`, `segundo_turno`, `valido`, `destinacao`, `vice`, `cor`, `foto` e, nas
+eleições sem número de urna, `sem_numero: true`. Num município com centenas de candidatos a
+deputado, o feed leva os mais votados e os eleitos e conta os demais em `candidatos_omitidos`; a
+lista completa está no feed da UF.
+
+Cada parte: `codigo`, `nome`, `ibge`, `lider`, `partido`, `nome_urna`, `votos`, `pct`, `margem`,
+`cor`, `eleito`, `segundo_turno`, `pct_secoes`, `finalizada`, `eleitorado` e, nos proporcionais,
+`bancada` ({partido: eleitos}). A parte de zona eleitoral não traz `bancada`, `eleito` nem
+`segundo_turno`: quem se elege é decidido no município, na UF ou no Brasil.
+
+### Tipo `panorama`
+
+Usado onde não existe resultado único: cargo municipal na UF e no Brasil, cargo estadual no Brasil.
+Campos: `versao`, `tipo: "panorama"`, `eleicao`, `cargo`, `abrangencia`, `atualizado_em`, `ao_vivo`,
+`origem`, `totalizacao` (`partes`, `partes_finalizadas`, `pct_partes`), `partidos` (placar com
+`partido`, `liderados`, `eleitos`, `votos`, `cor`, ordenado por eleitos, partes lideradas e votos),
+`partes` e `avisos`.
+
+### Tipo `historico`
+
+Campos: `versao`, `tipo: "historico"`, `eleicao`, `cargo`, `abrangencia`, `origem`, `candidatos`
+(número, nome de urna, partido, cor) e `pontos`, cada um com `t` (instante), `pct_secoes` e `votos`
+({número: votos}).
+
+### Tipos `zonas-indice` e `zonas`
+
+- `zonas-indice`: `versao`, `tipo`, `ano`, `origem` e `municipios` ({código IBGE: número de zonas}).
+- `zonas`: `versao`, `tipo`, `ano`, `municipio` (IBGE, TSE, UF, nome), `origem`, `zonas` (zona,
+  locais, eleitores), `locais` (cada um `[longitude, latitude, zona, eleitores, nome]`) e
+  `descartados` (`sem_coordenada`, `fora_do_municipio`).
+
+O contorno de cada zona é calculado no portal (diagrama de Voronoi dos locais, recortado pelo
+contorno do município) e apresentado como aproximação: a Justiça Eleitoral não publica os limites
+das zonas ([ADR-029](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-029.md)).
+
+### Cache
+
+O portal relê os feeds de resultado com `cache: "no-cache"` e recebe 304 quando nada mudou; durante
+a apuração, relê a cada 15 segundos. Na publicação, os feeds vão com `Cache-Control: no-cache`, e as
+malhas, o cadastro e as fotos com cache de um dia. Os JSON sobem comprimidos com gzip
+(`Content-Encoding: gzip`).
+
+## Dados dos painéis
+
+Gerados por `lumen painel publicar` e publicados no GitHub Pages
+(`https://dracon-46.github.io/FalkyriaLumen/`), lidos por
+[`paineis.ts`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/packages/portal/src/lib/paineis.ts).
+Versão do formato: `VERSAO_PAINEL` = 1
+([`lumen_painel/__init__.py`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/packages/painel/lumen_painel/__init__.py)).
+
+| Caminho | Conteúdo |
+|---|---|
+| `indice.json` | Versão, quando foi gerado, cobertura de cada painel |
+| `entes.json` | Cadastro para a busca: código, nome, UF, tipo, população |
+| `orgaos.json` | Órgãos com publicação no período (CNPJ, razão social, ente, esfera, processos, contratos), para a busca |
+| `contratacoes/panorama.json` | Brasil: totais, esferas, UFs, meses, modalidades, fornecedores |
+| `contratacoes/ente/<código>.json` | Um ente: União (1), estado (2 dígitos), DF (53) ou município (7 dígitos) |
+| `contratacoes/orgao/<CNPJ>.json` | Um órgão: prefeitura, câmara, autarquia, fundação ou empresa pública |
+| `conformidade/panorama.json` | Brasil: resultados por UF e por obrigação |
+| `conformidade/uf/<sigla>.json` | Entes da UF, com o resumo de cada um |
+| `conformidade/ente/<código>.json` | Obrigações avaliadas de um ente |
+
+Processo ou contrato com valor acima de R$ 10 bilhões, ou de R$ 20 mil por habitante do ente (o que
+for menor), conta nas quantidades, mas fica fora das somas e aparece em "Valores a conferir na
+fonte" ([ADR-028](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-028.md),
+decisão 8). Contrato com pessoa física ou estrangeira só entra numa soma anônima.
+
+## Linha de comando
+
+`lumen` é instalado por `pip install -e .`. Opção global: `--config <lumen.toml>` e `-v` (verboso).
+`python -m lumen_eleicoes`, `python -m lumen_painel` e `python -m lumen_mercado` são equivalentes a
+`lumen eleicoes`, `lumen painel` e `lumen mercado`.
+
+### Pipeline
+
+| Comando | O que faz |
+|---|---|
+| `lumen coletar <fonte> --de AAAA-MM-DD [--ate AAAA-MM-DD]` | Coleta uma fonte para o bronze. Fontes: `ibge_localidades`, `ibge_populacao`, `pncp_atas`, `pncp_atas_atualizacao`, `pncp_contratacoes`, `pncp_contratacoes_atualizacao`, `pncp_contratos`, `pncp_contratos_atualizacao`, `pncp_itens`, `siconfi_entes`, `siconfi_extrato` |
+| `… --modalidades 6,8` | Só PNCP contratações: códigos de modalidade |
+| `… --entes <IBGE> --exercicio <ano>` | Só SICONFI extrato |
+| `… --objeto "<expressão>" [--sem-resultados] [--so-comparaveis]` | Só PNCP itens: itens dos processos da silver cujo objeto casa com a expressão |
+| `lumen normalizar [--fontes <lista>]` | Bronze para silver, idempotente |
+| `lumen bronze verificar` | Reconfere o hash de toda a prova |
+| `lumen bronze listar` | Lista os registros do bronze |
+
+### `lumen eleicoes`
+
+Opções globais: `--config`, `--saida <diretório dos feeds>`, `-v`.
+
+| Comando | O que faz |
+|---|---|
+| `preparar [--servir] [--anos] [--sem-ao-vivo] [--sem-historico] [--sem-zonas] [--sem-portal] [--sem-navegador] [--refazer] [--atualizar] [--nuvem] [--limite-minutos] [--apagar-zips] [--sem-bronze]` | Tudo num comando: mapa, portal e as eleições de 1933 a 2026; retomável |
+| `publicar` | Envia ao bucket os feeds novos ou alterados |
+| `catalogo` | Eleições disponíveis no sistema de resultados |
+| `municipios [--eleicao]` | Grava `municipios.json` (TSE ↔ IBGE) |
+| `mapas [--ufs] [--qualidade minima\|intermediaria\|maxima] [--contornos]` | Baixa as malhas do IBGE; `--contornos`, o contorno fino dos municípios com zonas |
+| `zonas [--anos] [--atualizar]` | Locais de votação para o mapa das zonas (padrão: 2026 a 2018) |
+| `ao-vivo --eleicao <id> [--cargos] [--ufs] [--intervalo] [--orcamento] [--uma-vez] [--nuvem] [--sem-bronze]` | Coleta a apuração em andamento |
+| `historico baixar --anos <lista\|todos> [--atualizar]` | Baixa os ZIPs dos dados abertos |
+| `historico processar --anos <lista\|todos> [--limite-municipio]` | Gera os feeds a partir dos ZIPs |
+| `simular [--eleicao] [--etapas] [--intervalo] [--ufs]` | Apuração fictícia a partir de arquivos finais |
+| `amostra [--sem-referencias]` | Feeds de exemplo a partir das fixtures, sem rede |
+| `servir [--site] [--host] [--porta]` | Serve o portal e os feeds localmente (padrão `http://127.0.0.1:8080`) |
+| `verificar` | Confere o contrato dos feeds gravados |
+| `medir [--resumo <arquivo>] [--maiores N]` | Tamanho dos feeds contra os limites gratuitos do R2 e do Supabase |
+
+### `lumen painel`
+
+| Comando | O que faz |
+|---|---|
+| `cadastro --estado <dir>` | Cadastro de entes do SICONFI |
+| `contratacoes --estado <dir> [--de] [--ate] [--ultimos N] [--limite-minutos] [--refazer]` | Coleta os dias do PNCP que faltam no estado (padrão: os últimos 3 até ontem) |
+| `faltando --estado <dir> [--de] [--ate] [--partes N]` | Blocos de dias que faltam, em JSON, para execuções paralelas |
+| `conformidade --estado <dir> --ufs <siglas> [--exercicios]` | Extrato de entregas do SICONFI por UF (padrão: exercício anterior e corrente) |
+| `publicar --estado <dir> --saida <dir> [--hoje AAAA-MM-DD]` | Monta o site dos painéis a partir do estado |
+
+### `lumen mercado`
+
+| Comando | O que faz |
+|---|---|
+| `anp baixar --semestres <AAAA-S> --series ca,glp` | Série semestral da ANP para o bronze |
+| `anp semanas --de --ate` | Planilhas semanais do levantamento para o bronze |
+| `anp resumo` | O que foi lido dos arquivos guardados |
+| `varejo coletar` / `varejo testar --consulta "<texto>"` | Ofertas do varejo pela API oficial (guardando no bronze, ou só testando) |
+| `comparar [--de] [--ate] [--saida] [--parametros]` | Aplica a regra A-05 e grava o relatório silencioso |
+| `reconhecer "<descrição>" [--unidade]` | Mostra a especificação reconhecida numa descrição |

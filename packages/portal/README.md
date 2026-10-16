@@ -1,8 +1,9 @@
 # Portal do Lumen
 
 Site estático em Next.js (exportação estática, sem servidor Node em
-produção). Hoje tem a aba **Eleições**; Contratações e Conformidade entram nas
-próximas fases do roteiro (DOC-10).
+produção). Tem três abas: **Eleições** (DOC-12) e os painéis de **Contratações**
+e **Conformidade** (DOC-13, ADR-028), estes com fatos publicados e sem indício;
+a publicação de indícios entra nas próximas fases do roteiro (DOC-10).
 
 ## Para ver o site com todos os dados
 

@@ -3,6 +3,25 @@
 Formato: o que mudou para quem usa e para quem desenvolve, por versão. As
 decisões que justificam cada mudança estão nas ADRs citadas.
 
+## Não lançado
+
+### Documentação e organização do repositório
+
+- Wiki do projeto em `docs/wiki/` (visão geral, requisitos, arquitetura,
+  tecnologias, componentes, instalação, configuração e variáveis, APIs e
+  contratos, banco de dados, testes, deploy e operação, roadmap, glossário),
+  publicada na Wiki do GitHub pelo fluxo `wiki.yml` a cada mudança na `main`.
+- `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, modelo de PR,
+  formulários de issue (erro, melhoria, dado divergente da fonte), `CODEOWNERS`
+  e Dependabot mensal (GitHub Actions, portal, docs-src e Python).
+- Rótulos e marcos versionados em `.github/organizacao.json` (fluxo
+  `organizacao.yml`); release do GitHub a cada tag `vX.Y.Z`, com as notas
+  desta página e as versões conferidas (`release.yml`).
+- O verificador de vocabulário passa a conferir a Wiki, os textos da raiz e os
+  modelos de issue e de PR.
+- README: guia das páginas da Wiki; hospedagem em uso (Supabase Storage e
+  Vercel); portal com as três abas.
+
 ## 0.8.0 — 2026-10-15
 
 ### Zonas eleitorais no mapa do município (ADR-029)
