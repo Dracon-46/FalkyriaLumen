@@ -92,6 +92,19 @@ describe("busca de órgãos", () => {
     expect(lerOrgaos(null, entes)).toEqual([]);
   });
 
+  it("acha os Correios, o exemplo do campo de busca, pelo nome publicado no PNCP", () => {
+    const correios = lerOrgaos(
+      {
+        versao: 1,
+        tipo: "orgaos",
+        colunas: ["cnpj", "nome", "ente", "esfera", "processos", "contratos"],
+        orgaos: [["34028316000103", "EMPRESA BRASILEIRA DE CORREIOS E TELEGRAFOS", "1", "F", 121, 0]],
+      },
+      entes,
+    );
+    expect(buscarOrgaos("Correios", correios).map((o) => o.cnpj)).toEqual(["34028316000103"]);
+  });
+
   it("acha pela sigla, pelo nome, pelo município e pelo CNPJ", () => {
     expect(buscarOrgaos("SAAE Sorocaba", orgaos).map((o) => o.cnpj)).toEqual(["71480560000101"]);
     expect(buscarOrgaos("saae", orgaos).map((o) => o.cnpj)).toEqual(["71480560000101", "11111111000111"]);

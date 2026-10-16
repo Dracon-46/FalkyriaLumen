@@ -211,10 +211,33 @@ input {
   letter-spacing: 0.08em;
 }
 
+.cabecalho-dentro nav {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .abas {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+  /* No celular, as abas ficam numa linha só, roláveis, sem alargar a página */
+  .cabecalho-dentro nav {
+    width: 100%;
+  }
+
+  .abas {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .aba {
+    padding: 12px 8px 10px;
+    white-space: nowrap;
+  }
 }
 
 .aba {
@@ -1451,4 +1474,109 @@ table.tabela {
 
 .tv .tv-cabeca h1 {
   font-size: 34px;
+}
+
+/* ------------------------------------------------------------ economia e contas públicas */
+
+.economia-cartoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.economia-cartao {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  font: inherit;
+  color: var(--texto);
+  cursor: pointer;
+}
+
+.economia-cartao:hover {
+  background: var(--superficie-2);
+}
+
+.economia-cartao[aria-pressed="true"] {
+  border-color: var(--destaque);
+  box-shadow: 0 0 0 1px var(--destaque);
+}
+
+.economia-alerta {
+  color: var(--estado-atraso);
+  font-weight: 650;
+}
+
+.grafico-linha .linha-serie {
+  stroke: var(--destaque);
+}
+
+.grafico-linha .ponto-serie {
+  fill: var(--destaque);
+}
+
+.faixa-periodo-a {
+  fill: var(--destaque-suave);
+  background: var(--destaque-suave);
+}
+
+.faixa-periodo-b {
+  fill: color-mix(in srgb, var(--texto-2) 14%, transparent);
+  background: color-mix(in srgb, var(--texto-2) 14%, transparent);
+}
+
+.economia-periodos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  align-items: flex-end;
+  margin-bottom: 8px;
+}
+
+.economia-periodo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.economia-periodo legend {
+  font-weight: 650;
+  margin-bottom: 4px;
+}
+
+.economia-meses {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.economia-tabela {
+  max-height: none;
+}
+
+.economia-tabela td,
+.economia-tabela th[scope="row"] {
+  vertical-align: top;
+}
+
+.economia-tabela td > span,
+.economia-tabela th[scope="row"] > * {
+  display: block;
+}
+
+.economia-grupo {
+  background: var(--superficie-2);
+  text-align: left;
+}
+
+@media (max-width: 640px) {
+  .economia-periodo .seletor {
+    max-width: 100%;
+  }
 }

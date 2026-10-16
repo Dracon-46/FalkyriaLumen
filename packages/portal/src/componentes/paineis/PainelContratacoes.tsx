@@ -75,7 +75,7 @@ export function PainelContratacoes() {
       <div className="painel-topo">
         <h1>Contratações</h1>
         <BuscaEnte
-          rotulo="Buscar ente ou órgão (ex.: SAAE Sorocaba)"
+          rotulo="Buscar ente ou órgão (ex.: Correios)"
           onEscolher={ir}
           onEscolherOrgao={irOrgao}
         />
