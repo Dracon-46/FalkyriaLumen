@@ -12,6 +12,7 @@ Exemplos::
     lumen eleicoes ...                    # aba Eleições (ver lumen_eleicoes)
     lumen mercado ...                     # referência de mercado fora do governo (ver lumen_mercado)
     lumen painel ...                      # painéis de contratações e conformidade (ver lumen_painel)
+    lumen deteccao ...                    # regras de detecção em modo silencioso (ver lumen_deteccao)
 """
 
 from __future__ import annotations
@@ -58,8 +59,8 @@ def _lista_str(texto: str) -> tuple[str, ...]:
 def main(argv: list[str] | None = None) -> int:
     """Ponto de entrada do comando ``lumen``: interpreta os argumentos e despacha para a etapa pedida.
 
-    Os subcomandos ``eleicoes``, ``mercado`` e ``painel`` são repassados inteiros aos CLIs de
-    ``lumen_eleicoes``, ``lumen_mercado`` e ``lumen_painel``; ``coletar pncp_itens`` busca os itens dos
+    Os subcomandos ``eleicoes``, ``mercado``, ``painel`` e ``deteccao`` são repassados inteiros aos CLIs de
+    ``lumen_eleicoes``, ``lumen_mercado``, ``lumen_painel`` e ``lumen_deteccao``; ``coletar pncp_itens`` busca os itens dos
     processos da silver publicados na janela (e cujo objeto casa com ``--objeto``, quando dado). Os demais
     leem a configuração e imprimem o resumo em JSON. O código de saída é 2 para configuração ou argumento ausente e
     1 quando a coleta tem falhas ou o bronze tem conteúdo corrompido, para que scripts e a CI percebam.
@@ -71,7 +72,8 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("coletar", help="coleta uma fonte para o bronze")
     p.add_argument("fonte", choices=sorted([*etapas.FABRICAS, "pncp_itens"]))
-    p.add_argument("--de", help="AAAA-MM-DD; dispensável nos cadastros da CGU, que não têm janela")
+    p.add_argument("--de", help="AAAA-MM-DD; dispensável nos cadastros da CGU e no PNTP, que não têm janela")
+    p.add_argument("--ciclos", type=_lista_int, help="só PNTP: ciclos (anos) da avaliação; padrão: todos")
     p.add_argument("--ate", help="AAAA-MM-DD (padrão: igual a --de)")
     p.add_argument("--modalidades", type=_lista_int, help="só PNCP contratações: códigos separados por vírgula")
     p.add_argument("--entes", type=_lista_str, help="só SICONFI extrato: códigos IBGE")
@@ -91,6 +93,8 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("mercado", help="referência de mercado (repassa para lumen_mercado)", add_help=False)
     sub.add_parser("painel", help="painéis de contratações e conformidade (repassa para lumen_painel)",
                    add_help=False)
+    sub.add_parser("deteccao", help="regras de detecção em modo silencioso (repassa para lumen_deteccao)",
+                   add_help=False)
 
     args, resto = parser.parse_known_args(argv)
     saida_log = logging.StreamHandler()
@@ -103,6 +107,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.comando == "mercado":
         from lumen_mercado.cli import main as main_mercado
         return main_mercado(["--config", args.config, *resto] if args.config else resto)
+    if args.comando == "deteccao":
+        from lumen_deteccao.cli import main as main_deteccao
+        return main_deteccao(["--config", args.config, *resto] if args.config else resto)
     if args.comando == "painel":
         from lumen_painel.cli import main as main_painel
         return main_painel(["--config", args.config, *resto] if args.config else resto)
@@ -116,8 +123,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     if args.comando == "coletar" and not args.de:
-        # Os cadastros da CGU são o retrato do dia: a janela não se aplica, e sem --de vale hoje.
-        if not args.fonte.startswith("cgu_"):
+        # Os cadastros da CGU e o PNTP não têm janela: sem --de, vale hoje.
+        if not args.fonte.startswith(("cgu_", "pntp_")):
             print(f"erro: {args.fonte} exige --de", file=sys.stderr)
             return 2
         args.de = date.today().isoformat()
@@ -143,6 +150,8 @@ def main(argv: list[str] | None = None) -> int:
         opcoes: dict = {}
         if args.modalidades:
             opcoes["modalidades"] = args.modalidades
+        if args.fonte == "pntp_avaliacoes" and args.ciclos:
+            opcoes["ciclos"] = args.ciclos
         if args.fonte == "siconfi_extrato":
             if not args.entes or not args.exercicio:
                 print("erro: siconfi_extrato exige --entes e --exercicio", file=sys.stderr)

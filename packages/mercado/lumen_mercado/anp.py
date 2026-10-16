@@ -42,8 +42,8 @@ from typing import Iterable, Iterator
 from urllib.parse import urljoin
 
 from lumen_canonico.ufs import UFS
+from lumen_normalizacao import xlsx
 
-from . import xlsx
 from .especificacao import (
     DIESEL_S10,
     DIESEL_S500,

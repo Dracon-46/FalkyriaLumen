@@ -46,6 +46,8 @@ LIMITES_PADRAO = {
     "cgu_ceis": 10,
     "cgu_cnep": 10,
     "cgu_cepim": 10,
+    # PNTP (Radar da Transparência): quatro requisições por ciclo, por Range.
+    "pntp_avaliacoes": 10,
     "anp_precos_combustiveis": 10,
     "varejo_mercadolivre": 30,
 }

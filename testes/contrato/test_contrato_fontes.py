@@ -252,3 +252,22 @@ def test_cgu_cadastro_mantem_as_colunas_lidas(cadastro):
     exigidas = COLUNAS_CEPIM if cadastro == "cepim" else COLUNAS_SANCAO
     faltando = set(exigidas) - {c.strip() for c in cabecalho}
     assert not faltando, f"o {cadastro} deixou de ter as colunas {sorted(faltando)}"
+
+
+def test_pntp_ciclo_mais_recente_mantem_as_colunas_lidas():
+    """A página de downloads do Radar lista a base do ciclo, e a planilha de avaliações dela tem as colunas lidas.
+
+    Lê só a planilha de dentro do ZIP, por ``Range`` (cerca de 1,6 MB de um ZIP de mais de 300 MB).
+    """
+    from lumen_ingestao.adaptadores.api.pntp import BASE_RADAR, ciclos_publicados, membro_de_avaliacoes
+    from lumen_ingestao.cliente_http import ClienteHttp
+    from lumen_ingestao.zip_remoto import baixar_membro
+    from lumen_normalizacao.pntp import COLUNAS
+    from lumen_normalizacao.xlsx import linhas
+    ciclos = ciclos_publicados(_obter_bytes(f"{BASE_RADAR}/downloads.html").decode("utf-8", errors="replace"))
+    assert ciclos and ciclos[-1] >= 2025, f"ciclos publicados: {ciclos}"
+    cliente = ClienteHttp("pntp_avaliacoes", user_agent=UA, rpm=30)
+    m = baixar_membro(cliente, f"{BASE_RADAR}/dados/dados_pntp_{ciclos[-1]}.zip", membro_de_avaliacoes(ciclos[-1]))
+    cabecalho = {c.strip() for c in next(linhas(m.conteudo))}
+    faltando = set(COLUNAS) - cabecalho
+    assert not faltando, f"a planilha de {ciclos[-1]} deixou de ter as colunas {sorted(faltando)}"

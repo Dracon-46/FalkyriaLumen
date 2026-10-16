@@ -47,11 +47,11 @@ _SEGURO = re.compile(r"^[A-Za-z0-9_\-]{1,128}$")
 def _particao(registro: RegistroCanonico) -> tuple[str, str]:
     """Partição Hive do registro: exercício e UF, com ``NA`` quando não há como determinar.
 
-    O exercício vem de ``ano`` e, na falta dele, do ano da primeira data disponível entre publicação,
-    assinatura, início de vigência e resultado.
+    O exercício vem de ``ano`` (ou do ``ciclo`` das avaliações do PNTP) e, na falta dele, do ano da primeira
+    data disponível entre publicação, assinatura, início de vigência e resultado.
     """
     dados = registro.para_dict()
-    exercicio = dados.get("ano")
+    exercicio = dados.get("ano") or dados.get("ciclo")
     if exercicio is None:
         for campo in ("data_publicacao", "data_assinatura", "vigencia_inicio", "data_resultado"):
             valor = dados.get(campo)

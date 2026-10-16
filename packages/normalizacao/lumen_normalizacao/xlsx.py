@@ -1,4 +1,4 @@
-"""Leitura de planilhas .xlsx só com a biblioteca padrão (ADR-015), para os arquivos semanais da ANP.
+"""Leitura de planilhas .xlsx só com a biblioteca padrão (ADR-015): as semanais da ANP e as avaliações do PNTP.
 
 Um .xlsx é um ZIP de XML (Office Open XML, ECMA-376). Para tirar as linhas de uma aba bastam três peças:
 o ``xl/workbook.xml`` e o ``xl/_rels/workbook.xml.rels`` (qual arquivo é a primeira aba), o
