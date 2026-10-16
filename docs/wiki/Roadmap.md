@@ -39,7 +39,7 @@ por um comando. Tudo concluído; ADRs 011 em diante registradas durante a implem
 |---|---|
 | Conector PNCP (contratações, contratos, atas, amparo legal, incremental) | Concluído, com itens e resultados |
 | Conector SICONFI com lista de entes ausentes | Entes e extrato concluídos, com a avaliação da LRF; RREO, RGF e DCA com conector pronto e normalização pendente |
-| Portal da Transparência (CGU), com CEIS, CNEP e CEPIM | Pendente (exige token) |
+| Portal da Transparência (CGU), com CEIS, CNEP e CEPIM | Cadastros de sanções concluídos, pelos arquivos de dados abertos, sem chave (ADR-030); despesas, convênios e emendas pendentes |
 | Base pública de CNPJ da Receita Federal | Pendente |
 | Cadastro de entes do IBGE com população e porte | Concluído |
 | Normalização com qualidade e quarentena | Concluída para PNCP, SICONFI e IBGE |
@@ -112,8 +112,9 @@ Da seção "Pendente" do README:
 - **Portais da transparência municipais** (ADR-028): o que não passa pelo PNCP. Próximos passos:
   cadastro do portal de cada município, conformidade de transparência (RF-CF-01, 03 e 04) e leitura
   por fornecedor de sistema.
-- **Fase 1 restante:** Portal da Transparência (CGU, com CEIS, CNEP e CEPIM), base de CNPJ da Receita
-  Federal, grupos de pares e painel operacional.
+- **Fase 1 restante:** base de CNPJ da Receita Federal, grupos de pares e painel operacional. Os
+  cadastros de sanções da CGU já entram no pipeline; o cruzamento com as contratações é a regra J-01 da
+  Fase 2.
 
 ### Definições não técnicas antes da publicação
 

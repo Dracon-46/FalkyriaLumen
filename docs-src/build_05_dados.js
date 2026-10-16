@@ -162,14 +162,20 @@ body.push(...dic("Fornecedor", "Pessoa jurídica ou física contratada. Enriquec
   ["endereco_hash", "TEXT", "Não", "Hash do endereço normalizado, para detectar coincidência sem expor o endereço"],
 ]));
 
-body.push(...dic("Sancao", "Registro de sanção administrativa vigente, obtido dos cadastros federais.", [
-  ["id", "UUID", "Sim", "Identificador interno"],
-  ["fornecedor_id", "UUID", "Sim", "Sancionado"],
+body.push(...dic("Sancao", "Sanção ou impedimento num cadastro da CGU (CEIS, CNEP, CEPIM), como publicado, num retrato diário do cadastro (implementado na Fase 1, ADR-030).", [
+  ["id", "UUID", "Sim", "Identificador interno: cadastro + código da sanção (no CEPIM, CNPJ + convênio)"],
   ["cadastro", "ENUM", "Sim", "CEIS, CNEP, CEPIM"],
-  ["tipo", "TEXT", "Sim", "Tipo de sanção conforme o cadastro (P)"],
-  ["orgao_sancionador", "TEXT", "Não", "Órgão que aplicou (P)"],
-  ["data_inicio", "DATE", "Sim", "Início da vigência; essencial para avaliar a data do contrato"],
-  ["data_fim", "DATE", "Não", "Fim da vigência"],
+  ["data_referencia", "DATE", "Não", "Dia do retrato do cadastro; o que está no cadastro hoje é o retrato mais recente"],
+  ["fornecedor_id", "UUID", "Não", "O mesmo id do fornecedor no PNCP (CNPJ; CPF mascarado mais nome)"],
+  ["documento", "TEXT", "Não", "CNPJ inteiro; CPF sempre mascarado (S)"],
+  ["tipo_pessoa, nome, razao_social_receita", "TEXT", "Não", "Como publicados; razão social só de pessoa jurídica (P)"],
+  ["categoria", "TEXT", "Não", "Categoria da sanção; no CEPIM, o motivo do impedimento (P)"],
+  ["numero_processo, numero_convenio, valor_multa", "TEXT, NUMERIC", "Não", "Processo; convênio (CEPIM); multa (CNEP) (P)"],
+  ["data_inicio", "DATE", "Não", "Início da sanção; obrigatório no CEIS e no CNEP, ausente no CEPIM"],
+  ["data_fim", "DATE", "Não", "Fim da sanção; nulo quando sem prazo determinado"],
+  ["data_publicacao, data_transito_julgado, data_origem_informacao", "DATE", "Não", "Datas publicadas pela CGU (P)"],
+  ["abrangencia, orgao_sancionador, uf_orgao_sancionador, esfera_orgao_sancionador", "TEXT, ENUM", "Não", "Alcance da sanção e quem a aplicou; base da regra J-01 (P)"],
+  ["fundamentacao_legal, origem_informacao, meio_publicacao", "TEXT", "Não", "Como publicados (P)"],
 ]));
 
 body.push(...dic("GrupoPares", "Conjunto de entes comparáveis, recalculado periodicamente.", [
@@ -408,8 +414,8 @@ L.buildDoc({
   codigo: "DOC-05",
   titulo: "Modelo de Dados",
   subtitulo: "Esquema canônico, dicionário de dados e resolução de identidade",
-  meta: { versao: "1.1", data: "6 de outubro de 2026",
-    situacao: "Atualizado com o bloco de fatos implementado na Fase 1 (ADR-016, ADR-017)",
+  meta: { versao: "1.2", data: "16 de outubro de 2026",
+    situacao: "Atualizado com o bloco de fatos implementado na Fase 1 (ADR-016, ADR-017) e as sanções da CGU (ADR-030)",
     verificado: "outubro de 2026" },
   body,
   outFile: "../docs/DOC-05_Modelo_de_Dados.docx",

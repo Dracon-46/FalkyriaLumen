@@ -44,6 +44,7 @@ raiz = "dados"     # bronze/ e silver/ ficam aqui
 lumen coletar pncp_contratacoes --de 2026-09-01 --modalidades 8
 lumen coletar ibge_localidades --de 2026-10-05
 lumen coletar siconfi_extrato --de 2026-10-05 --entes 3550308 --exercicio 2025
+lumen coletar cgu_ceis           # sanções da CGU: o retrato do dia, sem --de (também cgu_cnep e cgu_cepim)
 lumen normalizar                 # bronze → silver, idempotente
 lumen bronze verificar           # reconfere o hash de toda a prova
 ```

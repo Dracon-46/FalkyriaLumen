@@ -5,6 +5,23 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Sanções da CGU: CEIS, CNEP e CEPIM (ADR-030)
+
+- `lumen coletar cgu_ceis` (e `cgu_cnep`, `cgu_cepim`) baixa para o bronze o
+  retrato mais recente de cada cadastro de sanções do Portal da Transparência,
+  pelos arquivos de dados abertos: sem chave de API e sem `--de`, com a data
+  lida na página de download.
+- `lumen normalizar` grava a entidade nova `sancao` na silver: um registro por
+  sanção, com a `data_referencia` do retrato, a categoria, as datas, a
+  abrangência, o órgão sancionador e a fundamentação legal, como publicados.
+  O CPF de pessoa física (o CEIS publica 9.170 inteiros) sai mascarado, e o
+  `fornecedor_id` é o mesmo do PNCP, pronto para a regra J-01 da Fase 2.
+- Os 29.148 registros dos arquivos de 14 e 15/10/2026 passaram sem nenhuma
+  quarentena; "Sem Informação" vira nulo, e o fim de sanção em 31/12/2099
+  fica como publicado, com a marcação `data_fim_distante`.
+- Teste de contrato diário das colunas dos três cadastros; DOC-05 1.2,
+  DOC-06 1.4 e DOC-10 1.5.
+
 ### Documentação e organização do repositório
 
 - Wiki do projeto em `docs/wiki/` (visão geral, requisitos, arquitetura,

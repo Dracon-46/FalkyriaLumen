@@ -256,6 +256,7 @@ User-Agent de toda requisição).
 lumen coletar pncp_contratacoes --de 2026-09-01 --modalidades 8
 lumen coletar ibge_localidades --de 2026-10-05
 lumen coletar siconfi_extrato --de 2026-10-05 --entes 3550308 --exercicio 2025
+lumen coletar cgu_ceis           # sanções da CGU: o retrato do dia, sem --de (também cgu_cnep e cgu_cepim)
 lumen normalizar                 # bronze → silver, idempotente
 lumen bronze verificar           # reconfere o hash de toda a prova
 ```
@@ -411,8 +412,10 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
   Lei 13.303 que não publicam lá e o que o município só publica no próprio portal. Cadastro do
   portal de cada município, conformidade de transparência (RF-CF-01, 03, 04) e leitura por
   fornecedor de sistema.
-- Fase 1 restante: Portal da Transparência (CGU, com CEIS/CNEP/CEPIM), base de CNPJ da Receita
-  Federal, grupos de pares e painel operacional (DOC-10).
+- Fase 1 restante: base de CNPJ da Receita Federal, grupos de pares e painel operacional (DOC-10).
+  Os cadastros de sanções da CGU (CEIS, CNEP e CEPIM) já são coletados e normalizados (ADR-030); o
+  cruzamento com as contratações é a regra J-01 da Fase 2. Despesas, convênios e emendas da CGU
+  continuam pendentes.
 
 ### Definições pendentes antes da publicação, conforme DOC-10
 
