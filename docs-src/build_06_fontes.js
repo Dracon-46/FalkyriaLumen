@@ -159,6 +159,7 @@ body.push(h2("2.5 Demais fontes federais"));
 body.push(table(["Fonte", "Conteúdo", "Prioridade"], [2600, 4600, 2400], [
   ["Compras.gov.br", "Catálogos CATMAT e CATSER, painel de preços de referência", "Alta, normaliza itens"],
   ["TCU — dados abertos", "Acórdãos, processos de fiscalização, licitantes inidôneos", "Média"],
+  ["PNTP — Radar da Transparência (tribunais de contas e Atricon)", "Avaliação anual dos portais de transparência de 11.697 entidades (2025), com o endereço do portal; base por ciclo em ZIP, lida por Range (ADR-032)", "Em uso (pntp_avaliacoes)"],
   ["TSE — resultados", "Resultados eleitorais, ao vivo e desde 1933 (seção 2.6)", "Integrado na aba Eleições"],
   ["TSE — prestação de contas", "Candidaturas e doações eleitorais", "Média, uso com cautela metodológica"],
   ["IBGE", "População, localidades e malhas territoriais (seção 2.7)", "Alta, base do grupo de pares e do mapa"],

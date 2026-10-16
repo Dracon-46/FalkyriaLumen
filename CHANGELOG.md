@@ -5,6 +5,34 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Sanções cruzadas com os contratos: regra J-01 em modo silencioso (ADR-031)
+
+- `lumen deteccao j01` cruza os contratos guardados pelo painel com o CEIS e o
+  CNEP: mesmo CNPJ, sanção que impede contratar, vigente na assinatura e com
+  alcance sobre o contratante pela abrangência publicada (todas as esferas;
+  mesma esfera, UF e município; mesmo órgão). Em 16/10/2026: 6.364
+  coincidências para análise, de 661 fornecedores, em 1,64 milhão de
+  contratos.
+- O fluxo `deteccao-sancoes` roda sozinho depois de cada carga do painel. Nada
+  é publicado: o resumo da execução só tem contagens, e o relatório completo
+  vai para o bucket privado.
+
+### Portais de transparência de todos os entes: PNTP (ADR-032)
+
+- `lumen coletar pntp_avaliacoes` traz as avaliações do Programa Nacional de
+  Transparência Pública (tribunais de contas e Atricon): 11.697 entidades em
+  2025, com o índice, o nível e o endereço do portal. Lê só a planilha de
+  avaliações de dentro do ZIP de 338 MB, por `Range` (`zip_remoto`).
+- Entidade nova `avaliacao_transparencia` na silver, ciclos de 2023 em diante.
+
+### Coleta ao vivo para quando a totalização se estabiliza
+
+- O ensaio com o 1º turno de 2026 mostrou que os deputados de Rondônia ficaram
+  com 100% das seções totalizadas sem a marca de finalizada do TSE, e o
+  coletor rodaria até o prazo da máquina. Agora ele para depois de 60 minutos
+  sem mudança com todas as seções totalizadas (`--parar-estavel`) e diz quais
+  resultados ficaram sem a marca.
+
 ### Sanções da CGU: CEIS, CNEP e CEPIM (ADR-030)
 
 - `lumen coletar cgu_ceis` (e `cgu_cnep`, `cgu_cepim`) baixa para o bronze o

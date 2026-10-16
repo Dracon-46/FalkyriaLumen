@@ -257,6 +257,8 @@ lumen coletar pncp_contratacoes --de 2026-09-01 --modalidades 8
 lumen coletar ibge_localidades --de 2026-10-05
 lumen coletar siconfi_extrato --de 2026-10-05 --entes 3550308 --exercicio 2025
 lumen coletar cgu_ceis           # sanções da CGU: o retrato do dia, sem --de (também cgu_cnep e cgu_cepim)
+lumen coletar pntp_avaliacoes    # portais de transparência de todos os entes (PNTP), sem --de
+lumen deteccao j01 --estado DIR  # regra J-01 em modo silencioso: contratos do painel × sanções
 lumen normalizar                 # bronze → silver, idempotente
 lumen bronze verificar           # reconfere o hash de toda a prova
 ```
@@ -409,9 +411,11 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
   (ADR-022), antes da Fase 2.
 - **Fonte para "quem autorizou o ato"**: a API do PNCP não publica o agente (ADR-017).
 - **Portais da transparência municipais** (ADR-028): o que não passa pelo PNCP — estatais da
-  Lei 13.303 que não publicam lá e o que o município só publica no próprio portal. Cadastro do
-  portal de cada município, conformidade de transparência (RF-CF-01, 03, 04) e leitura por
-  fornecedor de sistema.
+  Lei 13.303 que não publicam lá e o que o município só publica no próprio portal. O cadastro dos
+  portais já vem do PNTP (ADR-032: 11.697 entidades, com o endereço e o nível de transparência);
+  faltam a leitura dos próprios portais, por fornecedor de sistema, e o nível do PNTP nos painéis.
+- **Regra J-01** (ADR-031): roda em modo silencioso a cada carga; calibrar e revisar antes de
+  publicar qualquer coisa.
 - Fase 1 restante: base de CNPJ da Receita Federal, grupos de pares e painel operacional (DOC-10).
   Os cadastros de sanções da CGU (CEIS, CNEP e CEPIM) já são coletados e normalizados (ADR-030); o
   cruzamento com as contratações é a regra J-01 da Fase 2. Despesas, convênios e emendas da CGU
