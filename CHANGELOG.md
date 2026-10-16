@@ -42,6 +42,17 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 - O arquivo das zonas tem versão própria (`VERSAO_ZONAS`, a mesma no Python e no
   portal, conferida por teste), independente da dos feeds.
 
+### 2026 nos dados abertos, com o 2º turno ao vivo
+
+- O 1º turno de 2026 passa a vir dos dados abertos do TSE (publicados em
+  15/10/2026), com o resultado por zona. 2026 é o ano em aberto
+  (`ANO_EM_ABERTO`): o `preparar` confere a fonte a cada execução e reprocessa
+  quando o TSE acrescentar o 2º turno.
+- A coleta ao vivo decide por eleição: o 1º turno, já processado, sai dela; o
+  2º turno de 25/10/2026 continua ao vivo, no `preparar` e no `ao-vivo`.
+- Os feeds dos dados abertos ficam com as fotos que a coleta ao vivo da mesma
+  eleição já publicou (`carga.fotos_da_coleta`).
+
 ### Navegação mais fluida na aba Eleições
 
 - A tela anterior fica, esmaecida, enquanto o feed novo chega (no lugar de
