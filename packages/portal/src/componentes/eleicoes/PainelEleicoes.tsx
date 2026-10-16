@@ -413,8 +413,11 @@ export function PainelEleicoes() {
   const progresso =
     feed?.tipo === "resultado" ? feed.totalizacao.pct_secoes : feed?.tipo === "panorama" ? feed.totalizacao.pct_partes : null;
   const finalizada = feed?.tipo === "resultado" ? feed.totalizacao.finalizada : !feed?.ao_vivo;
-  const comZonas = !!zonasAtuais?.arquivo || partesZonas.length > 1;
-  const tituloMapa = comZonas
+  // Mapa das zonas só com os locais de votação do ano (2018 em diante); a tabela, também com o resultado
+  // por zona dos anos sem locais (1994 a 2016)
+  const mapaComZonas = !!zonasAtuais?.arquivo;
+  const comZonas = mapaComZonas || partesZonas.length > 1;
+  const tituloMapa = mapaComZonas
     ? partesZonas.length
       ? `${cargo.nome}: mais votado em cada zona eleitoral de ${nomeAbr}`
       : `Zonas eleitorais de ${nomeAbr}`

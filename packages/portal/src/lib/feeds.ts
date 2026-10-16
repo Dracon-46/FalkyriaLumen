@@ -105,15 +105,22 @@ export async function carregarIndice(sinal?: AbortSignal): Promise<Indice | null
 }
 
 /**
- * Guarda a promessa da `chave` enquanto a visita durar (até `limite` itens, saindo os mais antigos); se
- * ela falhar, sai do cache para a próxima tentativa. Várias telas pedindo o mesmo arquivo fazem uma
- * requisição só.
+ * Guarda a promessa da `chave` enquanto a visita durar, até `limite` itens: sai o usado há mais tempo (a
+ * leitura de um item o põe no fim da fila). Se a promessa falhar, sai do cache para a próxima tentativa,
+ * mas só se ainda for ela a guardada. Várias telas pedindo o mesmo arquivo fazem uma requisição só.
  */
-function memorizar<T>(cache: Map<string, Promise<T>>, chave: string, criar: () => Promise<T>, limite = Infinity): Promise<T> {
+export function memorizar<T>(cache: Map<string, Promise<T>>, chave: string, criar: () => Promise<T>,
+  limite = Infinity): Promise<T> {
   const guardada = cache.get(chave);
-  if (guardada) return guardada;
+  if (guardada) {
+    cache.delete(chave);
+    cache.set(chave, guardada);
+    return guardada;
+  }
   const nova = criar();
-  nova.catch(() => cache.delete(chave));
+  nova.catch(() => {
+    if (cache.get(chave) === nova) cache.delete(chave);
+  });
   cache.set(chave, nova);
   while (cache.size > limite) cache.delete(cache.keys().next().value as string);
   return nova;

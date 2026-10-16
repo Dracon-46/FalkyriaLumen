@@ -1,12 +1,15 @@
 /** Zonas eleitorais no mapa: Voronoi dos locais de votação, desenho das zonas, zoom até o município. */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { memorizar } from "../feeds";
 import { pontoProjetado, projetar, projetarCom, type Topologia } from "../topojson";
-import type { ArquivoZonas } from "../tipos";
+import { type ArquivoZonas, VERSAO_FEED, VERSAO_ZONAS } from "../tipos";
 import { validarIndiceZonas, validarZonas } from "../validacao";
 import { celulasVoronoi, cortar, type Ponto } from "../voronoi";
 import { caixaComFolga, desenharZonas, rarear, rotulosVisiveis } from "../zonas";
 import { enquadrar, interpolar, suavizar, zoomMaximoPara, ZOOM_MAXIMO, type Limites } from "../zoom";
-import { FIX_IBGE, lerJson } from "./apoio";
+import { FIX_IBGE, lerJson, RAIZ } from "./apoio";
 
 /** Área de um polígono (fórmula do laço). */
 function area(vs: Ponto[]): number {
@@ -217,5 +220,47 @@ describe("validação dos arquivos das zonas", () => {
     expect(validarIndiceZonas(indice).municipios["3548807"]).toBe(2);
     expect(() => validarIndiceZonas({ ...indice, tipo: "zonas" })).toThrow(/não é índice/);
     expect(() => validarIndiceZonas({ ...indice, municipios: [] })).toThrow(/esperado objeto/);
+  });
+});
+
+describe("versão do mapa das zonas", () => {
+  it("é a mesma do Python e independente da dos feeds", () => {
+    const py = readFileSync(join(RAIZ, "packages/eleicoes/lumen_eleicoes/zonas.py"), "utf-8");
+    expect(Number(/^VERSAO_ZONAS = (\d+)/m.exec(py)?.[1])).toBe(VERSAO_ZONAS);
+    // Arquivo de zonas com a versão dos feeds diferente da das zonas continua aceito pela das zonas
+    expect(validarZonas({ ...ARQUIVO, versao: VERSAO_ZONAS }).versao).toBe(VERSAO_ZONAS);
+    expect(VERSAO_FEED).toBeGreaterThan(0);
+    const { descartados: _d, ...semDescartados } = ARQUIVO;
+    expect(validarZonas(semDescartados).descartados).toBeUndefined();
+  });
+});
+
+describe("cache em memória", () => {
+  it("sai o usado há mais tempo, não o mais antigo", async () => {
+    const cache = new Map<string, Promise<number>>();
+    let criados = 0;
+    const criar = () => Promise.resolve(++criados);
+    await memorizar(cache, "a", criar, 2);
+    await memorizar(cache, "b", criar, 2);
+    await memorizar(cache, "a", criar, 2);          // "a" volta para o fim da fila
+    await memorizar(cache, "c", criar, 2);          // sai "b"
+    expect([...cache.keys()]).toEqual(["a", "c"]);
+    expect(criados).toBe(3);
+  });
+
+  it("falha atrasada não apaga a entrada que a substituiu", async () => {
+    const cache = new Map<string, Promise<number>>();
+    let rejeitar: (e: Error) => void = () => undefined;
+    const lenta = memorizar(cache, "a", () => new Promise<number>((_, r) => (rejeitar = r)), 1);
+    lenta.catch(() => undefined);
+    await memorizar(cache, "b", () => Promise.resolve(1), 1);      // "a" sai pelo limite
+    const nova = memorizar(cache, "a", () => Promise.resolve(2), 1);
+    rejeitar(new Error("rede"));
+    await lenta.catch(() => undefined);
+    expect(cache.get("a")).toBe(nova);
+    // E a falha da própria entrada a tira do cache
+    const falha = memorizar(cache, "x", () => Promise.reject(new Error("rede")), 5);
+    await falha.catch(() => undefined);
+    expect(cache.has("x")).toBe(false);
   });
 });
