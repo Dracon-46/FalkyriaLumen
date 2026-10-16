@@ -41,6 +41,8 @@ def test_documento_de_fornecedor_e_sensivel():
     from lumen_canonico.fato import Contrato, ResultadoItem
     assert Contrato.SENSIBILIDADE["fornecedor_documento"] is Sensibilidade.SENSIVEL
     assert ResultadoItem.SENSIBILIDADE["fornecedor_documento"] is Sensibilidade.SENSIVEL
+    from lumen_canonico.fato import Sancao
+    assert Sancao.SENSIBILIDADE["documento"] is Sensibilidade.SENSIVEL
 
 
 def test_serializacao_preserva_decimal_como_texto_e_datas_em_iso():

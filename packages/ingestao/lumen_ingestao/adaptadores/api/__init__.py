@@ -1,1 +1,1 @@
-"""Adaptadores de fontes federais com API estruturada: PNCP, SICONFI e IBGE."""
+"""Adaptadores de fontes federais estruturadas: PNCP, SICONFI, IBGE e os cadastros de sanções da CGU."""

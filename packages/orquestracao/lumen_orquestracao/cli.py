@@ -20,6 +20,7 @@ import argparse
 import json
 import logging
 import sys
+from datetime import date
 from pathlib import Path
 
 from lumen_ingestao.bronze import ArmazemBronzeLocal
@@ -70,7 +71,7 @@ def main(argv: list[str] | None = None) -> int:
 
     p = sub.add_parser("coletar", help="coleta uma fonte para o bronze")
     p.add_argument("fonte", choices=sorted([*etapas.FABRICAS, "pncp_itens"]))
-    p.add_argument("--de", required=True, help="AAAA-MM-DD")
+    p.add_argument("--de", help="AAAA-MM-DD; dispensável nos cadastros da CGU, que não têm janela")
     p.add_argument("--ate", help="AAAA-MM-DD (padrão: igual a --de)")
     p.add_argument("--modalidades", type=_lista_int, help="só PNCP contratações: códigos separados por vírgula")
     p.add_argument("--entes", type=_lista_str, help="só SICONFI extrato: códigos IBGE")
@@ -113,6 +114,13 @@ def main(argv: list[str] | None = None) -> int:
     except configuracao.ConfiguracaoAusente as erro:
         print(f"erro: {erro}", file=sys.stderr)
         return 2
+
+    if args.comando == "coletar" and not args.de:
+        # Os cadastros da CGU são o retrato do dia: a janela não se aplica, e sem --de vale hoje.
+        if not args.fonte.startswith("cgu_"):
+            print(f"erro: {args.fonte} exige --de", file=sys.stderr)
+            return 2
+        args.de = date.today().isoformat()
 
     if args.comando == "coletar" and args.fonte == "pncp_itens":
         janela = etapas.janela_de(args.de, args.ate)

@@ -1,0 +1,10 @@
+<script>
+
+    var arquivos = [];
+
+        arquivos.push({"ano" : "2026", "mes" : "10", "dia" : "15", "origem" :  "CEIS"});
+
+    var url = springUrl + "download-de-dados/ceis/";
+    var download = new DownloadPlanilhas("ceis", arquivos, "DIA", url);
+    download.criarLinksIniciais();
+</script>

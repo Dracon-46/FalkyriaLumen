@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Callable, Iterable
 
+from lumen_ingestao.adaptadores.api.cgu import FonteCguCeis, FonteCguCepim, FonteCguCnep
 from lumen_ingestao.adaptadores.api.ibge import FonteIbgeLocalidades, FonteIbgePopulacao
 from lumen_ingestao.adaptadores.api.pncp import (
     BASE_PNCP,
@@ -24,6 +25,7 @@ from lumen_ingestao.bronze import ArmazemBronze, ArmazemBronzeLocal, RegistroCol
 from lumen_ingestao.cliente_http import ClienteHttp
 from lumen_ingestao.coleta_http import user_agent_lumen
 from lumen_ingestao.portas import Janela, ResumoColeta, coletar_janela
+from lumen_normalizacao import cgu as n_cgu
 from lumen_normalizacao import ibge as n_ibge
 from lumen_normalizacao import pncp as n_pncp
 from lumen_normalizacao import siconfi as n_siconfi
@@ -54,6 +56,9 @@ FABRICAS: dict[str, Callable[..., object]] = {
     "ibge_populacao": lambda c, **kw: FonteIbgePopulacao(c, **kw),
     "siconfi_entes": lambda c, **kw: FonteSiconfiEntes(c, **kw),
     "siconfi_extrato": lambda c, **kw: FonteSiconfiExtrato(c, **kw),
+    "cgu_ceis": lambda c, **kw: FonteCguCeis(c, **kw),
+    "cgu_cnep": lambda c, **kw: FonteCguCnep(c, **kw),
+    "cgu_cepim": lambda c, **kw: FonteCguCepim(c, **kw),
 }
 
 
@@ -172,11 +177,13 @@ def _normalizador_de(registro: RegistroColeta) -> Callable[[bytes, str], Resulta
         return lambda c: n_siconfi.normalizar_entes(c, **kw())
     if f == "siconfi_extrato":
         return lambda c: n_siconfi.normalizar_extrato(c, **kw())
+    if f in ("cgu_ceis", "cgu_cnep", "cgu_cepim"):
+        return lambda c: n_cgu.normalizar_sancoes(c, **kw())
     return None
 
 
 VERSOES = {"pncp": n_pncp.VERSAO_NORMALIZADOR, "ibge": n_ibge.VERSAO_NORMALIZADOR,
-           "siconfi": n_siconfi.VERSAO_NORMALIZADOR}
+           "siconfi": n_siconfi.VERSAO_NORMALIZADOR, "cgu": n_cgu.VERSAO_NORMALIZADOR}
 
 
 @dataclass
