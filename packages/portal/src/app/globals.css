@@ -14,7 +14,7 @@
   --borda-forte: #c7c4bc;
   --texto: #0b0b0b;
   --texto-2: #52514e;
-  --texto-3: #74726d;
+  --texto-3: #6b6964; /* 4,5:1 ou mais sobre todos os fundos claros (WCAG AA) */
   --destaque: #1c5cab;
   --destaque-suave: #e3edf9;
   --vivo: #c62f2f;
@@ -1425,11 +1425,23 @@ table.tabela {
   display: none;
 }
 
+/* Fora do modo TV, o título fica só para leitores de tela: a página continua com o seu h1 */
 .tv-cabeca {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .tv .tv-cabeca {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
   display: flex;
   justify-content: space-between;
   align-items: baseline;
