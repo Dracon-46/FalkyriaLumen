@@ -5,6 +5,41 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Empresas estatais (ADR-034)
+
+- Página nova **Empresas estatais**, dentro de Economia: quanto gastam e
+  investem as estatais, que não publicam no PNCP (Lei 13.303/2016). Na aba
+  das federais, o Programa de Dispêndios Globais da SEST, com aprovado e
+  realizado por rubrica (pessoal, serviços de terceiros, materiais,
+  tributos, investimentos) de 2016 a 2025: os Correios, por exemplo,
+  realizaram R$ 26,7 bilhões em 2025, R$ 15,2 bilhões com pessoal. Na aba das
+  companhias com ações na bolsa, as demonstrações entregues à CVM (receita,
+  pessoal, impostos, compras de terceiros, investimento em ativos, lucro),
+  com o controle conferido no Formulário de Referência e o link do documento.
+- O controle não vem do campo do cadastro da CVM, que continua dizendo
+  "estatal" depois de privatizações (Sabesp, Copel, Eletrobras): vem dos
+  controladores declarados no FRE. Pessoas físicas do FRE e do cadastro não
+  são lidas.
+- `lumen economia estatais` coleta CVM e SEST todo dia no fluxo `paineis`.
+  Nenhum total soma empresas: a controladora já inclui as controladas.
+
+### Paginação, filtro de período e escolhas com busca no portal
+
+- Toda lista ou tabela com mais de 20 itens mostra 20 por página:
+  fornecedores, órgãos, municípios, valores a conferir, publicações
+  recentes, UFs, entes da conformidade, obrigações, candidatos, partidos,
+  zonas e a tabela das séries econômicas.
+- Contratações ganha o filtro de período (do mês tal ao mês tal, com os
+  atalhos "último mês", "últimos 3 meses" e por ano), na URL: totais,
+  gráficos, modalidades, órgãos, fornecedores, municípios, esferas e UFs são
+  refeitos com os meses escolhidos. Os arquivos dos painéis trazem o mês a
+  mês de cada tabela; os fornecedores listados passam de 20 para 100 por
+  ente (200 no Brasil, 50 por órgão).
+- As caixas de seleção (eleição, indicador, mandato, mês) viram caixas de
+  escolha com busca: dá para abrir a lista e escolher ou escrever parte do
+  nome ou do ano. A busca de estado ou município das eleições aceita a
+  digitação direto no campo.
+
 ### Economia e Contas Públicas (ADR-033)
 
 - Aba nova **Economia** no portal: inflação (IPCA, INPC), juros (Selic, juro

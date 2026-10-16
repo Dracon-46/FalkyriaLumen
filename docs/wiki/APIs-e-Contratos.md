@@ -75,6 +75,27 @@ O catálogo, com unidade, definição e limitações de cada série, fica em
 `packages/economia/lumen_economia/catalogo.py`; o portal lê `economia/indicadores.json`, publicado com os
 painéis ([ADR-033](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-033.md)).
 
+### CVM — dados abertos das companhias abertas (estatais com ações na bolsa)
+
+| Endereço | Uso |
+|---|---|
+| `https://dados.cvm.gov.br/dados/CIA_ABERTA/CAD/DADOS/cad_cia_aberta.csv` | Cadastro (latin-1, `;`): as candidatas, que se declaram `ESTATAL` ou `ESTATAL HOLDING` e têm registro ativo |
+| `https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/FRE/DADOS/fre_cia_aberta_AAAA.zip` | Formulário de Referência; o Lumen lê só `fre_cia_aberta_posicao_acionaria_AAAA.csv`, por `Range`, e só os controladores diretos pessoa jurídica |
+| `https://dados.cvm.gov.br/dados/CIA_ABERTA/DOC/DFP/DADOS/dfp_cia_aberta_AAAA.zip` | Demonstrações do exercício; o Lumen lê DRE, DFC (MI ou MD) e DVA, consolidadas e individuais, e a lista de documentos, por `Range` |
+
+Sem chave (`cvm_dados_abertos`). O controle é o do FRE, não o do cadastro, que não é atualizado depois de
+privatizações ([ADR-034](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-034.md)).
+
+### SEST — dados abertos das empresas estatais federais
+
+| Endereço | Uso |
+|---|---|
+| `https://www.gov.br/gestao/pt-br/assuntos/estatais/transparencia/sestidentificacao.zip` | Cadastro das empresas ativas e inativas (cp1252, `;`): código SIEST, sigla, CNPJ, dependência do Tesouro, grupo |
+| `https://www.gov.br/gestao/pt-br/assuntos/estatais/transparencia/sestpdg.zip` | Programa de Dispêndios Globais: aprovado e realizado acumulado mês a mês, por empresa, exercício e rubrica, de 2016 em diante |
+
+Sem chave (`sest_dados_abertos`). Os dois arquivos vão para `economia-sest.json.gz` e, com os da CVM, para
+`economia/estatais.json`, que o portal lê em `/economia/estatais/`.
+
 ### PNTP — Radar da Transparência Pública (tribunais de contas e Atricon)
 
 | Endereço | Uso |

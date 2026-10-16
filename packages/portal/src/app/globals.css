@@ -1580,3 +1580,149 @@ table.tabela {
     max-width: 100%;
   }
 }
+
+/* Caixa de escolha com busca (componentes/Escolha.tsx), no lugar dos <select> */
+.escolha {
+  position: relative;
+  display: inline-block;
+  min-width: 0;
+  width: min(360px, 100%);
+}
+
+.escolha-campo {
+  width: 100%;
+  padding-right: 32px;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.escolha-campo:focus {
+  cursor: text;
+}
+
+.escolha-seta {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--texto-2);
+}
+
+.escolha-lista {
+  min-width: 100%;
+  width: max-content;
+  max-width: min(560px, 92vw);
+}
+
+.escolha-grupo {
+  padding: 8px 12px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--texto-3);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.escolha-lista li button.escolhida {
+  font-weight: 600;
+}
+
+/* Paginação das listas com mais de 20 itens */
+.paginacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-top: 12px;
+}
+
+.paginacao-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.paginacao .botao {
+  min-height: 36px;
+  padding: 4px 10px;
+}
+
+.paginacao .botao:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.paginacao-numero[aria-current="page"] {
+  background: var(--destaque);
+  border-color: var(--destaque);
+  color: #fff;
+}
+
+.paginacao-salto {
+  padding: 0 4px;
+  color: var(--texto-3);
+}
+
+.posicao {
+  color: var(--texto-3);
+}
+
+/* Filtro de período dos painéis de contratações */
+.filtro-periodo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 16px;
+}
+
+.filtro-periodo .escolha {
+  width: 170px;
+}
+
+.filtro-periodo-titulo {
+  font-weight: 600;
+}
+
+.filtro-periodo-atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.filtro-periodo-atalhos .botao {
+  min-height: 36px;
+  padding: 4px 10px;
+}
+
+.filtro-periodo-atalhos .botao[aria-pressed="true"] {
+  background: var(--destaque-suave);
+  border-color: var(--destaque);
+}
+
+.filtro-periodo-nota {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+/* Empresas estatais */
+.estatais-filtros {
+  margin: 12px 0;
+}
+
+.estatais-filtros .filtro-tabela {
+  margin-bottom: 0;
+}
+
+.estatais-detalhe {
+  display: grid;
+  gap: 12px;
+  padding: 8px 0 12px;
+}
+
+.estatais-detalhe .tabela {
+  background: var(--superficie-2);
+}

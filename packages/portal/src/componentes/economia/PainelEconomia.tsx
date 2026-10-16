@@ -9,6 +9,7 @@
  * cada período; ela não atribui o resultado a quem governava.
  */
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -24,6 +25,7 @@ import {
   valorNaUnidade,
   variacaoTexto,
 } from "@/lib/economia";
+import { Escolha } from "@/componentes/Escolha";
 import { instante } from "@/lib/formato";
 import { GraficoLinha } from "./GraficoLinha";
 
@@ -98,6 +100,9 @@ export function PainelEconomia() {
             Publicado em {instante(dados.gerado_em)}.
           </p>
         </div>
+        <Link href="/economia/estatais/" className="botao">
+          Empresas estatais: gastos e investimentos ›
+        </Link>
       </div>
       <aside className="faixa aviso-metodologico" aria-label="Aviso metodológico">
         Cada número traz a fonte, o período a que se refere e a data da coleta. Comparar períodos mostra o que as
@@ -151,20 +156,15 @@ function Detalhe({ ind, id, a, b, dados, escolher }: { ind: Indicador; id: strin
     <section className="cartao cartao-corpo" aria-labelledby="titulo-detalhe">
       <div className="controles">
         <h2 id="titulo-detalhe">{ind.nome}</h2>
-        <label className="so-leitor" htmlFor="escolha-indicador">
-          Indicador
-        </label>
-        <select id="escolha-indicador" className="seletor" value={id} onChange={(e) => escolher(e.target.value)}>
-          {dados.grupos.map((g) => (
-            <optgroup key={g.id} label={g.nome}>
-              {g.indicadores.map((i) => (
-                <option key={i} value={i}>
-                  {dados.indicadores[i]?.nome}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        <Escolha
+          rotulo="Indicador"
+          opcoes={dados.grupos.flatMap((g) =>
+            g.indicadores.map((i) => ({ valor: i, rotulo: dados.indicadores[i]?.nome ?? i, grupo: g.nome })),
+          )}
+          valor={id}
+          onEscolher={escolher}
+          vazio="Nenhum indicador com esse nome."
+        />
       </div>
       <GraficoLinha
         titulo={`${ind.nome}, ${ind.unidade}, série histórica`}
@@ -268,15 +268,16 @@ function EscolhaPeriodo({ nome, rotulo, p, mudar }: { nome: string; rotulo: stri
   return (
     <fieldset className="economia-periodo">
       <legend>{rotulo}</legend>
-      <select className="seletor" aria-label={`${rotulo}: mandato`} value={mandato ? `${mandato.de}..${mandato.ate}` : ""}
-              onChange={(e) => e.target.value && mudar(e.target.value)}>
-        <option value="">Intervalo de meses</option>
-        {MANDATOS.map((m) => (
-          <option key={m.de} value={`${m.de}..${m.ate}`}>
-            {m.rotulo}
-          </option>
-        ))}
-      </select>
+      <Escolha
+        rotulo={`${rotulo}: mandato ou intervalo de meses`}
+        opcoes={[
+          { valor: "", rotulo: "Intervalo de meses" },
+          ...MANDATOS.map((m) => ({ valor: `${m.de}..${m.ate}`, rotulo: m.rotulo, grupo: "Mandatos presidenciais" })),
+        ]}
+        valor={mandato ? `${mandato.de}..${mandato.ate}` : ""}
+        onEscolher={(v) => v && mudar(v)}
+        vazio="Nenhum mandato com esse nome ou ano."
+      />
       <span className="economia-meses">
         <input type="month" className="seletor" aria-label={`${rotulo}: primeiro mês`} value={p.de}
                max={p.ate} onChange={(e) => mesValido(e.target.value) && mudar(`${e.target.value}..${p.ate}`)} />
