@@ -48,6 +48,8 @@ LIMITES_PADRAO = {
     "cgu_cepim": 10,
     # SGS do Banco Central: uma requisição por série da área Economia.
     "bcb_sgs": 20,
+    "cvm_dados_abertos": 60,
+    "sest_dados_abertos": 10,
     # PNTP (Radar da Transparência): quatro requisições por ciclo, por Range.
     "pntp_avaliacoes": 10,
     "anp_precos_combustiveis": 10,
