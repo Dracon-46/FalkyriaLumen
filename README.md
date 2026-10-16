@@ -242,7 +242,7 @@ lumen eleicoes medir                                   # tamanho dos feeds contr
 lumen eleicoes municipios                              # cadastro TSE ↔ IBGE corrente (um já vem com o Lumen)
 lumen eleicoes mapas                                   # malhas do IBGE correntes (idem)
 lumen eleicoes zonas --anos 2026,2024                  # locais de votação: mapa das zonas eleitorais (ADR-029)
-lumen eleicoes historico baixar --anos 2022,1950       # dados abertos, 1933 a 2024 (ou --anos todos)
+lumen eleicoes historico baixar --anos 2022,1950       # dados abertos, 1933 a 2026 (ou --anos todos)
 lumen eleicoes historico processar --anos 2022,1950
 lumen eleicoes ao-vivo --eleicao 2026-1t-geral         # noite da apuração
 lumen eleicoes simular                                 # apuração fictícia para testar a tela
@@ -309,7 +309,7 @@ packages/
   orquestracao/   pipeline local e o comando `lumen`
   mercado/        regra A-05: itens comparáveis, preço da ANP (semestral e semanal), varejo por API oficial,
                   leitor de .xlsx sem dependências, relatório e distribuição para calibrar
-  eleicoes/       aba Eleições: coletor do TSE, dados abertos (1933 a 2024), feeds, preparar,
+  eleicoes/       aba Eleições: coletor do TSE, dados abertos (1933 a 2026), feeds, preparar,
                   mapa e cadastro embutidos, simulação, servidor local
   painel/         painéis de contratações (PNCP por ente e órgão) e conformidade (entregas da LRF)
   portal/         portal Next.js: Eleições, Contratações e Conformidade
@@ -369,8 +369,9 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
 ### Pendente
 
 - **Revisar as ADRs 011 a 029** (todas propostas, tomadas durante a implementação).
-- **Resultado por zona de 2026**: os dados abertos de votação de 2026 (453 MB) saíram em
-  15/10/2026; com 2026 em `ANOS_GERAIS`, o 1º turno passa a vir deles, com as zonas (ADR-029).
+- **2º turno de 2026 nos dados abertos**: o 1º turno já vem deles, com as zonas (ADR-029); o 2º
+  turno é coletado ao vivo e passa para os dados abertos quando o TSE o acrescentar ao arquivo de 2026,
+  que o `preparar` confere a cada execução.
 - **Calibrar a regra A-05** sobre o relatório silencioso antes de qualquer publicação (ADR-027).
 - **Contas da hospedagem gratuita** (ADR-026): Cloudflare (R2 e Pages), segredos do GitHub e
   uma organização própria do projeto no Supabase para o núcleo (DOC-12, seção 9.5). Feeds das
