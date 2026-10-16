@@ -20,6 +20,7 @@ from lumen_ingestao.adaptadores.api.pncp import (
     FontePncpContratos,
     FontePncpItens,
 )
+from lumen_ingestao.adaptadores.api.pntp import FontePntpAvaliacoes
 from lumen_ingestao.adaptadores.api.siconfi import FonteSiconfiEntes, FonteSiconfiExtrato
 from lumen_ingestao.bronze import ArmazemBronze, ArmazemBronzeLocal, RegistroColeta
 from lumen_ingestao.cliente_http import ClienteHttp
@@ -28,6 +29,7 @@ from lumen_ingestao.portas import Janela, ResumoColeta, coletar_janela
 from lumen_normalizacao import cgu as n_cgu
 from lumen_normalizacao import ibge as n_ibge
 from lumen_normalizacao import pncp as n_pncp
+from lumen_normalizacao import pntp as n_pntp
 from lumen_normalizacao import siconfi as n_siconfi
 from lumen_normalizacao.qualidade import ResultadoNormalizacao
 from lumen_normalizacao.silver import EscritorSilver, consolidar, ler_entidade
@@ -59,6 +61,7 @@ FABRICAS: dict[str, Callable[..., object]] = {
     "cgu_ceis": lambda c, **kw: FonteCguCeis(c, **kw),
     "cgu_cnep": lambda c, **kw: FonteCguCnep(c, **kw),
     "cgu_cepim": lambda c, **kw: FonteCguCepim(c, **kw),
+    "pntp_avaliacoes": lambda c, **kw: FontePntpAvaliacoes(c, **kw),
 }
 
 
@@ -179,11 +182,15 @@ def _normalizador_de(registro: RegistroColeta) -> Callable[[bytes, str], Resulta
         return lambda c: n_siconfi.normalizar_extrato(c, **kw())
     if f in ("cgu_ceis", "cgu_cnep", "cgu_cepim"):
         return lambda c: n_cgu.normalizar_sancoes(c, **kw())
+    if f == "pntp_avaliacoes":
+        ciclo = re.search(r"dados_pntp_(\d{4})\.zip", url)
+        return (lambda c: n_pntp.normalizar_avaliacoes(c, ciclo=int(ciclo.group(1)), **kw())) if ciclo else None
     return None
 
 
 VERSOES = {"pncp": n_pncp.VERSAO_NORMALIZADOR, "ibge": n_ibge.VERSAO_NORMALIZADOR,
-           "siconfi": n_siconfi.VERSAO_NORMALIZADOR, "cgu": n_cgu.VERSAO_NORMALIZADOR}
+           "siconfi": n_siconfi.VERSAO_NORMALIZADOR, "cgu": n_cgu.VERSAO_NORMALIZADOR,
+           "pntp": n_pntp.VERSAO_NORMALIZADOR}
 
 
 @dataclass

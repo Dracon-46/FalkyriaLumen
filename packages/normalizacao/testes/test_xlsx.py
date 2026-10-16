@@ -11,7 +11,8 @@ import zipfile
 from datetime import date
 
 import pytest
-from lumen_mercado import xlsx
+
+from lumen_normalizacao import xlsx
 
 _NS = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
 _NS_R = 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"'

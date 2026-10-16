@@ -760,6 +760,69 @@ class Sancao(RegistroCanonico):
     marcacoes_qualidade: list[str] = field(default_factory=list)
 
 
+@dataclass
+class AvaliacaoTransparencia(RegistroCanonico):
+    """Avaliação do portal de transparência de uma entidade num ciclo do PNTP (tribunais de contas e Atricon).
+
+    Chave: ciclo + código da entidade no PNTP. É fato publicado pelos tribunais de contas: o índice (0 a 1), o
+    percentual dos critérios essenciais atendidos, o nível ("Diamante" a "Inexistente") e o endereço do
+    portal, como avaliados (ADR-032). ``avaliada`` é falso para a entidade que não enviou a autoavaliação no
+    ciclo ("Não Avaliado"): ela continua no cadastro, sem índice.
+
+    ``ente_codigo_ibge`` é o ente a que a entidade pertence (o município, a UF, ou ``1`` para a União), na
+    convenção do ``EnteFederativo``; a câmara e a prefeitura de um município têm o mesmo ente. O nome e o
+    e-mail de quem preencheu (planilha de 2022) ficam no bronze e não vêm para cá (minimização, DOC-08).
+    """
+
+    ENTIDADE: ClassVar[str] = "avaliacao_transparencia"
+    SENSIBILIDADE: ClassVar[dict[str, Sensibilidade]] = {
+        "ciclo": Sensibilidade.PUBLICO,
+        "codigo_entidade": Sensibilidade.PUBLICO,
+        "entidade": Sensibilidade.PUBLICO,
+        "poder": Sensibilidade.PUBLICO,
+        "esfera": Sensibilidade.PUBLICO,
+        "uf": Sensibilidade.PUBLICO,
+        "municipio_codigo_ibge": Sensibilidade.PUBLICO,
+        "ente_id": Sensibilidade.INTERNO,
+        "ente_codigo_ibge": Sensibilidade.PUBLICO,
+        "avaliada": Sensibilidade.PUBLICO,
+        "data_envio": Sensibilidade.PUBLICO,
+        "autoavaliacao": Sensibilidade.PUBLICO,
+        "validada": Sensibilidade.PUBLICO,
+        "certificavel": Sensibilidade.PUBLICO,
+        "indice": Sensibilidade.PUBLICO,
+        "percentual_essenciais": Sensibilidade.PUBLICO,
+        "nivel": Sensibilidade.PUBLICO,
+        "nivel_anterior": Sensibilidade.PUBLICO,
+        "link_portal": Sensibilidade.PUBLICO,
+    }
+
+    id: str
+    ciclo: int
+    codigo_entidade: str
+    entidade: str
+    poder: str | None                # Executivo, Legislativo, Judiciário, Consórcios, Estatais Independentes...
+    esfera: Esfera | None
+    uf: str | None
+    municipio_codigo_ibge: str | None
+    ente_id: str | None
+    ente_codigo_ibge: str | None
+    avaliada: bool
+    data_envio: date | None
+    autoavaliacao: bool | None
+    validada: bool | None
+    certificavel: bool | None
+    indice: Decimal | None           # 0 a 1, com quatro casas
+    percentual_essenciais: Decimal | None
+    nivel: str | None                # Diamante, Ouro, Prata, Elevado, Intermediário, Básico, Inicial, Inexistente
+    nivel_anterior: str | None       # do ciclo anterior, pelo "Histórico do Nível"
+    link_portal: str | None
+    chave_origem: str | None = None
+    fonte_id: str | None = None
+    documento_fonte_id: str | None = None
+    marcacoes_qualidade: list[str] = field(default_factory=list)
+
+
 ENTIDADES_FATO: tuple[type[RegistroCanonico], ...] = (
     EnteFederativo,
     Orgao,
@@ -772,4 +835,5 @@ ENTIDADES_FATO: tuple[type[RegistroCanonico], ...] = (
     AtaRegistroPreco,
     EntregaSiconfi,
     Sancao,
+    AvaliacaoTransparencia,
 )

@@ -27,6 +27,9 @@ quantidade de itens em `data` ou `items`.
 | `cgu/cnep_amostra.zip` | 2 das 1.840 linhas do `20261015_CNEP.csv`, mais 1 linha fictícia de pessoa física |
 | `cgu/cepim_amostra.zip` | 3 das 3.521 linhas do `20261014_CEPIM.csv` |
 | `cgu/pagina_download_ceis.html` | só o bloco `<script>` da página de download do CEIS que declara a data do arquivo |
+| `pntp/avaliacoes_pntp_2025_amostra.xlsx` | 8 das 11.697 linhas da planilha de avaliações do PNTP 2025 (capturada em 16/10/2026), regravadas numa planilha mínima com os valores como texto |
+| `pntp/avaliacoes_pntp_2022_cabecalho.xlsx` | só o cabeçalho da planilha de 2022 (as linhas trazem nome e e-mail de quem preencheu) |
+| `pntp/downloads_trecho.html` | só o bloco "Base de Dados" da página de downloads do Radar da Transparência |
 
 Nos ZIPs da CGU, as linhas mantidas são os bytes originais do CSV (ISO-8859-1,
 `;`, fim de linha CRLF), e o ZIP foi refeito com elas. **Exceção ao "nunca
@@ -70,6 +73,13 @@ Cada uma delas tem teste que garante o tratamento correto:
   marcação.
 - **CGU, o CEPIM não tem datas nem código da sanção.** A chave é CNPJ mais
   convênio.
+- **PNTP, "% das Essenciais" igual a 6,6 numa escala de 0 a 1** (Prefeitura
+  de Piedade dos Gerais, 2025). O número vira nulo com
+  `fracao_fora_da_faixa`; a entidade continua no cadastro.
+- **PNTP, entidade "Não Avaliado"** (Prefeitura de Abaíra, 2025): índice 0 e
+  traços na planilha. Fica no cadastro, sem índice.
+- **PNTP, nível "Inexistente" com índice 0** (consórcio do Vale Europeu): é
+  avaliação de verdade, e o zero fica.
 
 ## Como recapturar
 
