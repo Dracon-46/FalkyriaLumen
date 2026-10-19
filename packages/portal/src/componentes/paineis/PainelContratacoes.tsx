@@ -10,9 +10,8 @@
  */
 
 import Link from "next/link";
-import { urlDoEnte } from "@/lib/ente360";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Escolha } from "@/componentes/Escolha";
 import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import { instante } from "@/lib/formato";
@@ -45,6 +44,8 @@ import {
 } from "@/lib/periodo";
 import { AvisoMetodologico, BuscaEnte, GraficoBarras, Numero, Situacao } from "./Comuns";
 import { Documentos } from "./Documentos";
+import { ModalContratacao } from "./ModalContratacao";
+import { EVENTO_LOCAL } from "@/lib/local";
 
 const CODIGO_UF: Record<string, string> = {
   RO: "11", AC: "12", AM: "13", RR: "14", PA: "15", AP: "16", TO: "17", MA: "21", PI: "22", CE: "23", RN: "24",
@@ -53,6 +54,32 @@ const CODIGO_UF: Record<string, string> = {
 };
 
 type Estado<T> = { carregando: true } | { carregando: false; dados: T | null; erro: string | null };
+
+/**
+ * O que as listas podem fazer (ADR-035): abrir uma publicação no modal (o que também filtra a página pelo órgão
+ * dela) e filtrar pelo fornecedor; e o fornecedor filtrado, se houver.
+ */
+const Acoes = createContext<{ abrir: (chave: string) => void; fornecedor: (cnpj: string) => void; forn: string | null }>({
+  abrir: () => undefined, fornecedor: () => undefined, forn: null,
+});
+
+/** As listas só com o fornecedor filtrado: contratos, valores a conferir e a linha dele na tabela. */
+function doFornecedor<T extends Omit<SecoesContratacoes, "orgaos"> & { orgaos?: SecoesContratacoes["orgaos"] }>(
+  dados: T, forn: string | null): T {
+  if (!forn) return dados;
+  return {
+    ...dados,
+    fornecedores: dados.fornecedores.filter((f) => f.cnpj === forn),
+    contratos_recentes: dados.contratos_recentes.filter((c) => c.fornecedor_cnpj === forn),
+    a_conferir: dados.a_conferir?.filter((x) => x.tipo !== "contrato" || x.fornecedor_cnpj === forn),
+  };
+}
+
+/** A publicação está entre os valores acima do teto de plausibilidade, fora das somas? */
+function valorAConferir(dados: Pick<SecoesContratacoes, "recentes" | "contratos_recentes" | "a_conferir">, chave: string): boolean {
+  return !!dados.a_conferir?.some((x) => x.chave === chave) || dados.recentes.some((x) => x.chave === chave && x.a_conferir)
+    || dados.contratos_recentes.some((x) => x.chave === chave && x.a_conferir);
+}
 
 /** Painel de contratações, a partir do `?ente=` da URL. */
 export function PainelContratacoes() {
@@ -87,9 +114,47 @@ export function PainelContratacoes() {
     router.push(codigo ? `/contratacoes/?ente=${codigo}${sufixo(periodo)}` : `/contratacoes/?${sufixo(periodo).slice(1)}`,
                 { scroll: true });
   const irOrgao = (cnpj: string) => router.push(`/contratacoes/?orgao=${cnpj}${sufixo(periodo)}`, { scroll: true });
+  const pub = params.get("pub");
+  const forn = /^\d{14}$/.test(params.get("forn") ?? "") ? params.get("forn") : null;
+  const extras = (o: { pub?: string | null; forn?: string | null }) => {
+    const q = new URLSearchParams();
+    const p2 = o.pub === undefined ? pub : o.pub;
+    const f2 = o.forn === undefined ? forn : o.forn;
+    if (p2) q.set("pub", p2);
+    if (f2) q.set("forn", f2);
+    const s = q.toString();
+    return s ? `&${s}` : "";
+  };
+  // Abrir uma publicação: a página por trás vai para o órgão dela, e o modal abre por cima
+  const abrir = useCallback((chave: string) => {
+    const cnpjOrgao = chave.slice(0, 14);
+    router.push(`/contratacoes/?orgao=${cnpjOrgao}${sufixo(periodo)}${extras({ pub: chave })}`, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router, periodo.de, periodo.ate, forn]);
+  const base = ente ? `ente=${ente}` : orgao ? `orgao=${orgao}` : "";
+  const fecharModal = useCallback(() => {
+    router.replace(`/contratacoes/?${`${base}${sufixo(periodo)}${extras({ pub: null })}`.replace(/^&/, "")}`, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router, base, periodo.de, periodo.ate, forn]);
+  const filtrarFornecedor = useCallback((cnpjForn: string | null) => {
+    router.replace(`/contratacoes/?${`${base}${sufixo(periodo)}${extras({ pub: null, forn: cnpjForn })}`.replace(/^&/, "")}`,
+                   { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router, base, periodo.de, periodo.ate, pub]);
+  const acoes = useMemo(() => ({ abrir, fornecedor: (c: string) => filtrarFornecedor(c), forn }),
+                        [abrir, filtrarFornecedor, forn]);
+  const nomeForn = forn && !estado.carregando && estado.dados
+    ? (estado.dados.fornecedores.find((f) => f.cnpj === forn)?.nome ?? null) : null;
+
+  // No órgão, o local do cabeçalho passa a ser o ente dele
+  useEffect(() => {
+    if (estado.carregando || estado.dados?.tipo !== "contratacoes-orgao" || !estado.dados.ente) return;
+    const e = estado.dados.ente;
+    window.dispatchEvent(new CustomEvent(EVENTO_LOCAL, { detail: { codigo: e.codigo, nome: e.nome, uf: e.uf } }));
+  }, [estado]);
+
   const mudarPeriodo = (p: PeriodoMeses) => {
-    const base = ente ? `ente=${ente}` : orgao ? `orgao=${orgao}` : "";
-    const consulta = `${base}${sufixo(p)}`.replace(/^&/, "");
+    const consulta = `${base}${sufixo(p)}${extras({})}`.replace(/^&/, "");
     router.replace(`/contratacoes/${consulta ? `?${consulta}` : ""}`, { scroll: false });
   };
 
@@ -120,6 +185,13 @@ export function PainelContratacoes() {
       {!estado.carregando && estado.dados && (
         <FiltroPeriodo dados={estado.dados} periodo={periodo} onMudar={mudarPeriodo} />
       )}
+      {forn && (
+        <p className="filtro-ativo">
+          Filtrado pelo fornecedor <strong>{nomeForn ?? cnpj(forn)}</strong> ({cnpj(forn)}): contratos e valores dele{" "}
+          <button type="button" className="botao-link" onClick={() => filtrarFornecedor(null)}>tirar o filtro</button>
+        </p>
+      )}
+      <Acoes.Provider value={acoes}>
       {!estado.carregando && estado.dados?.tipo === "contratacoes-panorama" && (
         <Panorama dados={estado.dados} periodo={periodo} onEnte={ir} />
       )}
@@ -128,6 +200,12 @@ export function PainelContratacoes() {
       )}
       {!estado.carregando && estado.dados?.tipo === "contratacoes-orgao" && (
         <Orgao dados={estado.dados} periodo={periodo} onEnte={ir} />
+      )}
+      </Acoes.Provider>
+      {pub && (
+        <ModalContratacao chave={pub} onFechar={fecharModal} onAbrir={abrir}
+                          onFornecedor={(c) => filtrarFornecedor(c)}
+                          aConferir={!estado.carregando && !!estado.dados && valorAConferir(estado.dados, pub)} />
       )}
     </div>
   );
@@ -254,6 +332,8 @@ function Secoes({
   /** Página de um órgão só: sem a contagem de órgãos. */
   orgaoUnico?: boolean;
 }) {
+  const acoes = useContext(Acoes);
+  dados = useMemo(() => doFornecedor(dados, acoes.forn), [dados, acoes.forn]);
   const t = dados.totais;
   const modalidades = usePaginacao(dados.modalidades);
   const fornecedores = usePaginacao(dados.fornecedores);
@@ -350,7 +430,10 @@ function Secoes({
                 <tr key={f.cnpj}>
                   <td>
                     <span className="num posicao">{numero((fornecedores.pagina - 1) * fornecedores.porPagina + i + 1)}.</span>{" "}
-                    {f.nome ?? "—"}
+                    <button type="button" className="objeto-abrir" title="Filtrar a página por este fornecedor"
+                            onClick={() => acoes.fornecedor(f.cnpj)}>
+                      {f.nome ?? "—"}
+                    </button>
                     <div className="busca-detalhe num">{cnpj(f.cnpj)}</div>
                   </td>
                   <td className="n">{numero(f.contratos)}</td>
@@ -432,7 +515,12 @@ function Secoes({
                   {x.tipo === "processo" ? "Processo (valor estimado)" : "Contrato (valor global)"} ·{" "}
                   <span className="num">{moeda(x.valor)}</span>
                 </div>
-                <div>{x.objeto ?? "—"}</div>
+                <div>
+                  <button type="button" className="objeto-abrir" onClick={() => acoes.abrir(x.chave)}
+                          title="Abrir tudo sobre esta contratação">
+                    {x.objeto ?? "—"}
+                  </button>
+                </div>
                 <div className="busca-detalhe">
                   {x.tipo === "contrato" &&
                     (x.fornecedor_cnpj ? `${x.fornecedor ?? "—"} (${cnpj(x.fornecedor_cnpj)}) · ` : "Pessoa física ou estrangeira · ")}
@@ -465,7 +553,12 @@ function Secoes({
                 <span className="num">{p.valor_estimado ? moeda(p.valor_estimado) : "sem valor estimado"}</span>
                 {p.a_conferir && " (valor a conferir, fora das somas)"}
               </div>
-              <div>{p.objeto ?? "—"}</div>
+              <div>
+                  <button type="button" className="objeto-abrir" onClick={() => acoes.abrir(p.chave)}
+                          title="Abrir tudo sobre esta contratação">
+                    {p.objeto ?? "—"}
+                  </button>
+                </div>
               <div className="busca-detalhe">
                 {p.orgao ?? "—"}
                 {p.link && (
@@ -495,7 +588,12 @@ function Secoes({
                   <span className="num">{moeda(c.valor)}</span>
                   {c.a_conferir && " (valor a conferir, fora das somas)"}
                 </div>
-                <div>{c.objeto ?? "—"}</div>
+                <div>
+                  <button type="button" className="objeto-abrir" onClick={() => acoes.abrir(c.chave)}
+                          title="Abrir tudo sobre esta contratação">
+                    {c.objeto ?? "—"}
+                  </button>
+                </div>
                 <div className="busca-detalhe">
                   {c.fornecedor_cnpj ? `${c.fornecedor ?? "—"} (${cnpj(c.fornecedor_cnpj)})` : "Pessoa física ou estrangeira"}
                   {" · "}
@@ -654,9 +752,6 @@ function Ente({
           </button>
         )}
         <span aria-current="location">{e.nome}</span>
-        <Link className="trilha-360" href={urlDoEnte(e.codigo)}>
-          tudo sobre {e.nome} (visão 360) ›
-        </Link>
       </nav>
       <h2 className="painel-ente">
         {e.nome}

@@ -12,9 +12,12 @@ import { dataCurta } from "@/lib/paineis";
 /** Fechado, buscando no PNCP, a lista pronta ou a falha da busca. */
 type Estado = { fase: "fechado" } | { fase: "carregando" } | { fase: "pronto"; docs: DocumentoPncp[] } | { fase: "erro" };
 
-/** Documentos de uma publicação, recolhidos até a pessoa abrir; nada aparece se a chave não é do PNCP. */
-export function Documentos({ chave, link }: { chave: string; link: string | null }) {
-  const [estado, setEstado] = useState<Estado>({ fase: "fechado" });
+/**
+ * Documentos de uma publicação, recolhidos até a pessoa abrir (ou já abertos, com `abrirJa`, no modal da
+ * contratação); nada aparece se a chave não é do PNCP.
+ */
+export function Documentos({ chave, link, abrirJa = false }: { chave: string; link: string | null; abrirJa?: boolean }) {
+  const [estado, setEstado] = useState<Estado>({ fase: abrirJa ? "carregando" : "fechado" });
   const aberto = estado.fase !== "fechado";
 
   useEffect(() => {
@@ -31,11 +34,15 @@ export function Documentos({ chave, link }: { chave: string; link: string | null
   if (!lerChave(chave)) return null;
   return (
     <span className="documentos">
-      {" · "}
-      <button type="button" className="botao-link" aria-expanded={aberto}
-              onClick={() => setEstado(aberto ? { fase: "fechado" } : { fase: "carregando" })}>
-        {aberto ? "fechar documentos" : "documentos"}
-      </button>
+      {!abrirJa && (
+        <>
+          {" · "}
+          <button type="button" className="botao-link" aria-expanded={aberto}
+                  onClick={() => setEstado(aberto ? { fase: "fechado" } : { fase: "carregando" })}>
+            {aberto ? "fechar documentos" : "documentos"}
+          </button>
+        </>
+      )}
       {estado.fase === "carregando" && <span className="documentos-lista busca-detalhe">Buscando no PNCP…</span>}
       {estado.fase === "erro" && (
         <span className="documentos-lista busca-detalhe">

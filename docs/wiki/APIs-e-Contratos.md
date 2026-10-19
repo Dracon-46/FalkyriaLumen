@@ -96,15 +96,20 @@ privatizações ([ADR-034](https://github.com/Dracon-46/FalkyriaLumen/blob/main/
 Sem chave (`sest_dados_abertos`). Os dois arquivos vão para `economia-sest.json.gz` e, com os da CVM, para
 `economia/estatais.json`, que o portal lê em `/economia/estatais/`.
 
-### PNCP — documentos de cada publicação (no navegador)
+### PNCP — modal da contratação e documentos (no navegador)
 
 | Endereço | Uso |
 |---|---|
+| `https://pncp.gov.br/api/consulta/v1/orgaos/{cnpj}/compras/{ano}/{seq}` | Detalhe do processo: modalidade, fundamento legal, valores, datas, links (o caminho antigo em `/api/pncp/v1` responde 301) |
+| `https://pncp.gov.br/api/pncp/v1/orgaos/{cnpj}/compras/{ano}/{seq}/itens?pagina=&tamanhoPagina=` | Itens do processo, em páginas de 50 (o portal lê até 500) |
+| `https://pncp.gov.br/api/pncp/v1/orgaos/{cnpj}/compras/{ano}/{seq}/itens/{n}/resultados` | Vencedor e valor homologado do item (204 quando ainda não há) |
+| `https://pncp.gov.br/api/pncp/v1/orgaos/{cnpj}/contratos/{ano}/{seq}` | Detalhe do contrato: fornecedor, valores, vigência, processo de origem |
+| `https://pncp.gov.br/api/pncp/v1/orgaos/{cnpj}/contratos/{ano}/{seq}/termos` | Termos aditivos (204 quando não há) |
 | `https://pncp.gov.br/api/pncp/v1/orgaos/{cnpj}/compras/{ano}/{seq}/arquivos` | Lista dos documentos de um processo (edital, aviso, termo de referência), com o link de download |
 | `https://pncp.gov.br/api/pncp/v1/orgaos/{cnpj}/contratos/{ano}/{seq}/arquivos` | Lista dos documentos de um contrato |
 
-O portal pede a lista só quando a pessoa abre os documentos de uma publicação; a API libera a leitura pelo
-navegador (CORS) e o download é o do próprio PNCP. Nada é copiado para o Lumen
+O portal faz esses pedidos só quando a pessoa abre uma contratação. A API libera a leitura pelo navegador
+(CORS), e o download é o do próprio PNCP. Fornecedor pessoa física aparece sem nome nem documento. Nada é copiado para o Lumen
 ([ADR-035](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-035.md)).
 
 ### PNTP — Radar da Transparência Pública (tribunais de contas e Atricon)
@@ -116,7 +121,7 @@ navegador (CORS) e o download é o do próprio PNCP. Nada é copiado para o Lume
 
 Uma linha por entidade avaliada (11.697 em 2025): índice e nível de transparência e endereço do portal
 ([ADR-032](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-032.md)). `lumen painel
-transparencia` lê o ciclo mais recente todo dia e publica `transparencia/uf-<sigla>.json` para a visão 360.
+transparencia` lê o ciclo mais recente todo dia e publica `transparencia/uf-<sigla>.json`, lido na página do ente em Conformidade.
 
 ### TSE
 

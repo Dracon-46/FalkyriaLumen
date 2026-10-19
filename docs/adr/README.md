@@ -40,7 +40,7 @@ nunca apagadas: uma ADR substituída continua aqui, marcada como tal.
 | [032](ADR-032.md) | Cadastro nacional dos portais de transparência pelo PNTP, lido por partes de dentro do ZIP | **proposta** |
 | [033](ADR-033.md) | Economia e Contas Públicas: séries oficiais do SGS, catálogo documentado e comparação de períodos sem atribuição de causa | **proposta** |
 | [034](ADR-034.md) | Empresas estatais: controle conferido no FRE, demonstrações da CVM e dispêndios da SEST, sem somar empresas | **proposta** |
-| [035](ADR-035.md) | Visão 360 de cada ente, documentos do PNCP pela própria fonte e atualização diária de todas as áreas | **proposta** |
+| [035](ADR-035.md) | Visão 360 por filtro de local, modal da contratação, documentos do PNCP pela própria fonte e atualização diária de todas as áreas | **proposta** |
 
 As ADRs 011 a 015 foram tomadas durante a implementação da Fase 0, e as 016 a
 033 durante a Fase 1 e a criação da aba Eleições; todas aguardam revisão. Para aceitar, troque a situação para `aceita`. Para rejeitar, marque

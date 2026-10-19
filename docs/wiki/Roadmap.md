@@ -116,8 +116,9 @@ Da seção "Pendente" do README:
   atividade, e a comparação de períodos. Próximos: desemprego e rendimento (PNAD), receitas e despesas por
   função, séries fiscais de estados e municípios com grupos de pares. Paginação (20 por página) e filtro de
   período nas Contratações já no ar.
-- **Visão 360 de cada ente** (ADR-035): no ar, com os documentos do PNCP para baixar e o portal de
-  transparência avaliado pelo PNTP. Próximos: o resultado por zona de 2018 a 2024 (reprocessar os dados
+- **Visão 360 pelo filtro de local** (ADR-035): no ar. O local escolhido no cabeçalho filtra todas as abas,
+  e a contratação abre num modal com itens, vencedores, aditivos e os documentos do PNCP para baixar. Também
+  no ar: o portal de transparência avaliado pelo PNTP na Conformidade. Próximos: o resultado por zona de 2018 a 2024 (reprocessar os dados
   abertos desses anos) e as séries fiscais do ente (RREO e RGF).
 - **Gastos das estatais** (ADR-034): no ar. As federais pelo PDG da SEST (aprovado e realizado por
   rubrica) e as com ações na bolsa pelas demonstrações da CVM, com o controle conferido no FRE. Próximos:

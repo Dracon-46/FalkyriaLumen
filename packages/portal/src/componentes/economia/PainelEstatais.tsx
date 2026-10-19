@@ -17,6 +17,7 @@ import {
   carregarEstatais,
   comoGasto,
   controlePublico,
+  estataisDoEnte,
   type CompanhiaCvm,
   type EmpresaSest,
   execucao,
@@ -30,6 +31,7 @@ import {
   valorCvm,
 } from "@/lib/estatais";
 import { instante, numero, percentual } from "@/lib/formato";
+import { carregarEntes, type EnteBusca, tipoDoCodigo } from "@/lib/paineis";
 import { cnpj, moeda, moedaCompacta } from "@/lib/paineis";
 
 const METODOLOGIA = "https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-034.md";
@@ -42,6 +44,12 @@ export function PainelEstatais() {
   const params = useSearchParams();
   const router = useRouter();
   const [estado, setEstado] = useState<Estado>({ carregando: true });
+  const [entes, setEntes] = useState<EnteBusca[] | null>(null);
+  const codigoLocal = params.get("ente");
+
+  useEffect(() => {
+    if (codigoLocal && entes === null) carregarEntes().then(setEntes).catch(() => setEntes([]));
+  }, [codigoLocal, entes]);
 
   useEffect(() => {
     const c = new AbortController();
@@ -68,7 +76,15 @@ export function PainelEstatais() {
     return <p className="situacao-painel">As estatais ainda não foram publicadas: a primeira coleta ainda não rodou.</p>;
   }
   const dados = estado.dados;
-  const fonte = params.get("fonte") === "cvm" || !dados.federais ? "cvm" : "sest";
+  // Filtro de local (ADR-035): num estado ou município, só as companhias abertas que ele controla; as federais
+  // da SEST só fazem sentido para a União
+  const local = codigoLocal && /^(1|\d{2}|\d{7})$/.test(codigoLocal)
+    ? { codigo: codigoLocal, nome: entes?.find((e) => e.codigo === codigoLocal)?.nome ?? (codigoLocal === "1" ? "União" : codigoLocal),
+        uf: entes?.find((e) => e.codigo === codigoLocal)?.uf ?? null }
+    : null;
+  const doLocal = local ? { ...dados, companhias: estataisDoEnte(dados, local.nome, local.uf, tipoDoCodigo(local.codigo)) } : dados;
+  const fonte = params.get("fonte") === "cvm" || !dados.federais || (local && local.codigo !== "1" && params.get("fonte") !== "sest")
+    ? "cvm" : "sest";
 
   return (
     <div className="painel">
@@ -95,6 +111,13 @@ export function PainelEstatais() {
         </a>
         .
       </aside>
+      {local && (
+        <p className="filtro-ativo">
+          Filtrado por <strong>{local.nome}</strong>
+          {local.codigo === "1" ? ": as estatais federais" : ": as companhias abertas que ele controla"}{" "}
+          <button type="button" className="botao-link" onClick={() => mudar({ ente: null })}>ver todas</button>
+        </p>
+      )}
       <div className="cargos" role="tablist" aria-label="Fonte">
         {dados.federais && (
           <button type="button" role="tab" className="cargo" aria-selected={fonte === "sest"}
@@ -104,13 +127,13 @@ export function PainelEstatais() {
         )}
         <button type="button" role="tab" className="cargo" aria-selected={fonte === "cvm"}
                 onClick={() => mudar({ fonte: "cvm", ano: null, filtro: null })}>
-          Com ações na bolsa (CVM) · {numero(dados.companhias.length)}
+          Com ações na bolsa (CVM) · {numero(doLocal.companhias.length)}
         </button>
       </div>
       {fonte === "sest" && dados.federais ? (
         <Federais federais={dados.federais} params={params} mudar={mudar} />
       ) : (
-        <Listadas dados={dados} params={params} mudar={mudar} />
+        <Listadas dados={doLocal} params={params} mudar={mudar} />
       )}
     </div>
   );
@@ -340,7 +363,7 @@ function Listadas({ dados, params, mudar }: { dados: FeedEstatais } & Props) {
   const anos = useMemo(() => exerciciosDe(dados.companhias), [dados]);
   const ano = params.get("ano") && anos.includes(params.get("ano")!) ? params.get("ano")! : anos[0] ?? "";
   const termo = params.get("q") ?? "";
-  const filtro = params.get("filtro") ?? "publico";
+  const filtro = params.get("filtro") ?? (params.get("ente") ? "todas" : "publico");
   const [aberta, setAberta] = useState<string | null>(null);
   const lista = useMemo(() => {
     const aceita = (c: CompanhiaCvm) =>
