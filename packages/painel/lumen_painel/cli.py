@@ -7,6 +7,7 @@ Exemplos::
     lumen painel contratacoes --estado estado/ --de 2026-01-01 --ate 2026-01-31 --limite-minutos 300
     lumen painel faltando --estado estado/ --de 2026-01-01 --partes 6   # divisão para execuções paralelas
     lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026
+    lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)
     lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado
 
 O estado é um diretório com ``cadastro-entes.json.gz``, um ``contratacoes-<dia>.json.gz`` por dia coletado e
@@ -25,6 +26,7 @@ from pathlib import Path
 
 from . import conformidade as conf
 from . import contratacoes as contr
+from . import transparencia
 from .cadastro import Cadastro
 from .comum import gravar_json, hoje_brasilia, instante_utc
 from .dia import coletar_dia, dias_guardados
@@ -159,6 +161,14 @@ def cmd_conformidade(args) -> int:
     return 1 if any(not r["gravado"] for r in resultados) else 0
 
 
+def cmd_transparencia(args) -> int:
+    """Lê o ciclo mais recente do PNTP para ``transparencia-pntp.json.gz``; o código é 1 quando falhou."""
+    from lumen_orquestracao import etapas
+    resumo = transparencia.coletar(etapas.cliente(_configuracao(args), transparencia.FONTE_ID), args.estado)
+    _imprimir(resumo.para_json())
+    return 1 if resumo.falha else 0
+
+
 def cmd_publicar(args) -> int:
     """Monta o site inteiro a partir do estado: índice, busca, contratações e conformidade."""
     estado = Path(args.estado)
@@ -185,6 +195,8 @@ def cmd_publicar(args) -> int:
         site.gravar(f"conformidade/uf/{uf}.json", conf.uf_para_json(uf, avaliacao, gerado_em))
     site.gravar("conformidade/panorama.json", conf.panorama_para_json(avaliacao, gerado_em))
 
+    pntp = transparencia.publicar(estado, site.gravar, gerado_em=gerado_em)
+
     entes = {c: [c, e.nome, e.uf, e.esfera, e.populacao] for c, e in cadastro.entes.items()}
     for codigo in set(painel.entes) | set(avaliacao.entes):
         entes.setdefault(codigo, [codigo, cadastro.nome(codigo), None, None, None])
@@ -194,7 +206,8 @@ def cmd_publicar(args) -> int:
     indice = {"versao": 1, "gerado_em": gerado_em, "avaliado_em": hoje.isoformat(),
               "cadastro": {"entes": len(cadastro), "gerado_em": cadastro.gerado_em},
               "contratacoes": {**painel.cobertura(), "entes": len(painel.entes), "orgaos": len(painel.por_orgao)},
-              "conformidade": {"entes": len(avaliacao.entes), "ufs": avaliacao.coletas}}
+              "conformidade": {"entes": len(avaliacao.entes), "ufs": avaliacao.coletas},
+              "transparencia": pntp}
     site.gravar("indice.json", indice)
     site.finalizar()
     _imprimir({"arquivos": site.arquivos, **{k: v for k, v in indice.items() if k != "versao"},
@@ -230,6 +243,9 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--ufs", required=True, help="siglas separadas por vírgula")
     c.add_argument("--exercicios", help="padrão: o anterior e o corrente")
 
+    c = sub.add_parser("transparencia", help="portais de transparência dos entes pelo PNTP")
+    c.add_argument("--estado", required=True)
+
     c = sub.add_parser("publicar", help="monta o site dos painéis a partir do estado")
     c.add_argument("--estado", required=True)
     c.add_argument("--saida", required=True)
@@ -238,7 +254,7 @@ def construir_parser() -> argparse.ArgumentParser:
 
 
 COMANDOS = {"cadastro": cmd_cadastro, "contratacoes": cmd_contratacoes, "faltando": cmd_faltando,
-            "conformidade": cmd_conformidade, "publicar": cmd_publicar}
+            "conformidade": cmd_conformidade, "transparencia": cmd_transparencia, "publicar": cmd_publicar}
 
 
 def main(argv: list[str] | None = None) -> int:
