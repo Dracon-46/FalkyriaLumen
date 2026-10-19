@@ -13,7 +13,8 @@ Desenho do diretório::
     contratacoes/orgao/<CNPJ>.json    um órgão: prefeitura, câmara, autarquia, fundação ou empresa pública
     conformidade/panorama.json        Brasil: resultados por UF e por obrigação
     conformidade/uf/<sigla>.json      entes da UF, com o resumo de cada um
-    conformidade/ente/<código>.json   as obrigações avaliadas de um ente
+    conformidade/ente/<código>.json   as obrigações avaliadas de um ente e o grupo de pares (ADR-038)
+    conformidade/pares/<id>.json      um grupo de pares: critérios, distribuição e os entes que o formam
 """
 
 from __future__ import annotations

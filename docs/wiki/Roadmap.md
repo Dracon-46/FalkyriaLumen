@@ -43,7 +43,7 @@ por um comando. Tudo concluído; ADRs 011 em diante registradas durante a implem
 | Base pública de CNPJ da Receita Federal | Pendente |
 | Cadastro de entes do IBGE com população e porte | Concluído |
 | Normalização com qualidade e quarentena | Concluída para PNCP, SICONFI e IBGE |
-| Grupos de pares | Pendente |
+| Grupos de pares | Cálculo inicial (ADR-038): porte e região, comparação na conformidade de cada ente; a RCL entra com o RREO |
 | Painel operacional | Pendente |
 | Parâmetros legais verificados | Concluído além do previsto: limites de dispensa de 2021 a 2026, fator do § 2º e acréscimos do art. 125 |
 | Regra A-05 (antecipada da Fase 2) | Relatório silencioso; sob demanda no modal para combustível e gás de cozinha (ADR-037), limiares não calibrados |
@@ -135,7 +135,8 @@ Da seção "Pendente" do README:
   municipais de capital fechado.
 - **Regra J-01** (ADR-031): sanções da CGU × contratos do painel, em modo silencioso a cada carga;
   calibrar e revisar antes de publicar.
-- **Fase 1 restante:** base de CNPJ da Receita Federal, grupos de pares e painel operacional. Os
+- **Fase 1 restante:** base de CNPJ da Receita Federal e painel operacional (os grupos de pares têm o
+  cálculo inicial, ADR-038). Os
   cadastros de sanções da CGU já entram no pipeline; o cruzamento com as contratações é a regra J-01 da
   Fase 2.
 

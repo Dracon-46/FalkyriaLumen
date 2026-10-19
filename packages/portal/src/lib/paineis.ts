@@ -10,6 +10,7 @@
 
 import { normalizar } from "./busca";
 import { obterJson } from "./feeds";
+import { percentual } from "./formato";
 import { ErroFeed } from "./validacao";
 
 /** Raiz dos dados dos painéis, sem barra final. Variável vazia vale como ausente. */
@@ -21,6 +22,7 @@ export const BASE_PAINEL = (process.env.NEXT_PUBLIC_DADOS_PAINEL || "https://dra
 /** Código IBGE de ente aceito nos caminhos: União (1), UF (2 dígitos) ou município (7 dígitos). */
 const CODIGO = /^(1|\d{2}|\d{7})$/;
 const UF = /^[A-Z]{2}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /** Barra códigos fora do padrão antes do `fetch`: a URL da página vira caminho de arquivo. */
 export function codigoSeguro(codigo: string): string {
@@ -45,6 +47,10 @@ export const urlsPainel = {
     return `${BASE_PAINEL}/conformidade/uf/${uf}.json`;
   },
   conformidadeEnte: (codigo: string) => `${BASE_PAINEL}/conformidade/ente/${codigoSeguro(codigo)}.json`,
+  conformidadePares: (id: string) => {
+    if (!UUID.test(id)) throw new ErroFeed(`grupo de pares inválido: ${id}`);
+    return `${BASE_PAINEL}/conformidade/pares/${id}.json`;
+  },
 };
 
 // ------------------------------------------------------------------------------------------ tipos
@@ -250,6 +256,60 @@ export interface ConformidadeEnte {
   coleta: Record<string, boolean>;
   resumo: ResumoConformidade;
   obrigacoes: Obrigacao[];
+  /** Grupo de pares (ADR-038); ausente nos arquivos publicados antes dele. */
+  pares?: ParesConformidade;
+}
+
+/** Grupo de pares (ADR-038): descrição, célula, tamanho, ressalva e os critérios gravados. */
+export interface GrupoPares {
+  id: string;
+  descricao: string;
+  esfera: "municipal" | "estadual";
+  faixa_populacional: string | null;
+  regiao: string;
+  entes: number;
+  abaixo_do_minimo: boolean;
+  criterios: { minimo_entes: number; motivo?: string } & Record<string, unknown>;
+}
+
+/** Quartis e mediana da fração entregue no prazo entre os entes do grupo com obrigação avaliável. */
+export interface DistribuicaoNoPrazo {
+  entes: number;
+  q1: number;
+  mediana: number;
+  q3: number;
+}
+
+/** Bloco `pares` do arquivo do ente: o grupo e a distribuição, ou o motivo de o ente não ter grupo. */
+export type ParesConformidade =
+  | { grupo: GrupoPares; no_prazo: DistribuicaoNoPrazo | null }
+  | { grupo: null; motivo: string };
+
+/** Um ente do grupo de pares, com a sua fração no prazo. */
+export interface EntePares {
+  codigo: string;
+  nome: string;
+  uf: string | null;
+  populacao: number | null;
+  no_prazo: number | null;
+  avaliaveis: number | null;
+}
+
+/** Arquivo `conformidade/pares/<id>.json`: o grupo, a distribuição e os entes que o formam, por nome. */
+export interface ConformidadePares {
+  versao: 1;
+  tipo: "conformidade-pares";
+  gerado_em: string;
+  avaliado_em: string;
+  grupo: GrupoPares;
+  no_prazo: DistribuicaoNoPrazo | null;
+  entes: EntePares[];
+}
+
+/** A metade central do grupo em palavras: "entre 80,00% e 100,00%" (do primeiro ao terceiro quartil). */
+export function faixaCentral(d: DistribuicaoNoPrazo): string {
+  const pct = (x: number) => percentual(x * 100);
+  return d.q1 === d.q3 ? `em ${pct(d.q1)}` : `entre ${pct(d.q1)} e ${pct(d.q3)}`;
 }
 
 /** Arquivo `conformidade/uf/<sigla>.json`: os entes avaliados da UF, por nome. */
@@ -310,6 +370,9 @@ export const carregarConformidadeUf = (uf: string, sinal?: AbortSignal) =>
 /** Conformidade de um ente; `null` se ainda não avaliado. */
 export const carregarConformidadeEnte = (codigo: string, sinal?: AbortSignal) =>
   ler<ConformidadeEnte>(urlsPainel.conformidadeEnte(codigo), "conformidade-ente", sinal);
+/** Um grupo de pares, com os entes que o formam; `null` se o arquivo não existe. */
+export const carregarConformidadePares = (id: string, sinal?: AbortSignal) =>
+  ler<ConformidadePares>(urlsPainel.conformidadePares(id), "conformidade-pares", sinal);
 
 let cacheEntes: Promise<EnteBusca[]> | null = null;
 

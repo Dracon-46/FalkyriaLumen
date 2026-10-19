@@ -129,6 +129,15 @@ def test_publicar_de_ponta_a_ponta(tmp_path, apoio, capsys):
     assert linhas["4319604"][1] == "São Sepé" and linhas["4202008"][1] == "4202008"   # fora do cadastro de amostra
     indice = comum.ler_json(site / "indice.json")
     assert indice["avaliado_em"] == "2026-10-14" and indice["conformidade"]["ufs"]["RS"]
+    # Grupo de pares (ADR-038): na amostra, São Sepé é o único município de 20 a 50 mil habitantes do Sul e
+    # recua para o porte no país, com a ressalva de grupo abaixo do mínimo
+    pares = comum.ler_json(site / "conformidade" / "ente" / "4319604.json")["pares"]
+    assert pares["grupo"]["regiao"] == "BR" and pares["grupo"]["abaixo_do_minimo"]
+    assert pares["grupo"]["descricao"] == "Municípios de 20 mil a 50 mil habitantes de todo o país"
+    assert pares["no_prazo"]["entes"] == 1
+    grupo = comum.ler_json(site / "conformidade" / "pares" / f"{pares['grupo']['id']}.json")
+    assert [e["codigo"] for e in grupo["entes"]] == ["4319604"] and grupo["tipo"] == "conformidade-pares"
+    assert indice["conformidade"]["pares"]["entes_com_grupo"] == 1
     # Sem cadastro e sem estado: site vazio, mas válido
     assert cli.main(["publicar", "--estado", str(tmp_path / "vazio"), "--saida", str(tmp_path / "s2")]) == 0
     assert comum.ler_json(tmp_path / "s2" / "contratacoes" / "panorama.json")["totais"]["processos"] == 0

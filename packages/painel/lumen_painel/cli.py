@@ -27,7 +27,7 @@ from pathlib import Path
 
 from . import conformidade as conf
 from . import contratacoes as contr
-from . import mercado, transparencia
+from . import mercado, pares, transparencia
 from .cadastro import Cadastro
 from .comum import gravar_json, hoje_brasilia, instante_utc
 from .dia import coletar_dia, dias_guardados
@@ -199,6 +199,7 @@ def cmd_publicar(args) -> int:
     site.gravar("orgaos.json", contr.orgaos_para_busca(painel, gerado_em))
 
     avaliacao = conf.avaliar(estado.glob("conformidade-*.json.gz"), cadastro, hoje=hoje, gerado_em=gerado_em)
+    grupos = pares.acrescentar(avaliacao, cadastro, site.gravar, gerado_em=gerado_em)
     for codigo, arquivo in avaliacao.entes.items():
         site.gravar(f"conformidade/ente/{codigo}.json", arquivo)
     for uf in sorted({a["ente"]["uf"] for a in avaliacao.entes.values() if a["ente"]["uf"]}):
@@ -217,7 +218,7 @@ def cmd_publicar(args) -> int:
     indice = {"versao": 1, "gerado_em": gerado_em, "avaliado_em": hoje.isoformat(),
               "cadastro": {"entes": len(cadastro), "gerado_em": cadastro.gerado_em},
               "contratacoes": {**painel.cobertura(), "entes": len(painel.entes), "orgaos": len(painel.por_orgao)},
-              "conformidade": {"entes": len(avaliacao.entes), "ufs": avaliacao.coletas},
+              "conformidade": {"entes": len(avaliacao.entes), "ufs": avaliacao.coletas, "pares": grupos},
               "transparencia": pntp, "anp": precos_anp}
     site.gravar("indice.json", indice)
     site.finalizar()

@@ -289,7 +289,8 @@ Versão do formato: `VERSAO_PAINEL` = 1
 | `contratacoes/orgao/<CNPJ>.json` | Um órgão: prefeitura, câmara, autarquia, fundação ou empresa pública |
 | `conformidade/panorama.json` | Brasil: resultados por UF e por obrigação |
 | `conformidade/uf/<sigla>.json` | Entes da UF, com o resumo de cada um |
-| `conformidade/ente/<código>.json` | Obrigações avaliadas de um ente |
+| `conformidade/ente/<código>.json` | Obrigações avaliadas de um ente e o grupo de pares (ADR-038) |
+| `conformidade/pares/<id>.json` | Um grupo de pares: critérios, distribuição da fração no prazo e os entes que o formam |
 | `transparencia/uf-<sigla>.json`, `transparencia/uniao.json` | Entidades avaliadas pelo PNTP, agrupadas pelo ente (ADR-035) |
 | `mercado/anp/uf-<sigla>-<ano>.json` | Preço de revenda da ANP por semana e produto, na UF e em cada município (código IBGE): `[semana, n, mínimo, 1º quartil, mediana, 3º quartil, máximo]` (ADR-037) |
 

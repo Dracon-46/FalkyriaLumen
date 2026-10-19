@@ -481,6 +481,84 @@
    ]
   },
   {
+   "caminho": "packages/canonico/lumen_canonico/pares.py",
+   "linguagem": "python",
+   "linhas": 195,
+   "doc": "Grupos de pares dos entes federativos (RF-EN-02; DOC-05, ``GrupoPares``).\n\nUm grupo de pares é o conjunto de entes contra o qual um ente é comparado: as\nregras que relativizam pela materialidade (família H, E-01, E-03 e outras do\nDOC-07) posicionam o ente na distribuição do seu grupo. Esta versão\n(``VERSAO_PARES``) forma os grupos assim:\n\n- **Municípios**: porte pela população (``porte.FAIXAS``) e grande região,\n  lida do primeiro dígito do código IBGE (1 Norte, 2 Nordeste, 3 Sudeste,\n  4 Sul, 5 Centro-Oeste, pela estrutura do próprio código). O campo\n  ``regiao`` não serve: cada fonte o escreve de um jeito (o IBGE, ``S`` e\n  ``N``; o SICONFI, ``SU`` e ``NO``). Grupo regional com menos de ``MINIMO_ENTES`` municípios cai para o\n  grupo nacional do mesmo porte, e o motivo fica nos critérios. Grupo nacional\n  que ainda fique abaixo do mínimo é formado assim mesmo, com ressalva\n  (``abaixo_do_minimo``), como pede o DOC-05.\n- **Estados e Distrito Federal**: um grupo só, com os 27. Por região, nenhum\n  grupo chegaria ao mínimo, e as faixas de porte são as dos municípios.\n- **União**: sem grupo; não há ente comparável.\n\nA receita corrente líquida, terceiro critério do RF-EN-02, ainda não entra:\ndepende da normalização do RREO do SICONFI. Os critérios gravados dizem isso,\ne a inclusão dela será uma nova versão. Ente sem população ou sem região fica\nfora, com o motivo, e nunca é posto num grupo por inferência (DOC-05,\nprincípio 4).\n\nO identificador do grupo vem da versão e da célula (esfera, porte, região), e\nnão dos membros: recalculado com outra população, o grupo mantém o id, e os\ncritérios e a data registram o cálculo (princípio P3).",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "regiao_do_codigo",
+     "assinatura": "def regiao_do_codigo(codigo_ibge: str) -> str | None",
+     "doc": "Grande região do município pelo primeiro dígito do código IBGE de sete dígitos; None se não for um.",
+     "linha": 51
+    },
+    {
+     "tipo": "classe",
+     "nome": "GrupoPares",
+     "assinatura": "class GrupoPares",
+     "doc": "Conjunto de entes comparáveis, com os critérios que o definiram (tabela ``grupo_pares``).\n\n``faixa_populacional`` é nula no grupo dos estados; ``regiao`` é ``BR`` no grupo nacional.\n``membros`` são os códigos IBGE, em ordem: no grupo nacional de um porte, todos os municípios do porte no\npaís, inclusive os que têm grupo regional próprio (os membros são o conjunto de comparação; o grupo de\ncada ente está em ``ResultadoPares.grupo_de``).",
+     "linha": 59
+    },
+    {
+     "tipo": "metodo",
+     "nome": "GrupoPares.quantidade_entes",
+     "assinatura": "def quantidade_entes(self) -> int",
+     "doc": "Tamanho do grupo; abaixo de ``MINIMO_ENTES``, a comparação leva ressalva.",
+     "linha": 77
+    },
+    {
+     "tipo": "metodo",
+     "nome": "GrupoPares.abaixo_do_minimo",
+     "assinatura": "def abaixo_do_minimo(self) -> bool",
+     "doc": "Se o grupo tem menos entes que o mínimo estatístico.",
+     "linha": 82
+    },
+    {
+     "tipo": "classe",
+     "nome": "ResultadoPares",
+     "assinatura": "class ResultadoPares",
+     "doc": "Os grupos formados, o grupo de cada ente e os entes que ficaram fora, com o motivo.",
+     "linha": 88
+    },
+    {
+     "tipo": "metodo",
+     "nome": "ResultadoPares.grupo",
+     "assinatura": "def grupo(self, codigo_ibge: str) -> GrupoPares | None",
+     "doc": "O grupo do ente, ou None se ele ficou fora.",
+     "linha": 95
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_criterios",
+     "assinatura": "def _criterios(esfera: str, faixa: str | None, regiao: str, motivo: str | None=None) -> dict",
+     "doc": "Critérios gravados com o grupo: a versão das regras e das faixas, a célula e, no recuo, o motivo.",
+     "linha": 101
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_grupo",
+     "assinatura": "def _grupo(esfera: str, faixa: str | None, regiao: str, membros: Iterable[str], calculado_em: datetime, motivo: str | None=None) -> GrupoPares",
+     "doc": "Monta o grupo da célula, com o id derivado da versão e da célula.",
+     "linha": 117
+    },
+    {
+     "tipo": "funcao",
+     "nome": "formar_grupos",
+     "assinatura": "def formar_grupos(entes: Iterable[EnteFederativo], calculado_em: datetime) -> ResultadoPares",
+     "doc": "Forma os grupos de pares dos entes (regras no topo do módulo).\n\nO porte é recalculado da população, e não lido do campo ``porte``, para que grupo e faixas venham sempre\nda mesma versão de ``porte.FAIXAS``.",
+     "linha": 126
+    },
+    {
+     "tipo": "funcao",
+     "nome": "descrever",
+     "assinatura": "def descrever(grupo: GrupoPares) -> str",
+     "doc": "O grupo em palavras, para a tela: \"Municípios de 20 mil a 50 mil habitantes do Sul\".",
+     "linha": 190
+    }
+   ]
+  },
+  {
    "caminho": "packages/canonico/lumen_canonico/porte.py",
    "linguagem": "python",
    "linhas": 41,
@@ -8049,7 +8127,7 @@
   {
    "caminho": "packages/painel/lumen_painel/cli.py",
    "linguagem": "python",
-   "linhas": 288,
+   "linhas": 289,
    "doc": "``lumen painel``: coleta e publicação dos painéis de contratações e de conformidade (ADR-028).\n\nExemplos::\n\n    lumen painel cadastro --estado estado/                          # cadastro de entes do SICONFI\n    lumen painel contratacoes --estado estado/ --ultimos 3          # dias que faltam entre os 3 últimos\n    lumen painel contratacoes --estado estado/ --de 2026-01-01 --ate 2026-01-31 --limite-minutos 300\n    lumen painel faltando --estado estado/ --de 2026-01-01 --partes 6   # divisão para execuções paralelas\n    lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026\n    lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)\n    lumen painel anp --estado estado/                               # preço de revenda da ANP por semana\n    lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado\n\nO estado é um diretório com ``cadastro-entes.json.gz``, um ``contratacoes-<dia>.json.gz`` por dia coletado e\num ``conformidade-<UF>.json.gz`` por UF. No GitHub Actions, ele fica nos anexos de uma versão do repositório\n(``painel-estado``) entre uma execução e outra.",
    "itens": [
     {
@@ -8148,14 +8226,14 @@
      "nome": "construir_parser",
      "assinatura": "def construir_parser() -> argparse.ArgumentParser",
      "doc": "Os subcomandos e as opções de cada um.",
-     "linha": 229
+     "linha": 230
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada de ``lumen painel``; falta de configuração (contato da coleta) vira código 2.",
-     "linha": 277
+     "linha": 278
     }
    ]
   },
@@ -8697,38 +8775,74 @@
    ]
   },
   {
+   "caminho": "packages/painel/lumen_painel/pares.py",
+   "linguagem": "python",
+   "linhas": 100,
+   "doc": "Grupo de pares de cada ente na conformidade (ADR-038; UC-06).\n\nNa publicação, depois da avaliação da conformidade, cada ente avaliado ganha o bloco ``pares``:\n\n- **o grupo**: descrição, critérios e, abaixo do mínimo estatístico, a ressalva;\n- **a distribuição** da fração entregue no prazo (``resumo.no_prazo``) entre os entes do grupo: quartis e\n  mediana.\n\nEnte sem grupo leva o motivo, e a tela omite a comparação dizendo por quê (UC-06, exceção 5a). Cada grupo tem\ntambém o arquivo com os entes que o formam (``conformidade/pares/<id>.json``).\n\nÉ comparação, não sinalização. A posição de um ente no grupo é contexto, como o resto do painel (ADR-028);\nindício só pelas regras do DOC-07, depois da calibração. Os grupos são formados sobre o cadastro do SICONFI,\ncom a população do exercício que ele informa.",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "formar",
+     "assinatura": "def formar(cadastro: Cadastro, calculado_em: datetime) -> ResultadoPares",
+     "doc": "Os grupos de pares dos entes do cadastro.",
+     "linha": 36
+    },
+    {
+     "tipo": "funcao",
+     "nome": "distribuicao",
+     "assinatura": "def distribuicao(valores: list[float]) -> dict | None",
+     "doc": "Quantos valores, quartis e mediana, com quatro casas; ``None`` sem nenhum valor.",
+     "linha": 44
+    },
+    {
+     "tipo": "funcao",
+     "nome": "grupo_para_json",
+     "assinatura": "def grupo_para_json(grupo: GrupoPares) -> dict",
+     "doc": "O grupo como vai no arquivo do ente e no do grupo: descrição, célula, tamanho, ressalva e critérios.",
+     "linha": 54
+    },
+    {
+     "tipo": "funcao",
+     "nome": "acrescentar",
+     "assinatura": "def acrescentar(avaliacao: Avaliacao, cadastro: Cadastro, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> dict",
+     "doc": "Acrescenta ``pares`` aos arquivos dos entes avaliados e grava o arquivo de cada grupo.\n\nDevolve o resumo para o ``indice.json``: versão das regras, quantos grupos e quantos entes avaliados ficaram\ncom e sem grupo.",
+     "linha": 61
+    }
+   ]
+  },
+  {
    "caminho": "packages/painel/lumen_painel/site.py",
    "linguagem": "python",
-   "linhas": 61,
-   "doc": "O diretório publicado dos painéis (GitHub Pages, ADR-028).\n\nO site é refeito inteiro a cada publicação, a partir do estado guardado (os dias do PNCP e o extrato de\nentregas por UF): não há o que sincronizar arquivo a arquivo, como no bucket das eleições. Os JSON vão sem\ncompressão; o GitHub Pages comprime na entrega a quem aceita gzip.\n\nDesenho do diretório::\n\n    indice.json                       versão, quando foi gerado, cobertura de cada painel\n    entes.json                        cadastro para a busca: código, nome, UF, tipo, população\n    contratacoes/panorama.json        Brasil: totais, esferas, UFs, meses, modalidades, fornecedores\n    contratacoes/ente/<código>.json   um ente: União (1), estado (2 dígitos), DF (53) ou município (7 dígitos)\n    contratacoes/orgao/<CNPJ>.json    um órgão: prefeitura, câmara, autarquia, fundação ou empresa pública\n    conformidade/panorama.json        Brasil: resultados por UF e por obrigação\n    conformidade/uf/<sigla>.json      entes da UF, com o resumo de cada um\n    conformidade/ente/<código>.json   as obrigações avaliadas de um ente",
+   "linhas": 62,
+   "doc": "O diretório publicado dos painéis (GitHub Pages, ADR-028).\n\nO site é refeito inteiro a cada publicação, a partir do estado guardado (os dias do PNCP e o extrato de\nentregas por UF): não há o que sincronizar arquivo a arquivo, como no bucket das eleições. Os JSON vão sem\ncompressão; o GitHub Pages comprime na entrega a quem aceita gzip.\n\nDesenho do diretório::\n\n    indice.json                       versão, quando foi gerado, cobertura de cada painel\n    entes.json                        cadastro para a busca: código, nome, UF, tipo, população\n    contratacoes/panorama.json        Brasil: totais, esferas, UFs, meses, modalidades, fornecedores\n    contratacoes/ente/<código>.json   um ente: União (1), estado (2 dígitos), DF (53) ou município (7 dígitos)\n    contratacoes/orgao/<CNPJ>.json    um órgão: prefeitura, câmara, autarquia, fundação ou empresa pública\n    conformidade/panorama.json        Brasil: resultados por UF e por obrigação\n    conformidade/uf/<sigla>.json      entes da UF, com o resumo de cada um\n    conformidade/ente/<código>.json   as obrigações avaliadas de um ente e o grupo de pares (ADR-038)\n    conformidade/pares/<id>.json      um grupo de pares: critérios, distribuição e os entes que o formam",
    "itens": [
     {
      "tipo": "classe",
      "nome": "Site",
      "assinatura": "class Site",
      "doc": "Escreve os arquivos do site num diretório, contando quantos gravou.",
-     "linha": 38
+     "linha": 39
     },
     {
      "tipo": "metodo",
      "nome": "Site.__init__",
      "assinatura": "def __init__(self, raiz: Path | str, *, limpar: bool=True)",
      "doc": "Com ``limpar``, apaga o que houver no diretório antes de começar (o site é refeito inteiro).",
-     "linha": 41
+     "linha": 42
     },
     {
      "tipo": "metodo",
      "nome": "Site.gravar",
      "assinatura": "def gravar(self, relativo: str, conteudo: Any) -> Path",
      "doc": "Grava ``conteudo`` como JSON em ``raiz/relativo``; o caminho não pode sair da raiz.",
-     "linha": 49
+     "linha": 50
     },
     {
      "tipo": "metodo",
      "nome": "Site.finalizar",
      "assinatura": "def finalizar(self) -> None",
      "doc": "Página de apresentação e ``.nojekyll`` (o GitHub Pages serve os arquivos como estão).",
-     "linha": 57
+     "linha": 58
     }
    ]
   },
@@ -10116,7 +10230,7 @@
   {
    "caminho": "packages/portal/src/lib/paineis.ts",
    "linguagem": "typescript",
-   "linhas": 541,
+   "linhas": 604,
    "doc": "Acesso aos dados dos painéis de contratações e de conformidade (ADR-028).\n\nOs arquivos são gerados por `lumen painel publicar` a partir do PNCP e do\nextrato de entregas do SICONFI e publicados no GitHub Pages do repositório.\nA base é `NEXT_PUBLIC_DADOS_PAINEL`, fixada no build; sem ela, o endereço\npúblico do Pages. Os arquivos mudam uma vez por dia: o navegador revalida\n(`no-cache`) e recebe 304 quando nada mudou.",
    "itens": [
     {
@@ -10124,322 +10238,371 @@
      "nome": "BASE_PAINEL",
      "assinatura": "export const BASE_PAINEL = (process.env.NEXT_PUBLIC_DADOS_PAINEL || \"https://dracon-46.github.io/FalkyriaLumen\").replace(",
      "doc": "Raiz dos dados dos painéis, sem barra final. Variável vazia vale como ausente.",
-     "linha": 16
+     "linha": 17
     },
     {
      "tipo": "funcao",
      "nome": "codigoSeguro",
      "assinatura": "export function codigoSeguro(codigo: string): string",
      "doc": "Barra códigos fora do padrão antes do `fetch`: a URL da página vira caminho de arquivo.",
-     "linha": 26
+     "linha": 28
     },
     {
      "tipo": "constante",
      "nome": "urlsPainel",
      "assinatura": "export const urlsPainel =",
      "doc": "Endereço de cada arquivo dos painéis; código, CNPJ e UF passam pela validação antes de virar caminho.",
-     "linha": 32
+     "linha": 34
     },
     {
      "tipo": "tipo",
      "nome": "TipoEnte",
      "assinatura": "export type TipoEnte = \"uniao\" | \"estado\" | \"df\" | \"municipio\";",
      "doc": "Tipo de ente, como o Python grava em `ente.tipo`.",
-     "linha": 53
+     "linha": 59
     },
     {
      "tipo": "interface",
      "nome": "EnteResumo",
      "assinatura": "export interface EnteResumo",
      "doc": "Identificação do ente no topo de cada arquivo: código IBGE, nome, UF, tipo e população.",
-     "linha": 56
+     "linha": 62
     },
     {
      "tipo": "interface",
      "nome": "EnteBusca",
      "assinatura": "export interface EnteBusca",
      "doc": "Linha do cadastro para a busca.",
-     "linha": 65
+     "linha": 71
     },
     {
      "tipo": "interface",
      "nome": "OrgaoBusca",
      "assinatura": "export interface OrgaoBusca",
      "doc": "Linha do `orgaos.json` para a busca: um órgão com publicação no período, com o nome e a UF do ente a que\npertence (do cadastro) e as palavras e a sigla do nome já normalizadas.",
-     "linha": 77
+     "linha": 83
     },
     {
      "tipo": "interface",
      "nome": "Cobertura",
      "assinatura": "export interface Cobertura",
      "doc": "Dias do PNCP somados no painel: o primeiro, o último, quantos e os que faltam entre eles.",
-     "linha": 90
+     "linha": 96
     },
     {
      "tipo": "interface",
      "nome": "TotaisContratacoes",
      "assinatura": "export interface TotaisContratacoes",
      "doc": "Contagens e somas de um recorte: processos, valor estimado, contratos e valor global. `valores_a_conferir`:\nprocessos e contratos contados cujo valor passou do teto de plausibilidade e ficou fora das somas.",
-     "linha": 101
+     "linha": 107
     },
     {
      "tipo": "interface",
      "nome": "ValorAConferir",
      "assinatura": "export interface ValorAConferir",
      "doc": "Processo ou contrato com valor acima do teto de plausibilidade: fora das somas, com o link para conferir.",
-     "linha": 111
+     "linha": 117
     },
     {
      "tipo": "tipo",
      "nome": "MesesLinha",
      "assinatura": "export type MesesLinha = [string, ...number[]][];",
      "doc": "Mês a mês de uma linha de tabela: `[mês, processos, valor estimado, contratos, valor dos contratos]` (órgãos,\nmunicípios, esferas), `[mês, processos, valor estimado]` (modalidades), `[mês, contratos, valor]`\n(fornecedores, pessoas físicas) ou `[mês, processos do estado, processos dos municípios]` (UFs). Ausente nos\narquivos gerados antes de existir o filtro de período.",
-     "linha": 129
+     "linha": 135
     },
     {
      "tipo": "interface",
      "nome": "SecoesContratacoes",
      "assinatura": "export interface SecoesContratacoes",
      "doc": "Seções comuns ao panorama, a um ente e a um órgão (`_secoes` no Python).",
-     "linha": 132
+     "linha": 138
     },
     {
      "tipo": "interface",
      "nome": "ContratacoesEnte",
      "assinatura": "export interface ContratacoesEnte extends SecoesContratacoes",
      "doc": "Arquivo `contratacoes/ente/<código>.json`; o de um estado traz também os municípios da UF.",
-     "linha": 167
+     "linha": 173
     },
     {
      "tipo": "interface",
      "nome": "ContratacoesOrgao",
      "assinatura": "export interface ContratacoesOrgao extends Omit<SecoesContratacoes, \"orgaos\">",
      "doc": "Arquivo `contratacoes/orgao/<CNPJ>.json`: um órgão, com o ente a que pertence (ou null sem esfera).",
-     "linha": 177
+     "linha": 183
     },
     {
      "tipo": "interface",
      "nome": "TotaisContratacoesSimples",
      "assinatura": "export interface TotaisContratacoesSimples",
      "doc": "Totais de um município na tabela da UF.",
-     "linha": 187
+     "linha": 193
     },
     {
      "tipo": "interface",
      "nome": "ContratacoesPanorama",
      "assinatura": "export interface ContratacoesPanorama extends SecoesContratacoes",
      "doc": "Arquivo `contratacoes/panorama.json`: o Brasil, por esfera e por UF.",
-     "linha": 195
+     "linha": 201
     },
     {
      "tipo": "tipo",
      "nome": "Resultado",
      "assinatura": "export type Resultado = \"cumpre\" | \"cumpre_parcialmente\" | \"nao_cumpre\" | \"indeterminado\";",
      "doc": "Resultado de uma obrigação, na nomenclatura de `ResultadoCriterio`.",
-     "linha": 214
+     "linha": 220
     },
     {
      "tipo": "interface",
      "nome": "ResumoConformidade",
      "assinatura": "export interface ResumoConformidade",
      "doc": "Quantas obrigações em cada resultado e a fração entregue no prazo.",
-     "linha": 217
+     "linha": 223
     },
     {
      "tipo": "interface",
      "nome": "Obrigacao",
      "assinatura": "export interface Obrigacao",
      "doc": "Uma obrigação avaliada: rótulo, prazo, data da entrega, resultado, dispositivo e, se indeterminada, o motivo.",
-     "linha": 228
+     "linha": 234
     },
     {
      "tipo": "interface",
      "nome": "ConformidadeEnte",
      "assinatura": "export interface ConformidadeEnte",
      "doc": "Arquivo `conformidade/ente/<código>.json`.",
-     "linha": 243
+     "linha": 249
+    },
+    {
+     "tipo": "interface",
+     "nome": "GrupoPares",
+     "assinatura": "export interface GrupoPares",
+     "doc": "Grupo de pares (ADR-038): descrição, célula, tamanho, ressalva e os critérios gravados.",
+     "linha": 264
+    },
+    {
+     "tipo": "interface",
+     "nome": "DistribuicaoNoPrazo",
+     "assinatura": "export interface DistribuicaoNoPrazo",
+     "doc": "Quartis e mediana da fração entregue no prazo entre os entes do grupo com obrigação avaliável.",
+     "linha": 276
+    },
+    {
+     "tipo": "tipo",
+     "nome": "ParesConformidade",
+     "assinatura": "export type ParesConformidade =",
+     "doc": "Bloco `pares` do arquivo do ente: o grupo e a distribuição, ou o motivo de o ente não ter grupo.",
+     "linha": 284
+    },
+    {
+     "tipo": "interface",
+     "nome": "EntePares",
+     "assinatura": "export interface EntePares",
+     "doc": "Um ente do grupo de pares, com a sua fração no prazo.",
+     "linha": 289
+    },
+    {
+     "tipo": "interface",
+     "nome": "ConformidadePares",
+     "assinatura": "export interface ConformidadePares",
+     "doc": "Arquivo `conformidade/pares/<id>.json`: o grupo, a distribuição e os entes que o formam, por nome.",
+     "linha": 299
+    },
+    {
+     "tipo": "funcao",
+     "nome": "faixaCentral",
+     "assinatura": "export function faixaCentral(d: DistribuicaoNoPrazo): string",
+     "doc": "A metade central do grupo em palavras: \"entre 80,00% e 100,00%\" (do primeiro ao terceiro quartil).",
+     "linha": 310
     },
     {
      "tipo": "interface",
      "nome": "ConformidadeUf",
      "assinatura": "export interface ConformidadeUf",
      "doc": "Arquivo `conformidade/uf/<sigla>.json`: os entes avaliados da UF, por nome.",
-     "linha": 256
+     "linha": 316
     },
     {
      "tipo": "interface",
      "nome": "ConformidadePanorama",
      "assinatura": "export interface ConformidadePanorama",
      "doc": "Arquivo `conformidade/panorama.json`: o Brasil, por obrigação e por UF.",
-     "linha": 267
+     "linha": 327
     },
     {
      "tipo": "funcao",
      "nome": "conferir",
      "assinatura": "export function conferir<T>(bruto: unknown, tipo: string, url: string): T",
      "doc": "Confere versão e tipo de um arquivo dos painéis; o resto do formato é o que o Python grava e testa.",
-     "linha": 281
+     "linha": 341
     },
     {
      "tipo": "funcao",
      "nome": "ler",
      "assinatura": "async function ler<T>(url: string, tipo: string, sinal?: AbortSignal): Promise<T | null>",
      "doc": "Lê e confere um arquivo dos painéis; `null` quando ele não existe.",
-     "linha": 290
+     "linha": 350
     },
     {
      "tipo": "constante",
      "nome": "carregarContratacoesPanorama",
      "assinatura": "export const carregarContratacoesPanorama = (sinal?: AbortSignal) =>",
      "doc": "Panorama de contratações do Brasil.",
-     "linha": 296
+     "linha": 356
     },
     {
      "tipo": "constante",
      "nome": "carregarContratacoesEnte",
      "assinatura": "export const carregarContratacoesEnte = (codigo: string, sinal?: AbortSignal) =>",
      "doc": "Contratações de um ente pelo código IBGE; `null` sem publicação no período.",
-     "linha": 299
+     "linha": 359
     },
     {
      "tipo": "constante",
      "nome": "carregarContratacoesOrgao",
      "assinatura": "export const carregarContratacoesOrgao = (cnpj: string, sinal?: AbortSignal) =>",
      "doc": "Contratações de um órgão pelo CNPJ; `null` sem publicação no período.",
-     "linha": 302
+     "linha": 362
     },
     {
      "tipo": "constante",
      "nome": "carregarConformidadePanorama",
      "assinatura": "export const carregarConformidadePanorama = (sinal?: AbortSignal) =>",
      "doc": "Panorama da conformidade no Brasil.",
-     "linha": 305
+     "linha": 365
     },
     {
      "tipo": "constante",
      "nome": "carregarConformidadeUf",
      "assinatura": "export const carregarConformidadeUf = (uf: string, sinal?: AbortSignal) =>",
      "doc": "Conformidade dos entes de uma UF.",
-     "linha": 308
+     "linha": 368
     },
     {
      "tipo": "constante",
      "nome": "carregarConformidadeEnte",
      "assinatura": "export const carregarConformidadeEnte = (codigo: string, sinal?: AbortSignal) =>",
      "doc": "Conformidade de um ente; `null` se ainda não avaliado.",
-     "linha": 311
+     "linha": 371
+    },
+    {
+     "tipo": "constante",
+     "nome": "carregarConformidadePares",
+     "assinatura": "export const carregarConformidadePares = (id: string, sinal?: AbortSignal) =>",
+     "doc": "Um grupo de pares, com os entes que o formam; `null` se o arquivo não existe.",
+     "linha": 374
     },
     {
      "tipo": "funcao",
      "nome": "carregarEntes",
      "assinatura": "export function carregarEntes(): Promise<EnteBusca[]>",
      "doc": "Cadastro de entes para a busca, baixado uma vez por visita; lista vazia se o arquivo não existe.",
-     "linha": 317
+     "linha": 380
     },
     {
      "tipo": "funcao",
      "nome": "lerEntes",
      "assinatura": "export function lerEntes(bruto: unknown): EnteBusca[]",
      "doc": "Converte o `entes.json` (linhas em lista, na ordem de `colunas`) em objetos.",
-     "linha": 328
+     "linha": 391
     },
     {
      "tipo": "funcao",
      "nome": "carregarOrgaos",
      "assinatura": "export function carregarOrgaos(): Promise<OrgaoBusca[]>",
      "doc": "Órgãos para a busca, com o cadastro de entes, baixados uma vez por visita; lista vazia sem o arquivo.",
-     "linha": 351
+     "linha": 414
     },
     {
      "tipo": "funcao",
      "nome": "siglaDoNome",
      "assinatura": "export function siglaDoNome(nome: string): string",
      "doc": "Sigla pelas iniciais das palavras do nome, sem as de ligação: \"Serviço Autônomo de Água e Esgoto\" → \"saae\".",
-     "linha": 367
+     "linha": 430
     },
     {
      "tipo": "funcao",
      "nome": "lerOrgaos",
      "assinatura": "export function lerOrgaos(bruto: unknown, entes: EnteBusca[]): OrgaoBusca[]",
      "doc": "Converte o `orgaos.json` (linhas em lista, na ordem de `colunas`) em objetos prontos para a busca.",
-     "linha": 376
+     "linha": 439
     },
     {
      "tipo": "funcao",
      "nome": "buscarOrgaos",
      "assinatura": "export function buscarOrgaos(termo: string, orgaos: OrgaoBusca[], limite = 8): OrgaoBusca[]",
      "doc": "Até `limite` órgãos que casam com o termo. Cada palavra do termo precisa começar uma palavra do nome do órgão\nou do ente a que ele pertence, ou, com três letras ou mais, aparecer na sigla do nome (\"saae sorocaba\" acha o\nServiço Autônomo de Água e Esgoto de Sorocaba). Termo só de dígitos busca pelo começo do CNPJ. Quem começa com\no termo vem antes; empate por mais publicações e depois pelo nome.",
-     "linha": 412
+     "linha": 475
     },
     {
      "tipo": "funcao",
      "nome": "descreverOrgao",
      "assinatura": "export function descreverOrgao(o: Pick<OrgaoBusca, \"esfera\" | \"ente\" | \"enteNome\" | \"uf\">): string",
      "doc": "Descrição curta do órgão: \"Órgão municipal · Sorocaba (SP)\", \"Órgão federal\" ou só \"Órgão\".",
-     "linha": 440
+     "linha": 503
     },
     {
      "tipo": "funcao",
      "nome": "tipoDoCodigo",
      "assinatura": "export function tipoDoCodigo(codigo: string): TipoEnte | null",
      "doc": "Tipo do ente pelo código: União (1), DF (53), estado (2 dígitos) ou município (7 dígitos).",
-     "linha": 451
+     "linha": 514
     },
     {
      "tipo": "funcao",
      "nome": "buscarEntes",
      "assinatura": "export function buscarEntes(termo: string, entes: EnteBusca[], limite = 12): EnteBusca[]",
      "doc": "Até `limite` entes cujo nome casa com o termo (sem acento e sem caixa), ou a sigla da UF: União e estados\nprimeiro, depois municípios; quem começa com o termo antes de quem só o contém; empate pelo maior.",
-     "linha": 463
+     "linha": 526
     },
     {
      "tipo": "funcao",
      "nome": "descreverEnte",
      "assinatura": "export function descreverEnte(e: { codigo: string; uf: string | null }): string",
      "doc": "Descrição curta do ente: \"União\", \"Estado\", \"Distrito Federal\" ou \"Município · SP\".",
-     "linha": 484
+     "linha": 547
     },
     {
      "tipo": "funcao",
      "nome": "moeda",
      "assinatura": "export function moeda(valor: number | null | undefined): string",
      "doc": "1234.5 → \"R$ 1.234,50\"; ausente → \"—\".",
-     "linha": 498
+     "linha": 561
     },
     {
      "tipo": "funcao",
      "nome": "moedaCompacta",
      "assinatura": "export function moedaCompacta(valor: number | null | undefined): string",
      "doc": "1500000 → \"R$ 1,5 mi\"; ausente → \"—\".",
-     "linha": 503
+     "linha": 566
     },
     {
      "tipo": "funcao",
      "nome": "mesCurto",
      "assinatura": "export function mesCurto(mes: string): string",
      "doc": "\"2026-03\" → \"mar/2026\".",
-     "linha": 509
+     "linha": 572
     },
     {
      "tipo": "funcao",
      "nome": "dataCurta",
      "assinatura": "export function dataCurta(iso: string | null | undefined): string",
      "doc": "\"2026-10-13\" → \"13/10/2026\"; ISO com hora → só a data, no horário de Brasília.",
-     "linha": 517
+     "linha": 580
     },
     {
      "tipo": "funcao",
      "nome": "topoDoEixo",
      "assinatura": "export function topoDoEixo(maximo: number): number",
      "doc": "Topo \"redondo\" do eixo de um gráfico: 1, 2 ou 5 vezes uma potência de 10, no maior valor ou acima.",
-     "linha": 530
+     "linha": 593
     },
     {
      "tipo": "funcao",
      "nome": "cnpj",
      "assinatura": "export function cnpj(texto: string | null | undefined): string",
      "doc": "CNPJ com máscara: 07854402000100 → 07.854.402/0001-00.",
-     "linha": 538
+     "linha": 601
     }
    ]
   },
@@ -12434,6 +12597,28 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/componentes/paineis/GrupoPares.tsx",
+   "linguagem": "typescript",
+   "linhas": 124,
+   "doc": "Grupo de pares do ente na conformidade (ADR-038; UC-06): quais entes são comparáveis a ele, por quais\ncritérios, e como a fração entregue no prazo se distribui entre eles. É contexto, não avaliação: a tela não\nordena nem classifica o ente pela posição no grupo, e a lista dos entes vem por nome (PUB-07).",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "Lista",
+     "assinatura": "type Lista = { fase: \"fechada\" } | { fase: \"carregando\" } | { fase: \"pronta\"; entes: EntePares[] } | { fase: \"erro\" };",
+     "doc": "A lista dos entes do grupo: fechada, carregando, lida ou com erro.",
+     "linha": 25
+    },
+    {
+     "tipo": "componente",
+     "nome": "GrupoPares",
+     "assinatura": "export function GrupoPares({ pares, resumo }: { pares: ParesConformidade | undefined; resumo: ResumoConformidade })",
+     "doc": "A seção do grupo de pares; não aparece nos arquivos publicados antes dele.",
+     "linha": 28
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/componentes/paineis/ModalContratacao.tsx",
    "linguagem": "typescript",
    "linhas": 335,
@@ -12521,7 +12706,7 @@
   {
    "caminho": "packages/portal/src/componentes/paineis/PainelConformidade.tsx",
    "linguagem": "typescript",
-   "linhas": 344,
+   "linhas": 346,
    "doc": "Painel de conformidade fiscal (UC-07, ADR-028): se os relatórios da Lei de Responsabilidade Fiscal constam\ndo extrato de entregas do Tesouro (SICONFI) e em que data, contra o prazo legal.\n\nTrês telas pela URL: o Brasil (sem parâmetro), uma UF (`?uf=SP`) e um ente (`?ente=<código IBGE>`). A ordem\né sempre por UF e por nome, nunca por resultado (PUB-07).",
    "itens": [
     {
@@ -12529,63 +12714,63 @@
      "nome": "Dados",
      "assinatura": "type Dados = ConformidadePanorama | ConformidadeUf | ConformidadeEnte;",
      "doc": "Os três arquivos que a página pode mostrar.",
-     "linha": 31
+     "linha": 32
     },
     {
      "tipo": "tipo",
      "nome": "Estado",
      "assinatura": "type Estado = { carregando: true } | { carregando: false; dados: Dados | null; erro: string | null };",
      "doc": "Carregando, ou o arquivo lido (null quando não existe) e o erro, se houve.",
-     "linha": 33
+     "linha": 34
     },
     {
      "tipo": "funcao",
      "nome": "noPrazo",
      "assinatura": "function noPrazo(r: ResumoConformidade): string",
      "doc": "\"4 de 6 no prazo (66,67%)\"; sem obrigação avaliável, \"sem obrigação avaliável\".",
-     "linha": 36
+     "linha": 37
     },
     {
      "tipo": "componente",
      "nome": "PainelConformidade",
      "assinatura": "export function PainelConformidade()",
      "doc": "Painel de conformidade, a partir de `?uf=` ou `?ente=` na URL.",
-     "linha": 42
+     "linha": 43
     },
     {
      "tipo": "componente",
      "nome": "Resumo",
      "assinatura": "function Resumo({ r, titulo }: { r: ResumoConformidade; titulo: string })",
      "doc": "Os quatro resultados e a fração no prazo, em números.",
-     "linha": 112
+     "linha": 113
     },
     {
      "tipo": "componente",
      "nome": "Panorama",
      "assinatura": "function Panorama({ dados, onUf }: { dados: ConformidadePanorama; onUf: (uf: string) => void })",
      "doc": "O Brasil: resumo, por obrigação e por UF (em ordem de UF).",
-     "linha": 127
+     "linha": 128
     },
     {
      "tipo": "componente",
      "nome": "Uf",
      "assinatura": "function Uf({ dados, onEnte, onBrasil }: { dados: ConformidadeUf; onEnte: (c: string) => void; onBrasil: () => void })",
      "doc": "Uma UF: os entes por nome (o estado primeiro), com filtro.",
-     "linha": 202
+     "linha": 203
     },
     {
      "tipo": "componente",
      "nome": "Ente",
      "assinatura": "function Ente({ dados, onUf }: { dados: ConformidadeEnte; onUf: (uf: string | null) => void })",
      "doc": "Um ente: o resumo e cada obrigação avaliada, por exercício.",
-     "linha": 263
+     "linha": 264
     },
     {
      "tipo": "componente",
      "nome": "Exercicio",
      "assinatura": "function Exercicio({ ano, obrigacoes }: { ano: number; obrigacoes: Obrigacao[] })",
      "doc": "As obrigações de um exercício, 20 por página.",
-     "linha": 305
+     "linha": 307
     }
    ]
   },
@@ -12723,6 +12908,11 @@
    "caminho": "packages/canonico/testes/test_indicio.py",
    "doc": "Testes da máquina de estados do indício.\n\nA regra mais importante do projeto está aqui: um indício grave não chega ao\npúblico sem evidência e sem dois revisores humanos distintos. Estes testes\nsão a garantia de que isso continua verdade depois de qualquer refatoração.",
    "testes": 29
+  },
+  {
+   "caminho": "packages/canonico/testes/test_pares.py",
+   "doc": "Testes dos grupos de pares (RF-EN-02).",
+   "testes": 8
   },
   {
    "caminho": "packages/conformidade/testes/test_entregas_siconfi.py",
@@ -12965,6 +13155,11 @@
    "testes": 7
   },
   {
+   "caminho": "packages/painel/testes/test_pares.py",
+   "doc": "Testes do grupo de pares na conformidade (ADR-038).",
+   "testes": 2
+  },
+  {
    "caminho": "packages/painel/testes/test_transparencia.py",
    "doc": "Portais de transparência pelo PNTP para a visão 360: coleta incremental, estado e arquivos por UF.",
    "testes": 6
@@ -13017,7 +13212,7 @@
   {
    "caminho": "packages/portal/src/lib/__testes__/paineis.test.ts",
    "doc": "",
-   "testes": 11
+   "testes": 13
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/periodo.test.ts",

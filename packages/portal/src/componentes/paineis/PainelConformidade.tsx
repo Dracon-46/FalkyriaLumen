@@ -25,6 +25,7 @@ import {
   type ResumoConformidade,
 } from "@/lib/paineis";
 import { AvisoMetodologico, BuscaEnte, Numero, SeloResultado, Situacao } from "./Comuns";
+import { GrupoPares } from "./GrupoPares";
 import { Transparencia } from "./Transparencia";
 
 /** Os três arquivos que a página pode mostrar. */
@@ -290,6 +291,7 @@ function Ente({ dados, onUf }: { dados: ConformidadeEnte; onUf: (uf: string | nu
         {falhas.length > 0 && ` · o extrato de ${falhas.join(" e ")} não pôde ser lido: obrigações indeterminadas`}
       </p>
       <Resumo r={dados.resumo} titulo="Obrigações avaliadas" />
+      <GrupoPares pares={dados.pares} resumo={dados.resumo} />
       <Transparencia codigo={e.codigo} />
       {exercicios.map((ano) => (
         <Exercicio key={ano} ano={ano} obrigacoes={dados.obrigacoes} />

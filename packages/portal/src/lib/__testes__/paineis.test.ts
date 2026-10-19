@@ -7,6 +7,7 @@ import {
   conferir,
   dataCurta,
   descreverEnte,
+  faixaCentral,
   descreverOrgao,
   lerEntes,
   lerOrgaos,
@@ -167,5 +168,18 @@ describe("formato", () => {
   it("arredonda o topo do eixo", () => {
     expect([0, 3, 10, 11, 180, 4_200_000].map(topoDoEixo)).toEqual([1, 5, 10, 20, 200, 5_000_000]);
     expect(topoDoEixo(7)).toBe(10);
+  });
+});
+
+describe("grupo de pares", () => {
+  it("monta o endereço do grupo só com um id válido", () => {
+    const id = "6f1d3a52-6b0e-5c1e-9a57-4c756d656e00";
+    expect(urlsPainel.conformidadePares(id)).toMatch(new RegExp(`/conformidade/pares/${id}\.json$`));
+    expect(() => urlsPainel.conformidadePares("../indice")).toThrow(ErroFeed);
+  });
+
+  it("descreve a metade central do grupo", () => {
+    expect(faixaCentral({ entes: 20, q1: 0.8, mediana: 0.9, q3: 1 })).toBe("entre 80,00% e 100,00%");
+    expect(faixaCentral({ entes: 3, q1: 1, mediana: 1, q3: 1 })).toBe("em 100,00%");
   });
 });

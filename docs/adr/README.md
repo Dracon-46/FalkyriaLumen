@@ -43,6 +43,7 @@ nunca apagadas: uma ADR substituída continua aqui, marcada como tal.
 | [035](ADR-035.md) | Visão 360 por filtro de local, modal da contratação, documentos do PNCP pela própria fonte e atualização diária de todas as áreas | **proposta** |
 | [036](ADR-036.md) | Comparação de preço do item com outros órgãos, sob demanda no modal (regra A-01) | **proposta** |
 | [037](ADR-037.md) | Preço de mercado no modal: ANP publicada todo dia e A-05 sob demanda; lojas online só por API oficial | **proposta** |
+| [038](ADR-038.md) | Grupos de pares por porte e região, com recuo para o porte no país e a RCL para uma próxima versão | **proposta** |
 
 As ADRs 011 a 015 foram tomadas durante a implementação da Fase 0, e as 016 a
 033 durante a Fase 1 e a criação da aba Eleições; todas aguardam revisão. Para aceitar, troque a situação para `aceita`. Para rejeitar, marque

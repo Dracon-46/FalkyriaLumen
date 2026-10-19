@@ -5,6 +5,29 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Grupos de pares (ADR-038)
+
+- Cálculo inicial dos grupos de pares, entregável da Fase 1
+  (`lumen_canonico.pares`):
+  - municípios por porte (classes de tamanho do IBGE) e grande região, lida
+    do código IBGE;
+  - grupo regional com menos de 15 municípios recua para o porte no país, com
+    o motivo nos critérios;
+  - estados e DF num grupo só, e a União sem grupo.
+
+  A receita corrente líquida entra numa próxima versão, com a normalização do
+  RREO. Com o cadastro de outubro de 2026, são 33 grupos: 31 regionais, o
+  nacional dos municípios acima de 500 mil habitantes e o dos estados e DF.
+- Conformidade: a página do ente ganha o cartão "Grupo de pares", com:
+  - a fração entregue no prazo ao lado da mediana e dos quartis do grupo;
+  - a descrição e os critérios;
+  - a ressalva quando o grupo é pequeno;
+  - a lista dos entes do grupo, por nome.
+
+  Novos arquivos `conformidade/pares/<id>.json` e bloco `pares` em
+  `conformidade/ente/<código>.json`. É contexto, não avaliação: a tela não
+  ordena nem classifica pela posição.
+
 ### Eleições: 2º turno ao vivo sem disparo à mão (adendo do ADR-026)
 
 - `eleicoes-ao-vivo` agendado no dia da eleição (25/10/2026). Os agendamentos

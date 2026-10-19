@@ -150,6 +150,13 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["lumen painel publicar", "Monta o site inteiro a partir do estado", "--hoje fixa a data da avaliação (testes e reprocessamento)"],
 ], { monoCols: [0], size: 17 }));
 
+body.push(h2("4.7 pares.py"));
+body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
+  ["formar", "Grupos de pares dos entes do cadastro", "Usa lumen_canonico.pares (ADR-038): municípios por porte e região, com recuo para o porte no país abaixo de 15; estados e DF num grupo; população do SICONFI"],
+  ["distribuicao", "Quartis e mediana da fração entregue no prazo", "Só entes com obrigação avaliável; quatro casas"],
+  ["acrescentar", "Bloco pares no arquivo de cada ente avaliado e o arquivo de cada grupo", "Ente sem grupo leva o motivo, e a tela omite a comparação (UC-06, exceção 5a)"],
+], { monoCols: [0], size: 17 }));
+
 // ============================================================ 5. Estado
 
 body.push(h1("5. Estado guardado entre execuções"));
@@ -182,7 +189,8 @@ body.push(table(["Caminho", "tipo", "Conteúdo"], [3200, 2200, 4200], [
   ["contratacoes/orgao/<CNPJ>.json", "contratacoes-orgao", "Um órgão, com o ente a que pertence"],
   ["conformidade/panorama.json", "conformidade-panorama", "Brasil, por obrigação e por UF"],
   ["conformidade/uf/<sigla>.json", "conformidade-uf", "Entes da UF com o resumo de cada um"],
-  ["conformidade/ente/<código>.json", "conformidade-ente", "Obrigações avaliadas de um ente"],
+  ["conformidade/ente/<código>.json", "conformidade-ente", "Obrigações avaliadas de um ente e o grupo de pares"],
+  ["conformidade/pares/<id>.json", "conformidade-pares", "Um grupo de pares: critérios, distribuição da fração no prazo e os entes que o formam, por nome"],
 ], { monoCols: [0, 1], size: 17 }));
 
 // ============================================================ 7. Regras de soma
@@ -239,6 +247,12 @@ body.push(table(["Resultado", "Texto publicado", "Ícone", "Cor (claro / escuro)
 body.push(spacer(60));
 body.push(t("Contraste das quatro cores sobre a superfície do portal: de 4,8:1 a 6,4:1 no tema claro e de 7,6:1 a 9,0:1 " +
   "no escuro (WCAG AA pede 4,5:1 para texto)."));
+body.push(h2("8.1 Comparação com o grupo de pares (ADR-038)"));
+body.push(t("A página do ente mostra a fração dele entregue no prazo ao lado da mediana e dos quartis da mesma fração " +
+  "entre os entes do seu grupo de pares, com a descrição do grupo e os critérios. Grupo regional com menos de 15 " +
+  "municípios recua para o porte no país, e a tela diz isso; grupo abaixo de 15 leva a ressalva. Com o cadastro de " +
+  "outubro de 2026, são 33 grupos para os 5.597 entes avaliados: 31 regionais, o nacional dos municípios acima de 500 " +
+  "mil habitantes e o dos estados e DF. A posição no grupo é contexto: não ordena, não classifica e não vira indício."));
 
 // ============================================================ 9. Portal
 
@@ -248,6 +262,7 @@ body.push(table(["Arquivo", "Papel"], [4200, 5400], [
   ["src/componentes/paineis/Comuns.tsx", "Busca de ente e, em Contratações, de órgão (combobox com setas, Enter e Esc; \"SAAE Sorocaba\" acha o serviço autônomo de água e esgoto pela sigla e pelo município), aviso metodológico (PUB-08), número em destaque, gráfico de barras por mês com tabela recolhida, selo de resultado"],
   ["src/componentes/paineis/PainelContratacoes.tsx", "Brasil, ente (?ente=) e órgão (?orgao=); tabelas de modalidades, fornecedores, órgãos, UFs e municípios; publicações recentes com link do PNCP"],
   ["src/componentes/paineis/PainelConformidade.tsx", "Brasil, UF (?uf=) e ente (?ente=); obrigações por exercício, que viram blocos no celular"],
+  ["src/componentes/paineis/GrupoPares.tsx", "Grupo de pares do ente: descrição, ressalvas, a fração do ente ao lado da mediana e dos quartis do grupo, e a lista dos entes do grupo, sob demanda e por nome"],
   ["src/app/contratacoes/page.tsx, src/app/conformidade/page.tsx", "Páginas estáticas que envolvem os painéis em Suspense (leem a URL no navegador)"],
 ], { monoCols: [0], size: 17 }));
 body.push(...figure("19_tela_contratacoes.png", "Figura 2. Contratações de um município, com dados sintéticos de teste: totais, gráficos por mês, modalidades, fornecedores e órgãos (inclusive a autarquia de água e esgoto).", 600, 640));
@@ -319,7 +334,7 @@ L.buildDoc({
   codigo: "DOC-13",
   titulo: "Painéis de Contratações e Conformidade",
   subtitulo: "O que cada ente publicou no PNCP e as entregas da LRF ao Tesouro, com a fonte de cada número",
-  meta: { versao: "1.1", data: "15 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028",
+  meta: { versao: "1.2", data: "19 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028 e o ADR-038",
     verificado: "outubro de 2026" },
   body,
   outFile: path.join(__dirname, "..", "docs", "DOC-13_Paineis.docx"),

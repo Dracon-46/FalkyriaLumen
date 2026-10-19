@@ -240,7 +240,7 @@ body.push(callout("O erro mais provável neste plano", [
 
 
 // ============================================================ 9. Situação
-body.push(h1("9. Situação em 9 de outubro de 2026", { novaPagina: true }));
+body.push(h1("9. Situação em 19 de outubro de 2026", { novaPagina: true }));
 body.push(p("As seções anteriores são o plano. Esta seção registra onde o projeto está, entregável por " +
   "entregável, para que o replanejamento da seção 8 parta de fatos e não de impressão."));
 
@@ -263,7 +263,7 @@ body.push(table(["Entregável", "Situação"], [5200, 4400], [
   ["Base pública de CNPJ da Receita Federal", "Pendente"],
   ["Cadastro de entes do IBGE com população e porte", "Concluído"],
   ["Normalização com qualidade e quarentena", "Concluída para PNCP, SICONFI e IBGE; silver idempotente, reconstruível do bronze"],
-  ["Grupos de pares", "Pendente"],
+  ["Grupos de pares", "Cálculo inicial concluído (ADR-038): municípios por porte e região, com recuo para o porte no país abaixo de 15 entes; estados e DF num grupo; 33 grupos sobre o cadastro de outubro de 2026. Comparação publicada na conformidade de cada ente. A receita corrente líquida entra com a normalização do RREO"],
   ["Painel operacional", "Pendente"],
   ["Cadastro dos portais de transparência (ADR-028)", "Concluído pelo PNTP (ADR-032): 11.697 entidades com endereço do portal e nível de transparência; leitura dos portais pendente"],
   ["Regra J-01: contratação de sancionado (antecipada da Fase 2)", "Em modo silencioso (ADR-031), a cada carga do painel; calibração e revisão pendentes"],
@@ -289,10 +289,10 @@ body.push(table(["Item", "Situação"], [5200, 4400], [
   ["Eleições passadas pelos dados abertos (1994 a 2024, por município)", "Processamento concluído e testado nos três layouts"],
   ["Eleições de 1933 a 1990 (só por UF, como o TSE publica)", "Concluído: os 19 anos lidos e verificados com os dados reais completos (ADR-025)"],
   ["Carga completa num comando (lumen eleicoes preparar; preparar.cmd no Windows)", "Concluído; retomável. A carga numa máquina leva horas na primeira vez"],
-  ["Carga, publicação e portal na nuvem, sem custo (ADR-026)", "Implementado e testado: publicação no R2 só do que mudou, carga retomável no GitHub Actions, portal no Cloudflare Pages. Faltam as contas e os segredos"],
+  ["Carga, publicação e portal na nuvem, sem custo (ADR-026)", "Em produção desde 14/10/2026: feeds no Supabase Storage, carga diária e retomável no GitHub Actions, portal na Vercel"],
   ["Portal estático: mapa interativo, candidatos, panorama, evolução, busca, modo TV", "Concluído; mapa e cadastro de municípios vêm com o Lumen"],
   ["Domínio próprio para o portal e os feeds", "Pendente: depende do nome definitivo (seção 7)"],
-  ["Ensaio em infraestrutura real antes do 2º turno de 2026", "Pendente"],
+  ["Ensaio em infraestrutura real antes do 2º turno de 2026", "Feito com o 1º turno (16 e 17/10/2026), que achou a parada sem a marca de finalizada do TSE, já corrigida. O 2º turno está agendado no eleicoes-ao-vivo (adendo do ADR-026)"],
   ["Contexto eleitoral nas telas de contratação (família K)", "Fase 2 em diante"],
 ], { size: 17 }));
 
@@ -322,7 +322,7 @@ L.buildDoc({
   codigo: "DOC-10",
   titulo: "Roadmap",
   subtitulo: "Fases, marcos, esforço, custos e critérios de replanejamento",
-  meta: { versao: "1.5", data: "16 de outubro de 2026",
+  meta: { versao: "1.6", data: "19 de outubro de 2026",
     situacao: "Plano aprovado, com a situação de cada fase em outubro de 2026 (seção 9)",
     verificado: "outubro de 2026" },
   body,
