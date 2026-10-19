@@ -5,14 +5,20 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
-### Visão 360 de cada local, documentos do PNCP e tudo diário (ADR-035)
+### Visão 360 pelo filtro de local, modal da contratação e tudo diário (ADR-035)
 
-- Página nova **Locais 360** (`/ente/?codigo=`): a União, um estado, o DF ou
-  um município numa página só, com o último prefeito (ou governador) e o
-  último presidente, as contratações, as entregas da LRF, o portal de
-  transparência de cada entidade do ente (nível e índice do PNTP, com o link
-  do portal) e as estatais que ele controla. Links "tudo sobre…" nas páginas
-  do município e do estado em Eleições, Contratações e Conformidade.
+- **Filtro de local** no cabeçalho, em todas as páginas: escolhido um estado,
+  o DF ou um município (ou ao entrar num deles em qualquer aba), cada aba
+  abre já nele. Eleições abre no mapa, Contratações e Conformidade no ente e
+  as Estatais nas que ele controla. O ✕ volta para o Brasil, e o local fica
+  guardado no navegador.
+- **Modal da contratação**: clicar no objeto de um processo ou contrato abre
+  tudo o que o PNCP publica dele: modalidade, fundamento legal, valores,
+  datas, itens com o preço unitário e o vencedor, termos aditivos, documentos
+  e o processo de origem do contrato. A página atrás passa a mostrar o órgão.
+  Clicar num fornecedor filtra a página por ele.
+- **Conformidade**: a página do ente mostra os portais de transparência
+  avaliados pelo PNTP (nível, índice e link de cada entidade).
 - **Documentos para baixar**: cada processo e contrato do PNCP tem o botão
   "documentos", que lista os arquivos publicados (edital, termo de
   referência, contrato, aditivos) com o link de download do próprio PNCP.

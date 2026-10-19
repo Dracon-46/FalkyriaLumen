@@ -11,7 +11,7 @@
 
 import { normalizar } from "./busca";
 import { obterJson } from "./feeds";
-import { BASE_PAINEL, conferir } from "./paineis";
+import { BASE_PAINEL, conferir, type TipoEnte } from "./paineis";
 
 /** Um valor tirado das demonstrações: a conta, a descrição publicada e o valor em reais. */
 export interface ValorConta {
@@ -172,4 +172,21 @@ export function ordenarPor<T>(lista: T[], valor: (x: T) => number | null, nome: 
 /** "dez" do mês 12, para "realizado até dez". */
 export function mesAbreviado(n: number | null): string {
   return n ? ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"][n - 1] ?? "" : "";
+}
+
+/**
+ * As companhias abertas com controle público conferido que o ente controla, pela esfera do controlador e
+ * pelo lugar da sede: na União, as federais; num estado, as estaduais com sede na UF; no DF, as distritais;
+ * num município, as municipais com sede nele. É aproximação: a sede não prova o controlador, e a página diz isso.
+ */
+export function estataisDoEnte(feed: Pick<FeedEstatais, "companhias">, nome: string, uf: string | null, tipo: TipoEnte | null): CompanhiaCvm[] {
+  const esfera = tipo === "uniao" ? "federal" : tipo === "estado" ? "estadual" : tipo === "df" ? "distrital"
+    : tipo === "municipio" ? "municipal" : null;
+  if (!esfera) return [];
+  return feed.companhias.filter((c) => {
+    if (c.controle.esfera !== esfera) return false;
+    if (tipo === "uniao") return true;
+    if ((c.uf || "").toUpperCase() !== (uf || "").toUpperCase()) return false;
+    return tipo !== "municipio" || normalizar(c.municipio || "") === normalizar(nome);
+  });
 }

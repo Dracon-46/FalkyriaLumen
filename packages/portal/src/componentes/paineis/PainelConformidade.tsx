@@ -9,7 +9,6 @@
  */
 
 import Link from "next/link";
-import { urlDoEnte } from "@/lib/ente360";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
@@ -26,6 +25,7 @@ import {
   type ResumoConformidade,
 } from "@/lib/paineis";
 import { AvisoMetodologico, BuscaEnte, Numero, SeloResultado, Situacao } from "./Comuns";
+import { Transparencia } from "./Transparencia";
 
 /** Os três arquivos que a página pode mostrar. */
 type Dados = ConformidadePanorama | ConformidadeUf | ConformidadeEnte;
@@ -276,9 +276,6 @@ function Ente({ dados, onUf }: { dados: ConformidadeEnte; onUf: (uf: string | nu
           </button>
         )}
         <span aria-current="location">{e.nome}</span>
-        <Link className="trilha-360" href={urlDoEnte(e.codigo)}>
-          tudo sobre {e.nome} (visão 360) ›
-        </Link>
       </nav>
       <h2 className="painel-ente">
         {e.nome}
@@ -293,6 +290,7 @@ function Ente({ dados, onUf }: { dados: ConformidadeEnte; onUf: (uf: string | nu
         {falhas.length > 0 && ` · o extrato de ${falhas.join(" e ")} não pôde ser lido: obrigações indeterminadas`}
       </p>
       <Resumo r={dados.resumo} titulo="Obrigações avaliadas" />
+      <Transparencia codigo={e.codigo} />
       {exercicios.map((ano) => (
         <Exercicio key={ano} ano={ano} obrigacoes={dados.obrigacoes} />
       ))}

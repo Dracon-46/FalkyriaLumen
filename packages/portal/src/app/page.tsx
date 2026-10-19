@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-/** Apresentação e um cartão por área (Eleições, Contratações, Visão 360, Economia, Conformidade). */
+/** Apresentação e um cartão por área (Eleições, Contratações, Economia, Conformidade). */
 export default function Inicio() {
   return (
     <>
@@ -24,13 +24,6 @@ export default function Inicio() {
           <p>
             O que a União, os estados e os municípios publicaram no PNCP: processos de contratação, contratos, órgãos e
             fornecedores, mês a mês, com o link de cada publicação.
-          </p>
-        </Link>
-        <Link href="/ente/" className="cartao inicio-cartao">
-          <h2>Visão 360 de um local</h2>
-          <p>
-            Tudo sobre a União, um estado ou um município numa página: eleições, contratações com os documentos para
-            baixar, entregas da LRF, o portal de transparência avaliado pelos tribunais de contas e as estatais.
           </p>
         </Link>
         <Link href="/economia/" className="cartao inicio-cartao">

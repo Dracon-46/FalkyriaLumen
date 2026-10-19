@@ -1740,51 +1740,172 @@ table.tabela {
   margin-top: 4px;
 }
 
-/* Visão 360 de um ente */
-.ente-atalhos {
+
+
+/* Filtro de local no cabeçalho: vale para todas as abas */
+.filtro-local {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.filtro-local .busca-ente {
+  width: min(300px, 100%);
+}
+
+.filtro-local .busca-ente input {
+  min-height: 38px;
+  padding: 6px 10px;
+}
+
+.filtro-local-rotulo {
+  color: var(--texto-3);
+  font-size: 13px;
+}
+
+.filtro-local-nome,
+.filtro-local-tirar {
+  border: 1px solid var(--borda-forte);
+  background: var(--destaque-suave);
+  border-radius: 999px;
+  padding: 6px 12px;
+  min-height: 36px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.filtro-local-tirar {
+  background: var(--superficie);
+  padding: 6px 10px;
+  font-weight: 400;
+}
+
+@media (max-width: 600px) {
+  .filtro-local {
+    width: 100%;
+    margin: 0 0 8px;
+  }
+
+  .filtro-local .busca-ente {
+    width: 100%;
+  }
+}
+
+.filtro-ativo {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: var(--raio);
+  background: var(--destaque-suave);
+}
+
+/* Modal de uma contratação */
+.modal-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgb(0 0 0 / 45%);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 4vh 16px;
+  overflow-y: auto;
+}
+
+.modal {
+  width: min(960px, 100%);
+  background: var(--superficie);
+  border-radius: var(--raio);
+  box-shadow: 0 24px 64px rgb(0 0 0 / 30%);
+  padding: 20px 24px 16px;
+  outline: none;
+}
+
+.modal-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.modal-titulo {
+  font-size: 20px;
+  margin: 4px 0;
+}
+
+.modal-subtitulo {
+  font-size: 15px;
+  margin: 20px 0 6px;
+}
+
+.modal-campos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 24px;
+  margin: 12px 0;
+}
+
+.modal-campo dt {
+  font-size: 12px;
+  color: var(--texto-3);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.modal-campo dd {
+  margin: 2px 0 0;
+}
+
+.modal-links {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin: 8px 0 16px;
 }
 
-.ente-atalhos .botao {
-  min-height: 36px;
-  padding: 4px 10px;
+.modal-links .botao {
   text-decoration: none;
   color: inherit;
 }
 
-.ente-secao {
-  margin-bottom: 16px;
-  scroll-margin-top: 72px;
+.modal-rodape {
+  margin-top: 20px;
+  border-top: 1px solid var(--borda);
+  padding-top: 10px;
 }
 
-.ente-secao-topo {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.ente-subtitulo {
-  font-size: 15px;
-  margin: 16px 0 6px;
-}
-
-.ente-candidatos,
-.ente-lista {
+.lista-simples {
   margin: 6px 0;
   padding-left: 20px;
 }
 
-.ente-candidatos li + li,
-.ente-lista li + li {
+.lista-simples li + li {
   margin-top: 4px;
 }
 
-.trilha .trilha-360 {
-  margin-left: auto;
-  font-weight: 600;
+.objeto-abrir {
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.objeto-abrir:hover {
+  color: var(--destaque);
+}
+
+@media (max-width: 600px) {
+  .modal {
+    padding: 16px;
+  }
+
+  .modal-campos {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
