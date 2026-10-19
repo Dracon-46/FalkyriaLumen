@@ -116,7 +116,7 @@ aplica rótulos e marcos de `.github/organizacao.json`.
 
 | Fluxo | Entrada | Padrão | Efeito |
 |---|---|---|---|
-| `eleicoes-carga` | `anos` | vazio (todos) | Anos dos dados abertos, separados por vírgula |
+| `eleicoes-carga` | `anos` | vazio (todos) | Anos dos dados abertos, separados por vírgula; preenchida, vale mesmo com `ELEICOES_SEM_HISTORICO=true` |
 | | `sem_ao_vivo` | falso | Pula o sistema de resultados |
 | | `historico` | falso | Inclui 1933 a 2026 mesmo com `ELEICOES_SEM_HISTORICO=true` |
 | `eleicoes-ao-vivo` | `eleicao` | obrigatória | Id do catálogo do TSE (ex.: `2026-2t-geral`) |
@@ -130,7 +130,10 @@ aplica rótulos e marcos de `.github/organizacao.json`.
 | `mercado-referencia` | `de`, `ate`, `fonte_anp`, `semestres`, `series`, `objeto`, `janelas` | ver o arquivo | Janela de compras, fonte da ANP e várias janelas numa execução |
 
 `eleicoes-carga` e `eleicoes-ao-vivo` compartilham o grupo de concorrência `eleicoes-carga`: uma
-espera a outra terminar, porque as duas disputariam o índice publicado.
+espera a outra terminar, porque as duas disputariam o índice publicado. O grupo guarda uma só
+execução na espera: se outra entra na fila (a agendada, por exemplo), a que esperava é cancelada
+sem rodar. Foi o que aconteceu em 16/10/2026 com a carga de 2026 disparada junto com o ensaio do
+`eleicoes-ao-vivo`. Dispare uma de cada vez, com a fila do grupo vazia.
 
 ### Primeira configuração das eleições
 
@@ -169,13 +172,17 @@ Roteiro a partir dos fluxos, do código e das ADRs; o roteiro oficial está no D
 **Durante**
 
 1. Pouco antes da divulgação dos primeiros resultados: Actions → `eleicoes-ao-vivo` → *Run
-   workflow*, com o id da eleição e o intervalo (padrão 30 s).
+   workflow*, com o id da eleição e o intervalo (padrão 30 s). Antes, conferir que nada do grupo
+   `eleicoes-carga` está rodando ou na fila: a carga diária em andamento atrasa o início, e outra
+   execução que entre na fila cancela a que espera.
 2. O coletor consulta o TSE com requisições condicionais, regrava só os feeds que mudaram e publica
    a cada passada. Uma publicação que falha não para o coletor: sai no registro e a passada seguinte
    publica de novo.
 3. O portal relê os feeds a cada 15 segundos (`Cache-Control: no-cache`, 304 quando nada mudou).
-4. A execução para quando a totalização termina, ou no prazo de 6 horas da máquina. Nesse caso,
-   dispare de novo: o estado continua.
+4. A execução para quando a totalização termina, ou quando todas as seções estão totalizadas e
+   nada muda há 60 minutos, mesmo sem a marca de finalizada do TSE (no 1º turno de 2026, os
+   deputados de Rondônia ficaram assim, e o ensaio de 16/10/2026 rodou até ser cancelado). Se
+   bater o prazo de 6 horas da máquina, dispare de novo: o estado continua.
 
 **Depois**
 

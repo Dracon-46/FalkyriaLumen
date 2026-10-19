@@ -5,6 +5,18 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Eleições: carga de um ano à mão e roteiro do 2º turno
+
+- `eleicoes-carga`: a entrada `anos` da execução manual passa a valer mesmo
+  com `ELEICOES_SEM_HISTORICO=true`. Antes, sem marcar também `historico`, o
+  disparo rodava sem os dados abertos e não carregava o ano pedido.
+- Roteiro da noite da eleição (DOC-12 e Wiki): disparar o `eleicoes-ao-vivo`
+  com a fila do grupo `eleicoes-carga` vazia, porque o grupo guarda uma só
+  execução na espera e cancela a que esperava quando outra entra. Em
+  16/10/2026, a carga de 2026 disparada junto com o ensaio foi cancelada assim.
+  O roteiro também passa a dizer quando o coletor para sem a marca de
+  finalizada do TSE (60 minutos estável com todas as seções totalizadas).
+
 ### Preço de mercado no modal: ANP (ADR-037)
 
 - Os itens de combustível (gasolina comum e aditivada, etanol, diesel S10 e

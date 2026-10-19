@@ -660,7 +660,8 @@ body.push(h3("No dia"));
 novaLista();
 body.push(n("Apagar os feeds e o estado da simulação do diretório de produção."));
 body.push(n("Iniciar o coletor antes da divulgação dos primeiros resultados. Na nuvem: Actions → `eleicoes-ao-vivo` " +
-  "→ Run workflow, com o id da eleição. Numa máquina:"));
+  "→ Run workflow, com o id da eleição, com nada do grupo `eleicoes-carga` rodando ou na fila: o grupo guarda " +
+  "uma só execução na espera, e outra que entre na fila cancela a que espera. Numa máquina:"));
 body.push(code(["lumen eleicoes ao-vivo --eleicao 2026-1t-geral --intervalo 30 --nuvem"]));
 body.push(n("Acompanhar o resumo de cada passada (requisições, baixados, 304, ausentes, feeds, fila, erros). Fila " +
   "crescendo sem parar indica limite de taxa baixo para o volume; erros repetidos indicam problema na fonte."));
@@ -669,7 +670,9 @@ body.push(n("Se for preciso reiniciar, basta rodar o mesmo comando: o estado pre
   "guardado no bucket privado continua a série."));
 body.push(h3("Depois"));
 novaLista();
-body.push(n("O coletor termina sozinho quando a totalização acaba. O índice fica com `ao_vivo = false`."));
+body.push(n("O coletor termina sozinho quando a totalização acaba, ou quando todas as seções estão totalizadas e " +
+  "nada muda há 60 minutos (`--parar-estavel`), mesmo sem a marca de finalizada do TSE: no 1º turno de 2026, " +
+  "os deputados de Rondônia ficaram com 100% das seções sem a marca. O índice fica com `ao_vivo = false`."));
 body.push(n("Quando os dados abertos do ano saírem, reprocessar pelo histórico; o feed passa a ter origem " +
   "`dados_abertos`, que é a base definitiva."));
 
@@ -854,7 +857,7 @@ body.push(table(["Nome no GitHub", "Tipo", "Valor no Supabase"], [3000, 1400, 52
   ["R2_REGIAO", "variável", "A região do projeto (ex.: sa-east-1); obrigatória no Supabase"],
   ["R2_BUCKET_FEEDS", "variável", "lumen-eleicoes"],
   ["R2_BUCKET_ESTADO", "variável", "lumen-privado"],
-  ["ELEICOES_SEM_HISTORICO", "variável", "false (ou ausente): a carga inclui os dados abertos de 1933 a 2024; true deixa só 2026 e o mapa das zonas (perto de 2 MB por ano), e a entrada historico da execução manual passa por cima"],
+  ["ELEICOES_SEM_HISTORICO", "variável", "false (ou ausente): a carga inclui os dados abertos de 1933 a 2024; true deixa só 2026 e o mapa das zonas (perto de 2 MB por ano), e as entradas anos e historico da execução manual passam por cima"],
   ["PUBLICACAO_LIMITE_MB", "variável", "Opcional: teto do bucket público em MB (900 se ausente)"],
   ["LUMEN_URL_FEEDS", "variável", "https://<ref>.supabase.co/storage/v1/object/public/lumen-eleicoes"],
 ], { monoCols: [0], size: 17 }));
@@ -984,7 +987,7 @@ L.buildDoc({
   codigo: "DOC-12",
   titulo: "Aba Eleições",
   subtitulo: "Consulta de eleições municipais, estaduais e federais, ao vivo e passadas desde 1933, com dados oficiais do TSE",
-  meta: { versao: "1.5", data: "15 de outubro de 2026", situacao: "Proposta — acompanha o ADR-019 a ADR-026 e o ADR-029",
+  meta: { versao: "1.6", data: "19 de outubro de 2026", situacao: "Proposta — acompanha o ADR-019 a ADR-026 e o ADR-029",
     verificado: "outubro de 2026" },
   body,
   outFile: path.join(__dirname, "..", "docs", "DOC-12_Eleicoes.docx"),

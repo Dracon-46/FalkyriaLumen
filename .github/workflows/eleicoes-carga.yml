@@ -30,8 +30,10 @@
 #             ELEICOES_SEM_HISTORICO  "true" para carregar só o sistema de
 #                                resultados (2026 ao vivo) e o mapa das zonas,
 #                                sem os dados abertos de 1933 a 2026; o 1º turno
-#                                de 2026 continua ao vivo (opcional; a entrada
-#                                "historico" da execução manual passa por cima).
+#                                de 2026 continua ao vivo (opcional; na execução
+#                                manual, as entradas "anos" e "historico" passam
+#                                por cima: até 19/10/2026, "anos" sozinha era
+#                                ignorada e o disparo não carregava o ano pedido).
 #                                O mapa das zonas tem perto de 2 MB por ano e
 #                                roda sempre (até 18/10/2026 ficava de fora junto
 #                                com o histórico, e o portal ficava sem as zonas)
@@ -54,7 +56,7 @@ on:
   workflow_dispatch:
     inputs:
       anos:
-        description: "Anos dos dados abertos, separados por vírgula (vazio = todos)"
+        description: "Anos dos dados abertos, separados por vírgula (vazio = todos; preenchida, vale mesmo com ELEICOES_SEM_HISTORICO=true)"
         required: false
         default: ""
       sem_ao_vivo:
@@ -113,7 +115,7 @@ jobs:
           HISTORICO: ${{ inputs.historico }}
         run: |
           set -- preparar --nuvem --sem-portal --sem-bronze --apagar-zips --limite-minutos 280
-          if [ "$SEM_HISTORICO" = "true" ] && [ "$HISTORICO" != "true" ]; then set -- "$@" --sem-historico
-          elif [ -n "$ANOS" ]; then set -- "$@" --anos "$ANOS"; fi
+          if [ -n "$ANOS" ]; then set -- "$@" --anos "$ANOS"
+          elif [ "$SEM_HISTORICO" = "true" ] && [ "$HISTORICO" != "true" ]; then set -- "$@" --sem-historico; fi
           if [ "$SEM_AO_VIVO" = "true" ]; then set -- "$@" --sem-ao-vivo; fi
           python -m lumen_eleicoes "$@"

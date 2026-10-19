@@ -85,7 +85,7 @@ Settings → Secrets and variables → Actions → Variables.
 | `R2_BUCKET_FEEDS` | Bucket público dos feeds (ex.: `lumen-eleicoes`) | Sim, para publicar | — |
 | `R2_BUCKET_ESTADO` | Bucket privado do estado (ex.: `lumen-privado`) | Não | o dos feeds |
 | `R2_REGIAO` | Região da assinatura S3; obrigatória com o Supabase (ex.: `sa-east-1`) | Só no Supabase | `auto` |
-| `ELEICOES_SEM_HISTORICO` | `true` carrega só 2026 e o mapa das zonas, sem os dados abertos dos resultados; a entrada `historico` da execução manual passa por cima | Não | vazio |
+| `ELEICOES_SEM_HISTORICO` | `true` carrega só 2026 e o mapa das zonas, sem os dados abertos dos resultados; as entradas `anos` e `historico` da execução manual passam por cima | Não | vazio |
 | `PUBLICACAO_PARALELOS` | Envios simultâneos | Não | 32 nos fluxos |
 | `PUBLICACAO_LIMITE_MB` | Teto do bucket público em MB; 0 tira o teto | Não | 900 no Supabase |
 | `LUMEN_URL_FEEDS` | Endereço público do bucket dos feeds; vira `NEXT_PUBLIC_DADOS_ELEICOES` no `portal-pages` e é lido pelo `nuvem-diagnostico` | Para o Pages | vazio, que vale `/dados/eleicoes` |
