@@ -17,7 +17,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { type Achado, normalizar, UFS } from "@/lib/busca";
+import { type Achado, CODIGO_UF, normalizar, UFS } from "@/lib/busca";
 import { escreverSelecao, lerSelecao, ufDaAbrangencia } from "@/lib/estado-url";
 import {
   carregarFeed,
@@ -46,7 +46,9 @@ import type {
 } from "@/lib/tipos";
 import type { Topologia } from "@/lib/topojson";
 import { ErroFeed } from "@/lib/validacao";
+import Link from "next/link";
 import { Escolha } from "@/componentes/Escolha";
+import { urlDoEnte } from "@/lib/ente360";
 import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import type { Opcao } from "@/lib/escolha";
 import { Busca } from "./Busca";
@@ -521,6 +523,11 @@ export function PainelEleicoes() {
             <span aria-current="location">{nomeAbr}</span>
           </>
         )}
+        {codigoDoLocal(abrangencia) && (
+          <Link className="trilha-360" href={urlDoEnte(codigoDoLocal(abrangencia)!)}>
+            tudo sobre {nomeAbr} (visão 360) ›
+          </Link>
+        )}
       </nav>
 
       <div className="situacao">
@@ -647,6 +654,15 @@ function Esqueleto() {
       </div>
     </div>
   );
+}
+
+/** Código IBGE do local aberto (`uf-sp` → 35, `mu-3550308` → 3550308), para a visão 360; `null` no Brasil e sem código. */
+function codigoDoLocal(abrangencia: string): string | null {
+  const mu = /^mu-(\d{7})$/.exec(abrangencia);
+  if (mu) return mu[1]!;
+  const uf = /^uf-([a-z]{2})$/.exec(abrangencia);
+  if (!uf) return null;
+  return Object.entries(CODIGO_UF).find(([, sigla]) => sigla === uf[1])?.[0] ?? null;
 }
 
 /** As eleições como opções da caixa de escolha, nos grupos do índice e com a marca de ao vivo. */

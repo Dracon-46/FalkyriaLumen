@@ -5,6 +5,29 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Visão 360 de cada local, documentos do PNCP e tudo diário (ADR-035)
+
+- Página nova **Locais 360** (`/ente/?codigo=`): a União, um estado, o DF ou
+  um município numa página só, com o último prefeito (ou governador) e o
+  último presidente, as contratações, as entregas da LRF, o portal de
+  transparência de cada entidade do ente (nível e índice do PNTP, com o link
+  do portal) e as estatais que ele controla. Links "tudo sobre…" nas páginas
+  do município e do estado em Eleições, Contratações e Conformidade.
+- **Documentos para baixar**: cada processo e contrato do PNCP tem o botão
+  "documentos", que lista os arquivos publicados (edital, termo de
+  referência, contrato, aditivos) com o link de download do próprio PNCP.
+- `lumen painel transparencia`: o ciclo mais recente do PNTP no fluxo diário
+  (só a planilha de dentro do ZIP, e só quando muda), publicado por UF.
+- **Zonas eleitorais**: o mapa das zonas não era publicado, porque a carga
+  sem o histórico também tirava os locais de votação. Agora roda em toda
+  carga (perto de 2 MB por ano).
+- **Economia**: quando o firewall do Banco Central recusa a coleta (aconteceu
+  em 18/10/2026), a série é pedida de novo e, se continuar recusada, vem da
+  cópia conferida no Ipeadata (IPCA, INPC, Selic no mês, NFSP e PIB real). O
+  estado é gravado mesmo com falha.
+- **Conformidade todo dia**, e não só às segundas.
+- Tabelas sem rolagem interna: as linhas são paginadas de 20 em 20.
+
 ### Empresas estatais (ADR-034)
 
 - Página nova **Empresas estatais**, dentro de Economia: quanto gastam e

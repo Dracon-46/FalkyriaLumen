@@ -7,10 +7,10 @@
 #    "painel-estado" do repositório; um dia com falha na coleta não é gravado
 #    e volta na execução seguinte. Atualiza também o cadastro de entes do
 #    SICONFI (uma requisição) e as séries de Economia e Contas Públicas do
-#    SGS do Banco Central (uma requisição por série, ADR-033) e as
-#    estatais: as com ações na bolsa pelos dados abertos da CVM e as demais
-#    federais pelos da SEST (ADR-034).
-# 2. conformidade (segundas-feiras, ou à mão): o extrato de entregas do
+#    SGS do Banco Central (uma requisição por série, ADR-033; o Ipeadata
+#    quando o firewall do BC recusa), as estatais (CVM e SEST, ADR-034) e os
+#    portais de transparência avaliados pelo PNTP (ADR-035).
+# 2. conformidade (todo dia, desde 19/10/2026): o extrato de entregas do
 #    SICONFI de todos os entes, em cinco grupos de UFs em paralelo, para o
 #    exercício anterior e o corrente; um arquivo por UF no mesmo lugar.
 # 3. site: monta e publica o site no GitHub Pages (paineis-site.yml).
@@ -25,15 +25,14 @@ name: paineis
 
 on:
   schedule:
-    - cron: "17 8 * * *"    # 05:17 em Brasília, todo dia
-    - cron: "47 8 * * 1"    # 05:47 às segundas: também a conformidade
+    - cron: "17 8 * * *"    # 05:17 em Brasília, todo dia (contratações, economia, estatais, transparência e conformidade)
   workflow_dispatch:
     inputs:
       ultimos:
         description: "Contratações: quantos dias até ontem conferir (os que faltam são coletados)"
         default: "5"
       conformidade:
-        description: "Coletar também a conformidade (extrato do SICONFI de todas as UFs)"
+        description: "Coletar também a conformidade à mão (nas execuções agendadas, ela roda todo dia)"
         type: boolean
         default: false
 
@@ -97,6 +96,14 @@ jobs:
           lumen economia estatais --estado estado || status=1
           gh release upload "$TAG" estado/economia-cvm.json.gz estado/economia-sest.json.gz --clobber
           exit $status
+      - name: Transparência (portais avaliados pelo PNTP)
+        continue-on-error: true
+        run: |
+          gh release download "$TAG" -p transparencia-pntp.json.gz -D estado --clobber || true
+          status=0
+          lumen painel transparencia --estado estado || status=1
+          gh release upload "$TAG" estado/transparencia-pntp.json.gz --clobber
+          exit $status
       - name: Dias do PNCP que faltam
         run: lumen painel contratacoes --estado estado --ultimos "$ULTIMOS" --limite-minutos 240
       - name: Guardar os dias novos
@@ -104,7 +111,7 @@ jobs:
         run: find estado -name 'contratacoes-*.json.gz' -newer marco -size +0 -print0 | xargs -0 -r gh release upload "$TAG" --clobber
 
   conformidade:
-    if: always() && (inputs.conformidade || github.event.schedule == '47 8 * * 1')
+    if: always() && (inputs.conformidade || github.event_name == 'schedule')
     needs: contratacoes
     runs-on: ubuntu-24.04
     timeout-minutes: 150

@@ -96,6 +96,17 @@ privatizações ([ADR-034](https://github.com/Dracon-46/FalkyriaLumen/blob/main/
 Sem chave (`sest_dados_abertos`). Os dois arquivos vão para `economia-sest.json.gz` e, com os da CVM, para
 `economia/estatais.json`, que o portal lê em `/economia/estatais/`.
 
+### PNCP — documentos de cada publicação (no navegador)
+
+| Endereço | Uso |
+|---|---|
+| `https://pncp.gov.br/api/pncp/v1/orgaos/{cnpj}/compras/{ano}/{seq}/arquivos` | Lista dos documentos de um processo (edital, aviso, termo de referência), com o link de download |
+| `https://pncp.gov.br/api/pncp/v1/orgaos/{cnpj}/contratos/{ano}/{seq}/arquivos` | Lista dos documentos de um contrato |
+
+O portal pede a lista só quando a pessoa abre os documentos de uma publicação; a API libera a leitura pelo
+navegador (CORS) e o download é o do próprio PNCP. Nada é copiado para o Lumen
+([ADR-035](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-035.md)).
+
 ### PNTP — Radar da Transparência Pública (tribunais de contas e Atricon)
 
 | Endereço | Uso |
@@ -104,7 +115,8 @@ Sem chave (`sest_dados_abertos`). Os dois arquivos vão para `economia-sest.json
 | `https://radardatransparencia.atricon.org.br/dados/dados_pntp_AAAA.zip` | Base do ciclo (338 MB em 2025); o Lumen lê só `pntp_AAAA/avaliacoes_pntp_AAAA.xlsx`, por `Range` (`pntp_avaliacoes`) |
 
 Uma linha por entidade avaliada (11.697 em 2025): índice e nível de transparência e endereço do portal
-([ADR-032](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-032.md)).
+([ADR-032](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-032.md)). `lumen painel
+transparencia` lê o ciclo mais recente todo dia e publica `transparencia/uf-<sigla>.json` para a visão 360.
 
 ### TSE
 

@@ -10,6 +10,7 @@
  */
 
 import Link from "next/link";
+import { urlDoEnte } from "@/lib/ente360";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Escolha } from "@/componentes/Escolha";
@@ -43,6 +44,7 @@ import {
   type PeriodoMeses,
 } from "@/lib/periodo";
 import { AvisoMetodologico, BuscaEnte, GraficoBarras, Numero, Situacao } from "./Comuns";
+import { Documentos } from "./Documentos";
 
 const CODIGO_UF: Record<string, string> = {
   RO: "11", AC: "12", AM: "13", RR: "14", PA: "15", AP: "16", TO: "17", MA: "21", PI: "22", CE: "23", RN: "24",
@@ -443,6 +445,7 @@ function Secoes({
                       </a>
                     </>
                   )}
+                  <Documentos chave={x.chave} link={x.link} />
                 </div>
               </li>
             ))}
@@ -473,6 +476,7 @@ function Secoes({
                     </a>
                   </>
                 )}
+                <Documentos chave={p.chave} link={p.link} />
               </div>
             </li>
           ))}
@@ -504,6 +508,7 @@ function Secoes({
                       </a>
                     </>
                   )}
+                  <Documentos chave={c.chave} link={c.link} />
                 </div>
               </li>
             ))}
@@ -649,6 +654,9 @@ function Ente({
           </button>
         )}
         <span aria-current="location">{e.nome}</span>
+        <Link className="trilha-360" href={urlDoEnte(e.codigo)}>
+          tudo sobre {e.nome} (visão 360) ›
+        </Link>
       </nav>
       <h2 className="painel-ente">
         {e.nome}

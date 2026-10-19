@@ -1,8 +1,8 @@
-/** Página inicial do portal: apresenta o Lumen e leva às três áreas. */
+/** Página inicial do portal: apresenta o Lumen e leva às áreas. */
 
 import Link from "next/link";
 
-/** Apresentação e um cartão por área (Eleições, Contratações, Conformidade), com o estado de cada uma. */
+/** Apresentação e um cartão por área (Eleições, Contratações, Visão 360, Economia, Conformidade). */
 export default function Inicio() {
   return (
     <>
@@ -24,6 +24,20 @@ export default function Inicio() {
           <p>
             O que a União, os estados e os municípios publicaram no PNCP: processos de contratação, contratos, órgãos e
             fornecedores, mês a mês, com o link de cada publicação.
+          </p>
+        </Link>
+        <Link href="/ente/" className="cartao inicio-cartao">
+          <h2>Visão 360 de um local</h2>
+          <p>
+            Tudo sobre a União, um estado ou um município numa página: eleições, contratações com os documentos para
+            baixar, entregas da LRF, o portal de transparência avaliado pelos tribunais de contas e as estatais.
+          </p>
+        </Link>
+        <Link href="/economia/" className="cartao inicio-cartao">
+          <h2>Economia e estatais</h2>
+          <p>
+            Inflação, juros, dívida e resultado fiscal das séries oficiais, e quanto as empresas estatais gastam e
+            investem, pelos dados da SEST e da CVM.
           </p>
         </Link>
         <Link href="/conformidade/" className="cartao inicio-cartao">

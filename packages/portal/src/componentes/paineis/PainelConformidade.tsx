@@ -9,6 +9,7 @@
  */
 
 import Link from "next/link";
+import { urlDoEnte } from "@/lib/ente360";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
@@ -275,6 +276,9 @@ function Ente({ dados, onUf }: { dados: ConformidadeEnte; onUf: (uf: string | nu
           </button>
         )}
         <span aria-current="location">{e.nome}</span>
+        <Link className="trilha-360" href={urlDoEnte(e.codigo)}>
+          tudo sobre {e.nome} (visão 360) ›
+        </Link>
       </nav>
       <h2 className="painel-ente">
         {e.nome}

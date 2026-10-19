@@ -14,6 +14,7 @@ const ABAS = [
   { href: "/contratacoes/", rotulo: "Contratações", pronta: true },
   { href: "/conformidade/", rotulo: "Conformidade", pronta: true },
   { href: "/economia/", rotulo: "Economia", pronta: true },
+  { href: "/ente/", rotulo: "Locais 360", pronta: true },
 ] as const;
 
 /** Cabeçalho do Lumen: a marca e as abas. Cada aba é uma área do portal. */
