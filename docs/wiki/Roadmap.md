@@ -46,7 +46,7 @@ por um comando. Tudo concluído; ADRs 011 em diante registradas durante a implem
 | Grupos de pares | Pendente |
 | Painel operacional | Pendente |
 | Parâmetros legais verificados | Concluído além do previsto: limites de dispensa de 2021 a 2026, fator do § 2º e acréscimos do art. 125 |
-| Regra A-05 (antecipada da Fase 2) | Em modo silencioso, limiares não calibrados |
+| Regra A-05 (antecipada da Fase 2) | Relatório silencioso; sob demanda no modal para combustível e gás de cozinha (ADR-037), limiares não calibrados |
 | Regra A-01 (antecipada da Fase 2) | Sob demanda no modal da contratação, parâmetros iniciais, sem lote (ADR-036) |
 
 **Fase 2.** Motor de regras com versionamento, parâmetros datados e linhagem; famílias B, E, I e J;
@@ -99,8 +99,10 @@ Da seção "Pendente" do README:
 - **2º turno de 2026 nos dados abertos.** O 1º turno já vem deles, com as zonas; o 2º turno é coletado
   ao vivo e passa para os dados abertos quando o TSE o acrescentar ao arquivo de 2026, que o
   `preparar` confere a cada execução.
-- **Calibrar a regra A-05** sobre o relatório silencioso antes de qualquer publicação
-  ([ADR-027](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-027.md)).
+- **Calibrar a regra A-05** sobre o relatório silencioso
+  ([ADR-027](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-027.md)). Até lá, a comparação
+  sob demanda do modal usa os limiares iniciais e diz isso
+  ([ADR-037](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-037.md)).
 - **Contas da hospedagem gratuita** ([ADR-026](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-026.md)):
   Cloudflare (R2 e Pages), segredos do GitHub e uma organização própria do projeto no Supabase para
   o núcleo. Os feeds das eleições estão no Supabase Storage desde 14/10/2026, com o histórico.
@@ -124,6 +126,9 @@ Da seção "Pendente" do README:
 - **Comparação de preço do item** (ADR-036, regra A-01 sob demanda): no ar no modal da contratação, para
   os itens com código do catálogo do Compras.gov.br. Próximos: calibrar a A-01 (Fase 2) e classificar os
   itens sem código, para ampliar a cobertura.
+- **Preço de mercado no modal** (ADR-037, regra A-05 sob demanda): no ar para combustível e gás de cozinha,
+  contra o preço de revenda da ANP publicado todo dia. Próximos: as lojas online pela API oficial (Mercado Livre,
+  Amazon, Shopee, AliExpress), quando houver credencial.
 - **Gastos das estatais** (ADR-034): no ar. As federais pelo PDG da SEST (aprovado e realizado por
   rubrica) e as com ações na bolsa pelas demonstrações da CVM, com o controle conferido no FRE. Próximos:
   o Orçamento de Investimento (por ação e UF), as demonstrações trimestrais (ITR) e as estaduais e

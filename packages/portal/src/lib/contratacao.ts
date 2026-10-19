@@ -65,6 +65,7 @@ export interface ResultadoItem {
   valorUnitario: number | null;
   valorTotal: number | null;
   situacao: string | null;
+  data: string | null;           // AAAA-MM-DD do resultado
 }
 
 /** Um contrato (ou empenho) publicado. */
@@ -159,6 +160,7 @@ export function lerResultados(bruto: unknown): ResultadoItem[] {
     fornecedor: parte(x.tipoPessoa, x.niFornecedor, x.nomeRazaoSocialFornecedor),
     quantidade: num(x.quantidadeHomologada), valorUnitario: num(x.valorUnitarioHomologado),
     valorTotal: num(x.valorTotalHomologado), situacao: texto(x.situacaoCompraItemResultadoNome),
+    data: texto(x.dataResultado)?.slice(0, 10) ?? null,
   }));
 }
 
