@@ -1,0 +1,82 @@
+{
+ "@odata.context": "http://ipeadata.gov.br/api/odata4/$metadata#Collection(Ipeadata.OData4.Models.Valor)",
+ "value": [
+  {
+   "SERCODIGO": "SCN10_PIBG10",
+   "VALDATA": "2015-01-01T00:00:00-02:00",
+   "VALVALOR": -3.54576339347284,
+   "NIVNOME": "",
+   "TERCODIGO": ""
+  },
+  {
+   "SERCODIGO": "SCN10_PIBG10",
+   "VALDATA": "2016-01-01T00:00:00-02:00",
+   "VALVALOR": -3.27591690632106,
+   "NIVNOME": "",
+   "TERCODIGO": ""
+  },
+  {
+   "SERCODIGO": "SCN10_PIBG10",
+   "VALDATA": "2017-01-01T00:00:00-02:00",
+   "VALVALOR": 1.32286905390816,
+   "NIVNOME": "",
+   "TERCODIGO": ""
+  },
+  {
+   "SERCODIGO": "SCN10_PIBG10",
+   "VALDATA": "2018-01-01T00:00:00-02:00",
+   "VALVALOR": 1.78366676136999,
+   "NIVNOME": "",
+   "TERCODIGO": ""
+  },
+  {
+   "SERCODIGO": "SCN10_PIBG10",
+   "VALDATA": "2019-01-01T00:00:00-02:00",
+   "VALVALOR": 1.22077782271946,
+   "NIVNOME": "",
+   "TERCODIGO": ""
+  },
+  {
+   "SERCODIGO": "SCN10_PIBG10",
+   "VALDATA": "2020-01-01T00:00:00-03:00",
+   "VALVALOR": -3.27675879612907,
+   "NIVNOME": "",
+   "TERCODIGO": ""
+  },
+  {
+   "SERCODIGO": "SCN10_PIBG10",
+   "VALDATA": "2021-01-01T00:00:00-03:00",
+   "VALVALOR": 4.7626043797063,
+   "NIVNOME": "",
+   "TERCODIGO": ""
+  },
+  {
+   "SERCODIGO": "SCN10_PIBG10",
+   "VALDATA": "2022-01-01T00:00:00-03:00",
+   "VALVALOR": 3.016694,
+   "NIVNOME": "",
+   "TERCODIGO": ""
+  },
+  {
+   "SERCODIGO": "SCN10_PIBG10",
+   "VALDATA": "2023-01-01T00:00:00-03:00",
+   "VALVALOR": 3.241655,
+   "NIVNOME": "",
+   "TERCODIGO": ""
+  },
+  {
+   "SERCODIGO": "SCN10_PIBG10",
+   "VALDATA": "2024-01-01T00:00:00-03:00",
+   "VALVALOR": 3.419315,
+   "NIVNOME": "",
+   "TERCODIGO": ""
+  },
+  {
+   "SERCODIGO": "SCN10_PIBG10",
+   "VALDATA": "2025-01-01T00:00:00-03:00",
+   "VALVALOR": 2.285747,
+   "NIVNOME": "",
+   "TERCODIGO": ""
+  }
+ ]
+}

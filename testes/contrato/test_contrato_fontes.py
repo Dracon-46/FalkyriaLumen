@@ -274,15 +274,39 @@ def test_pntp_ciclo_mais_recente_mantem_as_colunas_lidas():
 
 
 def test_sgs_series_da_economia_respondem_e_ipca_confere_com_o_sidra():
-    """Cada série do catálogo responde no SGS com a lista de observações, e o IPCA do SGS é o do IBGE."""
+    """Cada série do catálogo responde no SGS com a lista de observações, e o IPCA do SGS é o do IBGE.
+
+    Se o firewall do Banco Central recusar a requisição (acontece com servidores em nuvem), o teste é pulado
+    com o código da recusa: é bloqueio de acesso, não mudança de formato. A coleta diária usa o espelho do
+    Ipeadata nesse caso, e o teste seguinte confere o espelho.
+    """
     from lumen_economia.catalogo import SERIES, url_sgs
-    from lumen_economia.coleta import ler_resposta
-    for s in SERIES:
-        obs = ler_resposta(_obter_bytes(url_sgs(s.codigo).replace("dados?", "dados/ultimos/3?")))
-        assert obs, f"série {s.codigo} ({s.id}) sem observações"
-    sgs = dict(ler_resposta(_obter_bytes(url_sgs(433).replace("dados?", "dados/ultimos/12?"))))
+    from lumen_economia.coleta import SgsRecusou, ler_resposta
+    try:
+        for s in SERIES:
+            obs = ler_resposta(_obter_bytes(url_sgs(s.codigo).replace("dados?", "dados/ultimos/3?")))
+            assert obs, f"série {s.codigo} ({s.id}) sem observações"
+        sgs = dict(ler_resposta(_obter_bytes(url_sgs(433).replace("dados?", "dados/ultimos/12?"))))
+    except SgsRecusou as erro:
+        pytest.skip(f"SGS inacessível deste servidor: {erro}")
     sidra = json.loads(_obter_bytes("https://apisidra.ibge.gov.br/values/t/1737/n1/all/v/63/p/last%2012"))[1:]
     pares = [(f"{x['D3C'][:4]}-{x['D3C'][4:]}-01", x["V"]) for x in sidra]
     comuns = [(m, v) for m, v in pares if m in sgs]
     assert comuns, "nenhum mês em comum entre o SGS e o SIDRA"
     assert all(float(sgs[m]) == float(v) for m, v in comuns), "IPCA do SGS diverge do SIDRA"
+
+
+def test_espelhos_do_ipeadata_respondem_e_ipca_confere_com_o_sidra():
+    """Cada espelho do Ipeadata responde com observações recentes, e o IPCA de lá é o do IBGE."""
+    from lumen_economia.catalogo import SERIES, url_ipeadata
+    from lumen_economia.coleta import ler_ipeadata
+    for s in SERIES:
+        if s.espelho:
+            obs = ler_ipeadata(_obter_bytes(url_ipeadata(s.espelho)), s.espelho_casas)
+            assert obs and obs[-1][0] >= "2025", f"espelho {s.espelho} ({s.id}) sem observações recentes"
+    ipea = dict(ler_ipeadata(_obter_bytes(url_ipeadata("PRECOS12_IPCAG12"))))
+    sidra = json.loads(_obter_bytes("https://apisidra.ibge.gov.br/values/t/1737/n1/all/v/63/p/last%2012"))[1:]
+    comuns = [(f"{x['D3C'][:4]}-{x['D3C'][4:]}-01", x["V"]) for x in sidra]
+    comuns = [(m, v) for m, v in comuns if m in ipea]
+    assert comuns, "nenhum mês em comum entre o Ipeadata e o SIDRA"
+    assert all(float(ipea[m]) == float(v) for m, v in comuns), "IPCA do Ipeadata diverge do SIDRA"

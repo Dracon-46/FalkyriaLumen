@@ -22,14 +22,34 @@ def _resposta(codigo: int) -> bytes:
     return (FIX / nome).read_bytes()
 
 
-class _Cliente:
-    """Cliente falso que responde com as fixtures reais; ``falhar`` lista códigos que dão erro."""
+RECUSA = (FIX / "sgs_recusa_firewall.html").read_bytes()
 
-    def __init__(self, falhar=(), status=200, corpo=None):
+
+class _Cliente:
+    """Cliente falso que responde com as fixtures reais; ``falhar`` lista códigos que dão erro.
+
+    ``recusar`` faz o SGS responder com a página de recusa do firewall do BC nas primeiras ``recusar`` vezes
+    que cada série é pedida (``float("inf")``: sempre). No Ipeadata, responde a fixture do código, se houver.
+    """
+
+    def __init__(self, falhar=(), status=200, corpo=None, recusar=0, espelho_falha=False):
         self.falhar, self.status, self.corpo, self.pedidos = set(falhar), status, corpo, []
+        self.recusar, self.espelho_falha, self.vezes, self.espelhos = recusar, espelho_falha, {}, []
 
     def obter(self, url, cabecalhos=None):
+        if "ipeadata" in url:
+            codigo = url.split("'")[1]
+            self.espelhos.append(codigo)
+            arquivos = list(FIX.glob(f"ipeadata_{codigo}_*.json"))
+            if self.espelho_falha or not arquivos:
+                raise ErroColeta("Ipeadata sem resposta")
+            return ArtefatoBruto(conteudo=arquivos[0].read_bytes(), fonte_id="ipeadata", url_solicitada=url,
+                                 url_efetiva=url, status_http=200, tipo_midia="application/json")
         codigo = int(url.split("bcdata.sgs.")[1].split("/")[0])
+        self.vezes[codigo] = self.vezes.get(codigo, 0) + 1
+        if self.vezes[codigo] <= self.recusar:
+            return ArtefatoBruto(conteudo=RECUSA, fonte_id="bcb_sgs", url_solicitada=url, url_efetiva=url,
+                                 status_http=200, tipo_midia="text/html")
         self.pedidos.append(codigo)
         if codigo in self.falhar:
             raise ErroColeta("sem resposta")
@@ -81,9 +101,9 @@ def test_coletar_grava_o_estado(tmp_path):
 
 def test_falha_mantem_o_anterior_e_registra(tmp_path):
     coleta.coletar(_Cliente(), tmp_path, agora=AGORA)
-    r = coleta.coletar(_Cliente(falhar={433}), tmp_path, agora=datetime(2026, 1, 16, tzinfo=timezone.utc))
-    assert "ipca" in r.falhas and "ipca" not in r.atualizadas
-    guardado = coleta.ler_estado(tmp_path)["series"]["433"]
+    r = coleta.coletar(_Cliente(falhar={13762}), tmp_path, agora=datetime(2026, 1, 16, tzinfo=timezone.utc))
+    assert "divida_bruta" in r.falhas and "divida_bruta" not in r.atualizadas
+    guardado = coleta.ler_estado(tmp_path)["series"]["13762"]
     assert guardado["coletado_em"] == "2026-01-15T12:00:00+00:00" and len(guardado["observacoes"]) == 24
     assert guardado["ultima_falha"].startswith("2026-01-16") and "sem resposta" in guardado["motivo_da_falha"]
 
@@ -91,8 +111,57 @@ def test_falha_mantem_o_anterior_e_registra(tmp_path):
 @pytest.mark.parametrize("cliente,motivo", [(_Cliente(status=500), "respondeu 500"), (_Cliente(corpo=b"[]"), "nenhuma"),
                                             (_Cliente(corpo=b'[{"data": "01/01/2025", "valor": "x"}]'), "ValueError")])
 def test_respostas_que_nao_servem(tmp_path, cliente, motivo):
-    r = coleta.coletar(cliente, tmp_path, [series_por_id()["ipca"]], agora=AGORA)
-    assert motivo in r.falhas["ipca"]
+    r = coleta.coletar(cliente, tmp_path, [series_por_id()["divida_bruta"]], agora=AGORA)
+    assert motivo in r.falhas["divida_bruta"]
+
+
+# ------------------------------------------------------------------ firewall do BC e espelho
+
+def test_pagina_de_recusa_do_firewall():
+    assert coleta.recusa_do_bc(RECUSA) == "14273271137322755349"
+    assert coleta.recusa_do_bc(b"<html>outra coisa</html>") is None and coleta.recusa_do_bc(b"[]") is None
+    with pytest.raises(coleta.SgsRecusou, match="firewall do Banco Central"):
+        ler_resposta(RECUSA)
+
+
+def test_recusa_passageira_repete_depois_da_pausa(tmp_path):
+    pausas = []
+    cliente = _Cliente(recusar=1)
+    r = coleta.coletar(cliente, tmp_path, agora=AGORA, espera_s=30, dormir=pausas.append)
+    assert pausas == [30] and not r.falhas and not r.pelo_espelho and len(r.atualizadas) == len(SERIES)
+    assert all(v == 2 for v in cliente.vezes.values()) and not cliente.espelhos
+
+
+def test_recusa_persistente_usa_o_espelho_conferido(tmp_path):
+    coleta.coletar(_Cliente(), tmp_path, agora=AGORA)
+    cliente = _Cliente(recusar=float("inf"))
+    r = coleta.coletar(cliente, tmp_path, agora=datetime(2026, 1, 16, tzinfo=timezone.utc), dormir=lambda s: None)
+    com_espelho = {s.id for s in SERIES if s.espelho}
+    assert com_espelho == {"ipca", "inpc", "selic_mes", "primario_12m", "nominal_12m", "pib_real"}
+    # só há fixture do espelho do IPCA e do PIB real: as outras com espelho falham nele, e as sem espelho falham
+    assert set(r.pelo_espelho) == {"ipca", "pib_real"} and "firewall" in r.pelo_espelho["ipca"]
+    assert set(r.falhas) == {s.id for s in SERIES} - {"ipca", "pib_real"}
+    assert "espelho do Ipeadata" in r.falhas["inpc"] and "espelho" not in r.falhas["divida_bruta"]
+    estado = coleta.ler_estado(tmp_path)["series"]
+    ipca = estado["433"]
+    assert ipca["fonte_coleta"] == "ipeadata" and ipca["url_coleta"].endswith("SERCODIGO='PRECOS12_IPCAG12')")
+    assert ipca["observacoes"] == [list(x) for x in ler_resposta(_resposta(433))]  # o espelho dá os mesmos valores
+    assert estado["7326"]["observacoes"] == [list(x) for x in ler_resposta(_resposta(7326))]  # duas casas, como no SGS
+    assert estado["13762"]["ultima_falha"].startswith("2026-01-16") and estado["13762"]["observacoes"]
+
+
+def test_espelho_tambem_fora(tmp_path):
+    r = coleta.coletar(_Cliente(recusar=float("inf"), espelho_falha=True), tmp_path,
+                       [series_por_id()["ipca"]], agora=AGORA, dormir=lambda s: None)
+    assert "Ipeadata sem resposta" in r.falhas["ipca"] and not r.pelo_espelho
+
+
+@pytest.mark.parametrize("corpo,motivo", [(b"<html>", "ilegível"), (b'{"x": 1}', "ilegível"),
+                                          (b'{"value": [{"VALDATA": "jan", "VALVALOR": 1}]}', "sem data")])
+def test_ipeadata_ilegivel(corpo, motivo):
+    with pytest.raises(SerieIlegivel, match=motivo):
+        coleta.ler_ipeadata(corpo)
+    assert coleta.ler_ipeadata(b'{"value": [{"VALDATA": "2025-01-01T00:00:00-03:00", "VALVALOR": null}]}') == []
 
 
 def test_estado_de_outra_versao(tmp_path):
@@ -156,6 +225,15 @@ def test_arquivo_do_portal(tmp_path):
     assert ind["juros_nominais_12m"]["derivado_de"] == ["nominal_12m", "primario_12m"]
     assert ind["ipca_12m"]["serie"][0][0] == "2024-12"   # o primeiro com 12 meses na fixture
     assert ind["juro_real_12m"]["coletado_em"] == "2025-12-10T00:00:00+00:00"
+    assert ind["ipca"]["coletado_de"] == "sgs" and ind["ipca"]["url_coleta"] is None
+
+
+def test_arquivo_do_portal_diz_quando_veio_do_espelho(tmp_path):
+    coleta.coletar(_Cliente(recusar=float("inf")), tmp_path, agora=AGORA, dormir=lambda s: None)
+    ind = montar(coleta.ler_estado(tmp_path), agora=AGORA)["indicadores"]
+    assert ind["ipca"]["coletado_de"] == "ipeadata" and "PRECOS12_IPCAG12" in ind["ipca"]["url_coleta"]
+    assert ind["ipca"]["url"].endswith("sgs.433/dados?formato=json")      # a referência continua o SGS
+    assert ind["divida_bruta"]["coletado_de"] is None and ind["divida_bruta"]["ultima_falha"]
 
 
 def test_derivado_sem_coleta_fica_sem_data():
@@ -173,10 +251,10 @@ def test_publicar(tmp_path):
 # ------------------------------------------------------------------ linha de comando
 
 def test_cli(tmp_path, monkeypatch, capsys):
-    monkeypatch.setattr(cli, "_cliente", lambda args: _Cliente(falhar={188}))
-    assert cli.main(["coletar", "--estado", str(tmp_path), "--series", "ipca,inpc"]) == 1
+    monkeypatch.setattr(cli, "_cliente", lambda args, fonte=None: _Cliente(falhar={13762}))
+    assert cli.main(["coletar", "--estado", str(tmp_path), "--series", "ipca,divida_bruta"]) == 1
     saida = json.loads(capsys.readouterr().out)
-    assert saida["atualizadas"] == {"ipca": 24} and "inpc" in saida["falhas"]
+    assert saida["atualizadas"] == {"ipca": 24} and "divida_bruta" in saida["falhas"]
     assert cli.main(["coletar", "--estado", str(tmp_path), "--series", "ipca,nada"]) == 2
     assert "nada" in capsys.readouterr().err
     assert cli.main(["publicar", "--estado", str(tmp_path), "--saida", str(tmp_path / "site")]) == 0

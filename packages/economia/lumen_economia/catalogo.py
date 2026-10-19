@@ -17,6 +17,13 @@ Regras que valem para todos (ADR-033):
 mês, que se acumula: IPCA, INPC, Selic do mês), ``variacao_anual`` (taxa do ano, que também se acumula: PIB
 real) e ``nivel`` (um estado num momento, comparado do início ao fim do período: dívida, resultado em 12
 meses, índices).
+
+**Espelho.** O SGS fica atrás de um firewall que às vezes recusa as requisições vindas de servidores em nuvem
+(em 18/10/2026 recusou as 11 séries no fluxo diário). Para as séries que o Ipeadata (Ipea) republica com os
+mesmos valores, ``espelho`` é o código lá: a coleta usa o espelho só quando o SGS falha, e diz que usou. Cada
+espelho foi conferido valor a valor contra o SGS (2024 e 2025; o PIB real, de 2015 a 2025, com as duas casas
+do SGS) em 19/10/2026; os que divergem (o Ipeadata guarda outra revisão do PIB mensal e do IBC-Br, e não
+tem a dívida bruta nem a líquida total) ficam sem espelho.
 """
 
 from __future__ import annotations
@@ -24,11 +31,17 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 FONTE_SGS = "Banco Central do Brasil, Sistema Gerenciador de Séries Temporais (SGS)"
+FONTE_IPEADATA = "Ipeadata (Ipea), que republica a série do Banco Central ou do IBGE"
 
 
 def url_sgs(codigo: int) -> str:
     """Endereço público da série no SGS, em JSON (o mesmo que a coleta usa)."""
     return f"https://api.bcb.gov.br/dados/serie/bcdata.sgs.{codigo}/dados?formato=json"
+
+
+def url_ipeadata(codigo: str) -> str:
+    """Endereço da série no Ipeadata (OData), em JSON."""
+    return f"http://www.ipeadata.gov.br/api/odata4/ValoresSerie(SERCODIGO='{codigo}')"
 
 
 @dataclass(frozen=True)
@@ -48,6 +61,8 @@ class Serie:
     limitacoes: tuple[str, ...] = field(default_factory=tuple)
     parcial_no_mes_corrente: bool = False   # o SGS publica o mês em curso acumulado até o dia
     agregacao: str = "nivel"                # nivel, variacao_mensal ou variacao_anual
+    espelho: str | None = None              # código no Ipeadata, usado só quando o SGS falha
+    espelho_casas: int | None = None        # casas decimais do SGS, quando o espelho publica mais
 
 
 @dataclass(frozen=True)
@@ -82,18 +97,18 @@ SERIES: tuple[Serie, ...] = (
                          "variável 63), replicado no SGS do Banco Central",
           leitura="Inflação menor não é queda de preços: com variação positiva, os preços sobem, só que mais "
                   "devagar. Queda generalizada de preços é deflação (variação negativa).",
-          agregacao="variacao_mensal"),
+          agregacao="variacao_mensal", espelho="PRECOS12_IPCAG12"),
     Serie("inpc", 188, "INPC no mês", "INPC — variação mensal", "inflacao", "% no mês", "mensal",
           "Variação dos preços ao consumidor das famílias com renda de 1 a 5 salários mínimos. É o índice "
           "usado na correção do salário mínimo e de benefícios.",
           fonte_primaria="IBGE, Sistema Nacional de Índices de Preços ao Consumidor (SIDRA, tabela 1736, "
                          "variável 44), replicado no SGS do Banco Central",
-          agregacao="variacao_mensal"),
+          agregacao="variacao_mensal", espelho="PRECOS12_INPCBR12"),
     Serie("selic_mes", 4390, "Selic no mês", "Taxa de juros - Selic acumulada no mês", "juros", "% no mês",
           "mensal", "Taxa média dos financiamentos diários com títulos públicos federais no Selic, acumulada no "
                     "mês. É a taxa que a meta do Copom orienta.",
           limitacoes=("O mês em curso fica de fora até fechar: o SGS o publica acumulado só até o dia.",),
-          parcial_no_mes_corrente=True, agregacao="variacao_mensal"),
+          parcial_no_mes_corrente=True, agregacao="variacao_mensal", espelho="BM12_TJOVER12"),
     Serie("selic_anualizada", 4189, "Selic anualizada", "Taxa de juros - Selic acumulada no mês anualizada base "
           "252", "juros", "% ao ano", "mensal",
           "A Selic do mês expressa ao ano (252 dias úteis), para comparar com a meta e com outras taxas anuais.",
@@ -119,13 +134,15 @@ SERIES: tuple[Serie, ...] = (
           "proporção do PIB. Apurado pelo Banco Central pela variação da dívida (abaixo da linha).",
           leitura="É a necessidade de financiamento: positivo é déficit primário; negativo, superávit.",
           limitacoes=("A apuração abaixo da linha do Banco Central pode diferir do resultado do Tesouro (acima da "
-                      "linha) por discrepância estatística.",)),
+                      "linha) por discrepância estatística.",),
+          espelho="BM12_NFSPPYS12"),
     Serie("nominal_12m", 5727, "Resultado nominal (12 meses)",
           "NFSP sem desvalorização cambial (% PIB) - Fluxo acumulado em 12 meses - Resultado nominal - Total - "
           "Setor público consolidado", "fiscal", "% do PIB", "mensal",
           "O resultado primário mais os juros nominais apropriados da dívida, acumulados em 12 meses, em "
           "proporção do PIB.",
-          leitura="Positivo é déficit nominal: quanto o setor público precisou financiar, juros incluídos."),
+          leitura="Positivo é déficit nominal: quanto o setor público precisou financiar, juros incluídos.",
+          espelho="BM12_NFSPNYS12"),
     Serie("pib_12m", 4382, "PIB em 12 meses", "PIB acumulado dos últimos 12 meses - Valores correntes",
           "atividade", "R$ milhões correntes", "mensal",
           "Produto Interno Bruto acumulado nos 12 meses até o mês, em reais da época. É o denominador das séries "
@@ -138,7 +155,7 @@ SERIES: tuple[Serie, ...] = (
           "Crescimento do PIB em volume (descontada a variação de preços) em relação ao ano anterior.",
           fonte_primaria="IBGE, Contas Nacionais, replicado no SGS do Banco Central",
           limitacoes=("O IBGE revisa os anos recentes; o valor de um ano pode mudar depois de publicado.",),
-          agregacao="variacao_anual"),
+          agregacao="variacao_anual", espelho="SCN10_PIBG10", espelho_casas=2),
     Serie("ibc_br", 24363, "IBC-Br", "Índice de Atividade Econômica do Banco Central (IBC-Br)", "atividade",
           "índice (2002 = 100)", "mensal",
           "Indicador mensal da atividade econômica, calculado pelo Banco Central como antecedente do PIB.",
