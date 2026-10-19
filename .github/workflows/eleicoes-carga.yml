@@ -28,10 +28,13 @@
 #             R2_BUCKET_ESTADO   bucket privado do estado (ex.: lumen-privado)
 #             R2_REGIAO          região da assinatura S3 (opcional; padrão auto, a do R2)
 #             ELEICOES_SEM_HISTORICO  "true" para carregar só o sistema de
-#                                resultados (2026 ao vivo), sem os dados abertos
-#                                de 1933 a 2026 nem as zonas; o 1º turno de 2026
-#                                continua ao vivo (opcional; a entrada
-#                                "historico" da execução manual passa por cima)
+#                                resultados (2026 ao vivo) e o mapa das zonas,
+#                                sem os dados abertos de 1933 a 2026; o 1º turno
+#                                de 2026 continua ao vivo (opcional; a entrada
+#                                "historico" da execução manual passa por cima).
+#                                O mapa das zonas tem perto de 2 MB por ano e
+#                                roda sempre (até 18/10/2026 ficava de fora junto
+#                                com o histórico, e o portal ficava sem as zonas)
 #             PUBLICACAO_PARALELOS    envios simultâneos (opcional; padrão 32)
 #             PUBLICACAO_LIMITE_MB    teto do bucket público em MB (opcional; no
 #                                Supabase, 900; 0 tira o teto)

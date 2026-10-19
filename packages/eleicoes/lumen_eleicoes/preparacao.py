@@ -588,8 +588,9 @@ class Preparacao:
             self.iniciar_servidor()
         if self.op.ao_vivo and not self.parar():
             self.coletar_ao_vivo()
-        # Os locais de votação também são dados abertos: sem o histórico, ficam de fora
-        anos_zonas = self.anos_das_zonas() if self.op.historico and self.op.zonas else []
+        # O mapa das zonas (locais de votação) roda mesmo sem o histórico: são poucos megabytes por ano e não
+        # reescreve os feeds antigos. Sem ele, o portal abre o município sem as zonas (18/10/2026).
+        anos_zonas = self.anos_das_zonas() if self.op.zonas else []
         if anos_zonas and not self.parar():
             self._etapa("Zonas eleitorais: locais de votação de 2018 em diante")
             for ano in anos_zonas:

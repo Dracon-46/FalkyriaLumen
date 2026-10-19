@@ -307,9 +307,13 @@ def test_executar_com_a_etapa_das_zonas(cfg, cdn):
     r = prep.executar()
     assert [z["situacao"] for z in r.zonas] == ["gravadas"] and r.anos == []
     assert r.para_json()["zonas"][0]["municipios"] == 2
-    # Sem o histórico, os locais (também dados abertos) ficam de fora
+    # Sem o histórico, o mapa das zonas continua (já gravado, não baixa de novo); só --sem-zonas o tira
+    sem_historico = preparacao.Preparacao(cfg, preparacao.OpcoesPreparacao(anos=[2026], ao_vivo=False, portal=False,
+                                                                           historico=False, bronze=False),
+                                          saida=lambda m: None)
+    assert [z["ano"] for z in sem_historico.executar().zonas] == [2026]
     sem = preparacao.Preparacao(cfg, preparacao.OpcoesPreparacao(anos=[2026], ao_vivo=False, portal=False,
-                                                                 historico=False, bronze=False),
+                                                                 historico=False, zonas=False, bronze=False),
                                 saida=lambda m: None)
     assert sem.executar().zonas == []
 

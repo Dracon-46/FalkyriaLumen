@@ -87,7 +87,7 @@ mesmos nomes acima: `R2_ENDPOINT` com o endereço S3 do projeto, as chaves S3 do
 `R2_REGIAO` (a região do projeto, ex.: `sa-east-1`) e `LUMEN_URL_FEEDS` com
 `https://<ref>.supabase.co/storage/v1/object/public/lumen-eleicoes`. Com os JSON comprimidos,
 1933 a 2026 somam perto de 850 MB e cabem; a publicação para antes de 900 MB
-(`PUBLICACAO_LIMITE_MB`). `ELEICOES_SEM_HISTORICO=true` deixa só 2026. Actions → `eleicoes-medir`
+(`PUBLICACAO_LIMITE_MB`). `ELEICOES_SEM_HISTORICO=true` deixa só 2026 e o mapa das zonas (perto de 2 MB por ano). Actions → `eleicoes-medir`
 mede o tamanho dos feeds e o pior caso de saída por visitante (DOC-12, seção 9.7). É a configuração
 escolhida para o 2º turno de 2026.
 

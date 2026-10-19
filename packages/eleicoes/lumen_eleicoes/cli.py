@@ -471,7 +471,8 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--servir", action="store_true", help="sobe o portal e abre o navegador antes da carga")
     c.add_argument("--anos", type=_anos, help="anos dos dados abertos (padrão: todos, de 2026 a 1933)")
     c.add_argument("--sem-ao-vivo", action="store_true", help="não coleta o sistema de resultados (2026)")
-    c.add_argument("--sem-historico", action="store_true", help="não baixa os dados abertos")
+    c.add_argument("--sem-historico", action="store_true",
+                   help="não baixa os dados abertos dos resultados (o mapa das zonas continua; --sem-zonas o tira)")
     c.add_argument("--sem-zonas", action="store_true", help="não baixa os locais de votação (mapa das zonas)")
     c.add_argument("--sem-portal", action="store_true", help="não gera o portal (Node.js)")
     c.add_argument("--sem-navegador", action="store_true", help="com --servir, não abre o navegador")

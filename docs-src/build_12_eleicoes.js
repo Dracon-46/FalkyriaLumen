@@ -854,7 +854,7 @@ body.push(table(["Nome no GitHub", "Tipo", "Valor no Supabase"], [3000, 1400, 52
   ["R2_REGIAO", "variável", "A região do projeto (ex.: sa-east-1); obrigatória no Supabase"],
   ["R2_BUCKET_FEEDS", "variável", "lumen-eleicoes"],
   ["R2_BUCKET_ESTADO", "variável", "lumen-privado"],
-  ["ELEICOES_SEM_HISTORICO", "variável", "false (ou ausente): a carga inclui os dados abertos de 1933 a 2024; true deixa só 2026, e a entrada historico da execução manual passa por cima"],
+  ["ELEICOES_SEM_HISTORICO", "variável", "false (ou ausente): a carga inclui os dados abertos de 1933 a 2024; true deixa só 2026 e o mapa das zonas (perto de 2 MB por ano), e a entrada historico da execução manual passa por cima"],
   ["PUBLICACAO_LIMITE_MB", "variável", "Opcional: teto do bucket público em MB (900 se ausente)"],
   ["LUMEN_URL_FEEDS", "variável", "https://<ref>.supabase.co/storage/v1/object/public/lumen-eleicoes"],
 ], { monoCols: [0], size: 17 }));
