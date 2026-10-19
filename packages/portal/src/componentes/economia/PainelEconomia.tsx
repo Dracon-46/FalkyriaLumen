@@ -217,7 +217,18 @@ function Detalhe({ ind, id, a, b, dados, escolher }: { ind: Indicador; id: strin
               .{" "}
             </>
           )}
-          Coletado em {instante(ind.coletado_em)}.
+          Coletado em {instante(ind.coletado_em)}
+          {ind.coletado_de === "ipeadata" && ind.url_coleta ? (
+            <>
+              {" "}
+              da{" "}
+              <a href={ind.url_coleta} target="_blank" rel="noreferrer">
+                cópia no Ipeadata
+              </a>
+              , conferida valor a valor com o SGS, porque o SGS recusou a coleta
+            </>
+          ) : null}
+          .
           {ind.periodo_parcial_omitido && ` ${periodoCurto(ind.periodo_parcial_omitido)} ainda em curso, fora da série.`}
           {ind.lacunas.length > 0 && ` ${ind.lacunas.length} período(s) sem dado na fonte (não contados como zero).`}
           {ind.ultima_falha && ` A última tentativa de coleta falhou em ${instante(ind.ultima_falha)}.`}

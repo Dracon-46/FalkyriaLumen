@@ -84,8 +84,11 @@ jobs:
         continue-on-error: true
         run: |
           gh release download "$TAG" -p economia-sgs.json.gz -D estado --clobber || true
-          lumen economia coletar --estado estado
+          # Grava o estado mesmo quando alguma série falhou: as que vieram ficam, e a falha fica registrada
+          status=0
+          lumen economia coletar --estado estado || status=1
           gh release upload "$TAG" estado/economia-sgs.json.gz --clobber
+          exit $status
       - name: Estatais (dados abertos da CVM e da SEST)
         continue-on-error: true
         run: |

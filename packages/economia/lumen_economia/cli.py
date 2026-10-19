@@ -48,7 +48,7 @@ def cmd_coletar(args) -> int:
             print(f"erro: séries desconhecidas: {desconhecidas}. Conhecidas: {sorted(por_id)}", file=sys.stderr)
             return 2
         pedidas = tuple(por_id[i] for i in args.series)
-    resumo = coleta.coletar(_cliente(args), args.estado, pedidas)
+    resumo = coleta.coletar(_cliente(args), args.estado, pedidas, espelho=_cliente(args, coleta.FONTE_ESPELHO))
     print(json.dumps(resumo.para_json(), ensure_ascii=False, indent=2))
     return 1 if resumo.falhas else 0
 

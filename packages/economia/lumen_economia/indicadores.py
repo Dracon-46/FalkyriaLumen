@@ -115,7 +115,9 @@ def montar(estado_dados: dict, *, agora: datetime | None = None) -> dict:
         doc = {**_documentacao(s), "nome_oficial": s.nome_oficial, "fonte": FONTE_SGS,
                "fonte_primaria": s.fonte_primaria, "codigo_sgs": s.codigo, "url": url_sgs(s.codigo),
                "coletado_em": coletas[s.id], "ultima_falha": guardado.get("ultima_falha"),
-               "periodo_parcial_omitido": parcial}
+               "periodo_parcial_omitido": parcial,
+               "coletado_de": guardado.get("fonte_coleta", "sgs") if guardado.get("observacoes") else None,
+               "url_coleta": guardado.get("url_coleta")}
         indicadores[s.id] = _publicado(doc, valores[s.id])
     contas = {
         "ipca_12m": lambda: acumulado(valores["ipca"], 12),

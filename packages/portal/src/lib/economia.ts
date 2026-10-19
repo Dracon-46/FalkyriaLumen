@@ -32,6 +32,9 @@ export interface Indicador {
   derivado_de?: string[];
   coletado_em: string | null;
   ultima_falha?: string | null;
+  /** De onde veio a última coleta: o SGS, ou o espelho conferido no Ipeadata quando o SGS recusou. */
+  coletado_de?: "sgs" | "ipeadata" | null;
+  url_coleta?: string | null;
   periodo_parcial_omitido?: string | null;
   serie: [string, number][];
   ultimo: { periodo: string; valor: number } | null;
