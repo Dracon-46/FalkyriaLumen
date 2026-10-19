@@ -2,10 +2,23 @@
 #
 # Para a noite da eleição: acompanha a totalização no sistema de resultados do
 # TSE e publica no bucket dos feeds a cada passada, até a totalização
-# terminar (ou o prazo de 6 horas da máquina; nesse caso, dispare de novo: o
-# estado continua).
-# Dispare manualmente pouco antes da divulgação dos primeiros resultados, com o
-# id da eleição como aparece em `lumen eleicoes catalogo` (ex.: 2026-2t-geral).
+# terminar. Perto do prazo de 6 horas da máquina, com a apuração ainda em
+# andamento, para ao fim da passada (--limite-minutos) e dispara a
+# continuação, que segue do estado guardado no bucket privado (até
+# CONTINUACOES vezes).
+#
+# Sozinho na noite agendada: os agendamentos abaixo disparam o fluxo no dia
+# de AGENDA_INICIO, para a eleição AGENDA_ELEICAO. O GitHub atrasa os
+# agendamentos (em outubro de 2026, de 4 a 7 horas e meia: o das 04:41 de
+# Brasília começou entre 08:44 e 12:14), por isso eles vêm horas antes e a
+# primeira tarefa espera até AGENDA_INICIO. Espera maior que 5h30 dispara o
+# próprio fluxo no fim, e a nova execução continua esperando. Mais de uma
+# execução agendada pode chegar à coleta: a segunda espera a primeira (grupo
+# eleicoes-carga), recomeça do estado e para quando vê a totalização
+# terminada. Para a eleição seguinte, troque as datas e o AGENDA_*.
+#
+# À mão: Actions → eleicoes-ao-vivo → Run workflow, com o id da eleição como
+# aparece em `lumen eleicoes catalogo` (ex.: 2026-2t-geral); começa na hora.
 #
 # Usa os mesmos segredos e variáveis do eleicoes-carga.yml (R2 ou Supabase
 # Storage; com o Supabase, R2_REGIAO é obrigatória).
@@ -13,6 +26,12 @@
 name: eleicoes-ao-vivo
 
 on:
+  schedule:
+    # 2º turno de 2026, domingo 25/10: 03:00, 06:00, 09:00 e 12:00 em Brasília
+    - cron: "0 6 25 10 *"
+    - cron: "0 9 25 10 *"
+    - cron: "0 12 25 10 *"
+    - cron: "0 15 25 10 *"
   workflow_dispatch:
     inputs:
       eleicao:
@@ -21,18 +40,86 @@ on:
       intervalo:
         description: "Segundos entre passadas"
         default: "30"
+      agendada:
+        description: "Esperar AGENDA_INICIO, como a execução agendada (uso do próprio fluxo)"
+        type: boolean
+        default: false
+      continuacao:
+        description: "Continuações já feitas depois do prazo da máquina (uso do próprio fluxo)"
+        default: "0"
 
 permissions:
   contents: read
 
-concurrency:
-  group: eleicoes-carga
-  cancel-in-progress: false
+env:
+  AGENDA_ELEICAO: 2026-2t-geral
+  # O TSE divulga os primeiros resultados a partir das 17h de Brasília
+  AGENDA_INICIO: "2026-10-25T16:45:00-03:00"
+  CONTINUACOES: "3"
 
 jobs:
+  agenda:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    permissions:
+      actions: write
+    concurrency:
+      group: eleicoes-ao-vivo-agenda
+      cancel-in-progress: false
+    outputs:
+      coletar: ${{ steps.hora.outputs.coletar }}
+      eleicao: ${{ steps.hora.outputs.eleicao }}
+    steps:
+      - name: Esperar o horário da apuração
+        id: hora
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          EVENTO: ${{ github.event_name }}
+          ENTRADA: ${{ inputs.eleicao }}
+          AGENDADA: ${{ inputs.agendada }}
+        run: |
+          if [ "$EVENTO" = "workflow_dispatch" ] && [ "$AGENDADA" != "true" ]; then
+            echo "eleicao=$ENTRADA" >> "$GITHUB_OUTPUT"
+            echo "coletar=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          eleicao="${ENTRADA:-$AGENDA_ELEICAO}"
+          inicio=$(date -d "$AGENDA_INICIO" +%s)
+          dia=$(TZ=America/Sao_Paulo date -d "@$inicio" +%F)
+          if [ "$(TZ=America/Sao_Paulo date +%F)" != "$dia" ]; then
+            echo "::notice::Nada a acompanhar hoje: a apuração agendada é em $dia."
+            echo "coletar=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          espera=$(( inicio - $(date +%s) ))
+          folga=$(( 330 * 60 ))
+          if [ "$espera" -gt "$folga" ]; then
+            echo "Faltam $(( espera / 60 )) min: espera $(( folga / 60 )) e dispara o fluxo de novo, que continua esperando."
+            sleep "$folga"
+            gh workflow run eleicoes-ao-vivo.yml --ref "$GITHUB_REF_NAME" -f eleicao="$eleicao" -f agendada=true
+            echo "coletar=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$espera" -gt 0 ]; then
+            echo "Esperando $(( espera / 60 )) min, até $AGENDA_INICIO."
+            sleep "$espera"
+          fi
+          echo "eleicao=$eleicao" >> "$GITHUB_OUTPUT"
+          echo "coletar=true" >> "$GITHUB_OUTPUT"
+
   ao-vivo:
+    needs: agenda
+    if: needs.agenda.outputs.coletar == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 355
+    permissions:
+      contents: read
+      actions: write
+    # O mesmo grupo do eleicoes-carga.yml: as duas disputariam o índice publicado
+    concurrency:
+      group: eleicoes-carga
+      cancel-in-progress: false
     env:
       LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
       LUMEN_PUBLICACAO_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
@@ -51,8 +138,25 @@ jobs:
           python-version: "3.12"
       - name: Instalar o Lumen
         run: python -m pip install -e .
-      - name: Coletar e publicar a cada passada
+      - name: Coletar e publicar a cada passada (perto do prazo, dispara a continuação)
         env:
-          ELEICAO: ${{ inputs.eleicao }}
-          INTERVALO: ${{ inputs.intervalo }}
-        run: python -m lumen_eleicoes ao-vivo --eleicao "$ELEICAO" --intervalo "$INTERVALO" --nuvem --sem-bronze
+          ELEICAO: ${{ needs.agenda.outputs.eleicao }}
+          INTERVALO: ${{ inputs.intervalo || '30' }}
+          CONTINUACAO: ${{ inputs.continuacao || '0' }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          codigo=0
+          python -m lumen_eleicoes ao-vivo --eleicao "$ELEICAO" --intervalo "$INTERVALO" --nuvem --sem-bronze \
+            --limite-minutos 330 || codigo=$?
+          if [ "$codigo" = 3 ]; then
+            if [ "$CONTINUACAO" -ge "$CONTINUACOES" ]; then
+              echo "::warning::Apuração ainda em andamento depois de $CONTINUACAO continuações: dispare à mão para seguir."
+              exit 0
+            fi
+            echo "::notice::Prazo da máquina com a apuração em andamento: continuação $(( CONTINUACAO + 1 )) disparada."
+            gh workflow run eleicoes-ao-vivo.yml --ref "$GITHUB_REF_NAME" -f eleicao="$ELEICAO" \
+              -f intervalo="$INTERVALO" -f continuacao="$(( CONTINUACAO + 1 ))"
+            exit 0
+          fi
+          exit "$codigo"

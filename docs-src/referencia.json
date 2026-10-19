@@ -914,6 +914,657 @@
    ]
   },
   {
+   "caminho": "packages/economia/lumen_economia/__init__.py",
+   "linguagem": "python",
+   "linhas": 8,
+   "doc": "Economia e Contas Públicas: séries oficiais de inflação, juros, dívida, resultado fiscal e atividade.\n\nAs séries vêm do Sistema Gerenciador de Séries Temporais (SGS) do Banco Central, sem chave; as que o IBGE\nproduz (IPCA, INPC, PIB) são as mesmas do SIDRA, que o teste de contrato confere. O catálogo\n(``catalogo.py``) diz, de cada indicador, a fonte, a unidade, a periodicidade, como ler o sinal e as\nlimitações; os indicadores derivados (acumulado em 12 meses, juro real) dizem a conta (ADR-033).",
+   "itens": []
+  },
+  {
+   "caminho": "packages/economia/lumen_economia/__main__.py",
+   "linguagem": "python",
+   "linhas": 8,
+   "doc": "``python -m lumen_economia``: o mesmo que ``lumen economia``.",
+   "itens": []
+  },
+  {
+   "caminho": "packages/economia/lumen_economia/catalogo.py",
+   "linguagem": "python",
+   "linhas": 191,
+   "doc": "Catálogo dos indicadores da área Economia e Contas Públicas.\n\nCada série tem o código no SGS do Banco Central e o nome oficial, conferido no catálogo de dados abertos do\nBC (``dadosabertos.bcb.gov.br``) ou, para as séries que o IBGE produz e o BC replica, na tabela do SIDRA de\nonde vêm. Os derivados são contas sobre as séries, com a conta escrita em ``definicao``.\n\nRegras que valem para todos (ADR-033):\n\n- **Ausente não é zero.** Mês sem observação fica fora da série; um acumulado que precisa de 12 meses só\n  existe quando os 12 estão lá.\n- **Unidade e conceito explícitos.** Dívida bruta do governo geral e dívida líquida do setor público são\n  medidas diferentes; percentual do PIB, percentual ao mês e reais correntes não se misturam.\n- **O sinal da NFSP.** Na necessidade de financiamento do setor público, valor positivo é déficit e valor\n  negativo é superávit.\n\n``agregacao`` diz como o indicador se resume num período escolhido no portal: ``variacao_mensal`` (taxa do\nmês, que se acumula: IPCA, INPC, Selic do mês), ``variacao_anual`` (taxa do ano, que também se acumula: PIB\nreal) e ``nivel`` (um estado num momento, comparado do início ao fim do período: dívida, resultado em 12\nmeses, índices).\n\n**Espelho.** O SGS fica atrás de um firewall que às vezes recusa as requisições vindas de servidores em nuvem\n(em 18/10/2026 recusou as 11 séries no fluxo diário). Para as séries que o Ipeadata (Ipea) republica com os\nmesmos valores, ``espelho`` é o código lá: a coleta usa o espelho só quando o SGS falha, e diz que usou. Cada\nespelho foi conferido valor a valor contra o SGS (2024 e 2025; o PIB real, de 2015 a 2025, com as duas casas\ndo SGS) em 19/10/2026; os que divergem (o Ipeadata guarda outra revisão do PIB mensal e do IBC-Br, e não\ntem a dívida bruta nem a líquida total) ficam sem espelho.",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "url_sgs",
+     "assinatura": "def url_sgs(codigo: int) -> str",
+     "doc": "Endereço público da série no SGS, em JSON (o mesmo que a coleta usa).",
+     "linha": 37
+    },
+    {
+     "tipo": "funcao",
+     "nome": "url_ipeadata",
+     "assinatura": "def url_ipeadata(codigo: str) -> str",
+     "doc": "Endereço da série no Ipeadata (OData), em JSON.",
+     "linha": 42
+    },
+    {
+     "tipo": "classe",
+     "nome": "Serie",
+     "assinatura": "class Serie",
+     "doc": "Uma série coletada do SGS e como ela aparece no portal.",
+     "linha": 48
+    },
+    {
+     "tipo": "classe",
+     "nome": "Derivado",
+     "assinatura": "class Derivado",
+     "doc": "Um indicador calculado a partir das séries, com a conta descrita.",
+     "linha": 69
+    },
+    {
+     "tipo": "funcao",
+     "nome": "series_por_id",
+     "assinatura": "def series_por_id() -> dict[str, Serie]",
+     "doc": "As séries do catálogo pelo identificador.",
+     "linha": 188
+    }
+   ]
+  },
+  {
+   "caminho": "packages/economia/lumen_economia/cli.py",
+   "linguagem": "python",
+   "linhas": 91,
+   "doc": "Linha de comando da área Economia e Contas Públicas.\n\n    lumen economia coletar --estado DIR [--series ipca,selic_mes]\n    lumen economia estatais --estado DIR [--anos 2021-2025]\n    lumen economia publicar --estado DIR --saida SITE\n\n``coletar`` baixa as séries do SGS do Banco Central para ``DIR/economia-sgs.json.gz`` (o estado guardado\ncom o dos painéis). ``estatais`` lê o cadastro, o controle (FRE) e as demonstrações (DFP) das estatais com\nações na bolsa nos dados abertos da CVM para ``DIR/economia-cvm.json.gz`` (ADR-034). ``publicar`` monta\n``SITE/economia/indicadores.json`` e, se houver o estado das estatais, ``SITE/economia/estatais.json``. As\nestatais federais de capital fechado vêm dos dados abertos da SEST, no mesmo comando (``economia-sest.json.gz``). O\ncódigo de saída de ``coletar`` e de ``estatais`` é 1 quando algo falhou; o resto é gravado mesmo assim.",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "_cliente",
+     "assinatura": "def _cliente(args, fonte: str=coleta.FONTE_ID)",
+     "doc": "Cliente HTTP da fonte com o contato da configuração do Lumen no User-Agent.",
+     "linha": 26
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_anos",
+     "assinatura": "def _anos(texto: str) -> list[int]",
+     "doc": "``2021-2025`` ou ``2023,2025`` → lista de anos.",
+     "linha": 33
+    },
+    {
+     "tipo": "funcao",
+     "nome": "cmd_coletar",
+     "assinatura": "def cmd_coletar(args) -> int",
+     "doc": "Baixa as séries pedidas (ou todas) e imprime o resumo.",
+     "linha": 41
+    },
+    {
+     "tipo": "funcao",
+     "nome": "cmd_estatais",
+     "assinatura": "def cmd_estatais(args) -> int",
+     "doc": "Lê cadastro, FRE e DFP da CVM para o estado das estatais e imprime o resumo.",
+     "linha": 56
+    },
+    {
+     "tipo": "funcao",
+     "nome": "cmd_publicar",
+     "assinatura": "def cmd_publicar(args) -> int",
+     "doc": "Monta o arquivo dos indicadores e, se houver o estado das estatais, o das estatais.",
+     "linha": 65
+    },
+    {
+     "tipo": "funcao",
+     "nome": "main",
+     "assinatura": "def main(argv: list[str] | None=None) -> int",
+     "doc": "Ponto de entrada de ``lumen economia`` e de ``python -m lumen_economia``.",
+     "linha": 74
+    }
+   ]
+  },
+  {
+   "caminho": "packages/economia/lumen_economia/coleta.py",
+   "linguagem": "python",
+   "linhas": 192,
+   "doc": "Coleta das séries do SGS para o estado da área Economia (``economia-sgs.json.gz``).\n\nUma requisição por série, com a série inteira (as séries do catálogo são mensais ou anuais; o SGS limita a\ndez anos por consulta só as diárias). O estado guarda os valores como a fonte os publicou (texto, com o\nponto decimal), a URL e a hora da coleta de cada série. Uma série que falha na coleta mantém o que o estado\njá tinha e registra a falha: o portal mostra o dado anterior com a data em que foi coletado, sem fingir que\né de hoje.\n\nO firewall do Banco Central às vezes recusa requisições de servidores em nuvem, com uma página HTML de\n\"Requisição inválida\" no lugar do JSON (``SgsRecusou``). Quando isso acontece, a coleta tenta de novo depois\nde uma pausa e, se a série tem espelho conferido no Ipeadata (``catalogo.Serie.espelho``), coleta de lá e\nregistra no estado que usou o espelho e por quê.",
+   "itens": [
+    {
+     "tipo": "classe",
+     "nome": "SerieIlegivel",
+     "assinatura": "class SerieIlegivel(ErroColeta)",
+     "doc": "O SGS respondeu, mas não com a lista de observações (página de erro, JSON inesperado).",
+     "linha": 39
+    },
+    {
+     "tipo": "classe",
+     "nome": "SgsRecusou",
+     "assinatura": "class SgsRecusou(SerieIlegivel)",
+     "doc": "O firewall do Banco Central recusou a requisição: não é mudança de formato, é bloqueio de acesso.",
+     "linha": 43
+    },
+    {
+     "tipo": "funcao",
+     "nome": "recusa_do_bc",
+     "assinatura": "def recusa_do_bc(conteudo: bytes) -> str | None",
+     "doc": "O código de erro da página de recusa do firewall do Banco Central, ou ``None`` se não é essa página.",
+     "linha": 47
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_resposta",
+     "assinatura": "def ler_resposta(conteudo: bytes) -> list[tuple[str, str]]",
+     "doc": "Observações da resposta do SGS como (``AAAA-MM-DD``, valor em texto), em ordem de data.\n\nO SGS publica ``[{\"data\": \"01/01/2025\", \"valor\": \"0.16\"}]``. Valor vazio é ausência e fica fora (não vira\nzero). Resposta que não é essa lista levanta ``SerieIlegivel``.",
+     "linha": 56
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_ipeadata",
+     "assinatura": "def ler_ipeadata(conteudo: bytes, casas: int | None=None) -> list[tuple[str, str]]",
+     "doc": "Observações da resposta do Ipeadata como (``AAAA-MM-DD``, valor em texto), em ordem de data.\n\nO Ipeadata publica ``{\"value\": [{\"VALDATA\": \"2024-01-01T00:00:00-03:00\", \"VALVALOR\": 0.42}]}``. Valor nulo\né ausência. Com ``casas``, o valor é arredondado como o SGS publica (o PIB real tem duas casas no SGS).",
+     "linha": 84
+    },
+    {
+     "tipo": "classe",
+     "nome": "ResumoColetaEconomia",
+     "assinatura": "class ResumoColetaEconomia",
+     "doc": "O que a coleta fez: séries atualizadas, as que vieram do espelho e as que falharam, com o motivo.",
+     "linha": 107
+    },
+    {
+     "tipo": "metodo",
+     "nome": "ResumoColetaEconomia.para_json",
+     "assinatura": "def para_json(self) -> dict",
+     "doc": "Resumo para imprimir na linha de comando.",
+     "linha": 114
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_estado",
+     "assinatura": "def ler_estado(estado: Path | str) -> dict",
+     "doc": "O estado gravado, ou um estado vazio na versão atual.",
+     "linha": 119
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_obter",
+     "assinatura": "def _obter(cliente: ClienteHttp, url: str, ler: Callable[[bytes], list[tuple[str, str]]]) -> list[tuple[str, str]]",
+     "doc": "Baixa e lê uma série; levanta ``ErroColeta`` (ou ``ValueError``) se não veio a lista de observações.",
+     "linha": 130
+    },
+    {
+     "tipo": "funcao",
+     "nome": "coletar",
+     "assinatura": "def coletar(cliente: ClienteHttp, estado: Path | str, series: Iterable[Serie]=SERIES, *, agora: datetime | None=None, espelho: ClienteHttp | None=None, espera_s: float=ESPERA_ANTES_DE_REPETIR_S, dormir: Callable[[float], None]=time.sleep) -> ResumoColetaEconomia",
+     "doc": "Baixa cada série do SGS e grava o estado; a série que falha mantém o que já havia.\n\nAs séries que o firewall do BC recusou são pedidas de novo uma vez, depois de ``espera_s``. As que\ncontinuam falhando e têm espelho são coletadas do Ipeadata (com o cliente ``espelho``, ou o mesmo).",
+     "linha": 141
+    }
+   ]
+  },
+  {
+   "caminho": "packages/economia/lumen_economia/cvm.py",
+   "linguagem": "python",
+   "linhas": 295,
+   "doc": "Dados abertos da CVM sobre as companhias abertas: cadastro, controle acionário (FRE) e demonstrações (DFP).\n\nTrês arquivos, todos em ``dados.cvm.gov.br``, em latin-1 e separados por ponto e vírgula:\n\n- **cadastro** (``cad_cia_aberta.csv``): uma linha por registro da companhia, com ``CONTROLE_ACIONARIO``\n  declarado pela própria companhia (``ESTATAL``, ``ESTATAL HOLDING``, ``PRIVADO``...). O campo não é\n  conferido nem atualizado pela CVM a cada mudança de controle: companhias privatizadas continuam com\n  ``ESTATAL`` (ADR-034). Por isso o Lumen usa o cadastro só para escolher as candidatas.\n- **posição acionária do Formulário de Referência** (``fre_cia_aberta_posicao_acionaria_AAAA.csv``, dentro\n  de ``fre_cia_aberta_AAAA.zip``): os acionistas com 5% ou mais e se cada um é controlador. É daqui que sai\n  quem controla a companhia. O arquivo traz também pessoas físicas, com CPF; o Lumen lê só os acionistas\n  diretos que são pessoa jurídica e descarta as linhas de pessoa física sem guardar nada delas (LGPD).\n- **demonstrações financeiras padronizadas** (``dfp_cia_aberta_AAAA.zip``): DRE, DFC e DVA de cada\n  companhia, consolidadas (``_con``) e da controladora (``_ind``), em contas com código. As contas\n  \"fixas\" (``ST_CONTA_FIXA = S``) têm o código definido pela CVM para cada modelo de demonstração; as\n  demais são abertas pela companhia, com a descrição que ela escolheu.\n\nOs campos do cadastro com dados do responsável (nome, telefone, e-mail) nunca são lidos.",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "url_dfp",
+     "assinatura": "def url_dfp(ano: int) -> str",
+     "doc": "Endereço do ZIP das DFP do ano de referência ``ano``.",
+     "linha": 37
+    },
+    {
+     "tipo": "funcao",
+     "nome": "url_fre",
+     "assinatura": "def url_fre(ano: int) -> str",
+     "doc": "Endereço do ZIP dos Formulários de Referência entregues para o ano ``ano``.",
+     "linha": 42
+    },
+    {
+     "tipo": "funcao",
+     "nome": "membro_dfp",
+     "assinatura": "def membro_dfp(ano: int, demonstracao: str, base: str) -> str",
+     "doc": "Nome do CSV de uma demonstração dentro do ZIP das DFP (``dfp_cia_aberta_DRE_con_2025.csv``).",
+     "linha": 47
+    },
+    {
+     "tipo": "funcao",
+     "nome": "membro_documentos",
+     "assinatura": "def membro_documentos(ano: int) -> str",
+     "doc": "Nome do CSV com a lista de documentos entregues (versão, data de recebimento e endereço no RAD).",
+     "linha": 52
+    },
+    {
+     "tipo": "funcao",
+     "nome": "membro_posicao",
+     "assinatura": "def membro_posicao(ano: int) -> str",
+     "doc": "Nome do CSV da posição acionária dentro do ZIP do FRE.",
+     "linha": 57
+    },
+    {
+     "tipo": "classe",
+     "nome": "ArquivoCvmIlegivel",
+     "assinatura": "class ArquivoCvmIlegivel(ValueError)",
+     "doc": "O arquivo da CVM não tem as colunas esperadas: o leiaute mudou ou a resposta não é o CSV.",
+     "linha": 62
+    },
+    {
+     "tipo": "funcao",
+     "nome": "linhas",
+     "assinatura": "def linhas(conteudo: bytes, obrigatorias: tuple[str, ...]) -> list[dict[str, str]]",
+     "doc": "As linhas do CSV da CVM como dicionários, conferindo que as colunas ``obrigatorias`` existem.",
+     "linha": 66
+    },
+    {
+     "tipo": "classe",
+     "nome": "Companhia",
+     "assinatura": "class Companhia",
+     "doc": "O que o Lumen guarda do cadastro: identificação, setor e o controle declarado (sem o responsável).",
+     "linha": 83
+    },
+    {
+     "tipo": "metodo",
+     "nome": "Companhia.para_json",
+     "assinatura": "def para_json(self) -> dict",
+     "doc": "Campos para o estado.",
+     "linha": 96
+    },
+    {
+     "tipo": "funcao",
+     "nome": "candidatas",
+     "assinatura": "def candidatas(conteudo: bytes) -> dict[str, Companhia]",
+     "doc": "Companhias com registro ativo que se declaram estatais no cadastro, uma por CNPJ.",
+     "linha": 103
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_percentual",
+     "assinatura": "def _percentual(texto: str) -> float | None",
+     "doc": "``\"50.260000\"`` → 50.26; vazio ou ilegível → ``None`` (ausente, não zero).",
+     "linha": 124
+    },
+    {
+     "tipo": "funcao",
+     "nome": "controladores",
+     "assinatura": "def controladores(conteudos: list[bytes], cnpjs: set[str]) -> dict[str, dict]",
+     "doc": "Os controladores diretos, pessoa jurídica, declarados no FRE mais recente de cada companhia.\n\nConsidera o documento de data de referência e versão mais recentes entre os arquivos lidos. Guarda o\nnome, o CNPJ e os percentuais de cada acionista direto (sem acionista \"relacionado\") marcado como\ncontrolador. Controladores pessoa física são só contados: nome e CPF não são guardados.",
+     "linha": 132
+    },
+    {
+     "tipo": "funcao",
+     "nome": "esfera_do_controlador",
+     "assinatura": "def esfera_do_controlador(nome: str, cnpj: str) -> str | None",
+     "doc": "``federal``, ``estadual``, ``distrital`` ou ``municipal`` quando o controlador é um ente ou empresa\npública conhecida; ``None`` quando é outra pessoa jurídica (que pode ser outra estatal, conferida à parte).\n\nA raiz do CNPJ decide a União, o BNDES e a Caixa. Estados, DF e municípios têm CNPJs variados (cada um\ndeclara o do órgão que detém as ações); para eles decide o nome, que precisa começar como nome de ente.",
+     "linha": 178
+    },
+    {
+     "tipo": "funcao",
+     "nome": "classificar",
+     "assinatura": "def classificar(controle: dict[str, dict]) -> dict[str, dict]",
+     "doc": "Classifica o controle de cada companhia a partir dos controladores declarados no FRE.\n\n- ``publico_direto``: algum controlador é ente público ou empresa pública federal conhecida;\n- ``publico_indireto``: o controlador é outra companhia desta lista com controle público (a Cemig\n  Distribuição, controlada pela Cemig); a esfera é a dela;\n- ``privado``: há controlador declarado e nenhum é público;\n- ``sem_controlador``: o FRE não declara controlador (o cadastro diz estatal, o FRE não confirma), ou\n  o controlador é outra companhia desta lista sem controlador (as controladas da Copel);\n- ``sem_fre``: a companhia não entregou FRE nos anos lidos.\n\nA cadeia é seguida até estabilizar, então uma controlada de controlada também é reconhecida.",
+     "linha": 199
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_reais",
+     "assinatura": "def _reais(valor: str, escala: str) -> float | None",
+     "doc": "Valor da conta em reais (a CVM publica em milhares na maioria das companhias).",
+     "linha": 248
+    },
+    {
+     "tipo": "funcao",
+     "nome": "contas",
+     "assinatura": "def contas(conteudo: bytes, cnpjs: set[str]) -> dict[str, dict]",
+     "doc": "As contas do exercício de referência (``ÚLTIMO``) de cada companhia, na versão mais recente.\n\nDevolve ``{cnpj: {\"versao\", \"inicio\", \"fim\", \"contas\": [[código, descrição, reais, fixa], ...]}}``. O\nlucro por ação (``3.99``) fica de fora: não é valor em reais.",
+     "linha": 256
+    },
+    {
+     "tipo": "funcao",
+     "nome": "documentos",
+     "assinatura": "def documentos(conteudo: bytes, cnpjs: set[str]) -> dict[str, dict]",
+     "doc": "A entrega mais recente da DFP de cada companhia: versão, data de recebimento e endereço no RAD.",
+     "linha": 281
+    }
+   ]
+  },
+  {
+   "caminho": "packages/economia/lumen_economia/estatais.py",
+   "linguagem": "python",
+   "linhas": 413,
+   "doc": "Empresas estatais com ações na bolsa: quem as controla e quanto gastam, pelas demonstrações entregues à CVM.\n\nAs estatais não contratam pela Lei 14.133 e não publicam no PNCP (Lei 13.303/2016). As que são companhias\nabertas entregam à CVM, todo ano, as demonstrações financeiras padronizadas (DFP), com receita, custos,\ndespesas, o valor adicionado distribuído (pessoal, impostos, juros) e o caixa aplicado em investimentos.\n\nA coleta (``coletar``) lê o cadastro da CVM, escolhe as companhias que se declaram estatais, confere quem\nas controla no Formulário de Referência e guarda as contas das DFP no estado ``economia-cvm.json.gz``, com\no dos painéis. A publicação (``montar``/``publicar``) gera ``economia/estatais.json``, que o portal lê, com\nas estatais federais de capital fechado da SEST (``sest.py``) ao lado.\n\nRegras (ADR-034):\n\n- o controle vem do FRE, não do campo do cadastro, que a companhia declara e não atualiza;\n- nenhum total soma companhias: a controladora consolida as controladas (o Banco do Brasil consolida a BB\n  Seguridade), e somar contaria duas vezes;\n- cada indicador vem de uma conta identificada pela descrição oficial do modelo da CVM, porque o código\n  muda conforme o modelo (empresa, banco ou seguradora); quando a conta não é achada, o valor fica\n  ausente, e não zero;\n- os valores são os publicados, em reais correntes, com o sinal da demonstração.",
+   "itens": [
+    {
+     "tipo": "classe",
+     "nome": "ResumoColetaEstatais",
+     "assinatura": "class ResumoColetaEstatais",
+     "doc": "O que a coleta fez: candidatas, controle conferido, anos das DFP lidos ou mantidos e as falhas.",
+     "linha": 51
+    },
+    {
+     "tipo": "metodo",
+     "nome": "ResumoColetaEstatais.para_json",
+     "assinatura": "def para_json(self) -> dict",
+     "doc": "Resumo para imprimir na linha de comando.",
+     "linha": 60
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_estado",
+     "assinatura": "def ler_estado(estado: Path | str) -> dict",
+     "doc": "O estado gravado, ou um estado vazio na versão atual.",
+     "linha": 66
+    },
+    {
+     "tipo": "funcao",
+     "nome": "anos_padrao",
+     "assinatura": "def anos_padrao(agora: datetime) -> list[int]",
+     "doc": "Os últimos ``ANOS_PADRAO`` exercícios encerrados (em 2026, de 2021 a 2025).",
+     "linha": 77
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ultima_modificacao",
+     "assinatura": "def ultima_modificacao(cliente: ClienteHttp, url: str) -> str | None",
+     "doc": "``Last-Modified`` do arquivo, pedindo só o último byte (o arquivo inteiro não é baixado).",
+     "linha": 82
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_membro",
+     "assinatura": "def _membro(baixar: BaixarMembro, cliente: ClienteHttp, url: str, nome: str) -> bytes | None",
+     "doc": "Conteúdo de um CSV de dentro do ZIP, ou ``None`` se o ZIP não o tem (DFC pelo método direto, por exemplo).",
+     "linha": 90
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_coletar_dfp",
+     "assinatura": "def _coletar_dfp(cliente: ClienteHttp, baixar: BaixarMembro, ano: int, cnpjs: set[str]) -> dict",
+     "doc": "As contas e os documentos de um ano das DFP, só das companhias pedidas.\n\nPara cada companhia e demonstração, fica a base consolidada quando existe; senão, a da controladora.\nDa DFC, fica o método indireto quando existe; senão, o direto.",
+     "linha": 100
+    },
+    {
+     "tipo": "funcao",
+     "nome": "coletar",
+     "assinatura": "def coletar(cliente: ClienteHttp, estado: Path | str, anos: Iterable[int] | None=None, *, baixar: BaixarMembro=baixar_membro, agora: datetime | None=None) -> ResumoColetaEstatais",
+     "doc": "Lê cadastro, FRE e DFP e grava o estado; o que falha mantém o que o estado já tinha.\n\nUm ano das DFP cujo ZIP não mudou desde a última coleta (mesmo ``Last-Modified``) não é baixado de novo,\na não ser que as candidatas tenham mudado.",
+     "linha": 129
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_gravar",
+     "assinatura": "def _gravar(estado: Path | str, dados: dict, resumo: ResumoColetaEstatais, instante: str) -> None",
+     "doc": "Grava o estado com as falhas desta coleta.",
+     "linha": 193
+    },
+    {
+     "tipo": "classe",
+     "nome": "Indicador",
+     "assinatura": "class Indicador",
+     "doc": "Um número tirado das demonstrações: de qual demonstração, como achar a conta e como ler o sinal.",
+     "linha": 203
+    },
+    {
+     "tipo": "funcao",
+     "nome": "nivel",
+     "assinatura": "def nivel(codigo: str) -> int",
+     "doc": "Profundidade da conta: ``3.04`` é 2, ``3.04.05.01`` é 4.",
+     "linha": 261
+    },
+    {
+     "tipo": "funcao",
+     "nome": "modelo",
+     "assinatura": "def modelo(dre: list[list]) -> str",
+     "doc": "Modelo da DRE pela descrição da primeira linha: ``empresa``, ``banco``, ``seguradora`` ou ``outro``.",
+     "linha": 266
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_conta",
+     "assinatura": "def _conta(contas_: list[list], codigo: str) -> dict | None",
+     "doc": "A conta de código ``codigo``, como ``{\"conta\", \"descricao\", \"valor\"}``.",
+     "linha": 278
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_por_descricao",
+     "assinatura": "def _por_descricao(contas_: list[list], padrao: re.Pattern, *, nivel_: int | None=None, prefixo: str='', ultima: bool=False) -> dict | None",
+     "doc": "A primeira (ou a última) conta cuja descrição casa com ``padrao``, no nível e sob o prefixo pedidos.",
+     "linha": 286
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_aquisicoes",
+     "assinatura": "def _aquisicoes(dfc: list[list], investimento: dict | None) -> dict | None",
+     "doc": "Linhas da atividade de investimento que a companhia descreveu como compra de imobilizado ou\nintangível, somadas, sem contar duas vezes uma linha e a que está dentro dela.",
+     "linha": 296
+    },
+    {
+     "tipo": "funcao",
+     "nome": "extrair",
+     "assinatura": "def extrair(demonstracoes: dict[str, dict]) -> tuple[str, dict[str, dict | None]]",
+     "doc": "O modelo da companhia e cada indicador do catálogo (``None`` quando a conta não foi achada).",
+     "linha": 312
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_bases",
+     "assinatura": "def _bases(demonstracoes: dict[str, dict]) -> dict[str, str]",
+     "doc": "De onde saiu cada demonstração: ``DRE`` → ``consolidado`` ou ``individual`` (e o método da DFC).",
+     "linha": 333
+    },
+    {
+     "tipo": "funcao",
+     "nome": "montar",
+     "assinatura": "def montar(dados: dict, *, sest_dados: dict | None=None, agora: datetime | None=None) -> dict",
+     "doc": "O arquivo ``economia/estatais.json`` a partir dos estados da CVM e (se houver) da SEST.",
+     "linha": 345
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_federais",
+     "assinatura": "def _federais(sest_dados: dict, cnpjs_cvm: set[str]) -> dict",
+     "doc": "A parte da SEST, marcando as empresas que também estão na lista da CVM (para o portal ligar as duas).",
+     "linha": 394
+    },
+    {
+     "tipo": "funcao",
+     "nome": "publicar",
+     "assinatura": "def publicar(estado: Path | str, saida: Path | str, *, agora: datetime | None=None) -> dict",
+     "doc": "Grava ``economia/estatais.json`` em ``saida`` e devolve um resumo por classe de controle.",
+     "linha": 402
+    }
+   ]
+  },
+  {
+   "caminho": "packages/economia/lumen_economia/indicadores.py",
+   "linguagem": "python",
+   "linhas": 148,
+   "doc": "Os indicadores publicados: as séries do estado, os derivados e o arquivo que o portal lê.\n\nO portal lê ``economia/indicadores.json``, publicado com os painéis no GitHub Pages. Cada indicador leva a\nsérie inteira (mês ``AAAA-MM`` ou ano ``AAAA`` e valor), o último valor, a data da coleta, a fonte e a\ndocumentação do catálogo. As comparações entre períodos (variação, média, acumulado) são feitas no\nportal sobre estas séries, com as mesmas regras: sem dado, sem conta.",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "chave",
+     "assinatura": "def chave(data_iso: str, periodicidade: str) -> str",
+     "doc": "Chave do período na série: ``AAAA-MM`` na mensal, ``AAAA`` na anual.",
+     "linha": 24
+    },
+    {
+     "tipo": "funcao",
+     "nome": "mes_anterior",
+     "assinatura": "def mes_anterior(mes: str) -> str",
+     "doc": "``2025-01`` → ``2024-12``.",
+     "linha": 29
+    },
+    {
+     "tipo": "funcao",
+     "nome": "serie_do_estado",
+     "assinatura": "def serie_do_estado(observacoes: Iterable[tuple[str, str]], periodicidade: str) -> dict[str, float]",
+     "doc": "Valores por período, a partir das observações do estado (a última do período, se houver mais de uma).",
+     "linha": 35
+    },
+    {
+     "tipo": "funcao",
+     "nome": "acumulado",
+     "assinatura": "def acumulado(variacoes: dict[str, float], meses: int) -> dict[str, float]",
+     "doc": "Variação acumulada em ``meses`` meses seguidos, em %, só onde os ``meses`` estão todos na série.",
+     "linha": 40
+    },
+    {
+     "tipo": "funcao",
+     "nome": "no_ano",
+     "assinatura": "def no_ano(variacoes: dict[str, float]) -> dict[str, float]",
+     "doc": "Variação acumulada de janeiro até o mês, em %, só onde todos os meses do ano até ele estão na série.",
+     "linha": 55
+    },
+    {
+     "tipo": "funcao",
+     "nome": "juro_real",
+     "assinatura": "def juro_real(selic: dict[str, float], inflacao: dict[str, float]) -> dict[str, float]",
+     "doc": "(1 + Selic) / (1 + inflação) - 1, em %, nos períodos em que há as duas.",
+     "linha": 61
+    },
+    {
+     "tipo": "funcao",
+     "nome": "diferenca",
+     "assinatura": "def diferenca(a: dict[str, float], b: dict[str, float]) -> dict[str, float]",
+     "doc": "``a - b`` nos períodos em que há os dois, com duas casas.",
+     "linha": 67
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lacunas",
+     "assinatura": "def lacunas(serie: dict[str, float], periodicidade: str) -> list[str]",
+     "doc": "Períodos sem observação entre o primeiro e o último da série (ausentes, e não zero).",
+     "linha": 72
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_documentacao",
+     "assinatura": "def _documentacao(item: Serie | Derivado) -> dict",
+     "doc": "Os campos de documentação comuns a séries e derivados.",
+     "linha": 87
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_publicado",
+     "assinatura": "def _publicado(doc: dict, serie: dict[str, float]) -> dict",
+     "doc": "Acrescenta a série, o último valor e as lacunas à documentação do indicador.",
+     "linha": 94
+    },
+    {
+     "tipo": "funcao",
+     "nome": "montar",
+     "assinatura": "def montar(estado_dados: dict, *, agora: datetime | None=None) -> dict",
+     "doc": "O arquivo ``economia/indicadores.json`` a partir do estado da coleta.",
+     "linha": 102
+    },
+    {
+     "tipo": "funcao",
+     "nome": "publicar",
+     "assinatura": "def publicar(estado: Path | str, saida: Path | str, *, agora: datetime | None=None) -> dict",
+     "doc": "Grava ``economia/indicadores.json`` em ``saida`` e devolve um resumo (indicadores e último período).",
+     "linha": 142
+    }
+   ]
+  },
+  {
+   "caminho": "packages/economia/lumen_economia/sest.py",
+   "linguagem": "python",
+   "linhas": 273,
+   "doc": "Estatais federais pelos dados abertos da SEST: cadastro das empresas e o Programa de Dispêndios Globais.\n\nA Secretaria de Coordenação e Governança das Empresas Estatais (SEST, Ministério da Gestão e da Inovação)\npublica, em ``gov.br/gestao/.../estatais/transparencia``, arquivos ZIP com CSV (``;``, cp1252):\n\n- **identificação** (``sestidentificacao.zip``): as empresas federais ativas e inativas, com código SIEST,\n  sigla, CNPJ, dependência do Tesouro, grupo econômico, capital aberto ou fechado e ministério supervisor;\n- **PDG** (``sestpdg.zip``): o Programa de Dispêndios Globais, o orçamento anual das empresas **não\n  dependentes** do Tesouro (as que se pagam com receita própria, como os Correios e a Caixa), aprovado por\n  decreto, com o realizado acumulado mês a mês, por rubrica (pessoal, materiais, serviços de terceiros,\n  tributos, investimentos...).\n\nAs empresas dependentes (EBSERH, Embrapa, HCPA...) não estão no PDG: a despesa delas é do Orçamento da\nUnião e aparece no Portal da Transparência. O Lumen guarda do cadastro só dados da empresa (o arquivo\nnão tem dados de pessoas além do telefone e endereço institucionais, que não são lidos).",
+   "itens": [
+    {
+     "tipo": "classe",
+     "nome": "ArquivoSestIlegivel",
+     "assinatura": "class ArquivoSestIlegivel(ValueError)",
+     "doc": "O arquivo da SEST não é o ZIP esperado ou o CSV não tem as colunas esperadas.",
+     "linha": 46
+    },
+    {
+     "tipo": "funcao",
+     "nome": "numero",
+     "assinatura": "def numero(texto: str) -> float | None",
+     "doc": "Valor em reais do formato da SEST: ``1.500.002.908``, ``1.234,56``, ``-`` (zero) ou vazio (ausente).",
+     "linha": 50
+    },
+    {
+     "tipo": "funcao",
+     "nome": "membro",
+     "assinatura": "def membro(conteudo: bytes, sufixo: str) -> bytes",
+     "doc": "O arquivo do ZIP cujo nome termina em ``sufixo`` (os ZIPs da SEST têm uma pasta dentro).",
+     "linha": 66
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_linhas",
+     "assinatura": "def _linhas(conteudo: bytes, obrigatorias: tuple[str, ...]) -> list[dict[str, str]]",
+     "doc": "Linhas do CSV (cp1252, ``;``), conferindo as colunas.",
+     "linha": 78
+    },
+    {
+     "tipo": "funcao",
+     "nome": "empresas",
+     "assinatura": "def empresas(ativas: bytes, inativas: bytes | None=None) -> dict[str, dict]",
+     "doc": "O cadastro das empresas por código SIEST, com a situação (ativa ou inativa, e desde quando).",
+     "linha": 89
+    },
+    {
+     "tipo": "funcao",
+     "nome": "pdg",
+     "assinatura": "def pdg(conteudo: bytes) -> dict[str, dict]",
+     "doc": "O PDG por empresa, exercício e rubrica: aprovado, realizado acumulado até o último mês publicado.\n\nDevolve ``{codigo_siest: {\"empresa\": sigla, \"exercicios\": {ano: {rubrica: [aprovado, realizado,\núltimo mês]}}, \"rubricas\": {código: nome}}}``. O realizado de cada mês é acumulado no ano, então o do\núltimo mês com valor é o do ano até ali. Rubrica sem nenhum mês publicado tem realizado ausente.",
+     "linha": 110
+    },
+    {
+     "tipo": "classe",
+     "nome": "ResumoColetaSest",
+     "assinatura": "class ResumoColetaSest",
+     "doc": "O que a coleta fez: empresas no cadastro, empresas e exercícios no PDG, falhas.",
+     "linha": 133
+    },
+    {
+     "tipo": "metodo",
+     "nome": "ResumoColetaSest.para_json",
+     "assinatura": "def para_json(self) -> dict",
+     "doc": "Resumo para imprimir na linha de comando.",
+     "linha": 141
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_estado",
+     "assinatura": "def ler_estado(estado: Path | str) -> dict",
+     "doc": "O estado gravado, ou um estado vazio na versão atual.",
+     "linha": 147
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_baixar",
+     "assinatura": "def _baixar(cliente: ClienteHttp, url: str) -> bytes",
+     "doc": "O ZIP inteiro (os da SEST têm poucos megabytes).",
+     "linha": 158
+    },
+    {
+     "tipo": "funcao",
+     "nome": "coletar",
+     "assinatura": "def coletar(cliente: ClienteHttp, estado: Path | str, *, agora: datetime | None=None) -> ResumoColetaSest",
+     "doc": "Baixa o cadastro e o PDG e grava o estado; o arquivo que falha mantém o que o estado já tinha.",
+     "linha": 166
+    },
+    {
+     "tipo": "classe",
+     "nome": "Rubrica",
+     "assinatura": "class Rubrica",
+     "doc": "Uma linha do PDG que o portal mostra, com o código da SEST e o que ela inclui.",
+     "linha": 203
+    },
+    {
+     "tipo": "funcao",
+     "nome": "montar",
+     "assinatura": "def montar(dados: dict) -> dict",
+     "doc": "A parte das estatais federais da SEST no arquivo ``economia/estatais.json``.",
+     "linha": 238
+    }
+   ]
+  },
+  {
    "caminho": "packages/eleicoes/lumen_eleicoes/__init__.py",
    "linguagem": "python",
    "linhas": 22,
@@ -1282,7 +1933,7 @@
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/cli.py",
    "linguagem": "python",
-   "linhas": 604,
+   "linhas": 626,
    "doc": "Linha de comando da aba Eleições (``lumen eleicoes ...``).\n\nExemplos::\n\n    lumen eleicoes preparar --servir                # tudo: mapa, 1933 a 2026, portal no navegador\n    lumen eleicoes preparar --nuvem --limite-minutos 280 --apagar-zips   # a mesma carga no GitHub Actions\n    lumen eleicoes publicar                         # envia ao R2 os feeds que mudaram\n    lumen eleicoes catalogo                         # o que o TSE publica agora\n    lumen eleicoes municipios                       # cadastro TSE ↔ IBGE (busca e mapa)\n    lumen eleicoes mapas                            # malhas do IBGE para o mapa\n    lumen eleicoes mapas --contornos                # contornos finos dos municípios do mapa das zonas\n    lumen eleicoes zonas --anos 2026,2024           # locais de votação: mapa das zonas eleitorais\n    lumen eleicoes ao-vivo --eleicao 2026-1t-geral  # noite da apuração\n    lumen eleicoes historico baixar --anos 2022,2018,1950\n    lumen eleicoes historico processar --anos 2022,2018,1950\n    lumen eleicoes simular                          # apuração fictícia para testar a tela\n    lumen eleicoes servir                           # portal + feeds em http://127.0.0.1:8080\n    lumen eleicoes verificar                        # confere o contrato dos feeds gravados\n    lumen eleicoes medir --resumo resumo.md         # tamanho dos feeds contra os limites gratuitos",
    "itens": [
     {
@@ -1290,189 +1941,189 @@
      "nome": "_lista",
      "assinatura": "def _lista(texto: str | None) -> list[str] | None",
      "doc": "Converte ``a, b, c`` em lista sem espaços e em minúsculas; texto ausente vira ``None`` (padrão do comando).",
-     "linha": 54
+     "linha": 58
     },
     {
      "tipo": "funcao",
      "nome": "_anos",
      "assinatura": "def _anos(texto: str) -> list[int]",
      "doc": "Tipo do argparse para ``--anos``: anos sem repetição, do mais recente ao mais antigo.\n\n``todos`` são todos os anos dos dados abertos, de 2026 a 1933. Recusa ano sem eleição ordinária nos\ndados abertos (fora de ``carga.anos_disponiveis``).",
-     "linha": 59
+     "linha": 63
     },
     {
      "tipo": "funcao",
      "nome": "_anos_locais",
      "assinatura": "def _anos_locais(texto: str) -> list[int]",
      "doc": "Tipo do argparse para ``zonas --anos``: anos com locais de votação (2018 em diante), do mais recente ao\nmais antigo; ``todos`` são os de ``zonas.ANOS_LOCAIS``.",
-     "linha": 75
+     "linha": 79
     },
     {
      "tipo": "funcao",
      "nome": "_cliente",
      "assinatura": "def _cliente(cfg: ConfiguracaoEleicoes, fonte: str, rpm: int) -> ClienteHttp",
      "doc": "Cliente HTTP da fonte, com o User-Agent da configuração e limite de ``rpm`` requisições por minuto.",
-     "linha": 87
+     "linha": 91
     },
     {
      "tipo": "funcao",
      "nome": "_imprimir",
      "assinatura": "def _imprimir(dados) -> None",
      "doc": "Imprime ``dados`` como JSON indentado, com acentos e ``str`` para o que não for serializável.",
-     "linha": 92
+     "linha": 96
     },
     {
      "tipo": "funcao",
      "nome": "_catalogo",
      "assinatura": "def _catalogo(cliente: ClienteHttp, base: str) -> list",
      "doc": "Baixa e lê o catálogo de eleições do sistema de resultados; encerra o programa se não vier HTTP 200.",
-     "linha": 97
+     "linha": 101
     },
     {
      "tipo": "funcao",
      "nome": "_nuvem",
      "assinatura": "def _nuvem(cfg: ConfiguracaoEleicoes, args) -> Nuvem",
      "doc": "Ponte com o armazenamento da nuvem a partir do ``[publicacao]`` e das variáveis de ambiente.\n\nLevanta ``ConfiguracaoAusente`` se faltar endpoint, bucket ou chave; ``main`` transforma isso em\nmensagem e código 2.",
-     "linha": 105
+     "linha": 109
     },
     {
      "tipo": "funcao",
      "nome": "_cadastro",
      "assinatura": "def _cadastro(cfg: ConfiguracaoEleicoes) -> CadastroMunicipios",
      "doc": "Cadastro de municípios do diretório dos feeds; sem ele, o que vem com o pacote (``referencias``).\n\nO do diretório dos feeds é o mais novo: ``lumen eleicoes municipios`` grava ali a versão corrente.",
-     "linha": 115
+     "linha": 119
     },
     {
      "tipo": "funcao",
      "nome": "cmd_catalogo",
      "assinatura": "def cmd_catalogo(cfg, args) -> int",
      "doc": "Imprime as eleições do sistema de resultados (cargos e UFs de cada uma) e os anos dos dados abertos.",
-     "linha": 128
+     "linha": 132
     },
     {
      "tipo": "funcao",
      "nome": "cmd_municipios",
      "assinatura": "def cmd_municipios(cfg, args) -> int",
      "doc": "Grava o ``municipios.json`` (cadastro TSE ↔ IBGE) e imprime o arquivo e as contagens.\n\nUsa o cadastro de municípios de uma eleição do catálogo — por padrão a geral mais recente, que tem\ntodos os municípios e o exterior — e os nomes do IBGE; se o IBGE não responder, ficam os nomes do TSE.",
-     "linha": 141
+     "linha": 145
     },
     {
      "tipo": "funcao",
      "nome": "cmd_mapas",
      "assinatura": "def cmd_mapas(cfg, args) -> int",
      "doc": "Baixa as malhas do IBGE para o mapa (todas as UFs ou as pedidas) e imprime os arquivos gravados.\n\nCom ``--contornos``, baixa em vez disso o contorno fino (qualidade ``maxima``) de cada município listado\nnos índices do mapa das zonas (``geo/zonas-<ano>/indice.json``) do diretório dos feeds.",
-     "linha": 175
+     "linha": 179
     },
     {
      "tipo": "funcao",
      "nome": "cmd_zonas",
      "assinatura": "def cmd_zonas(cfg, args) -> int",
      "doc": "Baixa os locais de votação de cada ano e grava o mapa das zonas eleitorais (``geo/zonas-<ano>/``).\n\nO andamento vai para o stderr; no stdout, só o resumo de cada ano em JSON: municípios com mais de uma\nzona, locais e descartados.",
-     "linha": 197
+     "linha": 201
     },
     {
      "tipo": "funcao",
      "nome": "_aviso_passada",
      "assinatura": "def _aviso_passada(r: ResumoPassada) -> None",
      "doc": "Imprime a linha de acompanhamento de uma passada do coletor e, no stderr, até cinco dos erros dela.",
-     "linha": 217
+     "linha": 221
     },
     {
      "tipo": "funcao",
      "nome": "_instalar_parada",
      "assinatura": "def _instalar_parada() -> list[bool]",
      "doc": "Instala o tratamento de Ctrl+C e devolve a sinalização que o laço do coletor consulta.\n\nO primeiro Ctrl+C só marca ``sinal[0]``, e o coletor para ao fim da passada em curso; o segundo\ninterrompe na hora. É uma lista, e não um ``bool``, para o tratador poder alterá-la.",
-     "linha": 228
+     "linha": 232
     },
     {
      "tipo": "funcao",
      "nome": "cmd_ao_vivo",
      "assinatura": "def cmd_ao_vivo(cfg, args) -> int",
-     "doc": "Coleta a apuração em andamento de uma eleição do catálogo, imprimindo uma linha por passada.\n\nRoda até a totalização terminar, até Ctrl+C ou, com ``--uma-vez``, por uma passada só. Devolve 2\nse a eleição não está no sistema de resultados. Com ``--nuvem``, restaura o estado antes, publica\nos feeds a cada passada que gravou algo e sincroniza no fim (ADR-026).",
-     "linha": 248
+     "doc": "Coleta a apuração em andamento de uma eleição do catálogo, imprimindo uma linha por passada.\n\nRoda até a totalização terminar, até Ctrl+C ou, com ``--uma-vez``, por uma passada só. Devolve 2\nse a eleição não está no sistema de resultados. Com ``--nuvem``, restaura o estado antes, publica\nos feeds a cada passada que gravou algo e sincroniza no fim (ADR-026). Com ``--limite-minutos``, para\nao fim da passada em que o prazo vence e, se a apuração não terminou, devolve ``CODIGO_PRAZO``: a\npróxima execução continua do estado gravado.",
+     "linha": 252
     },
     {
      "tipo": "funcao",
      "nome": "cmd_historico_baixar",
      "assinatura": "def cmd_historico_baixar(cfg, args) -> int",
      "doc": "Baixa os ZIPs dos dados abertos de cada ano e registra o manifesto de cada um no bronze.\n\nImprime, por arquivo, o caminho, o SHA-256 e o tamanho. Até 1990 são os três conjuntos por UF.",
-     "linha": 296
+     "linha": 315
     },
     {
      "tipo": "funcao",
      "nome": "cmd_historico_processar",
      "assinatura": "def cmd_historico_processar(cfg, args) -> int",
      "doc": "Gera os feeds de cada ano a partir dos ZIPs já baixados e imprime um resumo por ano.\n\nDevolve 2 se faltar o ZIP de votação de algum ano; os demais conjuntos são opcionais.",
-     "linha": 312
+     "linha": 331
     },
     {
      "tipo": "funcao",
      "nome": "cmd_preparar",
      "assinatura": "def cmd_preparar(cfg, args) -> int",
      "doc": "Deixa a aba pronta: mapa, portal, 2026 do sistema de resultados e os dados abertos de 1933 a 2026.\n\nRetomável; imprime o andamento e, no fim, o resumo em JSON. Devolve 1 se alguma etapa falhou.",
-     "linha": 332
+     "linha": 351
     },
     {
      "tipo": "funcao",
      "nome": "_rodar_simulacao",
      "assinatura": "def _rodar_simulacao(cfg, arquivos: Path, eleicao_id: str, etapas: int, intervalo: float, ufs: list[str] | None, estado: Path | None) -> int",
      "doc": "Roda o coletor ao vivo contra um servidor local que publica os arquivos finais em ``etapas``.\n\nA cada intervalo entre passadas o cenário avança uma etapa, até ``etapas`` passadas. Por ser\nlocal, o cliente ignora o proxy do ambiente e tem limite de taxa folgado. Devolve 2 se a eleição\nnão está no catálogo da simulação.",
-     "linha": 356
+     "linha": 375
     },
     {
      "tipo": "funcao",
      "nome": "cmd_simular",
      "assinatura": "def cmd_simular(cfg, args) -> int",
      "doc": "Simula uma apuração a partir dos arquivos finais (as fixtures, por padrão), avisando no stderr que\nos números intermediários são fictícios.",
-     "linha": 387
+     "linha": 406
     },
     {
      "tipo": "funcao",
      "nome": "cmd_publicar",
      "assinatura": "def cmd_publicar(cfg, args) -> int",
      "doc": "Envia ao bucket público os feeds novos ou alterados e grava o estado no privado (ADR-026).",
-     "linha": 396
+     "linha": 415
     },
     {
      "tipo": "funcao",
      "nome": "cmd_amostra",
      "assinatura": "def cmd_amostra(cfg, args) -> int",
      "doc": "Feeds a partir dos arquivos reais das fixtures, para desenvolver o portal sem rede, com o mapa e o\ncadastro de municípios que vêm com o pacote.",
-     "linha": 407
+     "linha": 426
     },
     {
      "tipo": "funcao",
      "nome": "cmd_servir",
      "assinatura": "def cmd_servir(cfg, args) -> int",
      "doc": "Serve o portal gerado e os feeds em HTTP local até Ctrl+C; devolve 2 se o portal não foi gerado.",
-     "linha": 417
+     "linha": 436
     },
     {
      "tipo": "funcao",
      "nome": "cmd_verificar",
      "assinatura": "def cmd_verificar(cfg, args) -> int",
      "doc": "Confere o contrato dos feeds gravados; imprime cada problema e o total, e devolve 1 se houver algum.",
-     "linha": 434
+     "linha": 453
     },
     {
      "tipo": "funcao",
      "nome": "cmd_medir",
      "assinatura": "def cmd_medir(cfg, args) -> int",
      "doc": "Mede os feeds gravados contra os limites do R2 e do Supabase gratuitos; imprime JSON.\n\n``--resumo`` também grava o resumo em Markdown (no GitHub Actions, o ``$GITHUB_STEP_SUMMARY``).\nDevolve 1 se não houver nenhum feed para medir.",
-     "linha": 443
+     "linha": 462
     },
     {
      "tipo": "funcao",
      "nome": "construir_parser",
      "assinatura": "def construir_parser() -> argparse.ArgumentParser",
      "doc": "Monta o parser de ``lumen eleicoes``: opções globais e um subcomando por ação.\n\n``historico`` tem os seus próprios subcomandos, ``baixar`` e ``processar``.",
-     "linha": 459
+     "linha": 478
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada: lê argumentos e configuração e despacha para o comando; devolve o código de saída.\n\nOs comandos que não consultam as fontes (``servir``, ``verificar``, ``amostra``, ``publicar``, ``medir``)\ndispensam o contato da coleta. ``--saida`` sobrepõe o diretório dos feeds da configuração. Falta de\nconfiguração da nuvem (``--nuvem``, ``publicar``) vira mensagem e código 2.",
-     "linha": 575
+     "linha": 597
     }
    ]
   },
@@ -2993,7 +3644,7 @@
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/preparacao.py",
    "linguagem": "python",
-   "linhas": 621,
+   "linhas": 622,
    "doc": "``lumen eleicoes preparar``: a aba Eleições pronta num comando.\n\nO repositório traz o código, o mapa e o cadastro de municípios, mas não os\nresultados: os arquivos do TSE somam vários GB (só a votação por município de\n2022 tem 642 MB compactados) e são publicados e corrigidos pelo próprio\ntribunal. Este comando busca tudo na fonte oficial uma vez, guarda os ZIPs\ncom o SHA-256 de cada um (ADR-021) e gera os feeds que o portal lê:\n\n1. instala as referências embutidas (malhas do IBGE e cadastro TSE ↔ IBGE)\n   no diretório dos feeds (``referencias.instalar``);\n2. gera o portal estático quando ele não existe ou o código mudou depois da\n   última geração (``npm ci`` e ``npm run build``);\n3. com ``--servir``, sobe o servidor local e abre o navegador antes da carga:\n   cada eleição aparece no portal assim que fica pronta;\n4. coleta, no sistema de resultados, as eleições ordinárias que já\n   aconteceram e ainda não estão nos dados abertos (em outubro de 2026, o 1º\n   turno de 2026), até a totalização terminar, com todos os municípios;\n5. baixa os locais de votação de 2026 a 2018 e grava o mapa das zonas\n   eleitorais dos municípios com mais de uma zona (``zonas.py``, ADR-029);\n6. baixa e processa os dados abertos de 1933 a 1990 (resultados por UF);\n7. baixa e processa os dados abertos de 2024 a 1994, do mais recente para o\n   mais antigo, com todos os municípios e, onde há mais de uma, as zonas.\n\nÉ retomável. ``<estado>/preparar.json`` registra cada etapa concluída e o\nSHA-256 dos arquivos de entrada; rodar de novo pula o que já está pronto\n(``--refazer`` ignora o registro, ``--atualizar`` consulta a fonte e só\nreprocessa o ano cujos arquivos mudaram). Um ano de 1994 em diante processado\npor uma versão anterior do processamento (``VERSAO_PROCESSAMENTO``) é refeito\numa vez: foi assim que os feeds dos municípios ganharam as zonas eleitorais. Um erro num ano não interrompe os\noutros: o resumo final lista o que falhou e o comando devolve 1.\n\nNa nuvem (``--nuvem``, ADR-026), a mesma sequência roda numa máquina que\ncomeça vazia: antes de tudo, ``publicacao.Nuvem.restaurar`` traz o índice\npublicado e o estado; depois de cada ano e de cada passada do sistema de\nresultados, ``sincronizar`` publica o que mudou e guarda o estado. Com\n``--limite-minutos``, a carga para sozinha antes do prazo da máquina, e a\nexecução seguinte continua de onde esta parou.",
    "itens": [
     {
@@ -3267,7 +3918,7 @@
      "nome": "Preparacao.aguardar",
      "assinatura": "def aguardar(self) -> None",
      "doc": "Com o servidor no ar, segue servindo até ``parar()``; depois o encerra.",
-     "linha": 610
+     "linha": 611
     }
    ]
   },
@@ -7121,50 +7772,50 @@
   {
    "caminho": "packages/orquestracao/lumen_orquestracao/cli.py",
    "linguagem": "python",
-   "linhas": 194,
-   "doc": "Linha de comando do pipeline local.\n\nExemplos::\n\n    lumen coletar pncp_contratacoes --de 2026-09-01 --modalidades 8,9\n    lumen coletar pncp_contratos --de 2026-09-01 --ate 2026-09-07\n    lumen coletar ibge_localidades --de 2026-10-05\n    lumen coletar siconfi_extrato --de 2026-10-05 --entes 4319604,3550308 --exercicio 2025\n    lumen coletar pncp_itens --de 2026-03-01 --ate 2026-03-31 --objeto \"combust|gasolina|diesel\" --so-comparaveis\n    lumen normalizar                      # bronze inteiro → silver\n    lumen bronze verificar                # reconfere o hash de toda a prova\n    lumen eleicoes ...                    # aba Eleições (ver lumen_eleicoes)\n    lumen mercado ...                     # referência de mercado fora do governo (ver lumen_mercado)\n    lumen painel ...                      # painéis de contratações e conformidade (ver lumen_painel)\n    lumen deteccao ...                    # regras de detecção em modo silencioso (ver lumen_deteccao)",
+   "linhas": 199,
+   "doc": "Linha de comando do pipeline local.\n\nExemplos::\n\n    lumen coletar pncp_contratacoes --de 2026-09-01 --modalidades 8,9\n    lumen coletar pncp_contratos --de 2026-09-01 --ate 2026-09-07\n    lumen coletar ibge_localidades --de 2026-10-05\n    lumen coletar siconfi_extrato --de 2026-10-05 --entes 4319604,3550308 --exercicio 2025\n    lumen coletar pncp_itens --de 2026-03-01 --ate 2026-03-31 --objeto \"combust|gasolina|diesel\" --so-comparaveis\n    lumen normalizar                      # bronze inteiro → silver\n    lumen bronze verificar                # reconfere o hash de toda a prova\n    lumen eleicoes ...                    # aba Eleições (ver lumen_eleicoes)\n    lumen mercado ...                     # referência de mercado fora do governo (ver lumen_mercado)\n    lumen painel ...                      # painéis de contratações e conformidade (ver lumen_painel)\n    lumen deteccao ...                    # regras de detecção em modo silencioso (ver lumen_deteccao)\n    lumen economia ...                    # Economia e Contas Públicas: séries do Banco Central (ver lumen_economia)",
    "itens": [
     {
      "tipo": "classe",
      "nome": "FormatoComCampos",
      "assinatura": "class FormatoComCampos(logging.Formatter)",
      "doc": "Formato do log que acrescenta os campos de ``extra=`` (fonte, url, status, tentativa) à mensagem.\n\nSem isso, ``tentativa_com_erro`` aparece no registro da CI sem dizer qual status a fonte respondeu.",
-     "linha": 36
+     "linha": 37
     },
     {
      "tipo": "metodo",
      "nome": "FormatoComCampos.format",
      "assinatura": "def format(self, record: logging.LogRecord) -> str",
      "doc": "A linha padrão seguida de ``campo=valor`` para cada campo extra, em ordem alfabética.",
-     "linha": 42
+     "linha": 43
     },
     {
      "tipo": "funcao",
      "nome": "_lista_int",
      "assinatura": "def _lista_int(texto: str) -> tuple[int, ...]",
      "doc": "Converte ``8,9`` em ``(8, 9)``, ignorando itens vazios; usado como ``type`` do argparse.",
-     "linha": 49
+     "linha": 50
     },
     {
      "tipo": "funcao",
      "nome": "_lista_str",
      "assinatura": "def _lista_str(texto: str) -> tuple[str, ...]",
      "doc": "Converte ``a, b`` em ``(\"a\", \"b\")``, sem espaços nas pontas e ignorando itens vazios.",
-     "linha": 54
+     "linha": 55
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
-     "doc": "Ponto de entrada do comando ``lumen``: interpreta os argumentos e despacha para a etapa pedida.\n\nOs subcomandos ``eleicoes``, ``mercado``, ``painel`` e ``deteccao`` são repassados inteiros aos CLIs de\n``lumen_eleicoes``, ``lumen_mercado``, ``lumen_painel`` e ``lumen_deteccao``; ``coletar pncp_itens`` busca os itens dos\nprocessos da silver publicados na janela (e cujo objeto casa com ``--objeto``, quando dado). Os demais\nleem a configuração e imprimem o resumo em JSON. O código de saída é 2 para configuração ou argumento ausente e\n1 quando a coleta tem falhas ou o bronze tem conteúdo corrompido, para que scripts e a CI percebam.",
-     "linha": 59
+     "doc": "Ponto de entrada do comando ``lumen``: interpreta os argumentos e despacha para a etapa pedida.\n\nOs subcomandos ``eleicoes``, ``mercado``, ``painel``, ``deteccao`` e ``economia`` são repassados inteiros\naos CLIs de ``lumen_eleicoes``, ``lumen_mercado``, ``lumen_painel``, ``lumen_deteccao`` e ``lumen_economia``; ``coletar pncp_itens`` busca os itens dos\nprocessos da silver publicados na janela (e cujo objeto casa com ``--objeto``, quando dado). Os demais\nleem a configuração e imprimem o resumo em JSON. O código de saída é 2 para configuração ou argumento ausente e\n1 quando a coleta tem falhas ou o bronze tem conteúdo corrompido, para que scripts e a CI percebam.",
+     "linha": 60
     }
    ]
   },
   {
    "caminho": "packages/orquestracao/lumen_orquestracao/configuracao.py",
    "linguagem": "python",
-   "linhas": 106,
+   "linhas": 111,
    "doc": "Configuração do pipeline local, lida de ``lumen.toml`` e do ambiente.\n\nPrecedência: variável de ambiente > arquivo > padrão. Nada sensível vive no\narquivo: o Lumen não usa credencial nas fontes da fase 1 (o token da CGU, que\nentra depois, virá só de variável de ambiente ou cofre — RNF-13).\n\nExemplo de ``lumen.toml``::\n\n    [coleta]\n    contato = \"contato@falkyria.com.br\"   # vai no User-Agent (RF-CO-09)\n\n    [dados]\n    raiz = \"dados\"                        # bronze/ e silver/ ficam aqui\n\n    [limites_rpm]                         # por fonte; o padrão é conservador\n    pncp_contratacoes = 60",
    "itens": [
     {
@@ -7172,42 +7823,42 @@
      "nome": "Configuracao",
      "assinatura": "class Configuracao",
      "doc": "Configuração resolvida do pipeline: contato da coleta, raiz dos dados e limites de requisições por minuto.",
-     "linha": 57
+     "linha": 62
     },
     {
      "tipo": "metodo",
      "nome": "Configuracao.bronze",
      "assinatura": "def bronze(self) -> Path",
      "doc": "Diretório da camada bronze, sob a raiz dos dados.",
-     "linha": 65
+     "linha": 70
     },
     {
      "tipo": "metodo",
      "nome": "Configuracao.silver",
      "assinatura": "def silver(self) -> Path",
      "doc": "Diretório da camada silver, sob a raiz dos dados.",
-     "linha": 70
+     "linha": 75
     },
     {
      "tipo": "metodo",
      "nome": "Configuracao.rpm",
      "assinatura": "def rpm(self, fonte_id: str) -> int",
      "doc": "Limite de requisições por minuto da fonte; 30 quando a fonte não tem limite configurado.",
-     "linha": 74
+     "linha": 79
     },
     {
      "tipo": "classe",
      "nome": "ConfiguracaoAusente",
      "assinatura": "class ConfiguracaoAusente(Exception)",
      "doc": "Falta configuração obrigatória: hoje, o contato que identifica a coleta no User-Agent.",
-     "linha": 79
+     "linha": 84
     },
     {
      "tipo": "funcao",
      "nome": "carregar",
      "assinatura": "def carregar(caminho: Path | None=None) -> Configuracao",
      "doc": "Monta a ``Configuracao`` a partir do arquivo e do ambiente, com o ambiente prevalecendo.\n\nO arquivo é ``caminho``, ``LUMEN_CONFIG`` ou ``lumen.toml``, e pode não existir. ``LUMEN_CONTATO`` e\n``LUMEN_DADOS`` substituem o contato e a raiz; os limites do arquivo sobrescrevem os padrões fonte a\nfonte. Sem contato, levanta ``ConfiguracaoAusente``: toda requisição precisa se identificar (RF-CO-09).",
-     "linha": 84
+     "linha": 89
     }
    ]
   },
@@ -7398,99 +8049,113 @@
   {
    "caminho": "packages/painel/lumen_painel/cli.py",
    "linguagem": "python",
-   "linhas": 255,
-   "doc": "``lumen painel``: coleta e publicação dos painéis de contratações e de conformidade (ADR-028).\n\nExemplos::\n\n    lumen painel cadastro --estado estado/                          # cadastro de entes do SICONFI\n    lumen painel contratacoes --estado estado/ --ultimos 3          # dias que faltam entre os 3 últimos\n    lumen painel contratacoes --estado estado/ --de 2026-01-01 --ate 2026-01-31 --limite-minutos 300\n    lumen painel faltando --estado estado/ --de 2026-01-01 --partes 6   # divisão para execuções paralelas\n    lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026\n    lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado\n\nO estado é um diretório com ``cadastro-entes.json.gz``, um ``contratacoes-<dia>.json.gz`` por dia coletado e\num ``conformidade-<UF>.json.gz`` por UF. No GitHub Actions, ele fica nos anexos de uma versão do repositório\n(``painel-estado``) entre uma execução e outra.",
+   "linhas": 288,
+   "doc": "``lumen painel``: coleta e publicação dos painéis de contratações e de conformidade (ADR-028).\n\nExemplos::\n\n    lumen painel cadastro --estado estado/                          # cadastro de entes do SICONFI\n    lumen painel contratacoes --estado estado/ --ultimos 3          # dias que faltam entre os 3 últimos\n    lumen painel contratacoes --estado estado/ --de 2026-01-01 --ate 2026-01-31 --limite-minutos 300\n    lumen painel faltando --estado estado/ --de 2026-01-01 --partes 6   # divisão para execuções paralelas\n    lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026\n    lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)\n    lumen painel anp --estado estado/                               # preço de revenda da ANP por semana\n    lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado\n\nO estado é um diretório com ``cadastro-entes.json.gz``, um ``contratacoes-<dia>.json.gz`` por dia coletado e\num ``conformidade-<UF>.json.gz`` por UF. No GitHub Actions, ele fica nos anexos de uma versão do repositório\n(``painel-estado``) entre uma execução e outra.",
    "itens": [
     {
      "tipo": "funcao",
      "nome": "_data",
      "assinatura": "def _data(texto: str) -> date",
      "doc": "``AAAA-MM-DD`` → ``date``, como ``type`` do argparse.",
-     "linha": 38
+     "linha": 41
     },
     {
      "tipo": "funcao",
      "nome": "_lista",
      "assinatura": "def _lista(texto: str) -> list[str]",
      "doc": "``SP, mg`` → ``[\"SP\", \"MG\"]``.",
-     "linha": 43
+     "linha": 46
     },
     {
      "tipo": "funcao",
      "nome": "_imprimir",
      "assinatura": "def _imprimir(dados) -> None",
      "doc": "JSON legível na saída padrão.",
-     "linha": 48
+     "linha": 51
     },
     {
      "tipo": "funcao",
      "nome": "_configuracao",
      "assinatura": "def _configuracao(args)",
      "doc": "A configuração do pipeline (contato da coleta e limites de requisições).",
-     "linha": 53
+     "linha": 56
     },
     {
      "tipo": "funcao",
      "nome": "dias_pedidos",
      "assinatura": "def dias_pedidos(estado: Path, *, de: date | None, ate: date | None, ultimos: int | None, hoje: date, refazer: bool=False) -> list[date]",
      "doc": "Os dias a coletar, do mais recente para o mais antigo, sem os que já estão no estado.\n\nSem ``de``, o intervalo é dos ``ultimos`` dias (padrão 3) até ontem; o dia corrente nunca entra, porque\nainda está recebendo publicações.",
-     "linha": 59
+     "linha": 62
     },
     {
      "tipo": "funcao",
      "nome": "partes",
      "assinatura": "def partes(dias: list[date], n: int) -> list[dict]",
      "doc": "Divide os dias (já do mais recente ao mais antigo) em até ``n`` blocos de dias seguidos, para execuções\nparalelas; cada bloco vira ``{\"de\": …, \"ate\": …, \"dias\": …}``.",
-     "linha": 72
+     "linha": 75
     },
     {
      "tipo": "funcao",
      "nome": "cmd_cadastro",
      "assinatura": "def cmd_cadastro(args) -> int",
      "doc": "Coleta o cadastro de entes do SICONFI (uma requisição), normaliza e grava ``cadastro-entes.json.gz``.",
-     "linha": 84
+     "linha": 87
     },
     {
      "tipo": "funcao",
      "nome": "cmd_contratacoes",
      "assinatura": "def cmd_contratacoes(args) -> int",
      "doc": "Coleta os dias pedidos que faltam no estado, do mais recente ao mais antigo, até o prazo.",
-     "linha": 115
+     "linha": 118
     },
     {
      "tipo": "funcao",
      "nome": "cmd_faltando",
      "assinatura": "def cmd_faltando(args) -> int",
      "doc": "Imprime, em JSON, os blocos de dias que faltam no estado (matriz das execuções paralelas).",
-     "linha": 139
+     "linha": 142
     },
     {
      "tipo": "funcao",
      "nome": "cmd_conformidade",
      "assinatura": "def cmd_conformidade(args) -> int",
      "doc": "Coleta o extrato de entregas de cada UF pedida e grava o estado de cada uma.",
-     "linha": 146
+     "linha": 149
+    },
+    {
+     "tipo": "funcao",
+     "nome": "cmd_transparencia",
+     "assinatura": "def cmd_transparencia(args) -> int",
+     "doc": "Lê o ciclo mais recente do PNTP para ``transparencia-pntp.json.gz``; o código é 1 quando falhou.",
+     "linha": 165
+    },
+    {
+     "tipo": "funcao",
+     "nome": "cmd_anp",
+     "assinatura": "def cmd_anp(args) -> int",
+     "doc": "Lê as planilhas semanais da ANP que faltam em ``anp-semanas.json.gz``; o código é 1 quando algo falhou.",
+     "linha": 173
     },
     {
      "tipo": "funcao",
      "nome": "cmd_publicar",
      "assinatura": "def cmd_publicar(args) -> int",
      "doc": "Monta o site inteiro a partir do estado: índice, busca, contratações e conformidade.",
-     "linha": 162
+     "linha": 182
     },
     {
      "tipo": "funcao",
      "nome": "construir_parser",
      "assinatura": "def construir_parser() -> argparse.ArgumentParser",
      "doc": "Os subcomandos e as opções de cada um.",
-     "linha": 205
+     "linha": 229
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada de ``lumen painel``; falta de configuração (contato da coleta) vira código 2.",
-     "linha": 244
+     "linha": 277
     }
    ]
   },
@@ -7709,162 +8374,176 @@
   {
    "caminho": "packages/painel/lumen_painel/contratacoes.py",
    "linguagem": "python",
-   "linhas": 363,
-   "doc": "Painel de contratações: soma os dias do PNCP guardados no estado em arquivos por ente (UC-01, UC-02).\n\nPara cada ente com alguma publicação no período, o arquivo ``contratacoes/ente/<código>.json`` traz:\n\n- os totais (processos publicados e a soma do valor estimado; contratos e a soma do valor global);\n- o mês a mês e a divisão por modalidade de contratação;\n- todos os órgãos do ente que publicaram (prefeitura, câmara, secretarias, autarquias, fundações e empresas\n  públicas, como um serviço autônomo de água e esgoto), cada um com o próprio arquivo\n  ``contratacoes/orgao/<CNPJ>.json``, com as mesmas seções;\n- os fornecedores pessoa jurídica com maior valor contratado e, numa linha só, a soma dos contratos com\n  pessoa física ou estrangeira, sem nome nem documento (RNF-19 e RNF-20);\n- os processos e contratos publicados mais recentemente, com o link de cada um no PNCP;\n- no arquivo de um estado, a tabela dos municípios da UF, para navegar.\n\nO ente de cada publicação é o do órgão que publicou (``dia.resumir_dia``): os números de um município são os\ndos órgãos municipais, e não os de órgãos estaduais ou federais que ficam nele.\n\nOs valores são os publicados no PNCP, sem correção: valor estimado sigiloso ou zerado conta como processo\nsem valor. Um valor acima do teto de plausibilidade (``teto_do_ente``: R$ 10 bilhões, ou R$ 20 mil por\nhabitante do ente, o que for menor) conta o processo ou o contrato, mas fica fora das somas e das listas de\nfornecedores e aparece em \"valores a conferir\", com o link da publicação: um único contrato de R$ 240\nbilhões, como o publicado em 13/10/2026, faria sozinho mais de 90% do valor do país na semana. Não é juízo\nsobre o órgão nem sobre o fornecedor; é a conferência mínima de um valor que a fonte publicou. O painel não\nordena entes por nenhum critério de risco (PUB-07) e não publica indício: só soma o que a fonte publicou.",
+   "linhas": 407,
+   "doc": "Painel de contratações: soma os dias do PNCP guardados no estado em arquivos por ente (UC-01, UC-02).\n\nPara cada ente com alguma publicação no período, o arquivo ``contratacoes/ente/<código>.json`` traz:\n\n- os totais (processos publicados e a soma do valor estimado; contratos e a soma do valor global);\n- o mês a mês e a divisão por modalidade de contratação;\n- todos os órgãos do ente que publicaram (prefeitura, câmara, secretarias, autarquias, fundações e empresas\n  públicas, como um serviço autônomo de água e esgoto), cada um com o próprio arquivo\n  ``contratacoes/orgao/<CNPJ>.json``, com as mesmas seções;\n- os fornecedores pessoa jurídica com maior valor contratado e, numa linha só, a soma dos contratos com\n  pessoa física ou estrangeira, sem nome nem documento (RNF-19 e RNF-20);\n- os processos e contratos publicados mais recentemente, com o link de cada um no PNCP;\n- no arquivo de um estado, a tabela dos municípios da UF, para navegar.\n\nModalidades, órgãos, fornecedores, municípios, esferas e UFs levam também o mês a mês (``meses``, em\nlistas ``[mês, ...]``), para o portal refazer as tabelas num período escolhido sem outro arquivo. Os\nfornecedores listados são os de maior valor no período inteiro: num período menor, a ordem é refeita entre\neles, e o portal diz isso.\n\nO ente de cada publicação é o do órgão que publicou (``dia.resumir_dia``): os números de um município são os\ndos órgãos municipais, e não os de órgãos estaduais ou federais que ficam nele.\n\nOs valores são os publicados no PNCP, sem correção: valor estimado sigiloso ou zerado conta como processo\nsem valor. Um valor acima do teto de plausibilidade (``teto_do_ente``: R$ 10 bilhões, ou R$ 20 mil por\nhabitante do ente, o que for menor) conta o processo ou o contrato, mas fica fora das somas e das listas de\nfornecedores e aparece em \"valores a conferir\", com o link da publicação: um único contrato de R$ 240\nbilhões, como o publicado em 13/10/2026, faria sozinho mais de 90% do valor do país na semana. Não é juízo\nsobre o órgão nem sobre o fornecedor; é a conferência mínima de um valor que a fonte publicou. O painel não\nordena entes por nenhum critério de risco (PUB-07) e não publica indício: só soma o que a fonte publicou.",
    "itens": [
     {
      "tipo": "funcao",
      "nome": "_mes",
      "assinatura": "def _mes(dia: str) -> str",
      "doc": "``2026-10-13`` → ``2026-10``.",
-     "linha": 52
+     "linha": 58
     },
     {
      "tipo": "classe",
      "nome": "Totais",
      "assinatura": "class Totais",
      "doc": "Contagens e somas de um recorte: processos e valor estimado, contratos e valor global.",
-     "linha": 58
+     "linha": 64
     },
     {
      "tipo": "metodo",
      "nome": "Totais.processo",
      "assinatura": "def processo(self, estimado: float | None, conferir: bool=False) -> None",
      "doc": "Conta um processo; estimado ausente ou zero conta como processo sem valor; acima do teto\n(``conferir``), conta o processo e o valor fica fora da soma.",
-     "linha": 68
+     "linha": 74
     },
     {
      "tipo": "metodo",
      "nome": "Totais.contrato",
      "assinatura": "def contrato(self, global_: float | None, conferir: bool=False) -> None",
      "doc": "Conta um contrato e soma o valor global, salvo acima do teto (``conferir``).",
-     "linha": 79
+     "linha": 85
     },
     {
      "tipo": "metodo",
      "nome": "Totais.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "Os totais com os nomes de campo dos feeds.",
-     "linha": 87
+     "linha": 93
     },
     {
      "tipo": "classe",
      "nome": "Fornecedor",
      "assinatura": "class Fornecedor",
-     "doc": "Um fornecedor pessoa jurídica: razão social mais recente, contratos e soma do valor global.",
-     "linha": 95
+     "doc": "Um fornecedor pessoa jurídica: razão social mais recente, contratos e soma do valor global, no total e\npor mês (``[contratos, valor]``).",
+     "linha": 101
+    },
+    {
+     "tipo": "metodo",
+     "nome": "Fornecedor.contrato",
+     "assinatura": "def contrato(self, mes: str, valor: float | None) -> None",
+     "doc": "Conta um contrato no total e no mês; ``valor`` ``None`` (a conferir ou ausente) não soma.",
+     "linha": 110
+    },
+    {
+     "tipo": "funcao",
+     "nome": "meses_de_totais",
+     "assinatura": "def meses_de_totais(meses: dict[str, Totais]) -> list[list]",
+     "doc": "``{mês: Totais}`` → ``[[mês, processos, valor estimado, contratos, valor dos contratos], ...]``.",
+     "linha": 119
     },
     {
      "tipo": "classe",
      "nome": "Acumulador",
      "assinatura": "class Acumulador",
      "doc": "Tudo o que se soma para um ente (ou para o Brasil, no panorama).",
-     "linha": 104
+     "linha": 125
     },
     {
      "tipo": "metodo",
      "nome": "Acumulador.de_orgao",
      "assinatura": "def de_orgao(cls) -> 'Acumulador'",
-     "doc": "Acumulador de um órgão, com as listas de recentes menores (``RECENTES_ORGAO``).",
-     "linha": 118
+     "doc": "Acumulador de um órgão, com as listas de recentes menores (``RECENTES_ORGAO``) e sem o mês a mês\npor órgão (é o próprio órgão).",
+     "linha": 142
     },
     {
      "tipo": "metodo",
      "nome": "Acumulador.processo",
      "assinatura": "def processo(self, dia: str, linha: dict, conferir: bool=False) -> None",
      "doc": "Soma um processo (linha do arquivo do dia, já como dicionário); ``conferir``: valor acima do teto.",
-     "linha": 123
+     "linha": 148
     },
     {
      "tipo": "metodo",
      "nome": "Acumulador.contrato",
      "assinatura": "def contrato(self, dia: str, linha: dict, conferir: bool=False) -> None",
      "doc": "Soma um contrato: no fornecedor pessoa jurídica pelo CNPJ, ou na soma anônima das demais pessoas.\nCom ``conferir`` (valor acima do teto), o contrato conta e o valor fica fora de todas as somas.",
-     "linha": 135
+     "linha": 164
     },
     {
      "tipo": "funcao",
      "nome": "_linhas",
      "assinatura": "def _linhas(dados: dict, tipo: str) -> Iterable[dict]",
      "doc": "As linhas de ``processos`` ou ``contratos`` do arquivo do dia, como dicionários pelas ``colunas``.",
-     "linha": 157
+     "linha": 188
     },
     {
      "tipo": "classe",
      "nome": "Painel",
      "assinatura": "class Painel",
      "doc": "O resultado da soma de todos os dias: um acumulador por ente, o do Brasil e a cobertura.",
-     "linha": 165
+     "linha": 196
     },
     {
      "tipo": "metodo",
      "nome": "Painel.cobertura",
      "assinatura": "def cobertura(self) -> dict",
      "doc": "Primeiro e último dia guardados, quantos dias e os que faltam entre eles.",
-     "linha": 176
+     "linha": 208
     },
     {
      "tipo": "funcao",
      "nome": "teto_do_ente",
      "assinatura": "def teto_do_ente(ente: str | None, cadastro: Cadastro | None) -> float",
      "doc": "Teto de plausibilidade de um processo ou contrato do ente: R$ 10 bilhões, ou R$ 20 mil por habitante\n(perto de quatro vezes o orçamento anual por habitante de um município médio), o que for menor. Sem\npopulação no cadastro (União, órgão sem ente), só o teto absoluto.",
-     "linha": 187
+     "linha": 219
     },
     {
      "tipo": "funcao",
      "nome": "somar_dias",
      "assinatura": "def somar_dias(arquivos: Iterable[Path], cadastro: Cadastro | None=None) -> Painel",
      "doc": "Lê os arquivos do dia em ordem de data e soma tudo por ente e para o Brasil. Com o ``cadastro``, o teto\nde plausibilidade usa a população do ente; sem ele, só o teto absoluto.",
-     "linha": 198
+     "linha": 230
     },
     {
      "tipo": "funcao",
      "nome": "_nome_orgao",
      "assinatura": "def _nome_orgao(painel: Painel, cnpj: str | None) -> str | None",
      "doc": "Razão social do órgão pelo CNPJ, do arquivo do dia mais recente que o trouxe.",
-     "linha": 234
+     "linha": 267
     },
     {
      "tipo": "funcao",
      "nome": "_secoes",
      "assinatura": "def _secoes(a: Acumulador, painel: Painel, *, fornecedores: int=FORNECEDORES) -> dict",
      "doc": "As seções comuns ao arquivo de um ente e ao panorama.",
-     "linha": 239
+     "linha": 272
     },
     {
      "tipo": "funcao",
      "nome": "ente_para_json",
      "assinatura": "def ente_para_json(codigo: str, a: Acumulador, painel: Painel, cadastro: Cadastro, gerado_em: str) -> dict",
      "doc": "O arquivo ``contratacoes/ente/<código>.json`` de um ente; o de um estado traz a tabela dos municípios.",
-     "linha": 278
+     "linha": 316
     },
     {
      "tipo": "funcao",
      "nome": "orgao_para_json",
      "assinatura": "def orgao_para_json(cnpj: str, a: Acumulador, painel: Painel, cadastro: Cadastro, gerado_em: str) -> dict",
      "doc": "O arquivo ``contratacoes/orgao/<CNPJ>.json`` de um órgão: o mesmo do ente, com o ente a que pertence.",
-     "linha": 292
+     "linha": 330
     },
     {
      "tipo": "funcao",
      "nome": "municipios_da_uf",
      "assinatura": "def municipios_da_uf(uf: str, painel: Painel, cadastro: Cadastro) -> list[dict]",
      "doc": "Os municípios da UF (os do cadastro e os que publicaram), em ordem de nome, com os totais de cada um.",
-     "linha": 306
+     "linha": 344
     },
     {
      "tipo": "funcao",
      "nome": "orgaos_para_busca",
      "assinatura": "def orgaos_para_busca(painel: Painel, gerado_em: str) -> dict",
      "doc": "``orgaos.json``: todo órgão com publicação no período (CNPJ, razão social, ente e contagens), para a\nbusca do portal achar uma entidade pelo nome, como um serviço autônomo de água e esgoto municipal.",
-     "linha": 319
+     "linha": 358
     },
     {
      "tipo": "funcao",
      "nome": "panorama_para_json",
      "assinatura": "def panorama_para_json(painel: Painel, cadastro: Cadastro, gerado_em: str) -> dict",
      "doc": "``contratacoes/panorama.json``: o Brasil, por esfera, por UF (governo do estado e municípios), meses,\nmodalidades e os fornecedores pessoa jurídica de maior valor no país.",
-     "linha": 332
+     "linha": 371
     }
    ]
   },
@@ -7933,6 +8612,91 @@
    ]
   },
   {
+   "caminho": "packages/painel/lumen_painel/mercado.py",
+   "linguagem": "python",
+   "linhas": 207,
+   "doc": "Preço de revenda da ANP por semana, município e UF, para a comparação de mercado no modal (ADR-037).\n\nA regra A-05 (ADR-027) compara o preço pago em combustível e gás de cozinha com o preço de revenda que a ANP\npesquisa toda semana, posto a posto. O portal faz essa comparação no modal da contratação, item a item, e\nprecisa da distribuição do preço na semana e no lugar da compra.\n\n``coletar`` lê a página do levantamento semanal, baixa só as planilhas das semanas que o estado ainda não tem\n(desde ``INICIO_PADRAO``), lê com o leitor do ``lumen_mercado.anp`` e guarda, por semana, produto e lugar\n(a UF e cada município), a quantidade de coletas e o mínimo, os quartis, a mediana e o máximo\n(``anp-semanas.json.gz``). Uma semana que falha fica para a próxima execução; as outras seguem.\n\n``publicar`` grava um arquivo por UF e ano (``mercado/anp/uf-<sigla>-<ano>.json``, pelo início da semana), com\nos municípios pelo código IBGE (o nome da ANP casado com o cadastro de entes). O portal lê o arquivo da UF da\nunidade compradora no ano da compra.",
+   "itens": [
+    {
+     "tipo": "classe",
+     "nome": "ResumoMercado",
+     "assinatura": "class ResumoMercado",
+     "doc": "O que a coleta fez: semanas na página, já guardadas, lidas agora, que falharam, e a falha geral.",
+     "linha": 45
+    },
+    {
+     "tipo": "metodo",
+     "nome": "ResumoMercado.para_json",
+     "assinatura": "def para_json(self) -> dict",
+     "doc": "Resumo para imprimir na linha de comando.",
+     "linha": 54
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_estado",
+     "assinatura": "def ler_estado(estado: Path | str) -> dict",
+     "doc": "O estado gravado, ou um estado vazio na versão atual.",
+     "linha": 60
+    },
+    {
+     "tipo": "funcao",
+     "nome": "estatistica",
+     "assinatura": "def estatistica(valores: list[Decimal]) -> list",
+     "doc": "``[n, mínimo, 1º quartil, mediana, 3º quartil, máximo]``, em reais com três casas (como a ANP publica).",
+     "linha": 71
+    },
+    {
+     "tipo": "funcao",
+     "nome": "resumir_semana",
+     "assinatura": "def resumir_semana(coletas: Iterable[anp.Coleta]) -> dict",
+     "doc": "As coletas de uma planilha agrupadas por produto e lugar: ``{produto: {\"UF\": [...], \"UF/MUNICÍPIO\": [...]}}``.",
+     "linha": 81
+    },
+    {
+     "tipo": "funcao",
+     "nome": "coletar",
+     "assinatura": "def coletar(cliente: ClienteHttp, estado: Path | str, *, inicio: date=INICIO_PADRAO, maximo: int=MAXIMO_SEMANAS, agora: datetime | None=None) -> ResumoMercado",
+     "doc": "Baixa as planilhas semanais que faltam no estado (as mais recentes primeiro) e grava o estado.",
+     "linha": 92
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_sem_espaco",
+     "assinatura": "def _sem_espaco(lugar: str) -> str",
+     "doc": "``UF/NOME`` sem os espaços do nome: ``SANT ANA DO LIVRAMENTO`` (IBGE) e ``SANTANA DO LIVRAMENTO`` (ANP).",
+     "linha": 140
+    },
+    {
+     "tipo": "funcao",
+     "nome": "indice_municipios",
+     "assinatura": "def indice_municipios(cadastro: Cadastro) -> dict[str, str]",
+     "doc": "``UF/NOME`` (o nome como a ANP o escreve, por ``anp.chave_municipio``) → código IBGE do município.\n\nCada nome entra também sem espaços, para as grafias que só diferem no apóstrofo ou na separação.",
+     "linha": 145
+    },
+    {
+     "tipo": "funcao",
+     "nome": "montar",
+     "assinatura": "def montar(dados: dict, cadastro: Cadastro, *, gerado_em: str) -> tuple[dict[str, dict], list[str]]",
+     "doc": "Os arquivos por UF e ano e os municípios da ANP que o cadastro não reconheceu (``UF/NOME``).",
+     "linha": 159
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_montar_ano",
+     "assinatura": "def _montar_ano(ano: str, semanas: list[tuple[str, dict]], indice: dict[str, str], arquivos: dict[str, dict], sem_codigo: set[str], gerado_em: str) -> None",
+     "doc": "Acrescenta a ``arquivos`` os arquivos das UFs no ano, com as semanas dele.",
+     "linha": 173
+    },
+    {
+     "tipo": "funcao",
+     "nome": "publicar",
+     "assinatura": "def publicar(estado: Path | str, cadastro: Cadastro, gravar: Callable[[str, dict], None], *, gerado_em: str) -> dict",
+     "doc": "Grava os arquivos por UF com ``gravar`` e devolve o resumo; sem semanas no estado, não grava nada.",
+     "linha": 198
+    }
+   ]
+  },
+  {
    "caminho": "packages/painel/lumen_painel/site.py",
    "linguagem": "python",
    "linhas": 61,
@@ -7965,6 +8729,84 @@
      "assinatura": "def finalizar(self) -> None",
      "doc": "Página de apresentação e ``.nojekyll`` (o GitHub Pages serve os arquivos como estão).",
      "linha": 57
+    }
+   ]
+  },
+  {
+   "caminho": "packages/painel/lumen_painel/transparencia.py",
+   "linguagem": "python",
+   "linhas": 165,
+   "doc": "Portais de transparência de cada ente pelo PNTP, para a visão 360 do portal (ADR-032, ADR-035).\n\nO Programa Nacional de Transparência Pública (tribunais de contas e Atricon) avalia, a cada ciclo, o portal de\ntransparência de cada entidade: a prefeitura e a câmara de cada município, os poderes estaduais e federais,\nconsórcios e estatais. A planilha do ciclo traz o índice, o percentual dos critérios essenciais, o nível e o\nendereço do portal.\n\n``coletar`` lê a lista de ciclos do Radar da Transparência e, do ciclo mais recente, só a planilha de dentro\ndo ZIP (por ``Range``, ADR-032), se o ZIP mudou desde a última coleta; normaliza com o mesmo normalizador da\nsilver e guarda as entidades no estado (``transparencia-pntp.json.gz``). ``publicar`` grava um arquivo por\nUF (``transparencia/uf-<sigla>.json``, e ``transparencia/uniao.json``), com as entidades agrupadas pelo\nente, que o portal lê na página do ente.",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "url_zip",
+     "assinatura": "def url_zip(ciclo: int) -> str",
+     "doc": "Endereço do ZIP de dados do ciclo no Radar da Transparência.",
+     "linha": 38
+    },
+    {
+     "tipo": "classe",
+     "nome": "ResumoTransparencia",
+     "assinatura": "class ResumoTransparencia",
+     "doc": "O que a coleta fez: ciclo lido (ou mantido), entidades, quarentena e falha.",
+     "linha": 44
+    },
+    {
+     "tipo": "metodo",
+     "nome": "ResumoTransparencia.para_json",
+     "assinatura": "def para_json(self) -> dict",
+     "doc": "Resumo para imprimir na linha de comando.",
+     "linha": 53
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_estado",
+     "assinatura": "def ler_estado(estado: Path | str) -> dict",
+     "doc": "O estado gravado, ou um estado vazio na versão atual.",
+     "linha": 59
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_linha",
+     "assinatura": "def _linha(r) -> list",
+     "doc": "Uma entidade normalizada como a linha compacta do estado (``COLUNAS``).",
+     "linha": 70
+    },
+    {
+     "tipo": "funcao",
+     "nome": "coletar",
+     "assinatura": "def coletar(cliente: ClienteHttp, estado: Path | str, *, baixar: Callable=baixar_membro, agora: datetime | None=None) -> ResumoTransparencia",
+     "doc": "Lê o ciclo mais recente do PNTP e grava o estado; falha mantém o ciclo que o estado já tinha.",
+     "linha": 79
+    },
+    {
+     "tipo": "classe",
+     "nome": "Publicacao",
+     "assinatura": "class Publicacao",
+     "doc": "Os arquivos por UF: nome do arquivo → conteúdo.",
+     "linha": 121
+    },
+    {
+     "tipo": "funcao",
+     "nome": "arquivo_do_ente",
+     "assinatura": "def arquivo_do_ente(codigo: str) -> str",
+     "doc": "Em que arquivo está o ente: ``transparencia/uniao.json`` para a União, senão o da UF do ente.",
+     "linha": 127
+    },
+    {
+     "tipo": "funcao",
+     "nome": "montar",
+     "assinatura": "def montar(dados: dict, *, gerado_em: str) -> Publicacao",
+     "doc": "Agrupa as entidades do estado por ente e as divide nos arquivos por UF.",
+     "linha": 134
+    },
+    {
+     "tipo": "funcao",
+     "nome": "publicar",
+     "assinatura": "def publicar(estado: Path | str, gravar: Callable[[str, dict], None], *, gerado_em: str) -> dict",
+     "doc": "Grava os arquivos por UF com ``gravar`` e devolve o resumo; sem estado, não grava nada.",
+     "linha": 157
     }
    ]
   },
@@ -8260,6 +9102,175 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/lib/contratacao.ts",
+   "linguagem": "typescript",
+   "linhas": 252,
+   "doc": "Tudo sobre uma contratação, para o modal das Contratações (ADR-035): o processo (ou o contrato) como o PNCP o\npublica, os itens com o preço unitário e o vencedor, os termos aditivos e os documentos.\n\nOs dados vêm da API pública do PNCP, pedidos pelo navegador quando o modal abre (a API libera a leitura,\nCORS). Nada é copiado para o Lumen. Fornecedor pessoa física aparece sem nome nem documento (RNF-19), como\nnos painéis.",
+   "itens": [
+    {
+     "tipo": "constante",
+     "nome": "API_CONSULTA",
+     "assinatura": "export const API_CONSULTA = \"https://pncp.gov.br/api/consulta/v1\";",
+     "doc": "A API de consulta do PNCP, que tem o detalhe do processo.",
+     "linha": 14
+    },
+    {
+     "tipo": "interface",
+     "nome": "Parte",
+     "assinatura": "export interface Parte",
+     "doc": "Pessoa jurídica com CNPJ e razão social; pessoa física ou estrangeira, sem identificação.",
+     "linha": 17
+    },
+    {
+     "tipo": "interface",
+     "nome": "Processo",
+     "assinatura": "export interface Processo",
+     "doc": "Um processo de contratação (compra, no PNCP).",
+     "linha": 24
+    },
+    {
+     "tipo": "interface",
+     "nome": "ItemProcesso",
+     "assinatura": "export interface ItemProcesso",
+     "doc": "Um item do processo, com o vencedor quando já há resultado.",
+     "linha": 47
+    },
+    {
+     "tipo": "interface",
+     "nome": "ResultadoItem",
+     "assinatura": "export interface ResultadoItem",
+     "doc": "O resultado (homologação) de um item: o fornecedor e o valor.",
+     "linha": 62
+    },
+    {
+     "tipo": "interface",
+     "nome": "Contrato",
+     "assinatura": "export interface Contrato",
+     "doc": "Um contrato (ou empenho) publicado.",
+     "linha": 72
+    },
+    {
+     "tipo": "interface",
+     "nome": "Termo",
+     "assinatura": "export interface Termo",
+     "doc": "Um termo aditivo (ou de rescisão, apostilamento) do contrato.",
+     "linha": 93
+    },
+    {
+     "tipo": "tipo",
+     "nome": "Bruto",
+     "assinatura": "type Bruto = Record<string, unknown>;",
+     "doc": "Um objeto da resposta da API, ainda sem conferir.",
+     "linha": 103
+    },
+    {
+     "tipo": "funcao",
+     "nome": "parte",
+     "assinatura": "export function parte(tipoPessoa: unknown, ni: unknown, nome: unknown): Parte",
+     "doc": "A parte contratada: pessoa física e estrangeira sem nome nem documento.",
+     "linha": 109
+    },
+    {
+     "tipo": "funcao",
+     "nome": "unidade",
+     "assinatura": "function unidade(u: Bruto)",
+     "doc": "A unidade compradora.",
+     "linha": 115
+    },
+    {
+     "tipo": "funcao",
+     "nome": "codigoCatalogo",
+     "assinatura": "function codigoCatalogo(x: Bruto): string | null",
+     "doc": "O código do item no catálogo do Compras.gov.br (o único que a pesquisa de preços entende), ou `null`.",
+     "linha": 121
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lerProcesso",
+     "assinatura": "export function lerProcesso(chave: string, b: Bruto): Processo",
+     "doc": "O processo como o Lumen mostra, a partir da resposta da API de consulta.",
+     "linha": 129
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lerItens",
+     "assinatura": "export function lerItens(bruto: unknown): ItemProcesso[]",
+     "doc": "Os itens do processo, a partir da resposta da API.",
+     "linha": 146
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lerResultados",
+     "assinatura": "export function lerResultados(bruto: unknown): ResultadoItem[]",
+     "doc": "Os resultados de um item.",
+     "linha": 157
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lerContrato",
+     "assinatura": "export function lerContrato(chave: string, b: Bruto): Contrato",
+     "doc": "O contrato como o Lumen mostra, a partir da resposta da API.",
+     "linha": 168
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lerTermos",
+     "assinatura": "export function lerTermos(bruto: unknown): Termo[]",
+     "doc": "Os termos do contrato, a partir da resposta da API.",
+     "linha": 184
+    },
+    {
+     "tipo": "funcao",
+     "nome": "pedir",
+     "assinatura": "async function pedir(url: string, sinal?: AbortSignal): Promise<unknown>",
+     "doc": "GET na API do PNCP: JSON, `null` quando não há conteúdo (204 ou 404).",
+     "linha": 193
+    },
+    {
+     "tipo": "funcao",
+     "nome": "caminho",
+     "assinatura": "function caminho(p: PublicacaoPncp): string",
+     "doc": "O trecho do endereço da publicação na API.",
+     "linha": 207
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarProcesso",
+     "assinatura": "export async function carregarProcesso(chave: string, sinal?: AbortSignal): Promise<Processo | null>",
+     "doc": "O processo da chave; `null` se o PNCP não o tem.",
+     "linha": 212
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarItens",
+     "assinatura": "export async function carregarItens(chave: string, sinal?: AbortSignal): Promise<ItemProcesso[]>",
+     "doc": "Os itens do processo (até 500, em páginas de 50).",
+     "linha": 220
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarResultados",
+     "assinatura": "export async function carregarResultados(chave: string, item: number, sinal?: AbortSignal): Promise<ResultadoItem[]>",
+     "doc": "O resultado de um item do processo.",
+     "linha": 233
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarContrato",
+     "assinatura": "export async function carregarContrato(chave: string, sinal?: AbortSignal): Promise<Contrato | null>",
+     "doc": "O contrato da chave; `null` se o PNCP não o tem.",
+     "linha": 240
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarTermos",
+     "assinatura": "export async function carregarTermos(chave: string, sinal?: AbortSignal): Promise<Termo[]>",
+     "doc": "Os termos aditivos do contrato.",
+     "linha": 248
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/lib/cores.ts",
    "linguagem": "typescript",
    "linhas": 76,
@@ -8317,6 +9328,219 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/lib/documentos.ts",
+   "linguagem": "typescript",
+   "linhas": 71,
+   "doc": "Documentos de um processo ou contrato no PNCP (edital, aviso, termo de referência, contrato, aditivos), para\nbaixar direto da fonte.\n\nA API pública do PNCP lista os arquivos de cada publicação (`/orgaos/{cnpj}/compras/{ano}/{seq}/arquivos` e\n`/orgaos/{cnpj}/contratos/{ano}/{seq}/arquivos`) e libera a leitura pelo navegador (CORS). O portal pede a\nlista só quando a pessoa abre os documentos de uma publicação; nada é copiado para o Lumen.",
+   "itens": [
+    {
+     "tipo": "constante",
+     "nome": "API_PNCP",
+     "assinatura": "export const API_PNCP = \"https://pncp.gov.br/api/pncp/v1\";",
+     "doc": "Raiz da API pública de consulta do PNCP.",
+     "linha": 13
+    },
+    {
+     "tipo": "interface",
+     "nome": "PublicacaoPncp",
+     "assinatura": "export interface PublicacaoPncp",
+     "doc": "Uma publicação do PNCP pela chave dos painéis (`<CNPJ>-1-<seq>/<ano>` é processo; `-2-`, contrato).",
+     "linha": 16
+    },
+    {
+     "tipo": "interface",
+     "nome": "DocumentoPncp",
+     "assinatura": "export interface DocumentoPncp",
+     "doc": "Um documento publicado: título (nome do arquivo), tipo, data e o endereço de download na fonte.",
+     "linha": 24
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lerChave",
+     "assinatura": "export function lerChave(chave: string): PublicacaoPncp | null",
+     "doc": "A publicação da chave dos painéis, ou `null` quando a chave não tem esse formato.",
+     "linha": 34
+    },
+    {
+     "tipo": "funcao",
+     "nome": "urlArquivos",
+     "assinatura": "export function urlArquivos(p: PublicacaoPncp): string",
+     "doc": "Endereço da lista de arquivos da publicação na API do PNCP.",
+     "linha": 41
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lerArquivos",
+     "assinatura": "export function lerArquivos(bruto: unknown): DocumentoPncp[]",
+     "doc": "Lê a resposta da API: só documentos ativos com endereço; tipo e data quando a fonte informa.",
+     "linha": 47
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarDocumentos",
+     "assinatura": "export async function carregarDocumentos(chave: string, sinal?: AbortSignal): Promise<DocumentoPncp[]>",
+     "doc": "Os documentos da publicação; lista vazia quando não há nenhum (404 também é \"nenhum\").",
+     "linha": 66
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/lib/economia.ts",
+   "linguagem": "typescript",
+   "linhas": 216,
+   "doc": "Economia e Contas Públicas (ADR-033): o arquivo `economia/indicadores.json`, publicado com os painéis, e\nas contas que a página faz sobre ele.\n\nAs séries vêm prontas do Python, com a documentação de cada indicador. Aqui ficam só as comparações entre\nperíodos que a pessoa escolhe: o valor no início e no fim, a variação, a média e o acumulado. As regras\nsão as do Python: período sem observação não entra na conta (ausente não é zero), e um acumulado com mês\nfaltando não é calculado.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "Agregacao",
+     "assinatura": "export type Agregacao = \"nivel\" | \"variacao_mensal\" | \"variacao_anual\";",
+     "doc": "Como o indicador se resume num período: estado num momento, ou taxa que se acumula.",
+     "linha": 15
+    },
+    {
+     "tipo": "interface",
+     "nome": "Indicador",
+     "assinatura": "export interface Indicador",
+     "doc": "Um indicador publicado: documentação do catálogo e a série.",
+     "linha": 18
+    },
+    {
+     "tipo": "interface",
+     "nome": "FeedEconomia",
+     "assinatura": "export interface FeedEconomia",
+     "doc": "O arquivo inteiro.",
+     "linha": 45
+    },
+    {
+     "tipo": "constante",
+     "nome": "urlEconomia",
+     "assinatura": "export const urlEconomia = () => `${BASE_PAINEL}/economia/indicadores.json`;",
+     "doc": "Endereço do arquivo dos indicadores, ao lado dos painéis.",
+     "linha": 54
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarEconomia",
+     "assinatura": "export async function carregarEconomia(sinal?: AbortSignal): Promise<FeedEconomia | null>",
+     "doc": "Lê e confere o arquivo; `null` quando ainda não foi publicado.",
+     "linha": 57
+    },
+    {
+     "tipo": "funcao",
+     "nome": "normalizarFeed",
+     "assinatura": "export function normalizarFeed(feed: FeedEconomia): FeedEconomia",
+     "doc": "Garante os campos que as contas usam: indicador sem `agregacao` é tratado como nível (comparado do início\nao fim, nunca acumulado), e sem `serie`, como série vazia. Acumular um nível daria número sem sentido.",
+     "linha": 67
+    },
+    {
+     "tipo": "interface",
+     "nome": "Periodo",
+     "assinatura": "export interface Periodo",
+     "doc": "Um intervalo de meses, inclusivo nas duas pontas (`AAAA-MM`).",
+     "linha": 80
+    },
+    {
+     "tipo": "constante",
+     "nome": "MANDATOS",
+     "assinatura": "export const MANDATOS: Periodo[] = [",
+     "doc": "Mandatos presidenciais, para atalho na comparação. São só intervalos de datas: o que muda num período\nnão é atribuído a quem governava (ADR-033). Dilma Rousseff foi afastada em 12/05/2016 e o impeachment\nconcluído em 31/08/2016; o corte é por mês.",
+     "linha": 91
+    },
+    {
+     "tipo": "funcao",
+     "nome": "mesValido",
+     "assinatura": "export function mesValido(m: string | null | undefined): m is string",
+     "doc": "O mês é `AAAA-MM` válido?",
+     "linha": 106
+    },
+    {
+     "tipo": "funcao",
+     "nome": "dentro",
+     "assinatura": "function dentro(periodo: string, p: Pick<Periodo, \"de\" | \"ate\">): boolean",
+     "doc": "Mês da série (`AAAA-MM`, ou `AAAA` na anual) cai no período? Na série anual, vale o ano inteiro dentro.",
+     "linha": 111
+    },
+    {
+     "tipo": "funcao",
+     "nome": "recortar",
+     "assinatura": "export function recortar(ind: Pick<Indicador, \"serie\">, p: Pick<Periodo, \"de\" | \"ate\">): [string, number][]",
+     "doc": "Os pontos da série dentro do período.",
+     "linha": 117
+    },
+    {
+     "tipo": "interface",
+     "nome": "Resumo",
+     "assinatura": "export interface Resumo",
+     "doc": "Resumo de um indicador num período: o que a tabela de comparação mostra.",
+     "linha": 122
+    },
+    {
+     "tipo": "funcao",
+     "nome": "emPontos",
+     "assinatura": "function emPontos(unidade: string): boolean",
+     "doc": "Unidade em que a variação é diferença de pontos (as percentuais) e não variação percentual.",
+     "linha": 135
+    },
+    {
+     "tipo": "funcao",
+     "nome": "tamanho",
+     "assinatura": "export function tamanho(p: Pick<Periodo, \"de\" | \"ate\">, periodicidade: \"mensal\" | \"anual\"): number",
+     "doc": "Quantos meses (ou anos, na série anual) o período tem, contando as duas pontas.",
+     "linha": 140
+    },
+    {
+     "tipo": "funcao",
+     "nome": "resumir",
+     "assinatura": "export function resumir(ind: Indicador, p: Pick<Periodo, \"de\" | \"ate\">): Resumo",
+     "doc": "Resume o indicador no período. O início de um nível é o último valor **antes** do período (a dívida ao\ncomeçar 2019 é a de dezembro de 2018); o fim, o último dentro dele. Nas taxas, o acumulado só existe se\nnão faltar nenhum mês (ou ano) do período, até o último publicado.",
+     "linha": 152
+    },
+    {
+     "tipo": "funcao",
+     "nome": "periodoCurto",
+     "assinatura": "export function periodoCurto(periodo: string): string",
+     "doc": "`2025-03` → \"mar/2025\"; `2025` → \"2025\".",
+     "linha": 190
+    },
+    {
+     "tipo": "funcao",
+     "nome": "valorNaUnidade",
+     "assinatura": "export function valorNaUnidade(valor: number | null | undefined, unidade: string): string",
+     "doc": "Valor do indicador na unidade dele, em português (\"4,58%\", \"82,87% do PIB\", \"R$ 13,40 tri\").",
+     "linha": 196
+    },
+    {
+     "tipo": "funcao",
+     "nome": "variacaoTexto",
+     "assinatura": "export function variacaoTexto(r: Resumo): string",
+     "doc": "Variação de um resumo de nível: \"+3,12 p.p.\" nas unidades percentuais, \"+4,5%\" nas demais.",
+     "linha": 210
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/lib/escolha.ts",
+   "linguagem": "typescript",
+   "linhas": 27,
+   "doc": "Opções de uma caixa de escolha com busca (`componentes/Escolha.tsx`), que substitui os `<select>` do portal:\na pessoa pode abrir a lista e escolher, ou escrever parte do nome e escolher entre o que casa.",
+   "itens": [
+    {
+     "tipo": "interface",
+     "nome": "Opcao",
+     "assinatura": "export interface Opcao",
+     "doc": "Uma opção: o valor, o texto, o grupo (cabeçalho na lista) e um detalhe opcional, que também é buscado.",
+     "linha": 9
+    },
+    {
+     "tipo": "funcao",
+     "nome": "filtrarOpcoes",
+     "assinatura": "export function filtrarOpcoes(opcoes: readonly Opcao[], termo: string): Opcao[]",
+     "doc": "As opções que casam com o termo: todas as palavras do termo, sem acento nem caixa, em qualquer parte do\nrótulo, do grupo ou do detalhe (\"pres 2022\" acha \"Presidente · 2022\"). Termo vazio devolve todas.",
+     "linha": 20
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/lib/estado-url.ts",
    "linguagem": "typescript",
    "linhas": 51,
@@ -8342,6 +9566,154 @@
      "assinatura": "export function ufDaAbrangencia(abrangencia: string): string | null",
      "doc": "UF da abrangência, sem esperar o feed: \"uf-sp\" → \"sp\"; \"mu-3550308\" → \"sp\"\n(os dois primeiros dígitos do código IBGE); \"mu-ap-06130\" (município sem\ncódigo IBGE) e \"mu-zz-29254\" (exterior) → a sigla do começo. No Brasil, null.",
      "linha": 46
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/lib/estatais.ts",
+   "linguagem": "typescript",
+   "linhas": 192,
+   "doc": "Empresas estatais (ADR-034): o arquivo `economia/estatais.json`, publicado com os painéis, e as contas da\npágina sobre ele.\n\nDuas fontes, lado a lado e nunca somadas:\n- as estatais com ações na bolsa, pelas demonstrações entregues à CVM (DFP): receita, custos, pessoal,\n  impostos, compras de terceiros, investimentos; o controle conferido no Formulário de Referência;\n- as estatais federais, pelo Programa de Dispêndios Globais da SEST: o orçamento aprovado e o realizado de\n  cada rubrica (pessoal, materiais, serviços, tributos, investimentos), das não dependentes do Tesouro.",
+   "itens": [
+    {
+     "tipo": "interface",
+     "nome": "ValorConta",
+     "assinatura": "export interface ValorConta",
+     "doc": "Um valor tirado das demonstrações: a conta, a descrição publicada e o valor em reais.",
+     "linha": 17
+    },
+    {
+     "tipo": "tipo",
+     "nome": "ClasseControle",
+     "assinatura": "export type ClasseControle = \"publico_direto\" | \"publico_indireto\" | \"privado\" | \"sem_controlador\" | \"sem_fre\";",
+     "doc": "Classe do controle, conferida no FRE.",
+     "linha": 25
+    },
+    {
+     "tipo": "interface",
+     "nome": "CompanhiaCvm",
+     "assinatura": "export interface CompanhiaCvm",
+     "doc": "Uma companhia aberta que se declara estatal no cadastro da CVM.",
+     "linha": 28
+    },
+    {
+     "tipo": "interface",
+     "nome": "ValorPdg",
+     "assinatura": "export interface ValorPdg",
+     "doc": "Uma rubrica do PDG num exercício: aprovado, realizado acumulado e até que mês.",
+     "linha": 55
+    },
+    {
+     "tipo": "interface",
+     "nome": "EmpresaSest",
+     "assinatura": "export interface EmpresaSest",
+     "doc": "Uma empresa estatal federal do cadastro da SEST, com o PDG por exercício (vazio nas dependentes).",
+     "linha": 62
+    },
+    {
+     "tipo": "interface",
+     "nome": "FeedEstatais",
+     "assinatura": "export interface FeedEstatais",
+     "doc": "O arquivo inteiro.",
+     "linha": 80
+    },
+    {
+     "tipo": "constante",
+     "nome": "urlEstatais",
+     "assinatura": "export const urlEstatais = () => `${BASE_PAINEL}/economia/estatais.json`;",
+     "doc": "Endereço do arquivo, ao lado dos painéis.",
+     "linha": 98
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarEstatais",
+     "assinatura": "export async function carregarEstatais(sinal?: AbortSignal): Promise<FeedEstatais | null>",
+     "doc": "Lê e confere o arquivo; `null` quando ainda não foi publicado.",
+     "linha": 101
+    },
+    {
+     "tipo": "constante",
+     "nome": "ROTULO_CONTROLE",
+     "assinatura": "export const ROTULO_CONTROLE: Record<ClasseControle, string> =",
+     "doc": "Rótulo da classe de controle.",
+     "linha": 108
+    },
+    {
+     "tipo": "funcao",
+     "nome": "controlePublico",
+     "assinatura": "export function controlePublico(c: CompanhiaCvm): boolean",
+     "doc": "A companhia tem controle público conferido no FRE (direto ou por outra estatal)?",
+     "linha": 117
+    },
+    {
+     "tipo": "funcao",
+     "nome": "exerciciosDe",
+     "assinatura": "export function exerciciosDe(lista: { exercicios: Record<string, unknown> }[]): string[]",
+     "doc": "Os exercícios que aparecem em alguma empresa da lista, do mais recente ao mais antigo.",
+     "linha": 122
+    },
+    {
+     "tipo": "funcao",
+     "nome": "textoBusca",
+     "assinatura": "function textoBusca(x: CompanhiaCvm | EmpresaSest): string",
+     "doc": "O texto em que a busca procura: nome, sigla, CNPJ, grupo, setor, controlador.",
+     "linha": 127
+    },
+    {
+     "tipo": "funcao",
+     "nome": "filtrar",
+     "assinatura": "export function filtrar<T extends CompanhiaCvm | EmpresaSest>(lista: T[], termo: string, aceita: (x: T) => boolean = () => true): T[]",
+     "doc": "Filtra pelo termo (todas as palavras, sem acento) e por um predicado.",
+     "linha": 133
+    },
+    {
+     "tipo": "funcao",
+     "nome": "realizado",
+     "assinatura": "export function realizado(e: EmpresaSest, ano: string, rubrica: string): number | null",
+     "doc": "O realizado de uma rubrica do PDG no exercício, ou `null`.",
+     "linha": 139
+    },
+    {
+     "tipo": "funcao",
+     "nome": "execucao",
+     "assinatura": "export function execucao(v: ValorPdg | null | undefined): number | null",
+     "doc": "Quanto do aprovado foi realizado, em %; `null` sem os dois ou com aprovado zero.",
+     "linha": 144
+    },
+    {
+     "tipo": "funcao",
+     "nome": "valorCvm",
+     "assinatura": "export function valorCvm(c: CompanhiaCvm, ano: string, indicador: string): number | null",
+     "doc": "O valor de um indicador da companhia no exercício, como publicado (com o sinal da demonstração).",
+     "linha": 150
+    },
+    {
+     "tipo": "funcao",
+     "nome": "comoGasto",
+     "assinatura": "export function comoGasto(valor: number | null, saida: boolean): number | null",
+     "doc": "Um gasto publicado como negativo (custo, compra) mostrado como valor positivo de saída.",
+     "linha": 155
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ordenarPor",
+     "assinatura": "export function ordenarPor<T>(lista: T[], valor: (x: T) => number | null, nome: (x: T) => string): T[]",
+     "doc": "Ordena pela coluna (valores ausentes por último) e, no empate, pelo nome.",
+     "linha": 161
+    },
+    {
+     "tipo": "funcao",
+     "nome": "mesAbreviado",
+     "assinatura": "export function mesAbreviado(n: number | null): string",
+     "doc": "\"dez\" do mês 12, para \"realizado até dez\".",
+     "linha": 173
+    },
+    {
+     "tipo": "funcao",
+     "nome": "estataisDoEnte",
+     "assinatura": "export function estataisDoEnte(feed: Pick<FeedEstatais, \"companhias\">, nome: string, uf: string | null, tipo: TipoEnte | null): CompanhiaCvm[]",
+     "doc": "As companhias abertas com controle público conferido que o ente controla, pela esfera do controlador e\npelo lugar da sede: na União, as federais; num estado, as estaduais com sede na UF; no DF, as distritais;\nnum município, as municipais com sede nele. É aproximação: a sede não prova o controlador, e a página diz isso.",
+     "linha": 182
     }
    ]
   },
@@ -8523,9 +9895,228 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/lib/local.ts",
+   "linguagem": "typescript",
+   "linhas": 107,
+   "doc": "O local escolhido (União, estado, DF ou município), que filtra todas as abas do portal (ADR-035).\n\nNão há página própria: a pessoa escolhe o local no cabeçalho, ou entra num município ou estado em qualquer\naba, e as outras abas passam a abrir já nele: Eleições no mapa do município, Contratações e Conformidade no\nente, as estatais filtradas pelas que ele controla. O local fica na URL de cada aba e, entre uma visita e\noutra, na memória do navegador.",
+   "itens": [
+    {
+     "tipo": "interface",
+     "nome": "Local",
+     "assinatura": "export interface Local",
+     "doc": "O local escolhido: código IBGE (1 para a União), nome e UF.",
+     "linha": 14
+    },
+    {
+     "tipo": "tipo",
+     "nome": "Area",
+     "assinatura": "export type Area = \"eleicoes\" | \"contratacoes\" | \"conformidade\" | \"economia\" | \"estatais\";",
+     "doc": "As áreas do portal que o local filtra.",
+     "linha": 21
+    },
+    {
+     "tipo": "funcao",
+     "nome": "siglaDaUf",
+     "assinatura": "function siglaDaUf(codigo: string): string | null",
+     "doc": "Sigla da UF em minúsculas pelo código de 2 dígitos (\"35\" → \"sp\").",
+     "linha": 27
+    },
+    {
+     "tipo": "funcao",
+     "nome": "codigoDaUf",
+     "assinatura": "export function codigoDaUf(sigla: string): string | null",
+     "doc": "Código IBGE da UF pela sigla (\"sp\" → \"35\").",
+     "linha": 32
+    },
+    {
+     "tipo": "funcao",
+     "nome": "hrefDaArea",
+     "assinatura": "export function hrefDaArea(area: Area, local: Local | null, atual?: URLSearchParams): string",
+     "doc": "O endereço da aba já filtrado pelo local. Sem local, o da aba no Brasil. Eleições abrem no mapa do município\nou do estado (a eleição e o cargo de `atual`, se houver); a União não tem página de conformidade.",
+     "linha": 40
+    },
+    {
+     "tipo": "funcao",
+     "nome": "codigoNaUrl",
+     "assinatura": "export function codigoNaUrl(caminho: string, params: URLSearchParams): string | null",
+     "doc": "O local que a URL da aba aberta indica, ou `null` se ela está no Brasil ou não é de uma área com local:\n`?ente=` em Contratações, Conformidade e Estatais; `?uf=` em Conformidade; `?a=mu-…` ou `?a=uf-…` em Eleições.\nSó o código: o nome vem do cadastro.",
+     "linha": 66
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lerMemoria",
+     "assinatura": "export function lerMemoria(): Local | null",
+     "doc": "O local guardado no navegador, ou `null` (sem memória, em janela privada, ou valor estranho).",
+     "linha": 84
+    },
+    {
+     "tipo": "funcao",
+     "nome": "gravarMemoria",
+     "assinatura": "export function gravarMemoria(local: Local | null): void",
+     "doc": "Guarda (ou apaga, com `null`) o local no navegador; sem memória disponível, só não guarda.",
+     "linha": 97
+    },
+    {
+     "tipo": "constante",
+     "nome": "EVENTO_LOCAL",
+     "assinatura": "export const EVENTO_LOCAL = \"lumen:local\";",
+     "doc": "Avisa as abas abertas na mesma página que o local mudou.",
+     "linha": 107
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/lib/mercado.ts",
+   "linguagem": "typescript",
+   "linhas": 248,
+   "doc": "Comparação do preço de combustível e de gás de cozinha com o preço de revenda da ANP (ADR-037; regra A-05 do\nDOC-07, ADR-027), sob demanda no modal da contratação.\n\nDuas partes:\n- **o reconhecimento do item**, cópia das regras de `lumen_mercado.especificacao.reconhecer` só para os\n  produtos da ANP. Os casos ficam em `packages/mercado/testes/fixtures/reconhecimento_anp.json` e são lidos\n  pelo teste do Python e pelo daqui: se uma regra mudar de um lado só, um dos testes falha. Na dúvida, o\n  item não é reconhecido;\n- **a referência**, do arquivo `mercado/anp/uf-<sigla>-<ano>.json` que os painéis publicam todo dia: a\n  distribuição do preço de revenda na semana do levantamento, no município (com ao menos 5 coletas) ou na UF\n  (ao menos 10).\n\nOs limiares são os de `parametros_mercado.toml` (1,20 × a mediana no combustível, 1,25 × no gás de cozinha),\niniciais e não calibrados. Compra pública inclui entrega, prazo de pagamento e cartão de abastecimento: a\ndistância é um ponto de partida para conferir, não uma conclusão.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "ProdutoAnp",
+     "assinatura": "export type ProdutoAnp = \"GASOLINA\" | \"GASOLINA ADITIVADA\" | \"ETANOL\" | \"DIESEL S10\" | \"DIESEL\" | \"GNV\" | \"GLP\";",
+     "doc": "Produtos como a ANP os nomeia; o diesel sem indicação é o S500.",
+     "linha": 23
+    },
+    {
+     "tipo": "constante",
+     "nome": "NOME_PRODUTO",
+     "assinatura": "export const NOME_PRODUTO: Record<ProdutoAnp, string> =",
+     "doc": "Nome de cada produto na tela.",
+     "linha": 26
+    },
+    {
+     "tipo": "constante",
+     "nome": "UNIDADE_PRODUTO",
+     "assinatura": "export const UNIDADE_PRODUTO = (p: ProdutoAnp) => (p === \"GNV\" ? \"m³\" : p === \"GLP\" ? \"botijão de 13 kg\" : \"litro\");",
+     "doc": "Unidade do preço da ANP de cada produto.",
+     "linha": 32
+    },
+    {
+     "tipo": "constante",
+     "nome": "PARAMETROS_ANP",
+     "assinatura": "export const PARAMETROS_ANP =",
+     "doc": "Parâmetros da A-05 (`parametros_mercado.toml`), iniciais e não calibrados.",
+     "linha": 35
+    },
+    {
+     "tipo": "funcao",
+     "nome": "semAcento",
+     "assinatura": "export function semAcento(texto: string | null | undefined): string",
+     "doc": "Minúsculas, sem acentos e com espaços simples (`sem_acento`).",
+     "linha": 49
+    },
+    {
+     "tipo": "funcao",
+     "nome": "normalizarTitulo",
+     "assinatura": "function normalizarTitulo(texto: string | null | undefined): string",
+     "doc": "Descrição com números colados às unidades (`normalizar_titulo`).",
+     "linha": 54
+    },
+    {
+     "tipo": "funcao",
+     "nome": "unidadeCanonica",
+     "assinatura": "export function unidadeCanonica(texto: string | null | undefined): string | null",
+     "doc": "`litro`, `m3`, `unidade` ou `botijao` a partir da unidade de medida (`unidade_canonica`).",
+     "linha": 68
+    },
+    {
+     "tipo": "funcao",
+     "nome": "combustivel",
+     "assinatura": "function combustivel(d: string): ProdutoAnp | null",
+     "doc": "Produto ANP de uma descrição de combustível (sem acento), ou `null` (`_combustivel`).",
+     "linha": 88
+    },
+    {
+     "tipo": "funcao",
+     "nome": "gasDeCozinha",
+     "assinatura": "function gasDeCozinha(d: string): boolean",
+     "doc": "A descrição é de GLP no botijão de 13 kg, só o gás, com a troca do vazio? (`_gas_de_cozinha`)",
+     "linha": 112
+    },
+    {
+     "tipo": "funcao",
+     "nome": "reconhecerAnp",
+     "assinatura": "export function reconhecerAnp(descricao: string | null | undefined, unidadeMedida: string | null | undefined): ProdutoAnp | null",
+     "doc": "O produto da ANP do item, ou `null` quando ele não é combustível nem gás de cozinha reconhecido com segurança.\nA unidade decide antes da descrição: combustível só em litro (GNV em m³), gás só por botijão ou unidade.",
+     "linha": 121
+    },
+    {
+     "tipo": "tipo",
+     "nome": "Estatistica",
+     "assinatura": "export type Estatistica = [number, number, number, number, number, number];",
+     "doc": "`[n, mínimo, 1º quartil, mediana, 3º quartil, máximo]` de uma semana.",
+     "linha": 134
+    },
+    {
+     "tipo": "interface",
+     "nome": "ArquivoAnp",
+     "assinatura": "export interface ArquivoAnp",
+     "doc": "O arquivo `mercado/anp/uf-<sigla>-<ano>.json`.",
+     "linha": 137
+    },
+    {
+     "tipo": "interface",
+     "nome": "ReferenciaAnp",
+     "assinatura": "export interface ReferenciaAnp",
+     "doc": "A referência achada: a semana, o lugar e a distribuição.",
+     "linha": 150
+    },
+    {
+     "tipo": "tipo",
+     "nome": "SituacaoAnp",
+     "assinatura": "export type SituacaoAnp = \"acima\" | \"dentro\" | \"fora_de_escala\" | \"sem_referencia\";",
+     "doc": "O que a comparação diz do preço.",
+     "linha": 165
+    },
+    {
+     "tipo": "interface",
+     "nome": "ComparacaoAnp",
+     "assinatura": "export interface ComparacaoAnp",
+     "doc": "O resultado: a referência (se houver), a razão e a leitura.",
+     "linha": 168
+    },
+    {
+     "tipo": "constante",
+     "nome": "urlAnp",
+     "assinatura": "export const urlAnp = (uf: string, ano: number) => `${BASE_PAINEL}/mercado/anp/uf-${uf.toLowerCase()}-${ano}.json`;",
+     "doc": "Endereço do arquivo da UF no ano.",
+     "linha": 183
+    },
+    {
+     "tipo": "funcao",
+     "nome": "acharReferencia",
+     "assinatura": "export function acharReferencia(arquivos: ArquivoAnp[], produto: ProdutoAnp, ibge: string | null, data: string): ReferenciaAnp | null",
+     "doc": "A distribuição na semana do levantamento que contém a data (ou a mais perto, até 7 dias), no município com\nao menos 5 coletas, senão na UF com ao menos 10.",
+     "linha": 191
+    },
+    {
+     "tipo": "funcao",
+     "nome": "compararComAnp",
+     "assinatura": "export function compararComAnp(produto: ProdutoAnp, preco: number, tipoPreco: \"homologado\" | \"estimado\", data: string,",
+     "doc": "A leitura do preço contra a referência, pelos limiares da A-05.",
+     "linha": 215
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarComparacaoAnp",
+     "assinatura": "export async function carregarComparacaoAnp(produto: ProdutoAnp, preco: number, tipoPreco: \"homologado\" | \"estimado\",",
+     "doc": "Lê os arquivos da UF que cobrem a data (o do ano dela e, perto da virada, o do ano vizinho) e compara.",
+     "linha": 231
+    },
+    {
+     "tipo": "funcao",
+     "nome": "desloca",
+     "assinatura": "function desloca(iso: string, dias: number): string",
+     "doc": "A data `dias` depois de `iso` (negativo para antes).",
+     "linha": 244
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/lib/paineis.ts",
    "linguagem": "typescript",
-   "linhas": 532,
+   "linhas": 541,
    "doc": "Acesso aos dados dos painéis de contratações e de conformidade (ADR-028).\n\nOs arquivos são gerados por `lumen painel publicar` a partir do PNCP e do\nextrato de entregas do SICONFI e publicados no GitHub Pages do repositório.\nA base é `NEXT_PUBLIC_DADOS_PAINEL`, fixada no build; sem ela, o endereço\npúblico do Pages. Os arquivos mudam uma vez por dia: o navegador revalida\n(`no-cache`) e recebe 304 quando nada mudou.",
    "itens": [
     {
@@ -8599,249 +10190,510 @@
      "linha": 111
     },
     {
+     "tipo": "tipo",
+     "nome": "MesesLinha",
+     "assinatura": "export type MesesLinha = [string, ...number[]][];",
+     "doc": "Mês a mês de uma linha de tabela: `[mês, processos, valor estimado, contratos, valor dos contratos]` (órgãos,\nmunicípios, esferas), `[mês, processos, valor estimado]` (modalidades), `[mês, contratos, valor]`\n(fornecedores, pessoas físicas) ou `[mês, processos do estado, processos dos municípios]` (UFs). Ausente nos\narquivos gerados antes de existir o filtro de período.",
+     "linha": 129
+    },
+    {
      "tipo": "interface",
      "nome": "SecoesContratacoes",
      "assinatura": "export interface SecoesContratacoes",
      "doc": "Seções comuns ao panorama, a um ente e a um órgão (`_secoes` no Python).",
-     "linha": 124
+     "linha": 132
     },
     {
      "tipo": "interface",
      "nome": "ContratacoesEnte",
      "assinatura": "export interface ContratacoesEnte extends SecoesContratacoes",
      "doc": "Arquivo `contratacoes/ente/<código>.json`; o de um estado traz também os municípios da UF.",
-     "linha": 159
+     "linha": 167
     },
     {
      "tipo": "interface",
      "nome": "ContratacoesOrgao",
      "assinatura": "export interface ContratacoesOrgao extends Omit<SecoesContratacoes, \"orgaos\">",
      "doc": "Arquivo `contratacoes/orgao/<CNPJ>.json`: um órgão, com o ente a que pertence (ou null sem esfera).",
-     "linha": 169
+     "linha": 177
     },
     {
      "tipo": "interface",
      "nome": "TotaisContratacoesSimples",
      "assinatura": "export interface TotaisContratacoesSimples",
      "doc": "Totais de um município na tabela da UF.",
-     "linha": 179
+     "linha": 187
     },
     {
      "tipo": "interface",
      "nome": "ContratacoesPanorama",
      "assinatura": "export interface ContratacoesPanorama extends SecoesContratacoes",
      "doc": "Arquivo `contratacoes/panorama.json`: o Brasil, por esfera e por UF.",
-     "linha": 187
+     "linha": 195
     },
     {
      "tipo": "tipo",
      "nome": "Resultado",
      "assinatura": "export type Resultado = \"cumpre\" | \"cumpre_parcialmente\" | \"nao_cumpre\" | \"indeterminado\";",
      "doc": "Resultado de uma obrigação, na nomenclatura de `ResultadoCriterio`.",
-     "linha": 205
+     "linha": 214
     },
     {
      "tipo": "interface",
      "nome": "ResumoConformidade",
      "assinatura": "export interface ResumoConformidade",
      "doc": "Quantas obrigações em cada resultado e a fração entregue no prazo.",
-     "linha": 208
+     "linha": 217
     },
     {
      "tipo": "interface",
      "nome": "Obrigacao",
      "assinatura": "export interface Obrigacao",
      "doc": "Uma obrigação avaliada: rótulo, prazo, data da entrega, resultado, dispositivo e, se indeterminada, o motivo.",
-     "linha": 219
+     "linha": 228
     },
     {
      "tipo": "interface",
      "nome": "ConformidadeEnte",
      "assinatura": "export interface ConformidadeEnte",
      "doc": "Arquivo `conformidade/ente/<código>.json`.",
-     "linha": 234
+     "linha": 243
     },
     {
      "tipo": "interface",
      "nome": "ConformidadeUf",
      "assinatura": "export interface ConformidadeUf",
      "doc": "Arquivo `conformidade/uf/<sigla>.json`: os entes avaliados da UF, por nome.",
-     "linha": 247
+     "linha": 256
     },
     {
      "tipo": "interface",
      "nome": "ConformidadePanorama",
      "assinatura": "export interface ConformidadePanorama",
      "doc": "Arquivo `conformidade/panorama.json`: o Brasil, por obrigação e por UF.",
-     "linha": 258
+     "linha": 267
     },
     {
      "tipo": "funcao",
      "nome": "conferir",
      "assinatura": "export function conferir<T>(bruto: unknown, tipo: string, url: string): T",
      "doc": "Confere versão e tipo de um arquivo dos painéis; o resto do formato é o que o Python grava e testa.",
-     "linha": 272
+     "linha": 281
     },
     {
      "tipo": "funcao",
      "nome": "ler",
      "assinatura": "async function ler<T>(url: string, tipo: string, sinal?: AbortSignal): Promise<T | null>",
      "doc": "Lê e confere um arquivo dos painéis; `null` quando ele não existe.",
-     "linha": 281
+     "linha": 290
     },
     {
      "tipo": "constante",
      "nome": "carregarContratacoesPanorama",
      "assinatura": "export const carregarContratacoesPanorama = (sinal?: AbortSignal) =>",
      "doc": "Panorama de contratações do Brasil.",
-     "linha": 287
+     "linha": 296
     },
     {
      "tipo": "constante",
      "nome": "carregarContratacoesEnte",
      "assinatura": "export const carregarContratacoesEnte = (codigo: string, sinal?: AbortSignal) =>",
      "doc": "Contratações de um ente pelo código IBGE; `null` sem publicação no período.",
-     "linha": 290
+     "linha": 299
     },
     {
      "tipo": "constante",
      "nome": "carregarContratacoesOrgao",
      "assinatura": "export const carregarContratacoesOrgao = (cnpj: string, sinal?: AbortSignal) =>",
      "doc": "Contratações de um órgão pelo CNPJ; `null` sem publicação no período.",
-     "linha": 293
+     "linha": 302
     },
     {
      "tipo": "constante",
      "nome": "carregarConformidadePanorama",
      "assinatura": "export const carregarConformidadePanorama = (sinal?: AbortSignal) =>",
      "doc": "Panorama da conformidade no Brasil.",
-     "linha": 296
+     "linha": 305
     },
     {
      "tipo": "constante",
      "nome": "carregarConformidadeUf",
      "assinatura": "export const carregarConformidadeUf = (uf: string, sinal?: AbortSignal) =>",
      "doc": "Conformidade dos entes de uma UF.",
-     "linha": 299
+     "linha": 308
     },
     {
      "tipo": "constante",
      "nome": "carregarConformidadeEnte",
      "assinatura": "export const carregarConformidadeEnte = (codigo: string, sinal?: AbortSignal) =>",
      "doc": "Conformidade de um ente; `null` se ainda não avaliado.",
-     "linha": 302
+     "linha": 311
     },
     {
      "tipo": "funcao",
      "nome": "carregarEntes",
      "assinatura": "export function carregarEntes(): Promise<EnteBusca[]>",
      "doc": "Cadastro de entes para a busca, baixado uma vez por visita; lista vazia se o arquivo não existe.",
-     "linha": 308
+     "linha": 317
     },
     {
      "tipo": "funcao",
      "nome": "lerEntes",
      "assinatura": "export function lerEntes(bruto: unknown): EnteBusca[]",
      "doc": "Converte o `entes.json` (linhas em lista, na ordem de `colunas`) em objetos.",
-     "linha": 319
+     "linha": 328
     },
     {
      "tipo": "funcao",
      "nome": "carregarOrgaos",
      "assinatura": "export function carregarOrgaos(): Promise<OrgaoBusca[]>",
      "doc": "Órgãos para a busca, com o cadastro de entes, baixados uma vez por visita; lista vazia sem o arquivo.",
-     "linha": 342
+     "linha": 351
     },
     {
      "tipo": "funcao",
      "nome": "siglaDoNome",
      "assinatura": "export function siglaDoNome(nome: string): string",
      "doc": "Sigla pelas iniciais das palavras do nome, sem as de ligação: \"Serviço Autônomo de Água e Esgoto\" → \"saae\".",
-     "linha": 358
+     "linha": 367
     },
     {
      "tipo": "funcao",
      "nome": "lerOrgaos",
      "assinatura": "export function lerOrgaos(bruto: unknown, entes: EnteBusca[]): OrgaoBusca[]",
      "doc": "Converte o `orgaos.json` (linhas em lista, na ordem de `colunas`) em objetos prontos para a busca.",
-     "linha": 367
+     "linha": 376
     },
     {
      "tipo": "funcao",
      "nome": "buscarOrgaos",
      "assinatura": "export function buscarOrgaos(termo: string, orgaos: OrgaoBusca[], limite = 8): OrgaoBusca[]",
      "doc": "Até `limite` órgãos que casam com o termo. Cada palavra do termo precisa começar uma palavra do nome do órgão\nou do ente a que ele pertence, ou, com três letras ou mais, aparecer na sigla do nome (\"saae sorocaba\" acha o\nServiço Autônomo de Água e Esgoto de Sorocaba). Termo só de dígitos busca pelo começo do CNPJ. Quem começa com\no termo vem antes; empate por mais publicações e depois pelo nome.",
-     "linha": 403
+     "linha": 412
     },
     {
      "tipo": "funcao",
      "nome": "descreverOrgao",
      "assinatura": "export function descreverOrgao(o: Pick<OrgaoBusca, \"esfera\" | \"ente\" | \"enteNome\" | \"uf\">): string",
      "doc": "Descrição curta do órgão: \"Órgão municipal · Sorocaba (SP)\", \"Órgão federal\" ou só \"Órgão\".",
-     "linha": 431
+     "linha": 440
     },
     {
      "tipo": "funcao",
      "nome": "tipoDoCodigo",
      "assinatura": "export function tipoDoCodigo(codigo: string): TipoEnte | null",
      "doc": "Tipo do ente pelo código: União (1), DF (53), estado (2 dígitos) ou município (7 dígitos).",
-     "linha": 442
+     "linha": 451
     },
     {
      "tipo": "funcao",
      "nome": "buscarEntes",
      "assinatura": "export function buscarEntes(termo: string, entes: EnteBusca[], limite = 12): EnteBusca[]",
      "doc": "Até `limite` entes cujo nome casa com o termo (sem acento e sem caixa), ou a sigla da UF: União e estados\nprimeiro, depois municípios; quem começa com o termo antes de quem só o contém; empate pelo maior.",
-     "linha": 454
+     "linha": 463
     },
     {
      "tipo": "funcao",
      "nome": "descreverEnte",
      "assinatura": "export function descreverEnte(e: { codigo: string; uf: string | null }): string",
      "doc": "Descrição curta do ente: \"União\", \"Estado\", \"Distrito Federal\" ou \"Município · SP\".",
-     "linha": 475
+     "linha": 484
     },
     {
      "tipo": "funcao",
      "nome": "moeda",
      "assinatura": "export function moeda(valor: number | null | undefined): string",
      "doc": "1234.5 → \"R$ 1.234,50\"; ausente → \"—\".",
-     "linha": 489
+     "linha": 498
     },
     {
      "tipo": "funcao",
      "nome": "moedaCompacta",
      "assinatura": "export function moedaCompacta(valor: number | null | undefined): string",
      "doc": "1500000 → \"R$ 1,5 mi\"; ausente → \"—\".",
-     "linha": 494
+     "linha": 503
     },
     {
      "tipo": "funcao",
      "nome": "mesCurto",
      "assinatura": "export function mesCurto(mes: string): string",
      "doc": "\"2026-03\" → \"mar/2026\".",
-     "linha": 500
+     "linha": 509
     },
     {
      "tipo": "funcao",
      "nome": "dataCurta",
      "assinatura": "export function dataCurta(iso: string | null | undefined): string",
      "doc": "\"2026-10-13\" → \"13/10/2026\"; ISO com hora → só a data, no horário de Brasília.",
-     "linha": 508
+     "linha": 517
     },
     {
      "tipo": "funcao",
      "nome": "topoDoEixo",
      "assinatura": "export function topoDoEixo(maximo: number): number",
      "doc": "Topo \"redondo\" do eixo de um gráfico: 1, 2 ou 5 vezes uma potência de 10, no maior valor ou acima.",
-     "linha": 521
+     "linha": 530
     },
     {
      "tipo": "funcao",
      "nome": "cnpj",
      "assinatura": "export function cnpj(texto: string | null | undefined): string",
      "doc": "CNPJ com máscara: 07854402000100 → 07.854.402/0001-00.",
-     "linha": 529
+     "linha": 538
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/lib/periodo.ts",
+   "linguagem": "typescript",
+   "linhas": 188,
+   "doc": "Recorte de um período (de um mês a outro) nos painéis de contratações e a paginação das listas.\n\nOs arquivos dos painéis trazem, além dos totais do período coletado, o mês a mês de cada tabela\n(`meses`: `[mês, ...valores]`). Aqui as tabelas são refeitas só com os meses escolhidos: os totais saem do\nmês a mês do ente; modalidades, órgãos, fornecedores, municípios, esferas e UFs, do mês a mês de cada linha;\nas listas de publicações são filtradas pela data. Nada é estimado: mês fora do arquivo não entra.\n\nOs fornecedores do arquivo são os de maior valor no período inteiro; num período menor, a ordem é refeita\nentre eles (um fornecedor que só aparece num mês pode não estar na lista). O portal avisa.",
+   "itens": [
+    {
+     "tipo": "interface",
+     "nome": "PeriodoMeses",
+     "assinatura": "export interface PeriodoMeses",
+     "doc": "Período de meses, inclusivo nas duas pontas (`AAAA-MM`); `null` é sem limite.",
+     "linha": 21
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lerPeriodo",
+     "assinatura": "export function lerPeriodo(params: { get(chave: string): string | null }): PeriodoMeses",
+     "doc": "Lê `de` e `ate` da URL, ignorando o que não é mês válido, e põe em ordem.",
+     "linha": 29
+    },
+    {
+     "tipo": "funcao",
+     "nome": "temRecorte",
+     "assinatura": "export function temRecorte(p: PeriodoMeses): boolean",
+     "doc": "O período tem algum limite?",
+     "linha": 37
+    },
+    {
+     "tipo": "funcao",
+     "nome": "noPeriodo",
+     "assinatura": "export function noPeriodo(dataOuMes: string | null | undefined, p: PeriodoMeses): boolean",
+     "doc": "O mês (ou a data `AAAA-MM-DD`) cai no período?",
+     "linha": 42
+    },
+    {
+     "tipo": "tipo",
+     "nome": "LinhaMes",
+     "assinatura": "type LinhaMes = [string, ...number[]];",
+     "doc": "Linha mensal dos arquivos: `[mês, n1, n2, ...]`.",
+     "linha": 49
+    },
+    {
+     "tipo": "funcao",
+     "nome": "somarMeses",
+     "assinatura": "export function somarMeses(meses: LinhaMes[] | undefined, p: PeriodoMeses, colunas: number): number[]",
+     "doc": "Soma, coluna a coluna, as linhas mensais dentro do período (`colunas` valores depois do mês).",
+     "linha": 52
+    },
+    {
+     "tipo": "funcao",
+     "nome": "totais",
+     "assinatura": "function totais([processos, valor_estimado, contratos, valor_contratos]: number[]): TotaisContratacoes",
+     "doc": "Totais a partir das quatro colunas `[processos, valor estimado, contratos, valor dos contratos]`.",
+     "linha": 62
+    },
+    {
+     "tipo": "funcao",
+     "nome": "mesesDoArquivo",
+     "assinatura": "export function mesesDoArquivo(dados: Pick<SecoesContratacoes, \"meses\">): string[]",
+     "doc": "Os meses do arquivo, do mais antigo ao mais recente (para as opções do filtro).",
+     "linha": 73
+    },
+    {
+     "tipo": "funcao",
+     "nome": "recortarMunicipios",
+     "assinatura": "export function recortarMunicipios(",
+     "doc": "Os municípios da UF refeitos no período (a lista toda continua, com zero onde não houve publicação).",
+     "linha": 133
+    },
+    {
+     "tipo": "funcao",
+     "nome": "recortarPanorama",
+     "assinatura": "export function recortarPanorama(dados: ContratacoesPanorama, p: PeriodoMeses): ContratacoesPanorama",
+     "doc": "Esferas e UFs do panorama refeitas no período.",
+     "linha": 146
+    },
+    {
+     "tipo": "constante",
+     "nome": "POR_PAGINA",
+     "assinatura": "export const POR_PAGINA = 20;",
+     "doc": "Itens por página em todas as listas do portal.",
+     "linha": 162
+    },
+    {
+     "tipo": "funcao",
+     "nome": "totalDePaginas",
+     "assinatura": "export function totalDePaginas(total: number, porPagina = POR_PAGINA): number",
+     "doc": "Quantas páginas a lista tem (pelo menos uma).",
+     "linha": 165
+    },
+    {
+     "tipo": "funcao",
+     "nome": "paginar",
+     "assinatura": "export function paginar<T>(itens: readonly T[], pagina: number, porPagina = POR_PAGINA): T[]",
+     "doc": "A página `pagina` (a partir de 1, limitada ao intervalo) da lista.",
+     "linha": 170
+    },
+    {
+     "tipo": "funcao",
+     "nome": "paginasVisiveis",
+     "assinatura": "export function paginasVisiveis(atual: number, total: number): (number | null)[]",
+     "doc": "Os números de página a mostrar: a primeira, a última e as vizinhas da atual, com `null` nos saltos.",
+     "linha": 176
+    },
+    {
+     "tipo": "funcao",
+     "nome": "temMesAMes",
+     "assinatura": "export function temMesAMes(dados: Pick<SecoesContratacoes, \"modalidades\" | \"fornecedores\">): boolean",
+     "doc": "O arquivo tem o mês a mês das tabelas? (Os gerados antes do filtro de período não têm.)",
+     "linha": 186
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/lib/precos.ts",
+   "linguagem": "typescript",
+   "linhas": 253,
+   "doc": "Comparação de preço de um item com o que outros órgãos pagaram pelo mesmo item de catálogo (ADR-036; regra\nA-01 do DOC-07, aplicada sob demanda no modal da contratação).\n\nA referência vem da pesquisa de preços do Compras.gov.br (dados abertos), que reúne as compras feitas pelo\nsistema federal, de órgãos federais, estaduais e municipais, com o preço unitário de cada item pelo código do\ncatálogo (CATMAT para material, CATSER para serviço). A API não libera a leitura por outro site (CORS); o\nportal a pede pelo próprio endereço (`/api/precos/...`), que o Vercel repassa à fonte sem guardar nada.\n\nA conta segue o DOC-07: mediana, desvio absoluto mediano (MAD) e o escore robusto\n`0,6745 × (preço − mediana) ÷ MAD`, com o mínimo de 30 compras comparáveis e o disparo em 3,5. Os parâmetros\nsão os iniciais, não calibrados. O resultado diz onde o preço fica entre as compras comparáveis; não é\nconclusão sobre a compra: a especificação, a quantidade, o lugar e o prazo podem justificar a diferença.",
+   "itens": [
+    {
+     "tipo": "constante",
+     "nome": "API_PRECOS",
+     "assinatura": "export const API_PRECOS = \"/api/precos\";",
+     "doc": "O caminho do portal que o Vercel repassa à pesquisa de preços (`vercel.json`).",
+     "linha": 20
+    },
+    {
+     "tipo": "constante",
+     "nome": "FONTE_PRECOS",
+     "assinatura": "export const FONTE_PRECOS = \"https://dadosabertos.compras.gov.br/modulo-pesquisa-preco\";",
+     "doc": "A fonte, para o link \"ver na fonte\" e para a documentação.",
+     "linha": 23
+    },
+    {
+     "tipo": "constante",
+     "nome": "PARAMETROS_PRECO",
+     "assinatura": "export const PARAMETROS_PRECO =",
+     "doc": "Parâmetros da comparação (DOC-07, A-01): iniciais, não calibrados.",
+     "linha": 26
+    },
+    {
+     "tipo": "interface",
+     "nome": "CompraComparavel",
+     "assinatura": "export interface CompraComparavel",
+     "doc": "Uma compra da pesquisa de preços, já lida. Fornecedor pessoa física fica sem nome nem documento.",
+     "linha": 36
+    },
+    {
+     "tipo": "tipo",
+     "nome": "SituacaoPreco",
+     "assinatura": "export type SituacaoPreco = \"acima\" | \"abaixo\" | \"dentro\" | \"poucas\" | \"fora_de_escala\" | \"sem_comparaveis\";",
+     "doc": "Onde o preço do item fica entre as compras comparáveis.",
+     "linha": 51
+    },
+    {
+     "tipo": "interface",
+     "nome": "ComparacaoPreco",
+     "assinatura": "export interface ComparacaoPreco",
+     "doc": "O resultado da comparação, com a referência inteira para quem quiser conferir.",
+     "linha": 54
+    },
+    {
+     "tipo": "interface",
+     "nome": "ItemParaComparar",
+     "assinatura": "export interface ItemParaComparar",
+     "doc": "O que a comparação precisa saber do item e da compra.",
+     "linha": 77
+    },
+    {
+     "tipo": "tipo",
+     "nome": "Bruto",
+     "assinatura": "type Bruto = Record<string, unknown>;",
+     "doc": "Um objeto da resposta da API, ainda sem conferir.",
+     "linha": 90
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lerCompras",
+     "assinatura": "export function lerCompras(bruto: unknown): CompraComparavel[]",
+     "doc": "As compras da resposta da API (`resultado`), sem conferir mais que o tipo de cada campo.",
+     "linha": 95
+    },
+    {
+     "tipo": "funcao",
+     "nome": "unidadeNormal",
+     "assinatura": "function unidadeNormal(u: string | null): string",
+     "doc": "A unidade normalizada, com as siglas mais comuns por extenso (\"UN\" → \"unidade\").",
+     "linha": 124
+    },
+    {
+     "tipo": "funcao",
+     "nome": "mesmaUnidade",
+     "assinatura": "export function mesmaUnidade(unidadeItem: string | null, c: Pick<CompraComparavel, \"unidade\" | \"capacidade\">): boolean",
+     "doc": "A unidade da compra é a do item? Mesmo nome (ou o nome do item começa por ela) e, se houver, a mesma capacidade.",
+     "linha": 130
+    },
+    {
+     "tipo": "funcao",
+     "nome": "daPropriaCompra",
+     "assinatura": "function daPropriaCompra(c: CompraComparavel, item: ItemParaComparar): boolean",
+     "doc": "A compra é a própria compra do item? Pelo número no sistema federal: UASG, modalidade, número (5 dígitos) e ano.",
+     "linha": 144
+    },
+    {
+     "tipo": "funcao",
+     "nome": "quantil",
+     "assinatura": "function quantil(ordenados: number[], q: number): number",
+     "doc": "Quantil por interpolação linear (o tipo 7, o mesmo das planilhas). `ordenados` em ordem crescente.",
+     "linha": 152
+    },
+    {
+     "tipo": "funcao",
+     "nome": "escoreRobusto",
+     "assinatura": "export function escoreRobusto(x: number, ordenados: number[]): number | null",
+     "doc": "Escore robusto do DOC-07: `0,6745 × (x − mediana) ÷ MAD`. Quando mais da metade dos preços é igual (MAD zero),\nusa o desvio absoluto médio (`(x − mediana) ÷ (1,2533 × média |x − mediana|)`), como é usual nesse caso;\n`null` se todos os preços são iguais.",
+     "linha": 165
+    },
+    {
+     "tipo": "funcao",
+     "nome": "compararPreco",
+     "assinatura": "export function compararPreco(item: ItemParaComparar, compras: CompraComparavel[], de: string): ComparacaoPreco",
+     "doc": "Compara o preço do item com as compras recebidas: filtra as comparáveis e calcula a posição dele.",
+     "linha": 175
+    },
+    {
+     "tipo": "funcao",
+     "nome": "diasAntes",
+     "assinatura": "function diasAntes(iso: string, dias: number): string",
+     "doc": "A data `dias` antes de `iso` (AAAA-MM-DD).",
+     "linha": 215
+    },
+    {
+     "tipo": "funcao",
+     "nome": "urlPrecos",
+     "assinatura": "export function urlPrecos(item: Pick<ItemParaComparar, \"catalogo\" | \"material\">, de: string, ate: string, pagina: number): string",
+     "doc": "O endereço de uma página da pesquisa de preços, pelo caminho do portal.",
+     "linha": 222
+    },
+    {
+     "tipo": "funcao",
+     "nome": "pedir",
+     "assinatura": "async function pedir(url: string, sinal?: AbortSignal): Promise<Bruto>",
+     "doc": "GET na pesquisa de preços.",
+     "linha": 230
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarComparacao",
+     "assinatura": "export async function carregarComparacao(item: ItemParaComparar, sinal?: AbortSignal): Promise<ComparacaoPreco>",
+     "doc": "Pede as compras do código nos 12 meses até a data do item (até 4 páginas de 500) e compara.",
+     "linha": 245
     }
    ]
   },
@@ -9241,6 +11093,42 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/lib/transparencia.ts",
+   "linguagem": "typescript",
+   "linhas": 55,
+   "doc": "Portais de transparência avaliados pelo PNTP (ADR-032, ADR-035): o arquivo `transparencia/uf-<sigla>.json`\n(ou `uniao.json`) que os painéis publicam, com as entidades de cada ente (prefeitura, câmara, poderes,\nconsórcios, estatais), o nível, o índice e o endereço do portal. A página do ente em Conformidade os mostra.",
+   "itens": [
+    {
+     "tipo": "interface",
+     "nome": "EntidadeTransparencia",
+     "assinatura": "export interface EntidadeTransparencia",
+     "doc": "Uma entidade do ente avaliada pelo PNTP (prefeitura, câmara, poderes, consórcios, estatais).",
+     "linha": 12
+    },
+    {
+     "tipo": "interface",
+     "nome": "FeedTransparencia",
+     "assinatura": "export interface FeedTransparencia",
+     "doc": "Arquivo `transparencia/uf-<sigla>.json` (ou `uniao.json`): as entidades de cada ente da UF.",
+     "linha": 27
+    },
+    {
+     "tipo": "funcao",
+     "nome": "arquivoTransparencia",
+     "assinatura": "export function arquivoTransparencia(codigo: string): string | null",
+     "doc": "Em que arquivo está o ente (o mesmo do Python, `transparencia.arquivo_do_ente`).",
+     "linha": 39
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarTransparencia",
+     "assinatura": "export async function carregarTransparencia(codigo: string, sinal?: AbortSignal):",
+     "doc": "As entidades do ente avaliadas no ciclo mais recente do PNTP, ou `null` se o arquivo não foi publicado.",
+     "linha": 46
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/lib/validacao.ts",
    "linguagem": "typescript",
    "linhas": 157,
@@ -9618,6 +11506,50 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/app/economia/estatais/page.tsx",
+   "linguagem": "typescript",
+   "linhas": 25,
+   "doc": "Página `/economia/estatais/`: os gastos e investimentos das empresas estatais (ADR-034). O trabalho é do\n`PainelEstatais`, que roda no navegador e lê `economia/estatais.json`, publicado com os painéis.",
+   "itens": [
+    {
+     "tipo": "constante",
+     "nome": "metadata",
+     "assinatura": "export const metadata: Metadata =",
+     "doc": "Título e descrição da página, usados pelo navegador e nas prévias de link.",
+     "linha": 11
+    },
+    {
+     "tipo": "componente",
+     "nome": "Estatais",
+     "assinatura": "export default function Estatais()",
+     "doc": "Envolve o painel em `Suspense`: ele lê a URL com `useSearchParams`, que só existe no navegador.",
+     "linha": 19
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/app/economia/page.tsx",
+   "linguagem": "typescript",
+   "linhas": 25,
+   "doc": "Página `/economia/`: Economia e Contas Públicas (ADR-033). O trabalho é do `PainelEconomia`, que roda no\nnavegador e lê `economia/indicadores.json`, publicado com os painéis; o site é exportado como estático.",
+   "itens": [
+    {
+     "tipo": "constante",
+     "nome": "metadata",
+     "assinatura": "export const metadata: Metadata =",
+     "doc": "Título e descrição da página, usados pelo navegador e nas prévias de link.",
+     "linha": 11
+    },
+    {
+     "tipo": "componente",
+     "nome": "Economia",
+     "assinatura": "export default function Economia()",
+     "doc": "Envolve o painel em `Suspense`: ele lê a URL com `useSearchParams`, que só existe no navegador.",
+     "linha": 19
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/app/eleicoes/page.tsx",
    "linguagem": "typescript",
    "linhas": 27,
@@ -9686,14 +11618,14 @@
   {
    "caminho": "packages/portal/src/app/page.tsx",
    "linguagem": "typescript",
-   "linhas": 39,
-   "doc": "Página inicial do portal: apresenta o Lumen e leva às três áreas.",
+   "linhas": 46,
+   "doc": "Página inicial do portal: apresenta o Lumen e leva às áreas.",
    "itens": [
     {
      "tipo": "componente",
      "nome": "Inicio",
      "assinatura": "export default function Inicio()",
-     "doc": "Apresentação e um cartão por área (Eleições, Contratações, Conformidade), com o estado de cada uma.",
+     "doc": "Apresentação e um cartão por área (Eleições, Contratações, Economia, Conformidade).",
      "linha": 6
     }
    ]
@@ -9701,37 +11633,200 @@
   {
    "caminho": "packages/portal/src/componentes/Cabecalho.tsx",
    "linguagem": "typescript",
-   "linhas": 46,
-   "doc": "Cabeçalho do portal, presente em todas as páginas. É componente de cliente\nporque marca a aba atual pelo caminho da página (`usePathname`), que no\nsite estático só o navegador conhece.",
+   "linhas": 142,
+   "doc": "Cabeçalho do portal, presente em todas as páginas: a marca, as abas e o filtro de local.\n\nO local (União, estado, DF ou município) filtra todas as abas (ADR-035): escolhido aqui, ou ao entrar num\nmunicípio ou estado em qualquer aba, ele vai no endereço de cada aba (Eleições abre no mapa dele,\nContratações e Conformidade no ente, as estatais nas que ele controla) e fica guardado no navegador. É\ncomponente de cliente porque lê o caminho e a URL, que no site estático só o navegador conhece.",
    "itens": [
     {
      "tipo": "componente",
      "nome": "Cabecalho",
      "assinatura": "export function Cabecalho()",
-     "doc": "Cabeçalho do Lumen: a marca e as abas. Cada aba é uma área do portal.",
-     "linha": 19
+     "doc": "Cabeçalho do Lumen. A parte que lê a URL fica num `Suspense`, como o site estático exige.",
+     "linha": 27
+    },
+    {
+     "tipo": "componente",
+     "nome": "ComLocal",
+     "assinatura": "function ComLocal()",
+     "doc": "Lê o local da URL (ou da memória), mantém-no em dia e monta as abas filtradas por ele.",
+     "linha": 38
+    },
+    {
+     "tipo": "componente",
+     "nome": "Moldura",
+     "assinatura": "function Moldura({ local, caminho = \"/\", params, onEscolher }:",
+     "doc": "A marca, as abas (com o local no endereço) e o filtro de local.",
+     "linha": 89
     }
    ]
   },
   {
-   "caminho": "packages/portal/src/componentes/Rodape.tsx",
+   "caminho": "packages/portal/src/componentes/economia/GraficoLinha.tsx",
    "linguagem": "typescript",
-   "linhas": 16,
-   "doc": "Rodapé: de onde vêm os números e o compromisso editorial do projeto.",
+   "linhas": 167,
+   "doc": "Série histórica de um indicador, em SVG direto como os outros gráficos do portal: uma linha no tempo, a\ngrade, a linha do zero quando a série cruza o zero, e as faixas dos períodos que estão sendo comparados.\nO cursor (ou o teclado, pelas setas) mostra o valor de cada mês; a mesma série fica em tabela, recolhida.",
    "itens": [
     {
+     "tipo": "funcao",
+     "nome": "tempo",
+     "assinatura": "function tempo(periodo: string): number",
+     "doc": "Ano com fração do mês (`2025-07` → 2025,5); na série anual, o meio do ano.",
+     "linha": 18
+    },
+    {
+     "tipo": "funcao",
+     "nome": "marcas",
+     "assinatura": "function marcas(min: number, max: number): number[]",
+     "doc": "Marcas redondas para o eixo vertical (3 a 6 linhas).",
+     "linha": 24
+    },
+    {
      "tipo": "componente",
-     "nome": "Rodape",
-     "assinatura": "export function Rodape()",
-     "doc": "Rodapé: de onde vêm os números e o compromisso editorial do projeto.",
-     "linha": 2
+     "nome": "GraficoLinha",
+     "assinatura": "export function GraficoLinha(",
+     "doc": "Linha do indicador no tempo, com as faixas dos períodos comparados (A e B).",
+     "linha": 34
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/economia/PainelEconomia.tsx",
+   "linguagem": "typescript",
+   "linhas": 376,
+   "doc": "Economia e Contas Públicas (ADR-033): os indicadores de inflação, juros, dívida, resultado fiscal e\natividade, com a fonte e a data de cada um, a série histórica e a comparação entre dois períodos.\n\nO estado fica na URL, para compartilhar a consulta: `?ind=` (o indicador do gráfico), `?a=` e `?b=` (os\nperíodos comparados, `AAAA-MM..AAAA-MM`). A comparação mostra o que as séries oficiais registraram em\ncada período; ela não atribui o resultado a quem governava.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "Estado",
+     "assinatura": "type Estado = { carregando: true } | { carregando: false; dados: FeedEconomia | null; erro: string | null };",
+     "doc": "Carregando, ou o arquivo lido (null quando ainda não foi publicado) e o erro, se houve.",
+     "linha": 40
+    },
+    {
+     "tipo": "funcao",
+     "nome": "periodoDaUrl",
+     "assinatura": "function periodoDaUrl(bruto: string | null, padrao: Periodo): Periodo",
+     "doc": "Período da URL (`2019-01..2022-12`), ou o padrão. O rótulo vem do mandato com as mesmas datas, se houver.",
+     "linha": 43
+    },
+    {
+     "tipo": "funcao",
+     "nome": "defasado",
+     "assinatura": "function defasado(ind: Indicador, agora = Date.now()): boolean",
+     "doc": "A coleta ficou para trás: falhou na última tentativa ou tem mais de alguns dias.",
+     "linha": 50
+    },
+    {
+     "tipo": "componente",
+     "nome": "PainelEconomia",
+     "assinatura": "export function PainelEconomia()",
+     "doc": "Página inteira da área.",
+     "linha": 57
+    },
+    {
+     "tipo": "componente",
+     "nome": "Destaques",
+     "assinatura": "function Destaques({ dados, escolhido, escolher }: { dados: FeedEconomia; escolhido: string;",
+     "doc": "Cartões dos indicadores principais: valor, período de referência e coleta.",
+     "linha": 125
+    },
+    {
+     "tipo": "componente",
+     "nome": "Detalhe",
+     "assinatura": "function Detalhe({ ind, id, a, b, dados, escolher }: { ind: Indicador; id: string; a: Periodo; b: Periodo;",
+     "doc": "O indicador escolhido: gráfico, definição, como ler, limitações e fonte.",
+     "linha": 153
+    },
+    {
+     "tipo": "componente",
+     "nome": "Celula",
+     "assinatura": "function Celula({ ind, r, p }: { ind: Indicador; r: Resumo; p: Periodo })",
+     "doc": "Uma célula da comparação: nível (início → fim) ou taxa (acumulado e média).",
+     "linha": 242
+    },
+    {
+     "tipo": "componente",
+     "nome": "EscolhaPeriodo",
+     "assinatura": "function EscolhaPeriodo({ nome, rotulo, p, mudar }: { nome: string; rotulo: string; p: Periodo;",
+     "doc": "Escolha de um período: um mandato ou um intervalo de meses.",
+     "linha": 276
+    },
+    {
+     "tipo": "componente",
+     "nome": "Comparacao",
+     "assinatura": "function Comparacao({ dados, a, b, mudar }: { dados: FeedEconomia; a: Periodo; b: Periodo;",
+     "doc": "Dois períodos lado a lado, para todos os indicadores, agrupados.",
+     "linha": 305
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/economia/PainelEstatais.tsx",
+   "linguagem": "typescript",
+   "linhas": 523,
+   "doc": "Empresas estatais (ADR-034): quanto gastam e investem as estatais, que não publicam no PNCP (Lei 13.303/2016).\n\nDuas abas, pela fonte, que nunca se somam: as federais pelo Programa de Dispêndios Globais da SEST\n(aprovado e realizado por rubrica) e as com ações na bolsa pelas demonstrações entregues à CVM (DFP). O\nestado fica na URL: `?fonte=sest|cvm`, `?ano=`, `?q=` (busca) e `?filtro=`.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "Estado",
+     "assinatura": "type Estado = { carregando: true } | { carregando: false; dados: FeedEstatais | null; erro: string | null };",
+     "doc": "Carregando, ou o arquivo lido (null quando ainda não foi publicado) e o erro, se houve.",
+     "linha": 40
+    },
+    {
+     "tipo": "componente",
+     "nome": "PainelEstatais",
+     "assinatura": "export function PainelEstatais()",
+     "doc": "Página inteira das estatais.",
+     "linha": 43
+    },
+    {
+     "tipo": "tipo",
+     "nome": "Props",
+     "assinatura": "type Props = { params: URLSearchParams | ReturnType<typeof useSearchParams>; mudar: (m: Record<string, string | null>) => void };",
+     "doc": "O que as abas recebem: a URL atual e como mudá-la.",
+     "linha": 143
+    },
+    {
+     "tipo": "componente",
+     "nome": "Filtros",
+     "assinatura": "function Filtros({ anos, ano, termo, filtro, filtros, mudar }:",
+     "doc": "Busca, exercício e filtro, comuns às duas abas.",
+     "linha": 146
+    },
+    {
+     "tipo": "componente",
+     "nome": "Federais",
+     "assinatura": "function Federais({ federais, params, mudar }: { federais: NonNullable<FeedEstatais[\"federais\"]> } & Props)",
+     "doc": "As estatais federais, pelo PDG.",
+     "linha": 186
+    },
+    {
+     "tipo": "componente",
+     "nome": "DetalheSest",
+     "assinatura": "function DetalheSest({ e, ano, anos, rubricas }: { e: EmpresaSest; ano: string; anos: string[];",
+     "doc": "Uma empresa federal: cada rubrica no exercício (aprovado, realizado, execução) e o total por ano.",
+     "linha": 273
+    },
+    {
+     "tipo": "componente",
+     "nome": "Listadas",
+     "assinatura": "function Listadas({ dados, params, mudar }: { dados: FeedEstatais } & Props)",
+     "doc": "As companhias abertas que se declaram estatais, pelas DFP.",
+     "linha": 362
+    },
+    {
+     "tipo": "componente",
+     "nome": "DetalheCvm",
+     "assinatura": "function DetalheCvm({ c, ano, anos, indicadores }: { c: CompanhiaCvm; ano: string; anos: string[];",
+     "doc": "Uma companhia: controladores, cada indicador no exercício (conta e descrição publicadas) e a série.",
+     "linha": 450
     }
    ]
   },
   {
    "caminho": "packages/portal/src/componentes/eleicoes/Busca.tsx",
    "linguagem": "typescript",
-   "linhas": 103,
+   "linhas": 105,
    "doc": "Diálogo de busca de estado ou município. A filtragem é local (`buscar`),\nsobre o cadastro que o painel baixa na primeira vez que a busca abre.",
    "itens": [
     {
@@ -9744,9 +11839,9 @@
     {
      "tipo": "componente",
      "nome": "Busca",
-     "assinatura": "export function Busca({ aberta, municipios, onFechar, onEscolher }: Props)",
+     "assinatura": "export function Busca({ aberta, municipios, onFechar, onEscolher, termoInicial = \"\" }: Props)",
      "doc": "Busca de estado ou município (Ctrl+K ou \"/\"). Setas escolhem, Enter abre, Esc fecha.",
-     "linha": 22
+     "linha": 24
     }
    ]
   },
@@ -9797,7 +11892,7 @@
   {
    "caminho": "packages/portal/src/componentes/eleicoes/ListaCandidatos.tsx",
    "linguagem": "typescript",
-   "linhas": 158,
+   "linhas": 190,
    "doc": "Lista de candidatos de um resultado: um cartão por candidato, com foto,\nnúmeros e barra na cor dele, e, nos proporcionais, a votação por\nagremiação. A ordem é a do feed (mais votados primeiro).",
    "itens": [
     {
@@ -9805,42 +11900,42 @@
      "nome": "Selo",
      "assinatura": "function Selo({ c }: { c: Candidato })",
      "doc": "Selo de situação: eleito (com o texto do TSE), 2º turno ou, para votos não válidos, a destinação.",
-     "linha": 19
+     "linha": 21
     },
     {
      "tipo": "componente",
      "nome": "Foto",
      "assinatura": "function Foto({ c }: { c: Candidato })",
      "doc": "Foto do candidato servida junto dos feeds; sem foto, ou se ela não carrega, as iniciais do nome de urna.",
-     "linha": 27
+     "linha": 29
     },
     {
      "tipo": "funcao",
      "nome": "rotuloVice",
      "assinatura": "function rotuloVice(cargo: string): string",
      "doc": "Quem acompanha o titular na chapa: vice (executivo) ou 1º suplente (Senado).",
-     "linha": 42
+     "linha": 44
     },
     {
      "tipo": "componente",
      "nome": "Cartao",
      "assinatura": "function Cartao({ c, maior, cargo }: { c: Candidato; maior: number; cargo: string })",
      "doc": "Cartão de um candidato. A barra é relativa ao mais votado, que ocupa a\nlargura toda (não ao total de votos), com um mínimo de 0,5% para continuar\nvisível. Candidato com votos não válidos fica sem barra e sem percentual.",
-     "linha": 51
+     "linha": 53
     },
     {
      "tipo": "componente",
      "nome": "ListaCandidatos",
      "assinatura": "export function ListaCandidatos({ feed }: { feed: FeedResultado })",
-     "doc": "Candidatos do resultado: os 12 primeiros (20 nos proporcionais), com botão\npara ver todos. Avisa quando o arquivo do município deixou candidatos de\nfora e, nos proporcionais, acrescenta a votação por agremiação.",
-     "linha": 91
+     "doc": "Candidatos do resultado: os 12 primeiros (20 nos proporcionais), com botão\npara ver todos, 20 por página e com busca por nome, número ou partido. Avisa\nquando o arquivo do município deixou candidatos de fora e, nos proporcionais,\nacrescenta a votação por agremiação.",
+     "linha": 94
     },
     {
      "tipo": "componente",
      "nome": "Agremiacoes",
      "assinatura": "function Agremiacoes({ feed }: { feed: FeedResultado })",
      "doc": "Votos e vagas por partido, federação ou coligação, com o quociente eleitoral; começa recolhida.",
-     "linha": 126
+     "linha": 156
     }
    ]
   },
@@ -9939,7 +12034,7 @@
   {
    "caminho": "packages/portal/src/componentes/eleicoes/PainelEleicoes.tsx",
    "linguagem": "typescript",
-   "linhas": 694,
+   "linhas": 725,
    "doc": "Painel da aba Eleições: lê a seleção da URL, carrega índice e feeds e monta\na tela (mapa, gráfico de evolução, totais, candidatos ou panorama). O\nportal nunca fala com o TSE: tudo vem dos arquivos que o coletor grava.\nAo vivo, o feed é relido a cada 15 s enquanto a aba do navegador está\nvisível — sem WebSocket, só revalidação HTTP (ver `feeds.ts`).\n\nNavegação sem piscar: enquanto o feed novo chega, a tela mantém o anterior\nesmaecido; o mapa da UF de um município é pedido junto com o feed dele (a\nUF sai do código na URL); os feeds de eleições encerradas ficam em memória\ne o cursor parado numa área do mapa já os pré-carrega. No município com\nmais de uma zona eleitoral, o mapa aproxima até ele e mostra as zonas, e a\ntabela das zonas fica ligada ao mapa (ADR-029).",
    "itens": [
     {
@@ -9947,77 +12042,77 @@
      "nome": "EstadoFeed",
      "assinatura": "interface EstadoFeed",
      "doc": "Última leitura de um feed. A `chave` (\"eleição/cargo/abrangência\") diz a\nque seleção os dados pertencem, para a tela não exibir números de outra.",
-     "linha": 62
+     "linha": 65
     },
     {
      "tipo": "funcao",
      "nome": "useRelogio",
      "assinatura": "function useRelogio(ativo: boolean, intervalo: number): number",
      "doc": "Contador que avança a cada `intervalo` ms enquanto `ativo`; os efeitos que\ndependem dele releem os dados. Com a aba do navegador em segundo plano o\ncontador não avança, e nada é baixado sem ninguém olhando.",
-     "linha": 74
+     "linha": 77
     },
     {
      "tipo": "funcao",
      "nome": "useFeed",
      "assinatura": "function useFeed(chave: string | null, carregar: (sinal: AbortSignal) => Promise<Feed | null>, tique: number)",
      "doc": "Carrega um feed por chave, mantendo o anterior na tela enquanto o novo chega. A resposta de uma chave\nque já saiu da tela (o feed guardado em memória não é cancelado) é descartada.",
-     "linha": 90
+     "linha": 93
     },
     {
      "tipo": "funcao",
      "nome": "nomeAbrangencia",
      "assinatura": "function nomeAbrangencia(abr: string, feed: Feed | null, partesDaUf: Parte[] = []): string",
      "doc": "Nome para o título: \"Brasil\", o nome que o feed traz ou, antes de ele chegar, o da UF (pela sigla) ou o\ndo município na lista do mapa da UF; sem nada disso, o código em maiúsculas.",
-     "linha": 124
+     "linha": 127
     },
     {
      "tipo": "interface",
      "nome": "ZonasCarregadas",
      "assinatura": "interface ZonasCarregadas",
      "doc": "Zonas do município aberto, da chave \"ano/IBGE\": o arquivo dos locais e o contorno fino.",
-     "linha": 133
+     "linha": 136
     },
     {
      "tipo": "funcao",
      "nome": "zonasDoMunicipio",
      "assinatura": "async function zonasDoMunicipio(ano: number, ibge: string): Promise<Omit<ZonasCarregadas, \"chave\">>",
      "doc": "Arquivo das zonas e contorno fino de um município, se o índice das zonas do ano o lista.",
-     "linha": 140
+     "linha": 143
     },
     {
      "tipo": "componente",
      "nome": "PainelEleicoes",
      "assinatura": "export function PainelEleicoes()",
      "doc": "A URL é o estado: toda navegação (eleição, cargo, abrangência, modo TV)\ntroca os parâmetros com `router.replace`, e a tela se recalcula a partir\ndeles. No município, o mapa é o da UF, lido do feed da UF. Atalhos:\nCtrl+K ou \"/\" abre a busca; \"t\" alterna o modo TV (tema escuro e rodízio\nde cargos a cada 30 s); Esc sai dele.",
-     "linha": 157
+     "linha": 160
     },
     {
      "tipo": "componente",
      "nome": "Esqueleto",
      "assinatura": "function Esqueleto()",
      "doc": "Lugar dos números enquanto a primeira leitura não chega: blocos cinza no formato da tela.",
-     "linha": 625
+     "linha": 637
     },
     {
-     "tipo": "componente",
-     "nome": "OpcaoEleicao",
-     "assinatura": "function OpcaoEleicao({ e }: { e: EleicaoIndice })",
-     "doc": "Uma eleição no seletor, com a marca de ao vivo.",
-     "linha": 641
+     "tipo": "funcao",
+     "nome": "opcoesDeEleicoes",
+     "assinatura": "function opcoesDeEleicoes(eleicoes: EleicaoIndice[]): Opcao[]",
+     "doc": "As eleições como opções da caixa de escolha, nos grupos do índice e com a marca de ao vivo.",
+     "linha": 653
     },
     {
      "tipo": "componente",
      "nome": "TabelaPartes",
      "assinatura": "function TabelaPartes(",
      "doc": "Tabela das partes: a alternativa ao mapa para quem não usa o mapa (ou leitor de tela).",
-     "linha": 651
+     "linha": 664
     }
    ]
   },
   {
    "caminho": "packages/portal/src/componentes/eleicoes/Panorama.tsx",
    "linguagem": "typescript",
-   "linhas": 109,
+   "linhas": 111,
    "doc": "Tela de panorama: o cargo visto de uma abrangência acima daquela em que é\ndisputado (governadores no Brasil, prefeitos na UF). Mostra os 30 primeiros\npartidos do placar e a lista das partes, com filtro quando passam de 30.",
    "itens": [
     {
@@ -10025,21 +12120,21 @@
      "nome": "Props",
      "assinatura": "interface Props",
      "doc": "Entrada do panorama: o feed, como chamar as partes e o que fazer ao escolher uma delas.",
-     "linha": 16
+     "linha": 17
     },
     {
      "tipo": "componente",
      "nome": "Panorama",
      "assinatura": "export function Panorama({ feed, rotuloParte, onSelecionar }: Props)",
      "doc": "Placar por partido e a lista das partes com quem lidera em cada uma.",
-     "linha": 24
+     "linha": 25
     }
    ]
   },
   {
    "caminho": "packages/portal/src/componentes/eleicoes/TabelaZonas.tsx",
    "linguagem": "typescript",
-   "linhas": 104,
+   "linhas": 111,
    "doc": "Tabela das zonas eleitorais do município aberto, ligada ao mapa: passar o\ncursor (ou o foco) numa linha destaca a zona no mapa, e o clique fixa o\ndestaque (o mesmo que clicar na zona). Quando o feed traz o resultado por\nzona (eleições lidas dos dados abertos do TSE), mostra quem lidera em cada\numa; ao vivo, o TSE só publica o resultado do município, e a tabela fica\ncom o eleitorado e os locais de votação de cada zona.",
    "itens": [
     {
@@ -10047,14 +12142,14 @@
      "nome": "Props",
      "assinatura": "interface Props",
      "doc": "Entrada da tabela: o resultado e os números de cada zona, e as ações ligadas ao mapa.",
-     "linha": 17
+     "linha": 19
     },
     {
      "tipo": "componente",
      "nome": "TabelaZonas",
      "assinatura": "export function TabelaZonas({ partes, arquivo, rotulo, escolhida, onEscolher, onDestacar }: Props)",
      "doc": "Uma linha por zona, em ordem numérica, juntando o resultado do feed e os números do arquivo das zonas.",
-     "linha": 31
+     "linha": 33
     }
    ]
   },
@@ -10077,6 +12172,171 @@
      "assinatura": "export function Totais({ feed }: { feed: FeedResultado })",
      "doc": "Comparecimento e destino dos votos, como o TSE publica.",
      "linha": 18
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/Escolha.tsx",
+   "linguagem": "typescript",
+   "linhas": 137,
+   "doc": "Caixa de escolha com busca, no lugar dos `<select>` do portal: mostra a opção escolhida; ao clicar (ou\nfocar e apertar seta para baixo) abre a lista inteira; ao escrever, a lista fica só com o que casa. Setas\npara mover, Enter para escolher, Esc para fechar sem mudar. Segue o padrão ARIA de combobox com listbox.",
+   "itens": [
+    {
+     "tipo": "componente",
+     "nome": "Escolha",
+     "assinatura": "export function Escolha(",
+     "doc": "Caixa de escolha com busca; `onEscolher` recebe o `valor` da opção.",
+     "linha": 13
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/Paginacao.tsx",
+   "linguagem": "typescript",
+   "linhas": 72,
+   "doc": "Paginação das listas e tabelas do portal: toda lista com mais de 20 itens mostra 20 por vez, com a\nnavegação embaixo (\"anterior\", os números e \"próxima\") e quantos itens há. A página volta à primeira\nquando a lista muda (outro filtro, outro ente).",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "usePaginacao",
+     "assinatura": "export function usePaginacao<T>(itens: readonly T[], porPagina = POR_PAGINA)",
+     "doc": "A página atual de `itens` e o que a navegação precisa; volta à primeira quando `itens` muda.",
+     "linha": 14
+    },
+    {
+     "tipo": "componente",
+     "nome": "Paginacao",
+     "assinatura": "export function Paginacao(",
+     "doc": "A navegação entre as páginas; não aparece quando tudo cabe numa página.",
+     "linha": 22
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/paineis/ComparacaoMercado.tsx",
+   "linguagem": "typescript",
+   "linhas": 104,
+   "doc": "Comparação do preço de combustível e de gás de cozinha com o preço de revenda da ANP (ADR-037; regra A-05):\no preço homologado (ou o estimado) contra a distribuição do levantamento semanal, posto a posto, no\nmunicípio da unidade compradora ou na UF, na semana da compra. Pedida só quando a pessoa clica.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "Estado",
+     "assinatura": "type Estado = { fase: \"carregando\" } | { fase: \"pronto\"; c: ComparacaoAnp } | { fase: \"erro\"; erro: string };",
+     "doc": "O andamento da comparação.",
+     "linha": 19
+    },
+    {
+     "tipo": "componente",
+     "nome": "ComparacaoMercado",
+     "assinatura": "export function ComparacaoMercado({ item, processo, produto }: { item: ItemProcesso; processo: Processo; produto: ProdutoAnp })",
+     "doc": "Pede o preço do item e a referência da ANP, e mostra a comparação.",
+     "linha": 25
+    },
+    {
+     "tipo": "componente",
+     "nome": "Leitura",
+     "assinatura": "function Leitura({ c, lugar }: { c: ComparacaoAnp; lugar: string })",
+     "doc": "A frase do resultado, na linguagem do DOC-08.",
+     "linha": 47
+    },
+    {
+     "tipo": "componente",
+     "nome": "Resultado",
+     "assinatura": "function Resultado({ c, processo }: { c: ComparacaoAnp; processo: Processo })",
+     "doc": "A comparação inteira: o preço, a leitura, a faixa, os números e a fonte.",
+     "linha": 76
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/paineis/ComparacaoPreco.tsx",
+   "linguagem": "typescript",
+   "linhas": 274,
+   "doc": "Comparação de preço de um item do processo (ADR-036): o preço homologado (ou, sem resultado, o estimado)\ncontra o que outros órgãos pagaram pelo mesmo código do catálogo do Compras.gov.br nos 12 meses anteriores.\nMostra a referência inteira (quartis, mediana, as compras que entraram e as que ficaram fora, e por quê) e,\npelos parâmetros do DOC-07, se o preço fica acima da referência comparada. Pedido só quando a pessoa clica.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "Estado",
+     "assinatura": "type Estado = { fase: \"carregando\" } | { fase: \"pronto\"; c: Comparacao } | { fase: \"erro\"; erro: string };",
+     "doc": "O andamento da comparação.",
+     "linha": 21
+    },
+    {
+     "tipo": "constante",
+     "nome": "podeComparar",
+     "assinatura": "export const podeComparar = (item: ItemProcesso) => !!item.catalogo && item.material !== null;",
+     "doc": "O item tem o código do catálogo do Compras.gov.br, que a comparação exige?",
+     "linha": 27
+    },
+    {
+     "tipo": "tipo",
+     "nome": "TipoComparacao",
+     "assinatura": "export type TipoComparacao = \"orgaos\" | \"anp\";",
+     "doc": "As comparações de um item: com outros órgãos (catálogo) e com o mercado (ANP).",
+     "linha": 30
+    },
+    {
+     "tipo": "componente",
+     "nome": "BotoesComparar",
+     "assinatura": "export function BotoesComparar({ item, aberta, onAbrir }:",
+     "doc": "Os botões das comparações que o item admite; sem nenhuma, o motivo.",
+     "linha": 33
+    },
+    {
+     "tipo": "funcao",
+     "nome": "precoDoItem",
+     "assinatura": "export async function precoDoItem(item: ItemProcesso, processo: Processo, sinal?: AbortSignal):",
+     "doc": "O preço que se compara: o homologado (o do primeiro resultado com preço, e a data dele), ou, sem resultado,\no estimado. Erro quando o item não tem preço unitário.",
+     "linha": 62
+    },
+    {
+     "tipo": "componente",
+     "nome": "ComparacaoPreco",
+     "assinatura": "export function ComparacaoPreco({ item, processo }: { item: ItemProcesso; processo: Processo })",
+     "doc": "Pede o preço homologado (se houver resultado) e a referência, e mostra a comparação.",
+     "linha": 73
+    },
+    {
+     "tipo": "componente",
+     "nome": "Leitura",
+     "assinatura": "function Leitura({ c }: { c: Comparacao })",
+     "doc": "A frase do resultado, na linguagem do DOC-08.",
+     "linha": 99
+    },
+    {
+     "tipo": "interface",
+     "nome": "Distribuicao",
+     "assinatura": "export interface Distribuicao",
+     "doc": "Os cinco números de uma distribuição de preços, o preço do item e se ele está marcado.",
+     "linha": 156
+    },
+    {
+     "tipo": "componente",
+     "nome": "Faixa",
+     "assinatura": "export function Faixa({ d }: { d: Distribuicao })",
+     "doc": "A faixa de preços (do mínimo ao máximo, com os quartis) e onde o preço do item cai.",
+     "linha": 168
+    },
+    {
+     "tipo": "componente",
+     "nome": "Numeros",
+     "assinatura": "export function Numeros({ d }: { d: Pick<Distribuicao, \"minimo\" | \"q1\" | \"mediana\" | \"q3\" | \"maximo\"> })",
+     "doc": "Mínimo, quartis, mediana e máximo, lado a lado.",
+     "linha": 186
+    },
+    {
+     "tipo": "componente",
+     "nome": "Resultado",
+     "assinatura": "function Resultado({ c, item }: { c: Comparacao; item: ItemProcesso })",
+     "doc": "A comparação inteira: a leitura, a faixa, os números, o que ficou fora e as compras que entraram.",
+     "linha": 199
+    },
+    {
+     "tipo": "componente",
+     "nome": "LinhaCompra",
+     "assinatura": "function LinhaCompra({ x }: { x: CompraComparavel })",
+     "doc": "Uma compra comparável: órgão, lugar, data, quantidade e fornecedor (pessoa física sem identificação), e o preço.",
+     "linha": 259
     }
    ]
   },
@@ -10152,9 +12412,116 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/componentes/paineis/Documentos.tsx",
+   "linguagem": "typescript",
+   "linhas": 75,
+   "doc": "Botão \"Documentos\" de uma publicação do PNCP: ao abrir, lista os arquivos publicados (edital, aviso,\ncontrato, aditivos) com o link de download na fonte. A lista é pedida à API do PNCP só quando aberta.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "Estado",
+     "assinatura": "type Estado = { fase: \"fechado\" } | { fase: \"carregando\" } | { fase: \"pronto\"; docs: DocumentoPncp[] } | { fase: \"erro\" };",
+     "doc": "Fechado, buscando no PNCP, a lista pronta ou a falha da busca.",
+     "linha": 13
+    },
+    {
+     "tipo": "componente",
+     "nome": "Documentos",
+     "assinatura": "export function Documentos({ chave, link, abrirJa = false }: { chave: string; link: string | null; abrirJa?: boolean })",
+     "doc": "Documentos de uma publicação, recolhidos até a pessoa abrir (ou já abertos, com `abrirJa`, no modal da\ncontratação); nada aparece se a chave não é do PNCP.",
+     "linha": 19
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/paineis/ModalContratacao.tsx",
+   "linguagem": "typescript",
+   "linhas": 335,
+   "doc": "Modal de uma contratação (ADR-035): tudo sobre um processo ou um contrato, como o PNCP publica, pedido à API\nna hora em que abre. No processo, os dados, os itens com o preço unitário, o vencedor e a comparação do preço\ncom outros órgãos (ADR-036), os documentos e os links do sistema de origem e do processo eletrônico; no\ncontrato, o fornecedor, os valores, a vigência, os termos aditivos, o processo de origem e os documentos. A\npágina por trás fica filtrada pelo órgão (e, no contrato, pelo fornecedor); fechar o modal mantém o filtro.",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "useCarga",
+     "assinatura": "function useCarga<T>(chave: string, fn: (s: AbortSignal) => Promise<T>): Carga<T>",
+     "doc": "Faz o pedido ao PNCP quando a chave muda e cancela o anterior.",
+     "linha": 38
+    },
+    {
+     "tipo": "componente",
+     "nome": "ModalContratacao",
+     "assinatura": "export function ModalContratacao({ chave, onFechar, onAbrir, onFornecedor, aConferir = false }:",
+     "doc": "O modal; `onAbrir` troca a publicação aberta (do contrato para o processo de origem, por exemplo).",
+     "linha": 55
+    },
+    {
+     "tipo": "componente",
+     "nome": "Campo",
+     "assinatura": "function Campo({ rotulo, children }: { rotulo: string; children: ReactNode })",
+     "doc": "Uma linha de campo: rótulo e valor (some quando o valor não existe).",
+     "linha": 103
+    },
+    {
+     "tipo": "componente",
+     "nome": "Fornecedor",
+     "assinatura": "function Fornecedor({ f, onFornecedor }: { f: Parte; onFornecedor: (cnpj: string) => void })",
+     "doc": "Fornecedor: pessoa jurídica com CNPJ e o botão de filtrar; pessoa física sem identificação.",
+     "linha": 114
+    },
+    {
+     "tipo": "componente",
+     "nome": "Estado",
+     "assinatura": "function Estado<T>({ carga, children }: { carga: Carga<T>; children: (d: T) => ReactNode })",
+     "doc": "Mostra o aviso de carga ou de erro; pronto, desenha o conteúdo.",
+     "linha": 125
+    },
+    {
+     "tipo": "componente",
+     "nome": "Links",
+     "assinatura": "function Links({ links }: { links: [string, string | null][] })",
+     "doc": "Os links para a publicação, só os de endereço web.",
+     "linha": 132
+    },
+    {
+     "tipo": "componente",
+     "nome": "DoProcesso",
+     "assinatura": "function DoProcesso({ chave, onFornecedor }: { chave: string; onFornecedor: (cnpj: string) => void })",
+     "doc": "O processo: dados, itens, documentos.",
+     "linha": 145
+    },
+    {
+     "tipo": "componente",
+     "nome": "Itens",
+     "assinatura": "function Itens({ processo, itens, onFornecedor }: { processo: Processo; itens: ItemProcesso[]; onFornecedor: (cnpj: string) => void })",
+     "doc": "Os itens do processo, 20 por página, com o vencedor e a comparação de preço pedidos quando a pessoa abre.",
+     "linha": 190
+    },
+    {
+     "tipo": "componente",
+     "nome": "Vencedor",
+     "assinatura": "function Vencedor({ chave, item, onFornecedor }: { chave: string; item: number; onFornecedor: (cnpj: string) => void })",
+     "doc": "O vencedor do item, pedido ao PNCP quando a pessoa clica.",
+     "linha": 243
+    },
+    {
+     "tipo": "componente",
+     "nome": "ResultadoDoItem",
+     "assinatura": "function ResultadoDoItem({ chave, item, onFornecedor }: { chave: string; item: number; onFornecedor: (cnpj: string) => void })",
+     "doc": "O vencedor de um item, pedido ao abrir.",
+     "linha": 257
+    },
+    {
+     "tipo": "componente",
+     "nome": "DoContrato",
+     "assinatura": "function DoContrato({ chave, onAbrir, onFornecedor }: { chave: string; onAbrir: (chave: string) => void;",
+     "doc": "O contrato: fornecedor, valores, vigência, termos, processo de origem e documentos.",
+     "linha": 278
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/componentes/paineis/PainelConformidade.tsx",
    "linguagem": "typescript",
-   "linhas": 326,
+   "linhas": 344,
    "doc": "Painel de conformidade fiscal (UC-07, ADR-028): se os relatórios da Lei de Responsabilidade Fiscal constam\ndo extrato de entregas do Tesouro (SICONFI) e em que data, contra o prazo legal.\n\nTrês telas pela URL: o Brasil (sem parâmetro), uma UF (`?uf=SP`) e um ente (`?ente=<código IBGE>`). A ordem\né sempre por UF e por nome, nunca por resultado (PUB-07).",
    "itens": [
     {
@@ -10162,113 +12529,171 @@
      "nome": "Dados",
      "assinatura": "type Dados = ConformidadePanorama | ConformidadeUf | ConformidadeEnte;",
      "doc": "Os três arquivos que a página pode mostrar.",
-     "linha": 28
+     "linha": 31
     },
     {
      "tipo": "tipo",
      "nome": "Estado",
      "assinatura": "type Estado = { carregando: true } | { carregando: false; dados: Dados | null; erro: string | null };",
      "doc": "Carregando, ou o arquivo lido (null quando não existe) e o erro, se houve.",
-     "linha": 30
+     "linha": 33
     },
     {
      "tipo": "funcao",
      "nome": "noPrazo",
      "assinatura": "function noPrazo(r: ResumoConformidade): string",
      "doc": "\"4 de 6 no prazo (66,67%)\"; sem obrigação avaliável, \"sem obrigação avaliável\".",
-     "linha": 33
+     "linha": 36
     },
     {
      "tipo": "componente",
      "nome": "PainelConformidade",
      "assinatura": "export function PainelConformidade()",
      "doc": "Painel de conformidade, a partir de `?uf=` ou `?ente=` na URL.",
-     "linha": 39
+     "linha": 42
     },
     {
      "tipo": "componente",
      "nome": "Resumo",
      "assinatura": "function Resumo({ r, titulo }: { r: ResumoConformidade; titulo: string })",
      "doc": "Os quatro resultados e a fração no prazo, em números.",
-     "linha": 109
+     "linha": 112
     },
     {
      "tipo": "componente",
      "nome": "Panorama",
      "assinatura": "function Panorama({ dados, onUf }: { dados: ConformidadePanorama; onUf: (uf: string) => void })",
      "doc": "O Brasil: resumo, por obrigação e por UF (em ordem de UF).",
-     "linha": 124
+     "linha": 127
     },
     {
      "tipo": "componente",
      "nome": "Uf",
      "assinatura": "function Uf({ dados, onEnte, onBrasil }: { dados: ConformidadeUf; onEnte: (c: string) => void; onBrasil: () => void })",
      "doc": "Uma UF: os entes por nome (o estado primeiro), com filtro.",
-     "linha": 195
+     "linha": 202
     },
     {
      "tipo": "componente",
      "nome": "Ente",
      "assinatura": "function Ente({ dados, onUf }: { dados: ConformidadeEnte; onUf: (uf: string | null) => void })",
      "doc": "Um ente: o resumo e cada obrigação avaliada, por exercício.",
-     "linha": 254
+     "linha": 263
+    },
+    {
+     "tipo": "componente",
+     "nome": "Exercicio",
+     "assinatura": "function Exercicio({ ano, obrigacoes }: { ano: number; obrigacoes: Obrigacao[] })",
+     "doc": "As obrigações de um exercício, 20 por página.",
+     "linha": 305
     }
    ]
   },
   {
    "caminho": "packages/portal/src/componentes/paineis/PainelContratacoes.tsx",
    "linguagem": "typescript",
-   "linhas": 604,
+   "linhas": 860,
    "doc": "Painel de contratações (UC-01 e UC-02, ADR-028): o que cada ente publicou no PNCP.\n\nSem ente na URL, mostra o Brasil; com `?ente=<código IBGE>`, a União (1), um estado, o DF ou um\nmunicípio; com `?orgao=<CNPJ>`, um órgão só (uma prefeitura, uma câmara, uma autarquia como um serviço\nautônomo de água e esgoto, uma fundação ou uma empresa pública). Tudo vem dos arquivos que `lumen painel publicar` gera, uma vez por dia. Nada aqui é indício:\nsão somas e listas do que os órgãos publicaram, com o link de cada publicação no PNCP.",
    "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "valorAConferir",
+     "assinatura": "function valorAConferir(dados: Pick<SecoesContratacoes, \"recentes\" | \"contratos_recentes\" | \"a_conferir\">, chave: string): boolean",
+     "doc": "A publicação está entre os valores acima do teto de plausibilidade, fora das somas?",
+     "linha": 79
+    },
     {
      "tipo": "componente",
      "nome": "PainelContratacoes",
      "assinatura": "export function PainelContratacoes()",
      "doc": "Painel de contratações, a partir do `?ente=` da URL.",
-     "linha": 44
+     "linha": 85
     },
     {
      "tipo": "componente",
      "nome": "SemDados",
      "assinatura": "function SemDados({ ente, orgao, onVoltar }: { ente: string | null; orgao: string | null; onVoltar: () => void })",
      "doc": "O ente não tem arquivo: nenhuma publicação no período coletado (UC-01, exceção 4a).",
-     "linha": 109
+     "linha": 215
+    },
+    {
+     "tipo": "componente",
+     "nome": "FiltroPeriodo",
+     "assinatura": "function FiltroPeriodo(",
+     "doc": "Filtro do período: de um mês a outro, com atalhos; fica na URL (`?de=AAAA-MM&ate=AAAA-MM`).",
+     "linha": 239
     },
     {
      "tipo": "componente",
      "nome": "Periodo",
      "assinatura": "function Periodo({ cobertura, gerado }: { cobertura: Cobertura; gerado: string })",
      "doc": "Linha da data da coleta e dos dias que faltam no período.",
-     "linha": 133
+     "linha": 310
     },
     {
      "tipo": "componente",
      "nome": "Secoes",
      "assinatura": "function Secoes(",
      "doc": "Os números, os gráficos por mês e as tabelas comuns ao Brasil e a um ente.",
-     "linha": 146
+     "linha": 323
     },
     {
      "tipo": "componente",
      "nome": "Panorama",
-     "assinatura": "function Panorama({ dados, onEnte }: { dados: ContratacoesPanorama; onEnte: (codigo: string) => void })",
+     "assinatura": "function Panorama(",
      "doc": "O Brasil: totais, esferas, UFs e as seções comuns.",
-     "linha": 408
+     "linha": 622
     },
     {
      "tipo": "componente",
      "nome": "Ente",
      "assinatura": "function Ente(",
      "doc": "Um ente: o caminho (Brasil › UF), as seções comuns e, no estado, os municípios.",
-     "linha": 485
+     "linha": 716
     },
     {
      "tipo": "componente",
      "nome": "Orgao",
-     "assinatura": "function Orgao({ dados, onEnte }: { dados: ContratacoesOrgao; onEnte: (codigo: string | null) => void })",
+     "assinatura": "function Orgao(",
      "doc": "Um órgão: o ente a que pertence e as seções comuns.",
-     "linha": 575
+     "linha": 819
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/paineis/Transparencia.tsx",
+   "linguagem": "typescript",
+   "linhas": 94,
+   "doc": "Portais de transparência do ente, avaliados pelo PNTP (tribunais de contas e Atricon): uma linha por entidade\n(prefeitura, câmara, poderes, consórcios, estatais), com o nível, o índice e o link do portal. Aparece na\npágina do ente em Conformidade (ADR-035).",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "Estado",
+     "assinatura": "type Estado = { fase: \"carregando\" } | { fase: \"pronto\"; feed: FeedTransparencia | null; entidades: EntidadeTransparencia[] }",
+     "doc": "O andamento da leitura da avaliação.",
+     "linha": 16
+    },
+    {
+     "tipo": "componente",
+     "nome": "Transparencia",
+     "assinatura": "export function Transparencia({ codigo }: { codigo: string })",
+     "doc": "A seção dos portais de transparência de um ente.",
+     "linha": 20
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/Rodape.tsx",
+   "linguagem": "typescript",
+   "linhas": 16,
+   "doc": "Rodapé: de onde vêm os números e o compromisso editorial do projeto.",
+   "itens": [
+    {
+     "tipo": "componente",
+     "nome": "Rodape",
+     "assinatura": "export function Rodape()",
+     "doc": "Rodapé: de onde vêm os números e o compromisso editorial do projeto.",
+     "linha": 2
     }
    ]
   }
@@ -10315,6 +12740,21 @@
    "testes": 26
   },
   {
+   "caminho": "packages/economia/testes/test_economia.py",
+   "doc": "Economia e Contas Públicas: coleta do SGS, indicadores derivados e o arquivo do portal, com respostas reais.",
+   "testes": 22
+  },
+  {
+   "caminho": "packages/economia/testes/test_estatais.py",
+   "doc": "Estatais com ações na bolsa: cadastro, controle no FRE e demonstrações da CVM, com arquivos reais recortados.\n\nAs fixtures são linhas reais dos dados abertos da CVM de 2025 e 2026 (Petrobras, Banco do Brasil, BB\nSeguridade, Sabesp, EMAE e Santos Brasil), com os dados de pessoas trocados por fictícios: responsável do\ncadastro, representantes legais e acionistas pessoa física.",
+   "testes": 19
+  },
+  {
+   "caminho": "packages/economia/testes/test_sest.py",
+   "doc": "Estatais federais pelos dados abertos da SEST: cadastro e PDG, com linhas reais (BB, Caixa, EBSERH e Correios).",
+   "testes": 10
+  },
+  {
    "caminho": "packages/eleicoes/testes/test_antigas.py",
    "doc": "Eleições de 1933 a 1990: leitura dos arquivos por UF do TSE e feeds gerados.\n\nAs fixtures (``testes/fixtures/tse/dados_abertos_uf``) são linhas reais, sem alteração, recortadas dos\narquivos publicados pelo TSE; os ZIPs são montados aqui, como o tribunal os publica.",
    "testes": 17
@@ -10352,7 +12792,7 @@
   {
    "caminho": "packages/eleicoes/testes/test_suporte.py",
    "doc": "Cadastro de municípios, malhas do IBGE, servidor local, verificação, configuração e CLI.",
-   "testes": 19
+   "testes": 20
   },
   {
    "caminho": "packages/eleicoes/testes/test_transferencia.py",
@@ -10440,6 +12880,11 @@
    "testes": 12
   },
   {
+   "caminho": "packages/mercado/testes/test_reconhecimento_compartilhado.py",
+   "doc": "O reconhecimento dos itens comparados com a ANP é o mesmo no Python e no portal (ADR-037).\n\nO portal reconhece no navegador os itens de combustível e de gás de cozinha do modal da contratação, com uma\ncópia das regras de ``especificacao.reconhecer``. Os casos ficam num arquivo só, lido pelos dois testes: se\numa regra mudar de um lado e não do outro, um dos dois falha.",
+   "testes": 1
+  },
+  {
    "caminho": "packages/mercado/testes/test_varejo.py",
    "doc": "Varejo pela API oficial: leitura das ofertas, filtro do que é o mesmo produto, coleta e referência por data.\n\nA resposta usada aqui segue o formato documentado da busca do Mercado Livre (``results`` com ``id``,\n``title``, ``price``, ``currency_id``, ``condition``, ``permalink``, ``seller``, ``shipping``); a conferência\ncontra a API real é o teste de contrato e o comando ``lumen mercado varejo testar``. O servidor é local:\nconfere que o token vai no cabeçalho do pedido, que 401/403 conta como recusa da loja e que a resposta\nfica no bronze sem o token.",
    "testes": 6
@@ -10515,9 +12960,19 @@
    "testes": 12
   },
   {
+   "caminho": "packages/painel/testes/test_mercado.py",
+   "doc": "Preço de revenda da ANP para o modal (ADR-037): coleta incremental das semanas, estado e arquivos por UF e ano.",
+   "testes": 7
+  },
+  {
+   "caminho": "packages/painel/testes/test_transparencia.py",
+   "doc": "Portais de transparência pelo PNTP para a visão 360: coleta incremental, estado e arquivos por UF.",
+   "testes": 6
+  },
+  {
    "caminho": "testes/contrato/test_contrato_fontes.py",
    "doc": "Testes de contrato contra as fontes reais (DOC-09, seção 3.2).\n\nValidam só o **esquema** — que os campos que o normalizador lê continuam\nexistindo, com o tipo esperado —, nunca o conteúdo. Rodam diariamente por\nagendamento na CI e não bloqueiam entrega: quando falham, alarmam, porque\nsignificam que a fonte mudou de formato sem aviso (risco R-03).\n\n    LUMEN_TESTE_CONTRATO=1 python -m pytest -m contrato\n\nO esquema de referência é o das fixtures de ``testes/fixtures``: se a fonte\nreal deixar de ter um campo que a fixture tem, o teste acusa.",
-   "testes": 14
+   "testes": 16
   },
   {
    "caminho": "testes/integracao/test_migracao_postgres.py",
@@ -10530,13 +12985,48 @@
    "testes": 3
   },
   {
+   "caminho": "packages/portal/src/lib/__testes__/contratacao.test.ts",
+   "doc": "",
+   "testes": 6
+  },
+  {
+   "caminho": "packages/portal/src/lib/__testes__/economia.test.ts",
+   "doc": "",
+   "testes": 9
+  },
+  {
+   "caminho": "packages/portal/src/lib/__testes__/estatais.test.ts",
+   "doc": "",
+   "testes": 4
+  },
+  {
    "caminho": "packages/portal/src/lib/__testes__/feeds.test.ts",
    "doc": "",
    "testes": 5
   },
   {
+   "caminho": "packages/portal/src/lib/__testes__/local.test.ts",
+   "doc": "",
+   "testes": 6
+  },
+  {
+   "caminho": "packages/portal/src/lib/__testes__/mercado.test.ts",
+   "doc": "Um arquivo da ANP de SP com duas semanas, no formato que os painéis publicam.",
+   "testes": 4
+  },
+  {
    "caminho": "packages/portal/src/lib/__testes__/paineis.test.ts",
    "doc": "",
+   "testes": 11
+  },
+  {
+   "caminho": "packages/portal/src/lib/__testes__/periodo.test.ts",
+   "doc": "",
+   "testes": 7
+  },
+  {
+   "caminho": "packages/portal/src/lib/__testes__/precos.test.ts",
+   "doc": "Uma compra fictícia da pesquisa de preços, no formato da API.",
    "testes": 10
   },
   {

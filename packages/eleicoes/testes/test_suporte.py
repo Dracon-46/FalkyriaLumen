@@ -302,8 +302,9 @@ def cfg_toml(tmp_path, monkeypatch):
     monkeypatch.setenv("LUMEN_CONTATO", "c@exemplo.org")
     _sem_proxy_no_cliente(monkeypatch)
     toml = tmp_path / "lumen.toml"
-    # Servidores locais: sem espera do limitador de taxa
-    toml.write_text(f'[dados]\nraiz = "{tmp_path / "dados"}"\n[eleicoes]\nrpm_resultados = 60000\n'
+    # Servidores locais: sem espera do limitador de taxa. Caminho com barras: no Windows, a contrabarra
+    # numa string TOML seria lida como escape.
+    toml.write_text(f'[dados]\nraiz = "{(tmp_path / "dados").as_posix()}"\n[eleicoes]\nrpm_resultados = 60000\n'
                     'rpm_dados_abertos = 60000\nrpm_ibge = 60000\n', encoding="utf-8")
     return toml
 
@@ -338,6 +339,25 @@ def test_cli_catalogo_municipios_e_ao_vivo(tmp_path, cfg_toml, capsys):
                              "--base", srv.base]) == 2
     finally:
         ibge.parar()
+
+
+def test_cli_ao_vivo_com_prazo_sai_com_codigo_para_continuar(tmp_path, cfg_toml, capsys, monkeypatch):
+    from lumen_eleicoes.coletor import ColetorAoVivo
+    from lumen_eleicoes.simulacao import Cenario, ServidorSimulado
+    argumentos = ["--config", str(cfg_toml), "--saida", str(tmp_path / "feeds"), "ao-vivo", "--eleicao",
+                  "2026-1t-geral", "--cargos", "presidente", "--ufs", "sp", "--intervalo", "0",
+                  "--limite-minutos", "0.000001"]
+    # Apuração em 20%: o prazo vence depois da primeira passada, e a próxima execução continua
+    with ServidorSimulado(Cenario(FIX_TSE, etapas=5)) as srv:
+        assert cli.main(argumentos + ["--base", srv.base]) == cli.CODIGO_PRAZO
+    assert "prazo de 1e-06 min atingido" in capsys.readouterr().out
+    assert (tmp_path / "feeds" / "2026-1t-geral" / "presidente" / "uf-sp.json").exists()
+    # Apuração terminada (o recorte das fixtures é de antes do fim, sem a marca): o coletor para por ter
+    # terminado, e o prazo não muda a saída
+    monkeypatch.setattr(ColetorAoVivo, "_finalizada", lambda self: True)
+    with ServidorSimulado(Cenario(FIX_TSE, etapas=1)) as srv:
+        assert cli.main(argumentos + ["--base", srv.base]) == 0
+    assert "prazo de" not in capsys.readouterr().out
 
 
 def test_cli_mapas(tmp_path, cfg_toml):

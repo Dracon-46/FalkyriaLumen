@@ -96,7 +96,7 @@ publicação para com erro e o índice não sobe. Falha passageira de envio (408
 | [`ci.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/ci.yml) | Push na `main` e PR | Vocabulário, testes, ruff, banco e portal (ver [[Testes|Testes]]) | — |
 | [`contrato.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/contrato.yml) | Todo dia, 06:17 em Brasília, e à mão | Formato das fontes reais (campos e tipos); não bloqueia, alarma | `LUMEN_ML_TOKEN` (opcional) |
 | [`eleicoes-carga.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/eleicoes-carga.yml) | Todo dia, 04:41 em Brasília, e à mão | `preparar --nuvem --sem-portal --sem-bronze --apagar-zips --limite-minutos 280`: baixa, processa e publica; para antes do prazo e a próxima execução continua | `LUMEN_CONTATO`, `R2_*`, `ELEICOES_SEM_HISTORICO`, `PUBLICACAO_*` |
-| [`eleicoes-ao-vivo.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/eleicoes-ao-vivo.yml) | À mão, na noite da eleição | `ao-vivo --eleicao <id> --intervalo <s> --nuvem --sem-bronze`: publica a cada passada | Os mesmos da carga |
+| [`eleicoes-ao-vivo.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/eleicoes-ao-vivo.yml) | Agendado no dia da eleição (25/10/2026) e à mão | Espera até `AGENDA_INICIO`; `ao-vivo --eleicao <id> --intervalo <s> --nuvem --sem-bronze --limite-minutos 330`: publica a cada passada e, com a apuração em andamento no prazo, dispara a continuação | Os mesmos da carga |
 | [`eleicoes-medir.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/eleicoes-medir.yml) | À mão | Gera os feeds sem publicar e mede total, grupos, maiores arquivos e o pior caso de saída por visitante; resultado no resumo e num artefato de sete dias | `LUMEN_CONTATO` |
 | [`nuvem-diagnostico.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/nuvem-diagnostico.yml) | À mão | Grava dois objetos em `_diagnostico/` (um comum e um com gzip) e lê pelo endereço público, para saber se o armazenamento devolve o `Content-Encoding` | `R2_*`, `LUMEN_URL_FEEDS` |
 | [`portal-pages.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/portal-pages.yml) | Mudança no portal na `main`, e à mão | Verifica, gera e publica no Cloudflare Pages | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `LUMEN_URL_FEEDS`, `CF_PAGES_PROJETO` |
@@ -121,6 +121,8 @@ aplica rótulos e marcos de `.github/organizacao.json`.
 | | `historico` | falso | Inclui 1933 a 2026 mesmo com `ELEICOES_SEM_HISTORICO=true` |
 | `eleicoes-ao-vivo` | `eleicao` | obrigatória | Id do catálogo do TSE (ex.: `2026-2t-geral`) |
 | | `intervalo` | 30 | Segundos entre passadas |
+| | `agendada` | falso | Espera `AGENDA_INICIO`, como a execução agendada (uso do próprio fluxo) |
+| | `continuacao` | 0 | Continuações já feitas depois do prazo da máquina (uso do próprio fluxo; até 3) |
 | `eleicoes-medir` | `so_2026` | verdadeiro | Só 2026, sem os dados abertos |
 | | `anos` | 2022 | Com `so_2026` desmarcado, anos a medir |
 | | `limite_minutos` | 300 | Para a coleta e mede o que houver |
@@ -129,8 +131,8 @@ aplica rótulos e marcos de `.github/organizacao.json`.
 | `paineis-carga` | `de`, `ate`, `partes` | 2026-01-01, ontem, 12 | Período e número de blocos |
 | `mercado-referencia` | `de`, `ate`, `fonte_anp`, `semestres`, `series`, `objeto`, `janelas` | ver o arquivo | Janela de compras, fonte da ANP e várias janelas numa execução |
 
-`eleicoes-carga` e `eleicoes-ao-vivo` compartilham o grupo de concorrência `eleicoes-carga`: uma
-espera a outra terminar, porque as duas disputariam o índice publicado. O grupo guarda uma só
+`eleicoes-carga` e a coleta do `eleicoes-ao-vivo` compartilham o grupo de concorrência `eleicoes-carga`
+(a espera agendada do `eleicoes-ao-vivo` tem grupo próprio): uma espera a outra terminar, porque as duas disputariam o índice publicado. O grupo guarda uma só
 execução na espera: se outra entra na fila (a agendada, por exemplo), a que esperava é cancelada
 sem rodar. Foi o que aconteceu em 16/10/2026 com a carga de 2026 disparada junto com o ensaio do
 `eleicoes-ao-vivo`. Dispare uma de cada vez, com a fila do grupo vazia.
@@ -171,9 +173,12 @@ Roteiro a partir dos fluxos, do código e das ADRs; o roteiro oficial está no D
 
 **Durante**
 
-1. Pouco antes da divulgação dos primeiros resultados: Actions → `eleicoes-ao-vivo` → *Run
-   workflow*, com o id da eleição e o intervalo (padrão 30 s). Antes, conferir que nada do grupo
-   `eleicoes-carga` está rodando ou na fila: a carga diária em andamento atrasa o início, e outra
+1. O `eleicoes-ao-vivo` começa sozinho: tem agendamentos horas antes, porque o GitHub atrasa os
+   agendamentos (de 4 a 7 horas e meia em outubro de 2026), e espera até `AGENDA_INICIO` (16h45 de
+   Brasília em 25/10/2026). Espera maior que 5h30 termina disparando o próprio fluxo, que continua
+   esperando. De manhã, confira em Actions que há uma execução esperando. À mão: Actions →
+   `eleicoes-ao-vivo` → *Run workflow*, com o id da eleição e o intervalo (padrão 30 s), com nada do
+   grupo `eleicoes-carga` rodando ou na fila: a carga diária em andamento atrasa o início, e outra
    execução que entre na fila cancela a que espera.
 2. O coletor consulta o TSE com requisições condicionais, regrava só os feeds que mudaram e publica
    a cada passada. Uma publicação que falha não para o coletor: sai no registro e a passada seguinte
@@ -181,8 +186,9 @@ Roteiro a partir dos fluxos, do código e das ADRs; o roteiro oficial está no D
 3. O portal relê os feeds a cada 15 segundos (`Cache-Control: no-cache`, 304 quando nada mudou).
 4. A execução para quando a totalização termina, ou quando todas as seções estão totalizadas e
    nada muda há 60 minutos, mesmo sem a marca de finalizada do TSE (no 1º turno de 2026, os
-   deputados de Rondônia ficaram assim, e o ensaio de 16/10/2026 rodou até ser cancelado). Se
-   bater o prazo de 6 horas da máquina, dispare de novo: o estado continua.
+   deputados de Rondônia ficaram assim, e o ensaio de 16/10/2026 rodou até ser cancelado). Aos 330
+   minutos, com a apuração em andamento, o coletor para ao fim da passada e o fluxo dispara a
+   continuação (até três), que segue do estado guardado.
 
 **Depois**
 

@@ -48,7 +48,7 @@ Vercel"); R2 e Pages continuam como alternativa.
 | Fluxo | Quando | O que faz |
 |---|---|---|
 | `eleicoes-carga.yml` | todo dia às 04:41 e à mão | `preparar --nuvem`: baixa, processa e publica no R2; para antes do prazo da máquina e a próxima execução continua |
-| `eleicoes-ao-vivo.yml` | à mão, na noite da eleição | `ao-vivo --nuvem`: publica a cada passada |
+| `eleicoes-ao-vivo.yml` | agendado no dia da eleição (25/10/2026) e à mão | espera a hora da apuração; `ao-vivo --nuvem`: publica a cada passada e dispara a continuação perto do prazo da máquina |
 | `portal-pages.yml` | a cada mudança do portal na main, e à mão | gera o portal apontando para o R2 e publica no Pages |
 
 Configuração, uma vez (passo a passo com as telas no DOC-12, seção 9.5):

@@ -329,7 +329,7 @@ Opções globais: `--config`, `--saida <diretório dos feeds>`, `-v`.
 | `municipios [--eleicao]` | Grava `municipios.json` (TSE ↔ IBGE) |
 | `mapas [--ufs] [--qualidade minima\|intermediaria\|maxima] [--contornos]` | Baixa as malhas do IBGE; `--contornos`, o contorno fino dos municípios com zonas |
 | `zonas [--anos] [--atualizar]` | Locais de votação para o mapa das zonas (padrão: 2026 a 2018) |
-| `ao-vivo --eleicao <id> [--cargos] [--ufs] [--intervalo] [--orcamento] [--uma-vez] [--nuvem] [--sem-bronze]` | Coleta a apuração em andamento |
+| `ao-vivo --eleicao <id> [--cargos] [--ufs] [--intervalo] [--orcamento] [--uma-vez] [--parar-estavel] [--limite-minutos] [--nuvem] [--sem-bronze]` | Coleta a apuração em andamento; com `--limite-minutos`, sai com o código 3 se o prazo vencer antes do fim |
 | `historico baixar --anos <lista\|todos> [--atualizar]` | Baixa os ZIPs dos dados abertos |
 | `historico processar --anos <lista\|todos> [--limite-municipio]` | Gera os feeds a partir dos ZIPs |
 | `simular [--eleicao] [--etapas] [--intervalo] [--ufs]` | Apuração fictícia a partir de arquivos finais |

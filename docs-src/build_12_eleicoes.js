@@ -586,7 +586,7 @@ body.push(t("É retomável: `<estado>/preparar.json` registra cada ano processad
 body.push(table(["Opção", "Efeito"], [3400, 6200], [
   ["--servir [--porta 8080] [--sem-navegador]", "Sobe o portal antes da carga e abre o navegador"],
   ["--anos 2024,2022 | todos", "Restringe os anos dos dados abertos (padrão: todos)"],
-  ["--sem-ao-vivo / --sem-historico / --sem-portal / --sem-zonas", "Pula a etapa correspondente (sem o histórico, as zonas também ficam de fora)"],
+  ["--sem-ao-vivo / --sem-historico / --sem-portal / --sem-zonas", "Pula a etapa correspondente (o mapa das zonas roda mesmo sem o histórico, desde 19/10/2026)"],
   ["--atualizar / --refazer", "Reprocessa o que mudou na fonte / tudo"],
   ["--municipios-proporcionais", "Na eleição do sistema de resultados, também os deputados por município"],
   ["--limite-municipio 50", "Candidatos por município nos cargos proporcionais"],
@@ -633,7 +633,7 @@ body.push(table(["Comando", "O que faz"], [4400, 5200], [
   ["lumen eleicoes mapas [--ufs] [--qualidade]", "Baixa as malhas do IBGE"],
   ["lumen eleicoes zonas [--anos]", "Baixa os locais de votação (2018 a 2026) e grava o mapa das zonas (seção 6.4)"],
   ["lumen eleicoes mapas --contornos", "Baixa o contorno fino dos municípios listados nos índices das zonas (seção 6.4)"],
-  ["lumen eleicoes ao-vivo --eleicao <id> [--nuvem]", "Coleta a apuração em andamento (seção 5); com --nuvem, publica a cada passada"],
+  ["lumen eleicoes ao-vivo --eleicao <id> [--nuvem] [--limite-minutos]", "Coleta a apuração em andamento (seção 5); com --nuvem, publica a cada passada; com --limite-minutos, para depois do prazo e sai com o código 3 se a apuração não terminou"],
   ["lumen eleicoes historico baixar --anos", "Baixa os ZIPs dos dados abertos (1933 a 2024)"],
   ["lumen eleicoes historico processar --anos", "Gera os feeds das eleições passadas"],
   ["lumen eleicoes simular", "Apuração fictícia a partir de arquivos finais reais"],
@@ -659,15 +659,17 @@ body.push(n("Publicar o portal apontando `NEXT_PUBLIC_DADOS_ELEICOES` para os fe
 body.push(h3("No dia"));
 novaLista();
 body.push(n("Apagar os feeds e o estado da simulação do diretório de produção."));
-body.push(n("Iniciar o coletor antes da divulgação dos primeiros resultados. Na nuvem: Actions → `eleicoes-ao-vivo` " +
-  "→ Run workflow, com o id da eleição, com nada do grupo `eleicoes-carga` rodando ou na fila: o grupo guarda " +
-  "uma só execução na espera, e outra que entre na fila cancela a que espera. Numa máquina:"));
+body.push(n("Na nuvem, o coletor começa sozinho: o `eleicoes-ao-vivo` tem agendamentos no dia da eleição e espera até " +
+  "`AGENDA_INICIO` (16h45 de Brasília no 2º turno de 2026; seção 9.5). Conferir de manhã, em Actions, que uma " +
+  "execução agendada está esperando. À mão, Actions → `eleicoes-ao-vivo` → Run workflow, com o id da eleição, com " +
+  "nada do grupo `eleicoes-carga` rodando ou na fila: o grupo guarda uma só execução na espera, e outra que entre " +
+  "na fila cancela a que espera. Numa máquina:"));
 body.push(code(["lumen eleicoes ao-vivo --eleicao 2026-1t-geral --intervalo 30 --nuvem"]));
 body.push(n("Acompanhar o resumo de cada passada (requisições, baixados, 304, ausentes, feeds, fila, erros). Fila " +
   "crescendo sem parar indica limite de taxa baixo para o volume; erros repetidos indicam problema na fonte."));
 body.push(n("Se for preciso reiniciar, basta rodar o mesmo comando: o estado preserva cores e evolução. Na nuvem, " +
-  "a máquina tem prazo de 6 horas; se a totalização não terminou, dispare o fluxo de novo, e o estado " +
-  "guardado no bucket privado continua a série."));
+  "a máquina tem prazo de 6 horas: o coletor para aos 330 minutos (`--limite-minutos`) e, se a totalização não " +
+  "terminou, o fluxo dispara a continuação (até três), que segue do estado guardado no bucket privado."));
 body.push(h3("Depois"));
 novaLista();
 body.push(n("O coletor termina sozinho quando a totalização acaba, ou quando todas as seções estão totalizadas e " +
@@ -681,12 +683,17 @@ body.push(t("Nada disso precisa do computador de quem opera o Lumen. A carga, a 
   "serviços gratuitos, e o computador pessoal fica para desenvolvimento e uso local (`preparar --servir`)."));
 body.push(table(["Parte", "Onde roda", "Como"], [2200, 3000, 4400], [
   ["Carga diária e retomada", "GitHub Actions: eleicoes-carga.yml", "Todo dia às 04:41 (Brasília) e quando disparada à mão: preparar --nuvem --sem-portal --sem-bronze --apagar-zips --limite-minutos 280"],
-  ["Noite da eleição", "GitHub Actions: eleicoes-ao-vivo.yml", "À mão, com o id da eleição; publica a cada passada que gravou feeds"],
+  ["Noite da eleição", "GitHub Actions: eleicoes-ao-vivo.yml", "Agendado no dia da eleição, espera até AGENDA_INICIO; ou à mão, com o id da eleição. Publica a cada passada que gravou feeds e, perto do prazo da máquina, dispara a continuação"],
   ["Feeds", "Cloudflare R2, bucket público", "Cache-Control: no-cache nos feeds; um dia nas malhas, no cadastro e nas fotos"],
   ["Estado da carga", "Cloudflare R2 ou Supabase, bucket privado", "estado/preparar.json, estado do coletor ao vivo e o manifesto da publicação, um arquivo por grupo (publicacao/<grupo>.json) e o total de cada grupo (publicacao/_totais.json)"],
   ["Portal", "Vercel (Hobby) ou Cloudflare Pages: portal-pages.yml", "Vercel: importa o repositório com Root Directory packages/portal e gera a cada mudança do portal (vercel.json), sem token no GitHub. Pages: a cada mudança em packages/portal na main, ou à mão; cria o projeto na primeira vez"],
 ], { size: 17 }));
 
+body.push(t("Os agendamentos do GitHub chegam atrasados: em outubro de 2026, o das 04:41 de Brasília começou entre " +
+  "08:44 e 12:14. Por isso o `eleicoes-ao-vivo` agenda várias execuções horas antes da apuração e tem duas tarefas. " +
+  "A primeira espera até `AGENDA_INICIO`; se a espera passar de 5h30, ela dispara o próprio fluxo no fim, e a nova " +
+  "execução continua esperando. A segunda coleta, no grupo de concorrência da carga. Se mais de uma execução " +
+  "agendada chegar à coleta, a segunda espera a primeira, recomeça do estado e para ao ver a totalização terminada."));
 body.push(h3("Como a carga continua de uma execução para outra"));
 body.push(t("A máquina do GitHub começa vazia a cada execução e tem prazo de 6 horas. O que a carga já fez fica no " +
   "bucket privado (`publicacao.Nuvem`):"));
@@ -866,7 +873,7 @@ body.push(n("Portal na Vercel (plano Hobby): Add New → Project → importar o 
   "`packages/portal`, variável `NEXT_PUBLIC_DADOS_ELEICOES` com o mesmo valor de `LUMEN_URL_FEEDS`. O " +
   "`vercel.json` do portal faz a Vercel gerar o site só quando `packages/portal` muda. Sem token no GitHub."));
 body.push(n("Actions → `eleicoes-carga` → Run workflow (publica 2026 e, em duas ou três execuções, o histórico). Na " +
-  "noite do 2º turno, `eleicoes-ao-vivo` com `2026-2t-geral`, como na seção 9.4."));
+  "noite do 2º turno, o `eleicoes-ao-vivo` agendado para `2026-2t-geral` começa sozinho, como na seção 9.4."));
 body.push(n("Durante a apuração, acompanhar a saída em Organization → Usage do Supabase. Se a cota se aproximar " +
   "do fim, a saída é passar os feeds para o R2: os mesmos segredos com os valores do R2 e um novo " +
   "`portal-pages` com o endereço do R2."));

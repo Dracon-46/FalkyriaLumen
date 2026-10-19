@@ -46,6 +46,10 @@ from .publicacao import LimiteDoArmazenamento, Nuvem
 from .simulacao import Cenario, ServidorSimulado, gerar_amostra
 from .verificacao import verificar_diretorio
 
+# ``ao-vivo --limite-minutos``: o prazo venceu com a apuração em andamento. O fluxo do GitHub Actions dispara
+# a continuação ao receber este código (a máquina tem 6 horas; a apuração pode passar disso).
+CODIGO_PRAZO = 3
+
 RAIZ_REPO = Path(__file__).resolve().parents[3]
 FIXTURES_TSE = RAIZ_REPO / "testes" / "fixtures" / "tse"
 SITE_PADRAO = RAIZ_REPO / "packages" / "portal" / "out"
@@ -250,7 +254,9 @@ def cmd_ao_vivo(cfg, args) -> int:
 
     Roda até a totalização terminar, até Ctrl+C ou, com ``--uma-vez``, por uma passada só. Devolve 2
     se a eleição não está no sistema de resultados. Com ``--nuvem``, restaura o estado antes, publica
-    os feeds a cada passada que gravou algo e sincroniza no fim (ADR-026).
+    os feeds a cada passada que gravou algo e sincroniza no fim (ADR-026). Com ``--limite-minutos``, para
+    ao fim da passada em que o prazo vence e, se a apuração não terminou, devolve ``CODIGO_PRAZO``: a
+    próxima execução continua do estado gravado.
     """
     cliente = _cliente(cfg, FONTE_ID, cfg.rpm_resultados)
     eleicoes = {e.id: e for e in _catalogo(cliente, args.base)}
@@ -268,6 +274,16 @@ def cmd_ao_vivo(cfg, args) -> int:
                             bronze=None if args.sem_bronze else ArmazemBronzeLocal(cfg.bronze),
                             base=args.base, estado=cfg.estado / f"coleta-{args.eleicao}.json")
     sinal = _instalar_parada()
+    fim = time.monotonic() + args.limite_minutos * 60 if args.limite_minutos else None
+    vencido = [False]
+
+    def parar() -> bool:
+        if sinal[0]:
+            return True
+        # O coletor só consulta entre passadas: aqui ele já não parou por ter terminado.
+        if fim is not None and time.monotonic() >= fim:
+            vencido[0] = True
+        return vencido[0]
 
     def publicar() -> None:
         # Falha ao publicar não derruba a apuração: a próxima passada publica de novo o que ficou
@@ -282,15 +298,18 @@ def cmd_ao_vivo(cfg, args) -> int:
             publicar()
     try:
         coletor.executar(intervalo_s=args.intervalo, max_passadas=1 if args.uma_vez else None,
-                         parar=lambda: sinal[0], aviso=aviso,
+                         parar=parar, aviso=aviso,
                          estavel_s=args.parar_estavel * 60 if args.parar_estavel > 0 else None)
         if coletor.pendentes_ao_parar:
             print(f"parada: todas as seções totalizadas e nada mudou em {args.parar_estavel:g} min; o TSE ainda "
                   f"não marcou como finalizados: {', '.join(coletor.pendentes_ao_parar)}", flush=True)
+        if vencido[0]:
+            print(f"prazo de {args.limite_minutos:g} min atingido com a apuração em andamento; rode de novo para "
+                  "continuar: o estado continua", flush=True)
     finally:
         if nuvem is not None:
             publicar()
-    return 0
+    return CODIGO_PRAZO if vencido[0] else 0
 
 
 def cmd_historico_baixar(cfg, args) -> int:
@@ -528,6 +547,8 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--uma-vez", action="store_true", help="uma passada só")
     c.add_argument("--parar-estavel", type=float, default=60,
                    help="minutos sem mudança, com todas as seções totalizadas, para parar (0 desliga)")
+    c.add_argument("--limite-minutos", type=float,
+                   help="para ao fim da passada depois disso; com a apuração em andamento, sai com o código 3")
     c.add_argument("--sem-bronze", action="store_true", help="não guardar as respostas como prova")
     c.add_argument("--nuvem", action="store_true", help="publica no R2 a cada passada (ADR-026)")
     c.add_argument("--base", default=tse.BASE)

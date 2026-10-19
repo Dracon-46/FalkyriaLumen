@@ -5,6 +5,20 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Eleições: 2º turno ao vivo sem disparo à mão (adendo do ADR-026)
+
+- `eleicoes-ao-vivo` agendado no dia da eleição (25/10/2026). Os agendamentos
+  do GitHub chegam horas atrasados, então o fluxo agenda execuções desde as 3h
+  de Brasília e espera até `AGENDA_INICIO` (16h45). Espera maior que 5h30
+  termina disparando o próprio fluxo, que continua esperando.
+- `lumen eleicoes ao-vivo --limite-minutos`: para ao fim da passada depois do
+  prazo e sai com o código 3 se a apuração não terminou. No fluxo, 330
+  minutos; com o código 3, ele dispara a continuação (até três), que segue do
+  estado no bucket privado. Antes, a máquina era derrubada no prazo de 6
+  horas.
+- Testes: o arquivo de configuração dos testes da linha de comando grava o
+  caminho com barras, e esses testes passam a rodar também no Windows.
+
 ### Eleições: carga de um ano à mão e roteiro do 2º turno
 
 - `eleicoes-carga`: a entrada `anos` da execução manual passa a valer mesmo
