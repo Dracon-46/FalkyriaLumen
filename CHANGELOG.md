@@ -16,6 +16,10 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   16/10/2026, a carga de 2026 disparada junto com o ensaio foi cancelada assim.
   O roteiro também passa a dizer quando o coletor para sem a marca de
   finalizada do TSE (60 minutos estável com todas as seções totalizadas).
+- Wiki e README: com `ELEICOES_SEM_HISTORICO=true`, a carga diária não lê os
+  dados abertos de 2026; passar os dois turnos para eles pede um disparo com
+  `anos` = 2026 e espaço no bucket (perto de 45 MB a mais, pelas medições de
+  13 e 14/10/2026, com o bucket em 844,8 MB e o teto em 900 MB).
 
 ### Preço de mercado no modal: ANP (ADR-037)
 

@@ -403,9 +403,11 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
 ### Pendente
 
 - **Revisar as ADRs 011 a 029** (todas propostas, tomadas durante a implementação).
-- **2º turno de 2026 nos dados abertos**: o 1º turno já vem deles, com as zonas (ADR-029); o 2º
+- **2026 nos dados abertos**: localmente, o 1º turno já vem deles, com as zonas (ADR-029); o 2º
   turno é coletado ao vivo e passa para os dados abertos quando o TSE o acrescentar ao arquivo de 2026,
-  que o `preparar` confere a cada execução.
+  que o `preparar` confere a cada execução. Na nuvem, com `ELEICOES_SEM_HISTORICO=true`, os dois turnos
+  seguem ao vivo até um disparo de `eleicoes-carga` com `anos` = 2026, que pede espaço no bucket
+  (perto de 45 MB a mais, com o bucket em 844,8 MB e o teto em 900 MB).
 - **Calibrar a regra A-05** sobre o relatório silencioso (ADR-027). Até lá, a comparação sob demanda do modal
   usa os limiares iniciais e diz isso (ADR-037).
 - **Contas da hospedagem gratuita** (ADR-026): Cloudflare (R2 e Pages), segredos do GitHub e

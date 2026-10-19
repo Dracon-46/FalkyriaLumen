@@ -189,6 +189,11 @@ Roteiro a partir dos fluxos, do código e das ADRs; o roteiro oficial está no D
 - A carga diária segue. Quando o TSE acrescentar o turno aos dados abertos do ano, o `preparar`
   confere a fonte a cada execução e reprocessa (2026 é o ano em aberto,
   [ADR-029](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-029.md)).
+- Com `ELEICOES_SEM_HISTORICO=true`, a configuração da nuvem desde 14/10/2026, a carga diária não
+  lê os dados abertos, nem os do ano em aberto: dispare `eleicoes-carga` com `anos` = 2026. Antes,
+  confira o espaço. O 1º turno de 2026 coletado ao vivo ocupa 32 MB (medição de 13/10/2026); o de
+  2022 pelos dados abertos ocupou 74,5 MB, e o 2º turno mais 9,4 MB (medições de 14/10/2026). Com o
+  bucket em 844,8 MB em 19/10/2026, a troca passa perto do teto de 900 MB do Supabase gratuito.
 
 Localmente, o equivalente é `lumen eleicoes ao-vivo --eleicao <id> --nuvem`.
 
