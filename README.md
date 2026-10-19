@@ -406,7 +406,8 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
 - **2º turno de 2026 nos dados abertos**: o 1º turno já vem deles, com as zonas (ADR-029); o 2º
   turno é coletado ao vivo e passa para os dados abertos quando o TSE o acrescentar ao arquivo de 2026,
   que o `preparar` confere a cada execução.
-- **Calibrar a regra A-05** sobre o relatório silencioso antes de qualquer publicação (ADR-027).
+- **Calibrar a regra A-05** sobre o relatório silencioso (ADR-027). Até lá, a comparação sob demanda do modal
+  usa os limiares iniciais e diz isso (ADR-037).
 - **Contas da hospedagem gratuita** (ADR-026): Cloudflare (R2 e Pages), segredos do GitHub e
   uma organização própria do projeto no Supabase para o núcleo (DOC-12, seção 9.5). Feeds das
   eleições no Supabase Storage desde 14/10/2026, com o histórico (seção 9.7).

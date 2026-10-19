@@ -1923,6 +1923,12 @@ table.tabela {
   margin: 6px 0;
 }
 
+.preco-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 16px;
+}
+
 /* Nomes de órgão sem espaço ("MINIST.DESENV.ASSIT.SOCIAL") não podem alargar a tabela no celular */
 .preco-comparacao td:not(.n) {
   overflow-wrap: anywhere;

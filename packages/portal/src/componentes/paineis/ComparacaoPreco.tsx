@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import { carregarResultados, type ItemProcesso, type Processo } from "@/lib/contratacao";
 import { numero } from "@/lib/formato";
+import { reconhecerAnp } from "@/lib/mercado";
 import { cnpj, dataCurta, moeda } from "@/lib/paineis";
 import {
   carregarComparacao, type ComparacaoPreco as Comparacao, type CompraComparavel, FONTE_PRECOS, PARAMETROS_PRECO,
@@ -25,23 +26,47 @@ const vezes = (x: number | null) => (x === null ? "—" : `${x.toLocaleString("p
 /** O item tem o código do catálogo do Compras.gov.br, que a comparação exige? */
 export const podeComparar = (item: ItemProcesso) => !!item.catalogo && item.material !== null;
 
-/** O botão de abrir a comparação; sem código de catálogo, o motivo de não comparar. */
-export function BotaoComparar({ item, aberto, onAlternar }: { item: ItemProcesso; aberto: boolean; onAlternar: () => void }) {
-  if (!podeComparar(item)) {
+/** As comparações de um item: com outros órgãos (catálogo) e com o mercado (ANP). */
+export type TipoComparacao = "orgaos" | "anp";
+
+/** Os botões das comparações que o item admite; sem nenhuma, o motivo. */
+export function BotoesComparar({ item, aberta, onAbrir }: {
+  item: ItemProcesso; aberta: TipoComparacao | null; onAbrir: (t: TipoComparacao | null) => void;
+}) {
+  const produto = reconhecerAnp(item.descricao, item.unidade);
+  if (!podeComparar(item) && !produto) {
     return (
       <div className="busca-detalhe">
-        Sem código do catálogo do Compras.gov.br: o órgão não classificou o item, e sem isso a comparação de preço
-        não é segura.
+        Sem comparação de preço: o órgão não informou o código do catálogo do Compras.gov.br, e o item não é
+        combustível nem gás de cozinha reconhecido sem ambiguidade.
       </div>
     );
   }
+  const botao = (t: TipoComparacao, rotulo: string) => (
+    <button type="button" className="botao-link" aria-expanded={aberta === t} onClick={() => onAbrir(aberta === t ? null : t)}>
+      {aberta === t ? "fechar a comparação" : rotulo}
+    </button>
+  );
   return (
-    <div>
-      <button type="button" className="botao-link" aria-expanded={aberto} onClick={onAlternar}>
-        {aberto ? "fechar a comparação de preço" : "comparar o preço com outros órgãos"}
-      </button>
+    <div className="preco-botoes">
+      {podeComparar(item) && botao("orgaos", "comparar o preço com outros órgãos")}
+      {produto && botao("anp", produto === "GLP" ? "comparar com o preço de revenda (ANP)" : "comparar com o preço de bomba (ANP)")}
     </div>
   );
+}
+
+/**
+ * O preço que se compara: o homologado (o do primeiro resultado com preço, e a data dele), ou, sem resultado,
+ * o estimado. Erro quando o item não tem preço unitário.
+ */
+export async function precoDoItem(item: ItemProcesso, processo: Processo, sinal?: AbortSignal):
+  Promise<{ preco: number; tipoPreco: "homologado" | "estimado"; data: string | null }> {
+  if (item.temResultado) {
+    const r = (await carregarResultados(processo.chave, item.numero, sinal)).find((x) => x.valorUnitario !== null && x.valorUnitario > 0);
+    if (r) return { preco: r.valorUnitario!, tipoPreco: "homologado", data: r.data };
+  }
+  if (item.valorUnitario === null || item.valorUnitario <= 0) throw new Error("o item não tem preço unitário publicado");
+  return { preco: item.valorUnitario, tipoPreco: "estimado", data: null };
 }
 
 /** Pede o preço homologado (se houver resultado) e a referência, e mostra a comparação. */
@@ -50,16 +75,7 @@ export function ComparacaoPreco({ item, processo }: { item: ItemProcesso; proces
   useEffect(() => {
     const c = new AbortController();
     (async () => {
-      let preco = item.valorUnitario;
-      let tipoPreco: "homologado" | "estimado" = "estimado";
-      if (item.temResultado) {
-        const r = (await carregarResultados(processo.chave, item.numero, c.signal)).find((x) => x.valorUnitario !== null);
-        if (r) {
-          preco = r.valorUnitario;
-          tipoPreco = "homologado";
-        }
-      }
-      if (preco === null || preco <= 0) throw new Error("o item não tem preço unitário publicado");
+      const { preco, tipoPreco } = await precoDoItem(item, processo, c.signal);
       const data = (processo.publicadoEm ?? new Date().toISOString()).slice(0, 10);
       const ano = Number(processo.chave.slice(-4));
       return carregarComparacao({
@@ -136,22 +152,46 @@ function Leitura({ c }: { c: Comparacao }) {
   }
 }
 
-/** A faixa das compras comparáveis (do mínimo ao máximo, com os quartis) e onde o preço do item cai. */
-function Faixa({ c }: { c: Comparacao }) {
-  if (c.minimo === null || c.maximo === null || c.q1 === null || c.q3 === null || c.mediana === null) return null;
-  // Escala logarítmica: preços de compra variam por ordens de grandeza
-  const lo = Math.log(Math.min(c.minimo, c.preco));
-  const hi = Math.log(Math.max(c.maximo, c.preco));
+/** Os cinco números de uma distribuição de preços, o preço do item e se ele está marcado. */
+export interface Distribuicao {
+  minimo: number;
+  q1: number;
+  mediana: number;
+  q3: number;
+  maximo: number;
+  preco: number;
+  marcado: boolean;
+  rotulo: string;   // "Compras comparáveis", "Preços de revenda"
+}
+
+/** A faixa de preços (do mínimo ao máximo, com os quartis) e onde o preço do item cai. */
+export function Faixa({ d }: { d: Distribuicao }) {
+  // Escala logarítmica: preços variam por ordens de grandeza
+  const lo = Math.log(Math.min(d.minimo, d.preco));
+  const hi = Math.log(Math.max(d.maximo, d.preco));
   const pos = (v: number) => (hi > lo ? ((Math.log(v) - lo) / (hi - lo)) * 100 : 50);
   return (
     <div className="preco-faixa" role="img"
-         aria-label={`Compras comparáveis de ${moeda(c.minimo)} a ${moeda(c.maximo)}, metade entre ${moeda(c.q1)} e ${moeda(c.q3)}, mediana ${moeda(c.mediana)}; o item, ${moeda(c.preco)}`}>
-      <span className="preco-faixa-linha" style={{ left: `${pos(c.minimo)}%`, width: `${pos(c.maximo) - pos(c.minimo)}%` }} />
-      <span className="preco-faixa-caixa" style={{ left: `${pos(c.q1)}%`, width: `${Math.max(pos(c.q3) - pos(c.q1), 0.5)}%` }} />
-      <span className="preco-faixa-mediana" style={{ left: `${pos(c.mediana)}%` }} />
-      <span className={`preco-faixa-item${c.situacao === "acima" ? " preco-faixa-item-acima" : ""}`} style={{ left: `${pos(c.preco)}%` }}
-            title={`Este item: ${moeda(c.preco)}`} />
+         aria-label={`${d.rotulo} de ${moeda(d.minimo)} a ${moeda(d.maximo)}, metade entre ${moeda(d.q1)} e ${moeda(d.q3)}, mediana ${moeda(d.mediana)}; o item, ${moeda(d.preco)}`}>
+      <span className="preco-faixa-linha" style={{ left: `${pos(d.minimo)}%`, width: `${pos(d.maximo) - pos(d.minimo)}%` }} />
+      <span className="preco-faixa-caixa" style={{ left: `${pos(d.q1)}%`, width: `${Math.max(pos(d.q3) - pos(d.q1), 0.5)}%` }} />
+      <span className="preco-faixa-mediana" style={{ left: `${pos(d.mediana)}%` }} />
+      <span className={`preco-faixa-item${d.marcado ? " preco-faixa-item-acima" : ""}`} style={{ left: `${pos(d.preco)}%` }}
+            title={`Este item: ${moeda(d.preco)}`} />
     </div>
+  );
+}
+
+/** Mínimo, quartis, mediana e máximo, lado a lado. */
+export function Numeros({ d }: { d: Pick<Distribuicao, "minimo" | "q1" | "mediana" | "q3" | "maximo"> }) {
+  return (
+    <dl className="preco-numeros">
+      <div><dt>Mínimo</dt><dd>{moeda(d.minimo)}</dd></div>
+      <div><dt>1º quartil</dt><dd>{moeda(d.q1)}</dd></div>
+      <div><dt>Mediana</dt><dd>{moeda(d.mediana)}</dd></div>
+      <div><dt>3º quartil</dt><dd>{moeda(d.q3)}</dd></div>
+      <div><dt>Máximo</dt><dd>{moeda(d.maximo)}</dd></div>
+    </dl>
   );
 }
 
@@ -166,16 +206,13 @@ function Resultado({ c, item }: { c: Comparacao; item: ItemProcesso }) {
         {c.tipoPreco === "estimado" ? ", sem resultado publicado" : ""}).
       </p>
       <Leitura c={c} />
-      {c.n > 0 && (
+      {c.n > 0 && c.minimo !== null && c.q1 !== null && c.mediana !== null && c.q3 !== null && c.maximo !== null && (
         <>
-          <Faixa c={c} />
-          <dl className="preco-numeros">
-            <div><dt>Mínimo</dt><dd>{moeda(c.minimo)}</dd></div>
-            <div><dt>1º quartil</dt><dd>{moeda(c.q1)}</dd></div>
-            <div><dt>Mediana</dt><dd>{moeda(c.mediana)}</dd></div>
-            <div><dt>3º quartil</dt><dd>{moeda(c.q3)}</dd></div>
-            <div><dt>Máximo</dt><dd>{moeda(c.maximo)}</dd></div>
-          </dl>
+          {c.situacao !== "fora_de_escala" && (
+            <Faixa d={{ minimo: c.minimo, q1: c.q1, mediana: c.mediana, q3: c.q3, maximo: c.maximo, preco: c.preco,
+                        marcado: c.situacao === "acima", rotulo: "Compras comparáveis" }} />
+          )}
+          <Numeros d={{ minimo: c.minimo, q1: c.q1, mediana: c.mediana, q3: c.q3, maximo: c.maximo }} />
         </>
       )}
       {(fora.outraUnidade + fora.totalComoUnitario + fora.propriaCompra + fora.semPreco) > 0 && (

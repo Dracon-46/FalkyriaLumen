@@ -150,7 +150,7 @@ Os ZIPs dos dados abertos ficam fora do bronze, com manifesto (URL, tamanho, SHA
 Last-Modified) registrado no bronze
 ([ADR-021](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-021.md)).
 
-### ANP e varejo (regra A-05, modo silencioso)
+### ANP e varejo (regra A-05)
 
 | Endereço | Uso |
 |---|---|
@@ -159,8 +159,17 @@ Last-Modified) registrado no bronze
 | `https://www.gov.br/anp/pt-br/assuntos/precos-e-defesa-da-concorrencia/precos/levantamento-de-precos-de-combustiveis-ultimas-semanas-pesquisadas` | Página das planilhas semanais |
 | `https://api.mercadolibre.com/sites/MLB/search` | Ofertas do varejo; exige `LUMEN_ML_TOKEN` |
 
-Lojas sem API pública ficam de fora por decisão
-([ADR-027](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-027.md)).
+O levantamento semanal da ANP vai para o fluxo diário dos painéis (`lumen painel anp`) e chega ao modal da
+contratação como `mercado/anp/uf-<sigla>-<ano>.json`
+([ADR-037](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-037.md)). Cada planilha tem
+perto de 2 MB, 20 mil preços e 400 municípios.
+
+As lojas online são outro caso:
+- **Mercado Livre:** a busca responde 403 sem credencial (conferido em 19/10/2026).
+- **Amazon, Shopee e AliExpress:** exigem conta de afiliado com chave.
+- **Lojas sem API pública** (Magazine Luiza, Havan, KaBuM e outras): ficam de fora por decisão, porque extrair o
+  site contraria os termos de uso e as barreiras contra robôs
+  ([ADR-027](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-027.md), princípio 6).
 
 ## Contrato dos feeds das eleições
 
@@ -281,6 +290,8 @@ Versão do formato: `VERSAO_PAINEL` = 1
 | `conformidade/panorama.json` | Brasil: resultados por UF e por obrigação |
 | `conformidade/uf/<sigla>.json` | Entes da UF, com o resumo de cada um |
 | `conformidade/ente/<código>.json` | Obrigações avaliadas de um ente |
+| `transparencia/uf-<sigla>.json`, `transparencia/uniao.json` | Entidades avaliadas pelo PNTP, agrupadas pelo ente (ADR-035) |
+| `mercado/anp/uf-<sigla>-<ano>.json` | Preço de revenda da ANP por semana e produto, na UF e em cada município (código IBGE): `[semana, n, mínimo, 1º quartil, mediana, 3º quartil, máximo]` (ADR-037) |
 
 Processo ou contrato com valor acima de R$ 10 bilhões, ou de R$ 20 mil por habitante do ente (o que
 for menor), conta nas quantidades, mas fica fora das somas e aparece em "Valores a conferir na
@@ -335,6 +346,8 @@ Opções globais: `--config`, `--saida <diretório dos feeds>`, `-v`.
 | `contratacoes --estado <dir> [--de] [--ate] [--ultimos N] [--limite-minutos] [--refazer]` | Coleta os dias do PNCP que faltam no estado (padrão: os últimos 3 até ontem) |
 | `faltando --estado <dir> [--de] [--ate] [--partes N]` | Blocos de dias que faltam, em JSON, para execuções paralelas |
 | `conformidade --estado <dir> --ufs <siglas> [--exercicios]` | Extrato de entregas do SICONFI por UF (padrão: exercício anterior e corrente) |
+| `transparencia --estado <dir>` | Ciclo mais recente do PNTP, só quando o arquivo muda (ADR-035) |
+| `anp --estado <dir> [--maximo-semanas N]` | Planilhas semanais da ANP que faltam no estado, desde 2025, até 40 por execução (ADR-037) |
 | `publicar --estado <dir> --saida <dir> [--hoje AAAA-MM-DD]` | Monta o site dos painéis a partir do estado |
 
 ### `lumen mercado`

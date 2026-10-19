@@ -5,6 +5,25 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Preço de mercado no modal: ANP (ADR-037)
+
+- Os itens de combustível (gasolina comum e aditivada, etanol, diesel S10 e
+  S500, GNV) e de gás de cozinha (botijão de 13 kg) ganham o botão "comparar
+  com o preço de bomba (ANP)". O preço homologado (ou o estimado) é comparado
+  com a distribuição do preço de revenda que a ANP pesquisa posto a posto, na
+  semana da compra, no município (com 5 coletas ou mais) ou na UF. A leitura
+  segue os limiares da regra A-05: 1,20× a mediana no combustível e 1,25× no
+  gás, iniciais e não calibrados.
+- `lumen painel anp`: as planilhas semanais da ANP no fluxo diário dos
+  painéis, só as que faltam (desde 2025, até 40 por execução). Publicadas em
+  `mercado/anp/uf-<sigla>-<ano>.json`, com o município pelo código IBGE.
+- O portal reconhece o item com as mesmas regras do Python. Os casos ficam num
+  arquivo só, lido pelos testes dos dois lados.
+- Lojas online: Mercado Livre, Amazon, Shopee e AliExpress só entram pela API
+  oficial, com credencial (o adaptador do Mercado Livre está pronto). Lojas
+  sem API (Magazine Luiza, Havan, KaBuM) ficam de fora: extrair o site fere os
+  termos de uso e o princípio 6.
+
 ### Comparação de preço do item com outros órgãos (ADR-036)
 
 - No modal da contratação, cada item com código do catálogo do Compras.gov.br

@@ -9,7 +9,9 @@
 #    SICONFI (uma requisição) e as séries de Economia e Contas Públicas do
 #    SGS do Banco Central (uma requisição por série, ADR-033; o Ipeadata
 #    quando o firewall do BC recusa), as estatais (CVM e SEST, ADR-034) e os
-#    portais de transparência avaliados pelo PNTP (ADR-035).
+#    portais de transparência avaliados pelo PNTP (ADR-035) e o preço de
+#    revenda da ANP por semana (ADR-037; só as planilhas semanais novas, até
+#    40 por execução).
 # 2. conformidade (todo dia, desde 19/10/2026): o extrato de entregas do
 #    SICONFI de todos os entes, em cinco grupos de UFs em paralelo, para o
 #    exercício anterior e o corrente; um arquivo por UF no mesmo lugar.
@@ -25,7 +27,7 @@ name: paineis
 
 on:
   schedule:
-    - cron: "17 8 * * *"    # 05:17 em Brasília, todo dia (contratações, economia, estatais, transparência e conformidade)
+    - cron: "17 8 * * *"    # 05:17 em Brasília, todo dia (contratações, economia, estatais, transparência, ANP e conformidade)
   workflow_dispatch:
     inputs:
       ultimos:
@@ -103,6 +105,14 @@ jobs:
           status=0
           lumen painel transparencia --estado estado || status=1
           gh release upload "$TAG" estado/transparencia-pntp.json.gz --clobber
+          exit $status
+      - name: Preço de revenda da ANP (planilhas semanais)
+        continue-on-error: true
+        run: |
+          gh release download "$TAG" -p anp-semanas.json.gz -D estado --clobber || true
+          status=0
+          lumen painel anp --estado estado || status=1
+          gh release upload "$TAG" estado/anp-semanas.json.gz --clobber
           exit $status
       - name: Dias do PNCP que faltam
         run: lumen painel contratacoes --estado estado --ultimos "$ULTIMOS" --limite-minutos 240

@@ -24,9 +24,11 @@ import {
   type Termo,
 } from "@/lib/contratacao";
 import { lerChave } from "@/lib/documentos";
+import { reconhecerAnp } from "@/lib/mercado";
 import { numero } from "@/lib/formato";
 import { cnpj, dataCurta, moeda } from "@/lib/paineis";
-import { BotaoComparar, ComparacaoPreco } from "./ComparacaoPreco";
+import { ComparacaoMercado } from "./ComparacaoMercado";
+import { BotoesComparar, ComparacaoPreco, type TipoComparacao } from "./ComparacaoPreco";
 import { Documentos } from "./Documentos";
 
 /** O andamento de um pedido ao PNCP. */
@@ -188,12 +190,8 @@ function DoProcesso({ chave, onFornecedor }: { chave: string; onFornecedor: (cnp
 function Itens({ processo, itens, onFornecedor }: { processo: Processo; itens: ItemProcesso[]; onFornecedor: (cnpj: string) => void }) {
   const chave = processo.chave;
   const pagina = usePaginacao(itens);
-  const [comparando, setComparando] = useState<Set<number>>(new Set());
-  const alternar = (n: number) => setComparando((atual) => {
-    const novo = new Set(atual);
-    if (!novo.delete(n)) novo.add(n);
-    return novo;
-  });
+  const [comparando, setComparando] = useState<Record<number, TipoComparacao | null>>({});
+  const abrir = (n: number, t: TipoComparacao | null) => setComparando((atual) => ({ ...atual, [n]: t }));
   if (itens.length === 0) return <p className="busca-detalhe">O processo não tem itens publicados.</p>;
   return (
     <>
@@ -217,15 +215,18 @@ function Itens({ processo, itens, onFornecedor }: { processo: Processo; itens: I
                       {[i.tipo, i.situacao].filter(Boolean).join(" · ")}
                       {i.temResultado && <Vencedor chave={chave} item={i.numero} onFornecedor={onFornecedor} />}
                     </div>
-                    <BotaoComparar item={i} aberto={comparando.has(i.numero)} onAlternar={() => alternar(i.numero)} />
+                    <BotoesComparar item={i} aberta={comparando[i.numero] ?? null} onAbrir={(t) => abrir(i.numero, t)} />
                   </td>
                   <td className="n">{i.quantidade !== null ? `${numero(i.quantidade)} ${i.unidade ?? ""}` : "—"}</td>
                   <td className="n">{moeda(i.valorUnitario)}</td>
                   <td className="n">{moeda(i.valorTotal)}</td>
                 </tr>
-                {comparando.has(i.numero) && (
+                {comparando[i.numero] && (
                   <tr className="linha-comparacao">
-                    <td colSpan={4}><ComparacaoPreco item={i} processo={processo} /></td>
+                    <td colSpan={4}>
+                      {comparando[i.numero] === "orgaos" ? <ComparacaoPreco item={i} processo={processo} />
+                        : <ComparacaoMercado item={i} processo={processo} produto={reconhecerAnp(i.descricao, i.unidade)!} />}
+                    </td>
                   </tr>
                 )}
               </Fragment>
