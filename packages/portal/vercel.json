@@ -6,8 +6,16 @@
   "ignoreCommand": "if [ -n \"$VERCEL_GIT_PREVIOUS_SHA\" ] && git cat-file -e \"$VERCEL_GIT_PREVIOUS_SHA^{commit}\" 2>/dev/null; then git diff --quiet \"$VERCEL_GIT_PREVIOUS_SHA\" HEAD -- .; else git diff --quiet HEAD^ HEAD -- .; fi",
   "rewrites": [
     {
+      "source": "/api/precos/material/",
+      "destination": "https://dadosabertos.compras.gov.br/modulo-pesquisa-preco/1_consultarMaterial"
+    },
+    {
       "source": "/api/precos/material",
       "destination": "https://dadosabertos.compras.gov.br/modulo-pesquisa-preco/1_consultarMaterial"
+    },
+    {
+      "source": "/api/precos/servico/",
+      "destination": "https://dadosabertos.compras.gov.br/modulo-pesquisa-preco/3_consultarServico"
     },
     {
       "source": "/api/precos/servico",

@@ -221,7 +221,8 @@ function diasAntes(iso: string, dias: number): string {
 /** O endereço de uma página da pesquisa de preços, pelo caminho do portal. */
 export function urlPrecos(item: Pick<ItemParaComparar, "catalogo" | "material">, de: string, ate: string, pagina: number): string {
   const codigo = item.material ? `tipo=codigoItemCatalogo&codigo=${item.catalogo}` : `codigoItemCatalogo=${item.catalogo}`;
-  return `${API_PRECOS}/${item.material ? "material" : "servico"}?pagina=${pagina}&tamanhoPagina=${PARAMETROS_PRECO.tamanhoPagina}` +
+  // Com a barra final: o site usa `trailingSlash`, e sem ela o Vercel redireciona antes do `rewrite`
+  return `${API_PRECOS}/${item.material ? "material" : "servico"}/?pagina=${pagina}&tamanhoPagina=${PARAMETROS_PRECO.tamanhoPagina}` +
     `&${codigo}&dataCompraInicio=${de}&dataCompraFim=${ate}`;
 }
 

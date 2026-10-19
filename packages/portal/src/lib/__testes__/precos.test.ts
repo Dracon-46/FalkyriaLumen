@@ -61,9 +61,9 @@ describe("leitura da pesquisa de preços", () => {
 
   it("monta o endereço pelo caminho do portal, material e serviço", () => {
     expect(urlPrecos(ITEM, "2025-10-16", "2026-10-16", 2)).toBe(
-      "/api/precos/servico?pagina=2&tamanhoPagina=500&codigoItemCatalogo=1422&dataCompraInicio=2025-10-16&dataCompraFim=2026-10-16");
+      "/api/precos/servico/?pagina=2&tamanhoPagina=500&codigoItemCatalogo=1422&dataCompraInicio=2025-10-16&dataCompraFim=2026-10-16");
     expect(urlPrecos({ catalogo: "445485", material: true }, "a", "b", 1)).toContain(
-      "/api/precos/material?pagina=1&tamanhoPagina=500&tipo=codigoItemCatalogo&codigo=445485");
+      "/api/precos/material/?pagina=1&tamanhoPagina=500&tipo=codigoItemCatalogo&codigo=445485");
   });
 });
 
