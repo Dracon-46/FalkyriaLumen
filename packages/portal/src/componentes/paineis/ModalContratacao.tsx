@@ -2,13 +2,13 @@
 
 /**
  * Modal de uma contratação (ADR-035): tudo sobre um processo ou um contrato, como o PNCP publica, pedido à API
- * na hora em que abre. No processo, os dados, os itens com o preço unitário e o vencedor de cada um, os
- * documentos e os links do sistema de origem e do processo eletrônico; no contrato, o fornecedor, os valores,
- * a vigência, os termos aditivos, o processo de origem e os documentos. A página por trás fica filtrada pelo
- * órgão (e, no contrato, pelo fornecedor); fechar o modal mantém o filtro.
+ * na hora em que abre. No processo, os dados, os itens com o preço unitário, o vencedor e a comparação do preço
+ * com outros órgãos (ADR-036), os documentos e os links do sistema de origem e do processo eletrônico; no
+ * contrato, o fornecedor, os valores, a vigência, os termos aditivos, o processo de origem e os documentos. A
+ * página por trás fica filtrada pelo órgão (e, no contrato, pelo fornecedor); fechar o modal mantém o filtro.
  */
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import {
   carregarContrato,
@@ -26,6 +26,7 @@ import {
 import { lerChave } from "@/lib/documentos";
 import { numero } from "@/lib/formato";
 import { cnpj, dataCurta, moeda } from "@/lib/paineis";
+import { BotaoComparar, ComparacaoPreco } from "./ComparacaoPreco";
 import { Documentos } from "./Documentos";
 
 /** O andamento de um pedido ao PNCP. */
@@ -80,7 +81,7 @@ export function ModalContratacao({ chave, onFechar, onAbrir, onFornecedor, aConf
         </div>
         {!p && <p>Publicação não reconhecida.</p>}
         {aConferir && (
-          <p className="aviso-metodologico" role="note">
+          <p className="faixa" role="note">
             Valor a conferir: está acima do teto de plausibilidade do Lumen e fica fora das somas dos painéis. Pode
             ser erro de digitação do órgão; confira no documento publicado.
           </p>
@@ -176,16 +177,23 @@ function DoProcesso({ chave, onFornecedor }: { chave: string; onFornecedor: (cnp
           <h3 className="modal-subtitulo">Documentos</h3>
           <Documentos chave={chave} link={null} abrirJa />
           <h3 className="modal-subtitulo">Itens</h3>
-          <Estado carga={itens}>{(lista) => <Itens chave={chave} itens={lista} onFornecedor={onFornecedor} />}</Estado>
+          <Estado carga={itens}>{(lista) => <Itens processo={d} itens={lista} onFornecedor={onFornecedor} />}</Estado>
         </>
       ) : <p>O PNCP não tem esta publicação (pode ter sido excluída pelo órgão).</p>}
     </Estado>
   );
 }
 
-/** Os itens do processo, 20 por página, com o vencedor pedido quando a pessoa abre. */
-function Itens({ chave, itens, onFornecedor }: { chave: string; itens: ItemProcesso[]; onFornecedor: (cnpj: string) => void }) {
+/** Os itens do processo, 20 por página, com o vencedor e a comparação de preço pedidos quando a pessoa abre. */
+function Itens({ processo, itens, onFornecedor }: { processo: Processo; itens: ItemProcesso[]; onFornecedor: (cnpj: string) => void }) {
+  const chave = processo.chave;
   const pagina = usePaginacao(itens);
+  const [comparando, setComparando] = useState<Set<number>>(new Set());
+  const alternar = (n: number) => setComparando((atual) => {
+    const novo = new Set(atual);
+    if (!novo.delete(n)) novo.add(n);
+    return novo;
+  });
   if (itens.length === 0) return <p className="busca-detalhe">O processo não tem itens publicados.</p>;
   return (
     <>
@@ -201,18 +209,26 @@ function Itens({ chave, itens, onFornecedor }: { chave: string; itens: ItemProce
           </thead>
           <tbody>
             {pagina.visiveis.map((i) => (
-              <tr key={i.numero}>
-                <td>
-                  <span className="num posicao">{i.numero}.</span> {i.descricao}
-                  <div className="busca-detalhe">
-                    {[i.tipo, i.situacao].filter(Boolean).join(" · ")}
-                    {i.temResultado && <Vencedor chave={chave} item={i.numero} onFornecedor={onFornecedor} />}
-                  </div>
-                </td>
-                <td className="n">{i.quantidade !== null ? `${numero(i.quantidade)} ${i.unidade ?? ""}` : "—"}</td>
-                <td className="n">{moeda(i.valorUnitario)}</td>
-                <td className="n">{moeda(i.valorTotal)}</td>
-              </tr>
+              <Fragment key={i.numero}>
+                <tr>
+                  <td>
+                    <span className="num posicao">{i.numero}.</span> {i.descricao}
+                    <div className="busca-detalhe">
+                      {[i.tipo, i.situacao].filter(Boolean).join(" · ")}
+                      {i.temResultado && <Vencedor chave={chave} item={i.numero} onFornecedor={onFornecedor} />}
+                    </div>
+                    <BotaoComparar item={i} aberto={comparando.has(i.numero)} onAlternar={() => alternar(i.numero)} />
+                  </td>
+                  <td className="n">{i.quantidade !== null ? `${numero(i.quantidade)} ${i.unidade ?? ""}` : "—"}</td>
+                  <td className="n">{moeda(i.valorUnitario)}</td>
+                  <td className="n">{moeda(i.valorTotal)}</td>
+                </tr>
+                {comparando.has(i.numero) && (
+                  <tr className="linha-comparacao">
+                    <td colSpan={4}><ComparacaoPreco item={i} processo={processo} /></td>
+                  </tr>
+                )}
+              </Fragment>
             ))}
           </tbody>
         </table>

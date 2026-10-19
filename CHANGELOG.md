@@ -5,6 +5,25 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Comparação de preço do item com outros órgãos (ADR-036)
+
+- No modal da contratação, cada item com código do catálogo do Compras.gov.br
+  (CATMAT ou CATSER) tem o botão "comparar o preço com outros órgãos". O
+  preço homologado (ou o estimado) é comparado com o que outros órgãos
+  pagaram pelo mesmo código nos 12 meses anteriores, pela pesquisa de preços
+  do Compras.gov.br. A tela mostra:
+  - a mediana, os quartis, o escore robusto e a faixa, com o ponto do item;
+  - as compras comparáveis;
+  - as que ficaram fora da conta, e por quê (outra unidade, total lançado
+    como unitário, a própria compra).
+- Pela regra A-01 do DOC-07 (30 compras ou mais, escore 3,5, parâmetros
+  iniciais), o item recebe a leitura "preço acima da referência comparada",
+  com a ressalva de que não é conclusão. Com menos compras, os números são só
+  contexto.
+- O portal pede os preços pelo próprio endereço (`/api/precos/...`), que o
+  Vercel repassa à fonte (`rewrites` no `vercel.json`): a API não aceita
+  pedido de outro site.
+
 ### Visão 360 pelo filtro de local, modal da contratação e tudo diário (ADR-035)
 
 - **Filtro de local** no cabeçalho, em todas as páginas: escolhido um estado,

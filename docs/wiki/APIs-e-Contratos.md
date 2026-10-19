@@ -112,6 +112,20 @@ O portal faz esses pedidos só quando a pessoa abre uma contratação. A API lib
 (CORS), e o download é o do próprio PNCP. Fornecedor pessoa física aparece sem nome nem documento. Nada é copiado para o Lumen
 ([ADR-035](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-035.md)).
 
+### Compras.gov.br — pesquisa de preços (no navegador, comparação de preço)
+
+| Endereço | Uso |
+|---|---|
+| `https://dadosabertos.compras.gov.br/modulo-pesquisa-preco/1_consultarMaterial?tipo=codigoItemCatalogo&codigo=<CATMAT>&dataCompraInicio=&dataCompraFim=&pagina=&tamanhoPagina=500` | Compras de um material pelo código, com preço unitário, unidade de fornecimento e capacidade |
+| `https://dadosabertos.compras.gov.br/modulo-pesquisa-preco/3_consultarServico?codigoItemCatalogo=<CATSER>&dataCompraInicio=&dataCompraFim=&pagina=&tamanhoPagina=500` | Compras de um serviço pelo código, com preço unitário e unidade de medida |
+
+A API responde 403 a pedido com cabeçalho `Origin` de outro site. Por isso o portal chama
+`/api/precos/material` e `/api/precos/servico`, que o Vercel repassa à fonte (`rewrites` no `vercel.json`).
+O `idCompra` de material vem como número maior que o inteiro seguro do JavaScript, e o portal usa os 17
+primeiros caracteres de `idCompraItem`. O código do item vem do PNCP: `catalogo.id = 1` e
+`catalogoCodigoItem`
+([ADR-036](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-036.md)).
+
 ### PNTP — Radar da Transparência Pública (tribunais de contas e Atricon)
 
 | Endereço | Uso |

@@ -37,7 +37,7 @@ export interface Processo {
   aberturaPropostas: string | null;
   encerramentoPropostas: string | null;
   orgao: { cnpj: string; nome: string | null };
-  unidade: { nome: string | null; municipio: string | null; uf: string | null; ibge: string | null };
+  unidade: { nome: string | null; municipio: string | null; uf: string | null; ibge: string | null; uasg: string | null };
   linkSistemaOrigem: string | null;
   linkProcessoEletronico: string | null;
   informacaoComplementar: string | null;
@@ -48,6 +48,8 @@ export interface ItemProcesso {
   numero: number;
   descricao: string;
   tipo: string | null;           // Material ou Serviço
+  material: boolean | null;      // M ou S no PNCP; null se não informado
+  catalogo: string | null;       // código do item no catálogo do Compras.gov.br (CATMAT ou CATSER), se o órgão informou
   quantidade: number | null;
   unidade: string | null;
   valorUnitario: number | null;
@@ -82,7 +84,7 @@ export interface Contrato {
   fornecedor: Parte;
   chaveProcesso: string | null;
   orgao: { cnpj: string; nome: string | null };
-  unidade: { nome: string | null; municipio: string | null; uf: string | null; ibge: string | null };
+  unidade: { nome: string | null; municipio: string | null; uf: string | null; ibge: string | null; uasg: string | null };
   informacaoComplementar: string | null;
 }
 
@@ -110,7 +112,16 @@ export function parte(tipoPessoa: unknown, ni: unknown, nome: unknown): Parte {
 
 /** A unidade compradora. */
 function unidade(u: Bruto) {
-  return { nome: texto(u.nomeUnidade), municipio: texto(u.municipioNome), uf: texto(u.ufSigla), ibge: texto(u.codigoIbge) };
+  return { nome: texto(u.nomeUnidade), municipio: texto(u.municipioNome), uf: texto(u.ufSigla), ibge: texto(u.codigoIbge),
+           uasg: texto(u.codigoUnidade) };
+}
+
+/** O código do item no catálogo do Compras.gov.br (o único que a pesquisa de preços entende), ou `null`. */
+function codigoCatalogo(x: Bruto): string | null {
+  const cat = obj(x.catalogo);
+  const doCompras = cat.id === 1 || /compras\.gov/i.test(texto(cat.nome) ?? "");
+  const codigo = texto(x.catalogoCodigoItem) ?? (num(x.catalogoCodigoItem) !== null ? String(x.catalogoCodigoItem) : null);
+  return doCompras && codigo && /^\d{1,9}$/.test(codigo) ? codigo : null;
 }
 
 /** O processo como o Lumen mostra, a partir da resposta da API de consulta. */
@@ -135,6 +146,7 @@ export function lerItens(bruto: unknown): ItemProcesso[] {
   if (!Array.isArray(bruto)) return [];
   return bruto.map((x) => obj(x)).map((x) => ({
     numero: num(x.numeroItem) ?? 0, descricao: texto(x.descricao) ?? "—", tipo: texto(x.materialOuServicoNome),
+    material: x.materialOuServico === "M" ? true : x.materialOuServico === "S" ? false : null, catalogo: codigoCatalogo(x),
     quantidade: num(x.quantidade), unidade: texto(x.unidadeMedida), valorUnitario: num(x.valorUnitarioEstimado),
     valorTotal: num(x.valorTotal), situacao: texto(x.situacaoCompraItemNome), temResultado: x.temResultado === true,
   }));
