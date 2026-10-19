@@ -28,14 +28,14 @@ describe("contratação no PNCP", () => {
     expect(p.valorHomologado).toBeNull();
     expect(p.srp).toBe(false);
     expect(p.orgao).toEqual({ cnpj: "74118514000182", nome: null });
-    expect(p.unidade).toEqual({ nome: null, municipio: "Fictícia", uf: "SP", ibge: null });
+    expect(p.unidade).toEqual({ nome: null, municipio: "Fictícia", uf: "SP", ibge: null, uasg: null });
   });
 
   it("lê itens, resultados e termos, e ignora o que não é lista", () => {
     expect(lerItens([{ numeroItem: 1, descricao: "Limpeza", materialOuServicoNome: "Serviço", temResultado: true }, null])).toEqual([
-      { numero: 1, descricao: "Limpeza", tipo: "Serviço", quantidade: null, unidade: null, valorUnitario: null,
+      { numero: 1, descricao: "Limpeza", tipo: "Serviço", material: null, catalogo: null, quantidade: null, unidade: null, valorUnitario: null,
         valorTotal: null, situacao: null, temResultado: true },
-      { numero: 0, descricao: "—", tipo: null, quantidade: null, unidade: null, valorUnitario: null, valorTotal: null,
+      { numero: 0, descricao: "—", tipo: null, material: null, catalogo: null, quantidade: null, unidade: null, valorUnitario: null, valorTotal: null,
         situacao: null, temResultado: false },
     ]);
     const r = lerResultados([{ tipoPessoa: "PF", niFornecedor: "***1**", nomeRazaoSocialFornecedor: "X", valorTotalHomologado: 10 }]);

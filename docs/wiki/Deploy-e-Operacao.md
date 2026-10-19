@@ -29,7 +29,9 @@ O projeto da Vercel importa este repositório com *Root Directory* `packages/por
 (`https://<ref>.supabase.co/storage/v1/object/public/lumen-eleicoes`). O
 [`vercel.json`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/packages/portal/vercel.json)
 roda `npm ci` e `npm run build` e cancela a geração quando o portal não mudou
-(`git diff --quiet HEAD^ HEAD -- .`). Nenhum token fica no GitHub. O plano Hobby é para uso não
+(`git diff --quiet HEAD^ HEAD -- .`). Os `rewrites` repassam `/api/precos/material` e `/api/precos/servico`
+à pesquisa de preços do Compras.gov.br, que não aceita pedido de outro site (ADR-036); no Cloudflare Pages
+esse caminho não existe, e a comparação de preço diz que não respondeu. Nenhum token fica no GitHub. O plano Hobby é para uso não
 comercial.
 
 ### Cloudflare Pages (alternativa)

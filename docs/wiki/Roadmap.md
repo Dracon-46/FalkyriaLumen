@@ -47,6 +47,7 @@ por um comando. Tudo concluído; ADRs 011 em diante registradas durante a implem
 | Painel operacional | Pendente |
 | Parâmetros legais verificados | Concluído além do previsto: limites de dispensa de 2021 a 2026, fator do § 2º e acréscimos do art. 125 |
 | Regra A-05 (antecipada da Fase 2) | Em modo silencioso, limiares não calibrados |
+| Regra A-01 (antecipada da Fase 2) | Sob demanda no modal da contratação, parâmetros iniciais, sem lote (ADR-036) |
 
 **Fase 2.** Motor de regras com versionamento, parâmetros datados e linhagem; famílias B, E, I e J;
 depois A e H; depois C, D, F e G; score composto e severidade; interface de revisão humana com fila e
@@ -118,8 +119,11 @@ Da seção "Pendente" do README:
   período nas Contratações já no ar.
 - **Visão 360 pelo filtro de local** (ADR-035): no ar. O local escolhido no cabeçalho filtra todas as abas,
   e a contratação abre num modal com itens, vencedores, aditivos e os documentos do PNCP para baixar. Também
-  no ar: o portal de transparência avaliado pelo PNTP na Conformidade. Próximos: o resultado por zona de 2018 a 2024 (reprocessar os dados
-  abertos desses anos) e as séries fiscais do ente (RREO e RGF).
+  no ar: o portal de transparência avaliado pelo PNTP na Conformidade. Próximos: o resultado por zona de
+  2018 a 2024 (reprocessar os dados abertos desses anos) e as séries fiscais do ente (RREO e RGF).
+- **Comparação de preço do item** (ADR-036, regra A-01 sob demanda): no ar no modal da contratação, para
+  os itens com código do catálogo do Compras.gov.br. Próximos: calibrar a A-01 (Fase 2) e classificar os
+  itens sem código, para ampliar a cobertura.
 - **Gastos das estatais** (ADR-034): no ar. As federais pelo PDG da SEST (aprovado e realizado por
   rubrica) e as com ações na bolsa pelas demonstrações da CVM, com o controle conferido no FRE. Próximos:
   o Orçamento de Investimento (por ação e UF), as demonstrações trimestrais (ITR) e as estaduais e

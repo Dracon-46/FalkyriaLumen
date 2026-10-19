@@ -1909,3 +1909,94 @@ table.tabela {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Comparação de preço do item (ADR-036) */
+.preco-comparacao {
+  margin: 8px 0 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie-2);
+}
+
+.preco-leitura {
+  margin: 6px 0;
+}
+
+/* Nomes de órgão sem espaço ("MINIST.DESENV.ASSIT.SOCIAL") não podem alargar a tabela no celular */
+.preco-comparacao td:not(.n) {
+  overflow-wrap: anywhere;
+}
+
+.preco-faixa {
+  position: relative;
+  height: 28px;
+  margin: 10px 6px;
+}
+
+.preco-faixa-linha {
+  position: absolute;
+  top: 13px;
+  height: 2px;
+  background: var(--borda-forte);
+}
+
+.preco-faixa-caixa {
+  position: absolute;
+  top: 6px;
+  height: 16px;
+  border: 1px solid var(--destaque);
+  background: var(--destaque-suave);
+  border-radius: 3px;
+}
+
+.preco-faixa-mediana {
+  position: absolute;
+  top: 4px;
+  width: 2px;
+  height: 20px;
+  margin-left: -1px;
+  background: var(--destaque);
+}
+
+.preco-faixa-item {
+  position: absolute;
+  top: 7px;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  border-radius: 50%;
+  background: var(--texto);
+  border: 2px solid var(--superficie);
+}
+
+.preco-faixa-item-acima {
+  background: var(--estado-atraso);
+}
+
+.preco-numeros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 4px 0 8px;
+  font-size: 13px;
+}
+
+.preco-numeros dt {
+  color: var(--texto-3);
+  font-size: 12px;
+}
+
+.preco-numeros dd {
+  margin: 0;
+  font-family: var(--fonte-num);
+}
+
+/* No celular a tabela dos itens rola de lado; a comparação fica presa à parte visível */
+@media (max-width: 640px) {
+  .linha-comparacao .preco-comparacao {
+    position: sticky;
+    left: 0;
+    width: calc(100vw - 100px);
+  }
+}
