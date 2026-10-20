@@ -144,7 +144,7 @@ def test_recusa_persistente_usa_o_espelho_conferido(tmp_path):
     cliente = _Cliente(recusar=float("inf"))
     r = coleta.coletar(cliente, tmp_path, agora=datetime(2026, 1, 16, tzinfo=timezone.utc), dormir=lambda s: None)
     com_espelho = {s.id for s in SERIES if s.espelho}
-    assert com_espelho == {"ipca", "inpc", "selic_mes", "primario_12m", "nominal_12m", "pib_real"}
+    assert com_espelho == {"ipca", "inpc", "selic_mes", "primario_12m", "nominal_12m", "pib_real", "desocupacao"}
     # só há fixture do espelho do IPCA e do PIB real: as outras com espelho falham nele, e as sem espelho falham
     assert set(r.pelo_espelho) == {"ipca", "pib_real"} and "firewall" in r.pelo_espelho["ipca"]
     assert set(r.falhas) == {s.id for s in SERIES} - {"ipca", "pib_real"}

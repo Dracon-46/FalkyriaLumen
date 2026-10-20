@@ -32,7 +32,7 @@ import { GraficoLinha } from "./GraficoLinha";
 
 const METODOLOGIA = "https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-033.md";
 const DESTAQUES = ["ipca_12m", "selic_anualizada", "juro_real_12m", "divida_bruta", "divida_liquida",
-                   "primario_12m", "nominal_12m", "pib_real"];
+                   "primario_12m", "nominal_12m", "pib_real", "desocupacao"];
 const PADRAO_A = MANDATOS[MANDATOS.length - 2]!;
 const PADRAO_B = MANDATOS[MANDATOS.length - 1]!;
 const DIAS_PARA_DEFASADO = 4;
@@ -97,7 +97,7 @@ export function PainelEconomia() {
         <div>
           <h1>Economia e Contas Públicas</h1>
           <p className="painel-periodo">
-            Inflação, juros, dívida, resultado fiscal e atividade, das séries oficiais do Banco Central e do IBGE.
+            Inflação, juros, dívida, resultado fiscal, atividade e trabalho, das séries oficiais do Banco Central e do IBGE.
             Publicado em {instante(dados.gerado_em)}.
           </p>
         </div>

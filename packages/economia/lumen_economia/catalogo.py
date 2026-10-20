@@ -22,7 +22,7 @@ meses, índices).
 (em 18/10/2026 recusou as 11 séries no fluxo diário). Para as séries que o Ipeadata (Ipea) republica com os
 mesmos valores, ``espelho`` é o código lá: a coleta usa o espelho só quando o SGS falha, e diz que usou. Cada
 espelho foi conferido valor a valor contra o SGS (2024 e 2025; o PIB real, de 2015 a 2025, com as duas casas
-do SGS) em 19/10/2026; os que divergem (o Ipeadata guarda outra revisão do PIB mensal e do IBC-Br, e não
+do SGS) em 19/10/2026, e o da desocupação, de março de 2012 a agosto de 2026, em 20/10/2026; os que divergem (o Ipeadata guarda outra revisão do PIB mensal e do IBC-Br, e não
 tem a dívida bruta nem a líquida total) ficam sem espelho.
 """
 
@@ -93,6 +93,7 @@ GRUPOS = (
     ("divida", "Dívida pública"),
     ("fiscal", "Resultado fiscal"),
     ("atividade", "Atividade econômica"),
+    ("trabalho", "Trabalho"),
 )
 
 SERIES: tuple[Serie, ...] = (
@@ -166,6 +167,18 @@ SERIES: tuple[Serie, ...] = (
           "índice (2002 = 100)", "mensal",
           "Indicador mensal da atividade econômica, calculado pelo Banco Central como antecedente do PIB.",
           limitacoes=("Série sem ajuste sazonal: compare o mesmo mês de anos diferentes, não meses vizinhos.",)),
+    Serie("desocupacao", 24369, "Taxa de desocupação",
+          "Taxa de desocupação, na semana de referência, das pessoas de 14 anos ou mais de idade", "trabalho",
+          "% da força de trabalho", "mensal",
+          "Pessoas de 14 anos ou mais sem trabalho, que procuraram trabalho e estavam disponíveis, em proporção "
+          "da força de trabalho, na média do trimestre móvel que termina no mês.",
+          fonte_primaria="IBGE, Pesquisa Nacional por Amostra de Domicílios Contínua (SIDRA, tabela 6381, variável "
+                         "4099), replicada no SGS do Banco Central",
+          leitura="Cada mês é a média de três meses (o trimestre móvel): meses vizinhos dividem dois terços dos "
+                  "dados, e a variação de um mês para o outro é pequena por construção.",
+          limitacoes=("Série iniciada em março de 2012; a PNAD e a PME anteriores têm outra metodologia e não são "
+                      "comparáveis.", "Sem ajuste sazonal: compare o mesmo trimestre de anos diferentes."),
+          espelho="PNADC12_TDESOC12", ibge_produto=9171),
 )
 
 DERIVADOS: tuple[Derivado, ...] = (

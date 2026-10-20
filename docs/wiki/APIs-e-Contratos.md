@@ -69,7 +69,7 @@ a `data_referencia` do retrato.
 
 | Endereço | Uso |
 |---|---|
-| `https://api.bcb.gov.br/dados/serie/bcdata.sgs.<código>/dados?formato=json` | Série inteira, sem chave: IPCA (433), INPC (188), Selic no mês (4390) e anualizada (4189), dívida bruta do governo geral (13762), DLSP (4513), NFSP primária (5793) e nominal (5727) em 12 meses, PIB em 12 meses (4382), variação real do PIB (7326), IBC-Br (24363) |
+| `https://api.bcb.gov.br/dados/serie/bcdata.sgs.<código>/dados?formato=json` | Série inteira, sem chave: IPCA (433), INPC (188), Selic no mês (4390) e anualizada (4189), dívida bruta do governo geral (13762), DLSP (4513), NFSP primária (5793) e nominal (5727) em 12 meses, PIB em 12 meses (4382), variação real do PIB (7326), IBC-Br (24363), taxa de desocupação da PNAD Contínua (24369) |
 
 O catálogo, com unidade, definição e limitações de cada série, fica em
 `packages/economia/lumen_economia/catalogo.py`; o portal lê `economia/indicadores.json`, publicado com os
@@ -79,7 +79,7 @@ painéis ([ADR-033](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/ad
 
 | Endereço | Uso |
 |---|---|
-| `https://servicodados.ibge.gov.br/api/v3/noticias/?tipo=release&idproduto=<produto>&qtd=3` | Os três releases mais recentes da Agência de Notícias sobre o IPCA (9256), o INPC (9258) e o PIB (9300), sem chave; vão em `releases` no indicador de `economia/indicadores.json` (adendo de 20/10/2026 do ADR-033) |
+| `https://servicodados.ibge.gov.br/api/v3/noticias/?tipo=release&idproduto=<produto>&qtd=3` | Os três releases mais recentes da Agência de Notícias sobre o IPCA (9256), o INPC (9258), o PIB (9300) e a PNAD Contínua (9171), sem chave; vão em `releases` no indicador de `economia/indicadores.json` (adendo de 20/10/2026 do ADR-033) |
 
 ### CVM — dados abertos das companhias abertas (estatais com ações na bolsa)
 

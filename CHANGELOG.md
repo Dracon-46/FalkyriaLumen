@@ -5,6 +5,14 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Economia: taxa de desocupação (ADR-033, adendo)
+
+- Indicador novo no grupo "Trabalho" e nos destaques: a taxa de desocupação
+  da PNAD Contínua, por trimestre móvel, desde março de 2012.
+  - Fonte: SGS 24369, que republica a tabela 6381 do SIDRA.
+  - Espelho: Ipeadata, conferido valor a valor nos 174 meses.
+  - Junto vêm os releases mensais do IBGE.
+
 ### RREO normalizado e grupos de pares com a receita corrente líquida (ADR-038, adendo)
 
 - Normalização do RREO, do RGF e da DCA do SICONFI. Cada linha vira

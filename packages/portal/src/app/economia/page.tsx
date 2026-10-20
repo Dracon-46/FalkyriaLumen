@@ -11,7 +11,7 @@ import { PainelEconomia } from "@/componentes/economia/PainelEconomia";
 export const metadata: Metadata = {
   title: "Economia e Contas Públicas",
   description:
-    "Inflação, juros, dívida pública, resultado fiscal e atividade econômica, das séries oficiais do Banco Central e " +
+    "Inflação, juros, dívida pública, resultado fiscal, atividade econômica e trabalho, das séries oficiais do Banco Central e " +
     "do IBGE, com a fonte de cada número e a comparação entre períodos.",
 };
 
