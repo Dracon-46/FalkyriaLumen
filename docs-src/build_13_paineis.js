@@ -290,7 +290,8 @@ body.push(t("A página do ente mostra a fração dele entregue no prazo ao lado 
   "municípios recua para o porte no país, e a tela diz isso; grupo abaixo de 15 leva a ressalva. Com o cadastro de " +
   "outubro de 2026, são 33 grupos para os 5.597 entes avaliados: 31 regionais, o nacional dos municípios acima de 500 " +
   "mil habitantes e o dos estados e DF. A posição no grupo é contexto: não ordena, não classifica e não vira indício."));
-body.push(t("Com a DCA do último exercício (ADR-041), o mesmo cartão mostra a despesa por função por habitante: o valor do " +
+body.push(t("Com a DCA do último exercício (ADR-041), o mesmo cartão mostra a despesa por função: o total gasto em cada " +
+  "função e a fatia do total, e, no filtro \"por habitante, com o grupo\", o valor por habitante do " +
   "ente, a mediana e a metade central do grupo (do 1º ao 3º quartil) e de que lado dela o ente fica. Aparecem o total e " +
   "as sete funções de maior mediana no grupo, e o resto fica em \"ver todas\". A tela lista as causas comuns de " +
   "diferença (equipamento regional que atende vizinhos, classificação por função que varia, população desatualizada, " +
@@ -311,7 +312,8 @@ body.push(table(["Arquivo", "Papel"], [4200, 5400], [
   ["src/componentes/paineis/PainelConformidade.tsx", "Brasil, UF (?uf=) e ente (?ente=); obrigações por exercício, que viram blocos no celular"],
   ["src/componentes/paineis/GrupoPares.tsx", "Grupo de pares do ente: descrição, ressalvas, a fração do ente ao lado da mediana e dos quartis do grupo, e a lista dos entes do grupo, sob demanda e por nome"],
   ["src/componentes/paineis/DespesaComPessoal.tsx", "Despesa com pessoal do Executivo em % da RCL ajustada, os limites do RGF e a mediana do grupo, com o link do RGF (ADR-042)"],
-  ["src/componentes/paineis/DespesaPorFuncao.tsx", "Despesa por função por habitante do ente ao lado da mediana e da metade central do grupo, com as ressalvas e o link da DCA (ADR-041)"],
+  ["src/componentes/paineis/DespesaPorFuncao.tsx", "Despesa por função do ente: o total gasto e a fatia de cada função (padrão) ou, no filtro, por habitante ao lado da mediana e da metade central do grupo, com as ressalvas e o link da DCA (ADR-041)"],
+  ["src/componentes/Ligacoes.tsx", "Faixa \"Este município nas outras abas\": Contratações, Conformidade, Governos municipais e Eleições do mesmo ente (visão 360, ADR-035 e ADR-040)"],
   ["src/app/contratacoes/page.tsx, src/app/conformidade/page.tsx", "Páginas estáticas que envolvem os painéis em Suspense (leem a URL no navegador)"],
   ["src/app/operacao/page.tsx, src/componentes/paineis/PainelOperacao.tsx, src/lib/operacao.ts", "Situação das coletas (/operacao/, link no rodapé): alertas, fluxos, volume diário do PNCP e coleta da conformidade (ADR-039)"],
 ], { monoCols: [0], size: 17 }));
@@ -384,7 +386,7 @@ L.buildDoc({
   codigo: "DOC-13",
   titulo: "Painéis de Contratações e Conformidade",
   subtitulo: "O que cada ente publicou no PNCP e as entregas da LRF ao Tesouro, com a fonte de cada número",
-  meta: { versao: "1.6", data: "20 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038, o ADR-039, o ADR-041 e o ADR-042",
+  meta: { versao: "1.7", data: "20 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038, o ADR-039, o ADR-041 e o ADR-042",
     verificado: "outubro de 2026" },
   body,
   outFile: path.join(__dirname, "..", "docs", "DOC-13_Paineis.docx"),

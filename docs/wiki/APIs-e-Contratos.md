@@ -147,7 +147,7 @@ O portal faz esses pedidos só quando a pessoa abre uma contratação. A API lib
 A API responde 403 a pedido com cabeçalho `Origin` de outro site. Por isso o portal chama
 `/api/precos/material` e `/api/precos/servico`, que o Vercel repassa à fonte (`rewrites` no `vercel.json`).
 
-Os governos municipais da Economia (ADR-040) leem, para o município escolhido e sob demanda: os resultados de
+Os governos municipais da Economia (ADR-040; o Anexo I-D da DCA, para o tipo de gasto, desde o adendo de 20/10/2026, só para os mandatos abertos) leem, para o município escolhido e sob demanda: os resultados de
 prefeito dos feeds da aba Eleições; a população do SIDRA (tabela 6579, nível `n6`, e a tabela 4709 para o Censo
 2022), direto do navegador; e a DCA, Anexo I-E, de cada ano, por `/api/siconfi/dca`, que o Vercel repassa ao
 SICONFI (`apidatalake.tesouro.gov.br/ords/siconfi/tt/dca`).

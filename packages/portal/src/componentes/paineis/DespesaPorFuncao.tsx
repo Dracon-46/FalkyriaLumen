@@ -1,13 +1,15 @@
 "use client";
 
 /**
- * Despesa por função do ente, por habitante, ao lado do grupo de pares (ADR-041; RF-PU-05). Mostra o valor do
- * ente, a mediana e a metade central do grupo, e de que lado dela o ente fica. É contexto, como o resto do cartão:
- * a diferença tem causas que a tabela não mostra, e a tela as lista.
+ * Despesa por função do ente (ADR-041; RF-PU-05). Abre no total gasto em cada função, com a fatia do total; o filtro
+ * "por habitante, com o grupo" mostra o valor por habitante ao lado da mediana e da metade central do grupo de
+ * pares, e de que lado dela o ente fica (entes de tamanhos diferentes só se comparam por habitante). É contexto,
+ * como o resto do cartão: a diferença tem causas que a tabela não mostra, e a tela as lista.
  */
 
 import { useState } from "react";
-import { numero } from "@/lib/formato";
+import Link from "next/link";
+import { numero, percentual } from "@/lib/formato";
 import {
   faixaCentralEmReais,
   moeda,
@@ -15,6 +17,8 @@ import {
   urlDcaDoEnte,
   type DespesaPares,
   type LinhaDespesa,
+  moedaCompacta,
+  tipoDoCodigo,
 } from "@/lib/paineis";
 
 const METODO = "https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-041.md";
@@ -36,14 +40,27 @@ function posicao(linha: LinhaDespesa): string {
 export function DespesaPorFuncao({ codigo, despesa, minimo }: { codigo: string; despesa: DespesaPares | undefined;
   minimo: number }) {
   const [todas, setTodas] = useState(false);
+  const [porHabitante, setPorHabitante] = useState(false);
   if (!despesa || despesa.exercicio === null) return null;
-  const { exercicio, funcoes } = despesa;
+  const { exercicio } = despesa;
+  // No total, as funções vão do maior para o menor valor do ente; por habitante, pela mediana do grupo (como vêm)
+  const funcoes = porHabitante ? despesa.funcoes
+    : [...despesa.funcoes.slice(0, 1), ...despesa.funcoes.slice(1).filter((l) => l.valor).sort((x, y) => y.valor - x.valor)];
+  const total = despesa.funcoes[0]?.valor ?? 0;
   const visiveis = todas ? funcoes : funcoes.slice(0, LINHAS_INICIAIS);
-  const semDistribuicao = despesa.entes_com_dca < minimo;
+  const semDistribuicao = !porHabitante || despesa.entes_com_dca < minimo;
 
   return (
     <>
-      <h3 className="modal-subtitulo">Despesa por função, por habitante ({exercicio})</h3>
+      <h3 className="modal-subtitulo">Despesa por função ({exercicio})</h3>
+      <div className="filtro-periodo-atalhos gasto-controles" role="group" aria-label="Mostrar">
+        <button type="button" className="botao" aria-pressed={!porHabitante} onClick={() => setPorHabitante(false)}>
+          Total gasto
+        </button>
+        <button type="button" className="botao" aria-pressed={porHabitante} onClick={() => setPorHabitante(true)}>
+          Por habitante, com o grupo
+        </button>
+      </div>
       {funcoes.length === 0 ? (
         <p className="busca-detalhe">
           A DCA de {exercicio} deste ente não foi lida no SICONFI até a última consulta (ela é tentada de novo
@@ -56,7 +73,7 @@ export function DespesaPorFuncao({ codigo, despesa, minimo }: { codigo: string; 
               As funções desta DCA não somam o total declarado: o ente fica fora das distribuições do grupo.
             </p>
           )}
-          {semDistribuicao && (
+          {porHabitante && semDistribuicao && (
             <p className="busca-detalhe">
               Só {numero(despesa.entes_com_dca)} entes do grupo têm a DCA de {exercicio} lida, menos que o mínimo
               de {minimo}: a tabela mostra os valores do ente, sem a distribuição do grupo.
@@ -67,7 +84,8 @@ export function DespesaPorFuncao({ codigo, despesa, minimo }: { codigo: string; 
               <thead>
                 <tr>
                   <th>Função</th>
-                  <th className="n">Este ente</th>
+                  <th className="n">{porHabitante ? "Este ente, por habitante" : "Total gasto"}</th>
+                  {!porHabitante && <th className="n">% do total</th>}
                   {!semDistribuicao && (
                     <>
                       <th className="n">Mediana do grupo</th>
@@ -81,7 +99,8 @@ export function DespesaPorFuncao({ codigo, despesa, minimo }: { codigo: string; 
                 {visiveis.map((l) => (
                   <tr key={l.codigo}>
                     <td>{l.codigo === "total" ? <strong>{l.nome}</strong> : l.nome}</td>
-                    <td className="n">{moeda(l.por_habitante)}</td>
+                    <td className="n">{porHabitante ? moeda(l.por_habitante) : moedaCompacta(l.valor)}</td>
+                    {!porHabitante && <td className="n">{total ? percentual((l.valor / total) * 100) : "—"}</td>}
                     {!semDistribuicao && (
                       <>
                         <td className="n">{l.grupo ? moeda(l.grupo.mediana) : "—"}</td>
@@ -102,12 +121,26 @@ export function DespesaPorFuncao({ codigo, despesa, minimo }: { codigo: string; 
         </>
       )}
       <p className="busca-detalhe">
-        Despesa liquidada na DCA de {exercicio} (Anexo I-E), sem as intraorçamentárias, dividida pela população do
-        cadastro do SICONFI
-        {semDistribuicao ? ". " : `; a distribuição é entre os ${numero(despesa.entes_com_dca)} entes do grupo com a DCA lida. `}
-        A diferença para o grupo tem causas que a tabela não mostra: o ente que sedia hospital ou escola regional
-        atende os vizinhos, a classificação por função varia de um ente para outro, a população pode estar
-        desatualizada e a DCA é a que o ente entregou. É contexto, não avaliação.{" "}
+        {porHabitante ? (
+          <>
+            Despesa liquidada na DCA de {exercicio} (Anexo I-E), sem as intraorçamentárias, dividida pela população
+            do cadastro do SICONFI
+            {semDistribuicao ? ". " : `; a distribuição é entre os ${numero(despesa.entes_com_dca)} entes do grupo com a DCA lida. `}
+            A diferença para o grupo tem causas que a tabela não mostra: o ente que sedia hospital ou escola regional
+            atende os vizinhos, a classificação por função varia de um ente para outro, a população pode estar
+            desatualizada e a DCA é a que o ente entregou. É contexto, não avaliação.
+          </>
+        ) : (
+          <>
+            Despesa liquidada na DCA de {exercicio} (Anexo I-E), sem as intraorçamentárias, em reais da época. A
+            comparação com o grupo de pares é por habitante, porque os entes têm tamanhos diferentes.
+          </>
+        )}{" "}
+        {tipoDoCodigo(codigo) === "municipio" && (
+          <>
+            <Link href={`/economia/municipio/?ente=${codigo}`}>Mandato a mandato e com o que foi gasto</Link> ·{" "}
+          </>
+        )}
         <a href={urlDcaDoEnte(codigo, exercicio)} target="_blank" rel="noreferrer">
           A DCA no SICONFI
         </a>{" "}

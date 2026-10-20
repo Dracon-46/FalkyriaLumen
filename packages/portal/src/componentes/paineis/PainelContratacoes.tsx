@@ -13,6 +13,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Escolha } from "@/componentes/Escolha";
+import { LigacoesDoEnte } from "@/componentes/Ligacoes";
 import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import { instante } from "@/lib/formato";
 import { numero } from "@/lib/formato";
@@ -808,9 +809,7 @@ function Ente({
           <Paginacao {...paginaMunicipios} rotulo="municípios" />
         </section>
       )}
-      <p className="busca-detalhe">
-        Entregas fiscais deste ente: <Link href={`/conformidade/?ente=${e.codigo}`}>Conformidade</Link>.
-      </p>
+      <LigacoesDoEnte codigo={e.codigo} atual="contratacoes" />
     </>
   );
 }

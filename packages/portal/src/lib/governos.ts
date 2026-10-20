@@ -7,7 +7,9 @@
  *   2º turno vem do arquivo do 2º turno);
  * - a população, do SIDRA (tabela 6579; o Censo 2022, tabela 4709, nos anos sem estimativa, 2022 e 2023);
  * - a despesa por função, da DCA (Anexo I-E, despesa liquidada), pelo endereço do próprio portal, que a Vercel
- *   repassa ao SICONFI (a API do Tesouro não aceita pedido de outro site).
+ *   repassa ao SICONFI (a API do Tesouro não aceita pedido de outro site);
+ * - sob demanda, para o mandato aberto na tela, a despesa por natureza (Anexo I-D), que diz com o que foi gasto
+ *   (pessoal, custeio, obras…). As aberturas e as somas estão em `lib/gastos.ts`.
  *
  * Os valores em reais são corrigidos pelo IPCA médio de cada ano, para reais do último ano com o IPCA completo.
  * Como na comparação de presidentes, os números mostram o que as fontes registraram; não dizem o que causou a
@@ -18,6 +20,7 @@ import { carregarFeed, carregarIndice, obterJson } from "./feeds";
 import type { Candidato, Feed, Indice } from "./tipos";
 import type { Indicador } from "./economia";
 import { ErroFeed } from "./validacao";
+import { type Abertura, lerPorFuncao, lerPorNatureza } from "./gastos";
 
 /** Endereço do portal que a Vercel repassa ao SICONFI (`vercel.json`). */
 export const API_SICONFI = "/api/siconfi";
@@ -155,26 +158,53 @@ export function populacaoPorAno(estimativas: [string, number][], censo2022: numb
 
 // ------------------------------------------------------------------------------------------ despesas
 
-/** Consulta da DCA, Anexo I-E, de um ano, pelo endereço do portal (a Vercel repassa ao SICONFI). */
-export const urlDca = (codigo: string, ano: number) =>
-  `${API_SICONFI}/dca/?an_exercicio=${ano}&no_anexo=${encodeURIComponent("DCA-Anexo I-E")}&id_ente=${codigo}`;
+/** Consulta da DCA de um ano pelo endereço do portal (a Vercel repassa ao SICONFI): Anexo I-E (por função) ou I-D. */
+export const urlDca = (codigo: string, ano: number, anexo: "I-E" | "I-D" = "I-E") =>
+  `${API_SICONFI}/dca/?an_exercicio=${ano}&no_anexo=${encodeURIComponent(`DCA-Anexo ${anexo}`)}&id_ente=${codigo}`;
 
-/** O nome da conta sem parênteses e espaços repetidos: até 2016 a DCA escrevia "Despesas (Exceto Intraorçamentárias)". */
-function semParenteses(conta: string): string {
-  return conta.replace(/[()]/g, "").replace(/\s+/g, " ").trim();
+/** A mesma consulta direto no SICONFI, para o link da fonte. */
+export const urlDcaNaFonte = (codigo: string, ano: number, anexo: "I-E" | "I-D" = "I-E") =>
+  `https://apidatalake.tesouro.gov.br/ords/siconfi/tt${urlDca(codigo, ano, anexo).slice(API_SICONFI.length)}`
+    .replace("/dca/?", "/dca?");
+
+/** As despesas das funções de `FUNCOES` tiradas da abertura por área do ano. */
+export function despesasDe(contas: Abertura): Despesas {
+  const saida: Despesas = { total: contas.total };
+  for (const f of FUNCOES) {
+    const codigo = /^(\d{2}) - /.exec(f.conta)?.[1];
+    if (codigo && contas.valores[codigo] !== undefined) saida[f.id] = contas.valores[codigo];
+  }
+  return saida;
 }
 
 /** As despesas liquidadas das funções de `FUNCOES` numa resposta da DCA; `null` se o ano não foi entregue. */
 export function lerDca(bruto: unknown): Despesas | null {
-  const itens = (bruto as { items?: { coluna?: string; conta?: string; valor?: number }[] } | null)?.items;
-  if (!Array.isArray(itens)) throw new ErroFeed("resposta do SICONFI sem items");
-  if (itens.length === 0) return null;
-  const saida: Despesas = {};
-  for (const f of FUNCOES) {
-    const linha = itens.find((i) => i.coluna === "Despesas Liquidadas" && semParenteses(i.conta ?? "") === f.conta);
-    if (linha && typeof linha.valor === "number") saida[f.id] = linha.valor;
+  const contas = lerPorFuncao(bruto);
+  return contas ? despesasDe(contas) : null;
+}
+
+/** Esperas antes de cada nova tentativa de consulta ao SICONFI, em milissegundos. */
+export const ESPERAS_SICONFI = [1000, 3000];
+
+/**
+ * Consulta ao SICONFI pelo portal com novas tentativas: a API do Tesouro recusa pedidos demais ao mesmo tempo, e a
+ * página faz perto de 20 de uma vez. Só a falha da consulta se repete; o cancelamento, não.
+ */
+export async function obterDoSiconfi(url: string, sinal?: AbortSignal, esperas = ESPERAS_SICONFI): Promise<unknown> {
+  for (let tentativa = 0; ; tentativa++) {
+    try {
+      return await obterJson(url, { sinal, cache: "force-cache" });
+    } catch (erro) {
+      if ((erro as Error).name === "AbortError" || tentativa >= esperas.length) throw erro;
+      await new Promise((ok) => setTimeout(ok, esperas[tentativa]));
+      if (sinal?.aborted) throw new DOMException("cancelada", "AbortError");
+    }
   }
-  return saida;
+}
+
+/** A despesa por natureza de um ano (Anexo I-D), pelo endereço do portal; `null` se o ano não foi entregue. */
+export function carregarNatureza(codigo: string, ano: number, sinal?: AbortSignal): Promise<Abertura | null> {
+  return obterDoSiconfi(urlDca(codigo, ano, "I-D"), sinal).then(lerPorNatureza);
 }
 
 // ------------------------------------------------------------------------------------------ inflação
@@ -292,6 +322,8 @@ export interface DadosMunicipio {
   estimativas: [string, number][];
   censo2022: number | null;
   despesas: Map<string, Despesas | null>;
+  /** A abertura por área de cada ano (Anexo I-E), de onde saem as `despesas`. */
+  contas: Map<string, Abertura | null>;
   falhas: string[];
 }
 
@@ -313,8 +345,9 @@ export async function carregarMunicipio(codigo: string, uf: string, ultimoAno: n
     guardar("Censo 2022", obterJson(urlCenso2022(codigo), { sinal, cache: "force-cache" })
       .then((b) => lerSidraAnual(b)[0]?.[1] ?? null), null),
     Promise.all(anos.map((ano) => guardar(`contas anuais de ${ano}`,
-      obterJson(urlDca(codigo, ano), { sinal, cache: "force-cache" }).then(lerDca), null)
+      obterDoSiconfi(urlDca(codigo, ano), sinal).then(lerPorFuncao), null)
       .then((d) => [String(ano), d] as const))),
   ]);
-  return { mandatos, estimativas, censo2022: censo, despesas: new Map(contas), falhas };
+  return { mandatos, estimativas, censo2022: censo, contas: new Map(contas),
+           despesas: new Map(contas.map(([ano, c]) => [ano, c ? despesasDe(c) : null])), falhas };
 }

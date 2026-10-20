@@ -5,6 +5,22 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Governos municipais: total gasto, com o que foi gasto e as ligações (ADR-040, adendo)
+
+- A página abre no total gasto em cada mandato e na média por ano, com filtros
+  na URL: total ou por habitante, valores corrigidos pela inflação ou da época.
+- Um clique no mandato mostra com o que foi gasto, por área (funções e, ao
+  abrir, subfunções) ou por tipo de gasto (pessoal, custeio, investimentos… e,
+  ao abrir, os elementos, como material de consumo, serviços e obras; DCA,
+  Anexo I-D, lida sob demanda), com o total, a fatia e cada ano.
+- Comparação do mandato aberto com outro, lado a lado, pela média por ano.
+- Ligações: a eleição do mandato, as contratações do período (desde jan/2026),
+  a Conformidade e as contas no SICONFI. Contratações, Conformidade e Governos
+  municipais ganham a faixa "Este município nas outras abas".
+- As consultas à DCA tentam de novo quando o SICONFI recusa.
+- Conformidade: a despesa por função abre no total gasto; "por habitante, com o
+  grupo" virou filtro (ADR-041, adendo).
+
 ### Conformidade: despesa com pessoal do Executivo (ADR-042)
 
 - O cartão do grupo de pares mostra a despesa total com pessoal do Poder

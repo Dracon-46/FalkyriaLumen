@@ -8,7 +8,6 @@
  * é sempre por UF e por nome, nunca por resultado (PUB-07).
  */
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
@@ -26,6 +25,7 @@ import {
 } from "@/lib/paineis";
 import { AvisoMetodologico, BuscaEnte, Numero, SeloResultado, Situacao } from "./Comuns";
 import { GrupoPares } from "./GrupoPares";
+import { LigacoesDoEnte } from "@/componentes/Ligacoes";
 import { Transparencia } from "./Transparencia";
 
 /** Os três arquivos que a página pode mostrar. */
@@ -296,9 +296,7 @@ function Ente({ dados, onUf }: { dados: ConformidadeEnte; onUf: (uf: string | nu
       {exercicios.map((ano) => (
         <Exercicio key={ano} ano={ano} obrigacoes={dados.obrigacoes} />
       ))}
-      <p className="busca-detalhe">
-        Contratações publicadas por este ente: <Link href={`/contratacoes/?ente=${e.codigo}`}>Contratações</Link>.
-      </p>
+      <LigacoesDoEnte codigo={e.codigo} atual="conformidade" />
     </>
   );
 }
