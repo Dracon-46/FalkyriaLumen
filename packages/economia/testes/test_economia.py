@@ -14,6 +14,7 @@ from lumen_ingestao.bronze import ArtefatoBruto
 from lumen_ingestao.coleta_http import ErroColeta
 
 FIX = Path(__file__).resolve().parents[3] / "testes" / "fixtures" / "bcb"
+RELEASES = (FIX.parent / "ibge" / "noticias_releases_9256.json").read_bytes()
 AGORA = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
 
 
@@ -32,11 +33,17 @@ class _Cliente:
     que cada série é pedida (``float("inf")``: sempre). No Ipeadata, responde a fixture do código, se houver.
     """
 
-    def __init__(self, falhar=(), status=200, corpo=None, recusar=0, espelho_falha=False):
+    def __init__(self, falhar=(), status=200, corpo=None, recusar=0, espelho_falha=False, releases_falha=False):
         self.falhar, self.status, self.corpo, self.pedidos = set(falhar), status, corpo, []
+        self.releases_falha = releases_falha
         self.recusar, self.espelho_falha, self.vezes, self.espelhos = recusar, espelho_falha, {}, []
 
     def obter(self, url, cabecalhos=None):
+        if "servicodados.ibge.gov.br/api/v3/noticias" in url:
+            if self.releases_falha:
+                raise ErroColeta("IBGE sem resposta")
+            return ArtefatoBruto(conteudo=RELEASES, fonte_id="ibge_noticias", url_solicitada=url, url_efetiva=url,
+                                 status_http=200, tipo_midia="application/json")
         if "ipeadata" in url:
             codigo = url.split("'")[1]
             self.espelhos.append(codigo)
@@ -255,6 +262,7 @@ def test_cli(tmp_path, monkeypatch, capsys):
     assert cli.main(["coletar", "--estado", str(tmp_path), "--series", "ipca,divida_bruta"]) == 1
     saida = json.loads(capsys.readouterr().out)
     assert saida["atualizadas"] == {"ipca": 24} and "divida_bruta" in saida["falhas"]
+    assert saida["releases"] == {"produtos": 1, "falhas": {}}
     assert cli.main(["coletar", "--estado", str(tmp_path), "--series", "ipca,nada"]) == 2
     assert "nada" in capsys.readouterr().err
     assert cli.main(["publicar", "--estado", str(tmp_path), "--saida", str(tmp_path / "site")]) == 0
@@ -269,3 +277,48 @@ def test_cli_pela_orquestracao_usa_o_cliente_do_lumen(tmp_path, monkeypatch, cap
     assert main(["--config", str(tmp_path / "x.toml"), "economia", "coletar", "--estado", str(tmp_path),
                  "--series", "pib_real"]) == 0
     assert json.loads(capsys.readouterr().out)["atualizadas"] == {"pib_real": 11}
+
+
+# ------------------------------------------------------------------ releases do IBGE
+
+def test_ler_releases_real():
+    itens = coleta.ler_releases(RELEASES)
+    assert [(i["data"], i["titulo"]) for i in itens] == [("2026-10-09", "IPCA fica em 0,82% em setembro"),
+                                                           ("2026-09-11", "IPCA fica em -0,32% em agosto")]
+    assert itens[0]["link"].startswith("https://agenciadenoticias.ibge.gov.br/") and itens[0]["introducao"]
+
+
+@pytest.mark.parametrize("corpo", [b"<html>fora</html>", b'{"count": 0}', b"[]"])
+def test_ler_releases_ilegivel(corpo):
+    with pytest.raises(SerieIlegivel):
+        coleta.ler_releases(corpo)
+
+
+def test_ler_releases_ignora_item_incompleto():
+    corpo = json.dumps({"items": [{"titulo": "Sem data", "link": "http://x"},
+                                  {"titulo": "Ok", "link": "http://x/y", "data_publicacao": "01/09/2026 09:00:00"}]})
+    assert [i["titulo"] for i in coleta.ler_releases(corpo.encode())] == ["Ok"]
+
+
+def test_coletar_releases_grava_e_mantem_o_anterior_na_falha(tmp_path):
+    series = [s for s in SERIES if s.id in ("ipca", "pib_real", "selic_mes")]
+    assert coleta.coletar_releases(_Cliente(), tmp_path, series, agora=AGORA) == {"produtos": 2, "falhas": {}}
+    guardado = coleta.ler_estado(tmp_path)["releases"]
+    assert set(guardado) == {"9256", "9300"} and len(guardado["9256"]["itens"]) == 2
+    resumo = coleta.coletar_releases(_Cliente(releases_falha=True), tmp_path, series, agora=AGORA)
+    assert resumo["produtos"] == 0 and set(resumo["falhas"]) == {"9256", "9300"}
+    assert coleta.ler_estado(tmp_path)["releases"]["9256"]["itens"] == guardado["9256"]["itens"]
+
+
+def test_indicador_do_ibge_leva_os_releases(tmp_path):
+    coleta.coletar(_Cliente(), tmp_path, [series_por_id()["ipca"]], agora=AGORA)
+    coleta.coletar_releases(_Cliente(), tmp_path, [series_por_id()["ipca"]], agora=AGORA)
+    feed = montar(coleta.ler_estado(tmp_path), agora=AGORA)
+    releases = feed["indicadores"]["ipca"]["releases"]
+    assert releases["fonte"] == "IBGE, Agência de Notícias" and releases["itens"][0]["data"] == "2026-10-09"
+    # Indicador do Banco Central não tem releases do IBGE; o do IBGE sem coleta, lista vazia
+    assert "releases" not in feed["indicadores"]["selic_mes"]
+    # O derivado de uma série só herda os releases dela; o de duas (juro real), não
+    assert feed["indicadores"]["ipca_12m"]["releases"] == releases
+    assert "releases" not in feed["indicadores"]["juro_real_12m"]
+    assert feed["indicadores"]["pib_real"]["releases"]["itens"] == []

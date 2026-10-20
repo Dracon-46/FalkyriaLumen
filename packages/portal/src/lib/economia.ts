@@ -39,6 +39,16 @@ export interface Indicador {
   serie: [string, number][];
   ultimo: { periodo: string; valor: number } | null;
   lacunas: string[];
+  /** Releases do IBGE sobre o indicador, como a Agência de Notícias os publicou; só nos indicadores do IBGE. */
+  releases?: { fonte: string; coletado_em: string | null; itens: ReleaseIbge[] };
+}
+
+/** Um release oficial do IBGE: título, data (ISO), link na Agência de Notícias e a introdução. */
+export interface ReleaseIbge {
+  titulo: string;
+  data: string;
+  link: string;
+  introducao: string;
 }
 
 /** O arquivo inteiro. */

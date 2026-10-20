@@ -26,12 +26,13 @@ from lumen_ingestao.cliente_http import ClienteHttp
 from lumen_ingestao.coleta_http import ErroColeta
 from lumen_painel.comum import gravar_json, ler_json
 
-from .catalogo import SERIES, Serie, url_ipeadata, url_sgs
+from .catalogo import SERIES, Serie, url_ipeadata, url_releases_ibge, url_sgs
 
 ARQUIVO_ESTADO = "economia-sgs.json.gz"
 VERSAO_ESTADO = 1
 FONTE_ID = "bcb_sgs"
 FONTE_ESPELHO = "ipeadata"
+FONTE_RELEASES = "ibge_noticias"
 ESPERA_ANTES_DE_REPETIR_S = 60
 _DATA = re.compile(r"^(\d{2})/(\d{2})/(\d{4})$")
 
@@ -189,3 +190,56 @@ def coletar(cliente: ClienteHttp, estado: Path | str, series: Iterable[Serie] = 
     Path(estado).mkdir(parents=True, exist_ok=True)
     gravar_json(Path(estado) / ARQUIVO_ESTADO, dados, comprimir=True)
     return resumo
+
+
+# ------------------------------------------------------------------------------------------- releases
+
+def ler_releases(conteudo: bytes) -> list[dict]:
+    """Os releases da resposta da API de notícias do IBGE: título, data (ISO), link e a introdução.
+
+    A API publica ``data_publicacao`` como ``09/10/2026 09:00:00`` e o link em ``http``; o link vai em ``https``,
+    que a Agência de Notícias também serve. Item sem título, data ou link fica de fora.
+    """
+    try:
+        dados = json.loads(conteudo)
+    except (UnicodeDecodeError, json.JSONDecodeError) as erro:
+        raise SerieIlegivel(f"resposta não é JSON: {conteudo[:80]!r}") from erro
+    itens = dados.get("items") if isinstance(dados, dict) else None
+    if not isinstance(itens, list):
+        raise SerieIlegivel("resposta sem a lista items")
+    saida = []
+    for item in itens:
+        titulo, link = (item.get("titulo") or "").strip(), (item.get("link") or "").strip()
+        m = _DATA.match((item.get("data_publicacao") or "").split(" ")[0])
+        if not (titulo and link and m):
+            continue
+        dia, mes, ano = m.groups()
+        saida.append({"titulo": titulo, "data": f"{ano}-{mes}-{dia}",
+                      "link": "https://" + link.removeprefix("http://").removeprefix("https://"),
+                      "introducao": (item.get("introducao") or "").strip()})
+    return saida
+
+
+def coletar_releases(cliente: ClienteHttp, estado: Path | str, series: Iterable[Serie] = SERIES, *,
+                     agora: datetime | None = None) -> dict:
+    """Guarda no estado os releases mais recentes do IBGE de cada produto das ``series`` (``ibge_produto``).
+
+    O produto que falha mantém os releases que já havia; a falha vai no resumo e não derruba a coleta das séries.
+    """
+    dados = ler_estado(estado)
+    instante = (agora or datetime.now(timezone.utc)).isoformat(timespec="seconds")
+    produtos = sorted({s.ibge_produto for s in series if s.ibge_produto})
+    guardados = dados.setdefault("releases", {})
+    falhas: dict[str, str] = {}
+    for produto in produtos:
+        url = url_releases_ibge(produto)
+        try:
+            artefato = cliente.obter(url, {"Accept": "application/json"})
+            if artefato.status_http != 200:
+                raise SerieIlegivel(f"{url} respondeu {artefato.status_http}")
+            guardados[str(produto)] = {"url": url, "coletado_em": instante, "itens": ler_releases(artefato.conteudo)}
+        except (ErroColeta, ValueError) as erro:
+            falhas[str(produto)] = f"{type(erro).__name__}: {erro}"
+    Path(estado).mkdir(parents=True, exist_ok=True)
+    gravar_json(Path(estado) / ARQUIVO_ESTADO, dados, comprimir=True)
+    return {"produtos": len(produtos) - len(falhas), "falhas": falhas}

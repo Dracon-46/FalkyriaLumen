@@ -118,6 +118,11 @@ def montar(estado_dados: dict, *, agora: datetime | None = None) -> dict:
                "periodo_parcial_omitido": parcial,
                "coletado_de": guardado.get("fonte_coleta", "sgs") if guardado.get("observacoes") else None,
                "url_coleta": guardado.get("url_coleta")}
+        if s.ibge_produto:
+            # Releases do IBGE sobre o indicador, como a Agência de Notícias os publicou (ADR-033, adendo)
+            releases = estado_dados.get("releases", {}).get(str(s.ibge_produto)) or {}
+            doc["releases"] = {"fonte": "IBGE, Agência de Notícias", "coletado_em": releases.get("coletado_em"),
+                               "itens": releases.get("itens", [])}
         indicadores[s.id] = _publicado(doc, valores[s.id])
     contas = {
         "ipca_12m": lambda: acumulado(valores["ipca"], 12),
@@ -131,6 +136,9 @@ def montar(estado_dados: dict, *, agora: datetime | None = None) -> dict:
         coletado = [coletas[u] for u in d.usa]
         doc = {**_documentacao(d), "derivado_de": list(d.usa), "fonte": FONTE_SGS,
                "coletado_em": min(coletado) if all(coletado) else None}
+        if len(d.usa) == 1 and "releases" in indicadores[d.usa[0]]:
+            # Conta sobre uma série só (IPCA em 12 meses, no ano): os releases do IBGE são os dela
+            doc["releases"] = indicadores[d.usa[0]]["releases"]
         indicadores[d.id] = _publicado(doc, contas[d.id]())
     grupos = [{"id": g, "nome": nome, "indicadores": [i for i, v in indicadores.items() if v["grupo"] == g]}
               for g, nome in GRUPOS]

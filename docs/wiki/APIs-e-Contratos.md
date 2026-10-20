@@ -75,6 +75,12 @@ O catálogo, com unidade, definição e limitações de cada série, fica em
 `packages/economia/lumen_economia/catalogo.py`; o portal lê `economia/indicadores.json`, publicado com os
 painéis ([ADR-033](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-033.md)).
 
+### IBGE — notícias (releases ao lado dos indicadores da Economia)
+
+| Endereço | Uso |
+|---|---|
+| `https://servicodados.ibge.gov.br/api/v3/noticias/?tipo=release&idproduto=<produto>&qtd=3` | Os três releases mais recentes da Agência de Notícias sobre o IPCA (9256), o INPC (9258) e o PIB (9300), sem chave; vão em `releases` no indicador de `economia/indicadores.json` (adendo de 20/10/2026 do ADR-033) |
+
 ### CVM — dados abertos das companhias abertas (estatais com ações na bolsa)
 
 | Endereço | Uso |

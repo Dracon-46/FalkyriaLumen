@@ -27,6 +27,7 @@ import {
 } from "@/lib/economia";
 import { Escolha } from "@/componentes/Escolha";
 import { instante } from "@/lib/formato";
+import { dataCurta } from "@/lib/paineis";
 import { GraficoLinha } from "./GraficoLinha";
 
 const METODOLOGIA = "https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-033.md";
@@ -194,6 +195,23 @@ function Detalhe({ ind, id, a, b, dados, escolher }: { ind: Indicador; id: strin
               <li key={l}>{l}</li>
             ))}
           </ul>
+        )}
+        {ind.releases && ind.releases.itens.length > 0 && (
+          <>
+            <p>
+              <strong>Do IBGE:</strong> os releases mais recentes da Agência de Notícias sobre o indicador.
+            </p>
+            <ul>
+              {ind.releases.itens.map((r) => (
+                <li key={r.link}>
+                  <a href={r.link} target="_blank" rel="noreferrer">
+                    {r.titulo}
+                  </a>{" "}
+                  <span className="total-detalhe">({dataCurta(r.data)})</span>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
         <p className="total-detalhe">
           {ind.derivado_de ? (

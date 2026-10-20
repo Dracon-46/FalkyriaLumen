@@ -39,6 +39,11 @@ def url_sgs(codigo: int) -> str:
     return f"https://api.bcb.gov.br/dados/serie/bcdata.sgs.{codigo}/dados?formato=json"
 
 
+def url_releases_ibge(produto: int, quantos: int = 3) -> str:
+    """Os ``quantos`` releases mais recentes de um produto do IBGE, pela API de notícias (sem chave)."""
+    return f"https://servicodados.ibge.gov.br/api/v3/noticias/?tipo=release&idproduto={produto}&qtd={quantos}"
+
+
 def url_ipeadata(codigo: str) -> str:
     """Endereço da série no Ipeadata (OData), em JSON."""
     return f"http://www.ipeadata.gov.br/api/odata4/ValoresSerie(SERCODIGO='{codigo}')"
@@ -63,6 +68,7 @@ class Serie:
     agregacao: str = "nivel"                # nivel, variacao_mensal ou variacao_anual
     espelho: str | None = None              # código no Ipeadata, usado só quando o SGS falha
     espelho_casas: int | None = None        # casas decimais do SGS, quando o espelho publica mais
+    ibge_produto: int | None = None         # produto do IBGE cujos releases acompanham o indicador (ADR-033)
 
 
 @dataclass(frozen=True)
@@ -97,13 +103,13 @@ SERIES: tuple[Serie, ...] = (
                          "variável 63), replicado no SGS do Banco Central",
           leitura="Inflação menor não é queda de preços: com variação positiva, os preços sobem, só que mais "
                   "devagar. Queda generalizada de preços é deflação (variação negativa).",
-          agregacao="variacao_mensal", espelho="PRECOS12_IPCAG12"),
+          agregacao="variacao_mensal", espelho="PRECOS12_IPCAG12", ibge_produto=9256),
     Serie("inpc", 188, "INPC no mês", "INPC — variação mensal", "inflacao", "% no mês", "mensal",
           "Variação dos preços ao consumidor das famílias com renda de 1 a 5 salários mínimos. É o índice "
           "usado na correção do salário mínimo e de benefícios.",
           fonte_primaria="IBGE, Sistema Nacional de Índices de Preços ao Consumidor (SIDRA, tabela 1736, "
                          "variável 44), replicado no SGS do Banco Central",
-          agregacao="variacao_mensal", espelho="PRECOS12_INPCBR12"),
+          agregacao="variacao_mensal", espelho="PRECOS12_INPCBR12", ibge_produto=9258),
     Serie("selic_mes", 4390, "Selic no mês", "Taxa de juros - Selic acumulada no mês", "juros", "% no mês",
           "mensal", "Taxa média dos financiamentos diários com títulos públicos federais no Selic, acumulada no "
                     "mês. É a taxa que a meta do Copom orienta.",
@@ -155,7 +161,7 @@ SERIES: tuple[Serie, ...] = (
           "Crescimento do PIB em volume (descontada a variação de preços) em relação ao ano anterior.",
           fonte_primaria="IBGE, Contas Nacionais, replicado no SGS do Banco Central",
           limitacoes=("O IBGE revisa os anos recentes; o valor de um ano pode mudar depois de publicado.",),
-          agregacao="variacao_anual", espelho="SCN10_PIBG10", espelho_casas=2),
+          agregacao="variacao_anual", espelho="SCN10_PIBG10", espelho_casas=2, ibge_produto=9300),
     Serie("ibc_br", 24363, "IBC-Br", "Índice de Atividade Econômica do Banco Central (IBC-Br)", "atividade",
           "índice (2002 = 100)", "mensal",
           "Indicador mensal da atividade econômica, calculado pelo Banco Central como antecedente do PIB.",

@@ -39,7 +39,10 @@ def _anos(texto: str) -> list[int]:
 
 
 def cmd_coletar(args) -> int:
-    """Baixa as séries pedidas (ou todas) e imprime o resumo."""
+    """Baixa as séries pedidas (ou todas) e os releases do IBGE delas, e imprime o resumo.
+
+    Falha nos releases sai no resumo, mas não muda o código de saída: só as séries contam.
+    """
     pedidas = SERIES
     if args.series:
         por_id = series_por_id()
@@ -49,7 +52,8 @@ def cmd_coletar(args) -> int:
             return 2
         pedidas = tuple(por_id[i] for i in args.series)
     resumo = coleta.coletar(_cliente(args), args.estado, pedidas, espelho=_cliente(args, coleta.FONTE_ESPELHO))
-    print(json.dumps(resumo.para_json(), ensure_ascii=False, indent=2))
+    releases = coleta.coletar_releases(_cliente(args, coleta.FONTE_RELEASES), args.estado, pedidas)
+    print(json.dumps({**resumo.para_json(), "releases": releases}, ensure_ascii=False, indent=2))
     return 1 if resumo.falhas else 0
 
 

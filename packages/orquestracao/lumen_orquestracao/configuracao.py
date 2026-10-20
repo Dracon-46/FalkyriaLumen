@@ -49,6 +49,8 @@ LIMITES_PADRAO = {
     # SGS do Banco Central: uma requisição por série da área Economia.
     "bcb_sgs": 20,
     "ipeadata": 20,
+    # Releases do IBGE que acompanham os indicadores dele (IPCA, INPC, PIB): uma requisição por produto.
+    "ibge_noticias": 30,
     "cvm_dados_abertos": 60,
     "sest_dados_abertos": 10,
     # PNTP (Radar da Transparência): quatro requisições por ciclo, por Range.

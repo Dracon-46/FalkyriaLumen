@@ -192,6 +192,7 @@ body.push(table(["Recurso", "Endereço", "Uso"], [2200, 4400, 3000], [
   ["Localidades", "servicodados.ibge.gov.br/api/v1/localidades (visão nivelado)", "Cadastro de UFs e municípios; 5.571 municípios em outubro de 2026"],
   ["População", "SIDRA, agregado 6579, variável 9324, último período", "Gasto per capita e grupo de pares"],
   ["Malhas v3", "servicodados.ibge.gov.br/api/v3/malhas, formato TopoJSON", "Mapa da aba Eleições; código IBGE em codarea"],
+  ["Notícias v3 (releases)", "servicodados.ibge.gov.br/api/v3/noticias, tipo=release e idproduto", "Releases da Agência de Notícias ao lado do IPCA, do INPC e do PIB na área Economia (ADR-033, adendo de 20/10/2026); data como dd/mm/aaaa hh:mm:ss e link em http"],
 ], { size: 17 }));
 body.push(p("Sem autenticação. Limite padrão do Lumen: 30 requisições por minuto. A API responde comprimida " +
   "(Content-Encoding: gzip) mesmo quando o pedido não pede compressão, como o teste de contrato diário mostrou em " +
@@ -376,7 +377,7 @@ L.buildDoc({
   codigo: "DOC-06",
   titulo: "Catálogo de Fontes",
   subtitulo: "Fontes por esfera, estratégia de cobertura nacional e coleta responsável",
-  meta: { versao: "1.4", data: "16 de outubro de 2026",
+  meta: { versao: "1.5", data: "20 de outubro de 2026",
     situacao: "Atualizado com o comportamento real das fontes da Fase 1, as da aba Eleições e as de referência de mercado (seção 2.8)",
     verificado: "outubro de 2026" },
   body,

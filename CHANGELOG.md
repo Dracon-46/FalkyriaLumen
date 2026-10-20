@@ -5,6 +5,19 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Economia: releases oficiais do IBGE ao lado dos indicadores (ADR-033, adendo)
+
+- O IPCA, o INPC e o PIB real (e os derivados de uma série só, como o IPCA em
+  12 meses) mostram os três releases mais recentes da Agência de Notícias do
+  IBGE, com o título, a data e o link. Vêm da API pública de notícias do IBGE,
+  na coleta diária da Economia. Falha nela não derruba a coleta das séries.
+- Notícias de jornal ficam de fora, nas Contratações e na Economia. O adendo
+  explica: vinculação errada por nome parecido, imputação vedada pelo DOC-08 e
+  termos de uso.
+- Teste de contrato novo da API de notícias do IBGE. O do SGS passa a pular,
+  com o motivo, quando o Banco Central responde 5xx ou uma página no lugar do
+  JSON: é acesso, não mudança de formato.
+
 ### Situação das coletas: o painel operacional (ADR-039)
 
 - Página nova "Situação das coletas" (`/operacao/`, link no rodapé), refeita a

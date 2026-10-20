@@ -276,12 +276,15 @@ def test_pntp_ciclo_mais_recente_mantem_as_colunas_lidas():
 def test_sgs_series_da_economia_respondem_e_ipca_confere_com_o_sidra():
     """Cada série do catálogo responde no SGS com a lista de observações, e o IPCA do SGS é o do IBGE.
 
-    Se o firewall do Banco Central recusar a requisição (acontece com servidores em nuvem), o teste é pulado
-    com o código da recusa: é bloqueio de acesso, não mudança de formato. A coleta diária usa o espelho do
-    Ipeadata nesse caso, e o teste seguinte confere o espelho.
+    Se o SGS não servir a série deste servidor, o teste é pulado com o motivo: é acesso, não mudança de formato
+    (RF-CO-14). Isso vale para a página de recusa do firewall do Banco Central (acontece com servidores em
+    nuvem), para erro 5xx do servidor e para uma página de marcação no lugar do JSON (em 17 e 18/10/2026, um 502
+    e uma página XHTML). A coleta diária usa o espelho do Ipeadata nesses casos, e o teste seguinte o confere.
     """
+    import urllib.error
+
     from lumen_economia.catalogo import SERIES, url_sgs
-    from lumen_economia.coleta import SgsRecusou, ler_resposta
+    from lumen_economia.coleta import SerieIlegivel, SgsRecusou, ler_resposta
     try:
         for s in SERIES:
             obs = ler_resposta(_obter_bytes(url_sgs(s.codigo).replace("dados?", "dados/ultimos/3?")))
@@ -289,6 +292,14 @@ def test_sgs_series_da_economia_respondem_e_ipca_confere_com_o_sidra():
         sgs = dict(ler_resposta(_obter_bytes(url_sgs(433).replace("dados?", "dados/ultimos/12?"))))
     except SgsRecusou as erro:
         pytest.skip(f"SGS inacessível deste servidor: {erro}")
+    except urllib.error.HTTPError as erro:
+        if erro.code < 500:
+            raise
+        pytest.skip(f"SGS indisponível: HTTP {erro.code}")
+    except SerieIlegivel as erro:
+        if not str(erro).startswith("resposta não é JSON: b'<"):
+            raise
+        pytest.skip(f"SGS respondeu uma página no lugar do JSON: {erro}")
     sidra = json.loads(_obter_bytes("https://apisidra.ibge.gov.br/values/t/1737/n1/all/v/63/p/last%2012"))[1:]
     pares = [(f"{x['D3C'][:4]}-{x['D3C'][4:]}-01", x["V"]) for x in sidra]
     comuns = [(m, v) for m, v in pares if m in sgs]
@@ -310,3 +321,14 @@ def test_espelhos_do_ipeadata_respondem_e_ipca_confere_com_o_sidra():
     comuns = [(m, v) for m, v in comuns if m in ipea]
     assert comuns, "nenhum mês em comum entre o Ipeadata e o SIDRA"
     assert all(float(ipea[m]) == float(v) for m, v in comuns), "IPCA do Ipeadata diverge do SIDRA"
+
+
+def test_ibge_noticias_mantem_os_campos_lidos():
+    """A API de notícias do IBGE continua devolvendo os releases do IPCA com título, data e link (ADR-033)."""
+    from lumen_economia.catalogo import url_releases_ibge
+    from lumen_economia.coleta import ler_releases
+    itens = ler_releases(_obter_bytes(url_releases_ibge(9256)))
+    assert itens, "nenhum release do IPCA com título, data e link"
+    assert all(i["link"].startswith("https://") and len(i["data"]) == 10 for i in itens)
+    assert _campos(_referencia("ibge/noticias_releases_9256.json")["items"][0]) <= _campos(
+        json.loads(_obter_bytes(url_releases_ibge(9256, 1)))["items"][0])
