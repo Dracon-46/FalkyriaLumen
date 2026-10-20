@@ -117,8 +117,8 @@ Da seção "Pendente" do README:
   leitura dos próprios portais, por fornecedor de sistema.
 - **Economia e Contas Públicas** (ADR-033): no ar com inflação, juros, dívida, resultado fiscal,
   atividade, desocupação e rendimento (PNAD Contínua), população, despesa da União por função e a comparação
-  de períodos; os governos municipais (ADR-040) e a despesa por função de cada ente ao lado do grupo de pares
-  (ADR-041). Também a receita da União. Próximo: as séries fiscais do próprio ente ano a ano (RREO e RGF).
+  de períodos; os governos municipais (ADR-040), e a despesa por função e a despesa com pessoal de cada ente
+  ao lado do grupo de pares (ADR-041 e ADR-042). Também a receita da União. Próximo: as séries fiscais do próprio ente ano a ano (regra H-02, Fase 2).
   Paginação (20 por página) e filtro de período nas Contratações já no ar.
 - **Visão 360 pelo filtro de local** (ADR-035): no ar. O local escolhido no cabeçalho filtra todas as abas,
   e a contratação abre num modal com itens, vencedores, aditivos e os documentos do PNCP para baixar. Também

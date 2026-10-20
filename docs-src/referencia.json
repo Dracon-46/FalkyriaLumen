@@ -7707,7 +7707,7 @@
   {
    "caminho": "packages/normalizacao/lumen_normalizacao/siconfi.py",
    "linguagem": "python",
-   "linhas": 154,
+   "linhas": 156,
    "doc": "Normalização das respostas do SICONFI (cadastro de entes, extrato de entregas e demonstrativos fiscais).",
    "itens": [
     {
@@ -7742,7 +7742,7 @@
      "tipo": "funcao",
      "nome": "_linha_demonstrativo",
      "assinatura": "def _linha_demonstrativo(ctx: Contexto, d: dict) -> list",
-     "doc": "Converte uma linha do RREO, do RGF ou da DCA em ``LinhaDemonstrativo``.\n\nEnte, exercício, demonstrativo, anexo, coluna, código da conta e conta são obrigatórios. O período é\nobrigatório no RREO e no RGF e nulo na DCA; o valor, quando vem, precisa ser numérico. A DCA não traz o\ncampo ``demonstrativo``: ele vem do anexo (``DCA-Anexo I-E`` é da DCA).",
+     "doc": "Converte uma linha do RREO, do RGF ou da DCA em ``LinhaDemonstrativo``.\n\nEnte, exercício, demonstrativo, anexo, coluna, código da conta e conta são obrigatórios. O período é\nobrigatório no RREO e no RGF e nulo na DCA; o valor, quando vem, precisa ser numérico. A DCA e o RGF não\ntrazem o campo ``demonstrativo``: ele vem do prefixo do anexo (``DCA-Anexo I-E`` é da DCA; ``RGF-Anexo 01``,\ndo RGF, sem dizer se é o simplificado).",
      "linha": 111
     },
     {
@@ -7750,7 +7750,7 @@
      "nome": "normalizar_demonstrativo",
      "assinatura": "def normalizar_demonstrativo(conteudo: bytes, *, fonte_id: str, documento_fonte_id: str) -> ResultadoNormalizacao",
      "doc": "Página do RREO, do RGF ou da DCA de um ente, com a lista em ``items`` (formato do ORDS).",
-     "linha": 148
+     "linha": 150
     }
    ]
   },
@@ -8261,127 +8261,134 @@
   {
    "caminho": "packages/painel/lumen_painel/cli.py",
    "linguagem": "python",
-   "linhas": 358,
-   "doc": "``lumen painel``: coleta e publicação dos painéis de contratações e de conformidade (ADR-028).\n\nExemplos::\n\n    lumen painel cadastro --estado estado/                          # cadastro de entes do SICONFI\n    lumen painel contratacoes --estado estado/ --ultimos 3          # dias que faltam entre os 3 últimos\n    lumen painel contratacoes --estado estado/ --de 2026-01-01 --ate 2026-01-31 --limite-minutos 300\n    lumen painel faltando --estado estado/ --de 2026-01-01 --partes 6   # divisão para execuções paralelas\n    lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026\n    lumen painel rcl --estado estado/ --ufs SP,MG                  # RCL do exercício anterior, para os pares\n    lumen painel despesa-funcao --estado estado/ --ufs SP,MG --limite-minutos 30   # DCA por função, pares\n    lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)\n    lumen painel anp --estado estado/                               # preço de revenda da ANP por semana\n    lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado\n\nO estado é um diretório com ``cadastro-entes.json.gz``, um ``contratacoes-<dia>.json.gz`` por dia coletado e\num ``conformidade-<UF>.json.gz`` por UF. No GitHub Actions, ele fica nos anexos de uma versão do repositório\n(``painel-estado``) entre uma execução e outra.",
+   "linhas": 389,
+   "doc": "``lumen painel``: coleta e publicação dos painéis de contratações e de conformidade (ADR-028).\n\nExemplos::\n\n    lumen painel cadastro --estado estado/                          # cadastro de entes do SICONFI\n    lumen painel contratacoes --estado estado/ --ultimos 3          # dias que faltam entre os 3 últimos\n    lumen painel contratacoes --estado estado/ --de 2026-01-01 --ate 2026-01-31 --limite-minutos 300\n    lumen painel faltando --estado estado/ --de 2026-01-01 --partes 6   # divisão para execuções paralelas\n    lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026\n    lumen painel rcl --estado estado/ --ufs SP,MG                  # RCL do exercício anterior, para os pares\n    lumen painel despesa-funcao --estado estado/ --ufs SP,MG --limite-minutos 30   # DCA por função, pares\n    lumen painel pessoal --estado estado/ --ufs SP,MG --limite-minutos 20          # RGF: pessoal em % da RCL\n    lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)\n    lumen painel anp --estado estado/                               # preço de revenda da ANP por semana\n    lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado\n\nO estado é um diretório com ``cadastro-entes.json.gz``, um ``contratacoes-<dia>.json.gz`` por dia coletado e\num ``conformidade-<UF>.json.gz`` por UF. No GitHub Actions, ele fica nos anexos de uma versão do repositório\n(``painel-estado``) entre uma execução e outra.",
    "itens": [
     {
      "tipo": "funcao",
      "nome": "_data",
      "assinatura": "def _data(texto: str) -> date",
      "doc": "``AAAA-MM-DD`` → ``date``, como ``type`` do argparse.",
-     "linha": 45
+     "linha": 46
     },
     {
      "tipo": "funcao",
      "nome": "_lista",
      "assinatura": "def _lista(texto: str) -> list[str]",
      "doc": "``SP, mg`` → ``[\"SP\", \"MG\"]``.",
-     "linha": 50
+     "linha": 51
     },
     {
      "tipo": "funcao",
      "nome": "_imprimir",
      "assinatura": "def _imprimir(dados) -> None",
      "doc": "JSON legível na saída padrão.",
-     "linha": 55
+     "linha": 56
     },
     {
      "tipo": "funcao",
      "nome": "_configuracao",
      "assinatura": "def _configuracao(args)",
      "doc": "A configuração do pipeline (contato da coleta e limites de requisições).",
-     "linha": 60
+     "linha": 61
     },
     {
      "tipo": "funcao",
      "nome": "dias_pedidos",
      "assinatura": "def dias_pedidos(estado: Path, *, de: date | None, ate: date | None, ultimos: int | None, hoje: date, refazer: bool=False) -> list[date]",
      "doc": "Os dias a coletar, do mais recente para o mais antigo, sem os que já estão no estado.\n\nSem ``de``, o intervalo é dos ``ultimos`` dias (padrão 3) até ontem; o dia corrente nunca entra, porque\nainda está recebendo publicações.",
-     "linha": 66
+     "linha": 67
     },
     {
      "tipo": "funcao",
      "nome": "partes",
      "assinatura": "def partes(dias: list[date], n: int) -> list[dict]",
      "doc": "Divide os dias (já do mais recente ao mais antigo) em até ``n`` blocos de dias seguidos, para execuções\nparalelas; cada bloco vira ``{\"de\": …, \"ate\": …, \"dias\": …}``.",
-     "linha": 79
+     "linha": 80
     },
     {
      "tipo": "funcao",
      "nome": "cmd_cadastro",
      "assinatura": "def cmd_cadastro(args) -> int",
      "doc": "Coleta o cadastro de entes do SICONFI (uma requisição), normaliza e grava ``cadastro-entes.json.gz``.",
-     "linha": 91
+     "linha": 92
     },
     {
      "tipo": "funcao",
      "nome": "cmd_contratacoes",
      "assinatura": "def cmd_contratacoes(args) -> int",
      "doc": "Coleta os dias pedidos que faltam no estado, do mais recente ao mais antigo, até o prazo.",
-     "linha": 122
+     "linha": 123
     },
     {
      "tipo": "funcao",
      "nome": "cmd_faltando",
      "assinatura": "def cmd_faltando(args) -> int",
      "doc": "Imprime, em JSON, os blocos de dias que faltam no estado (matriz das execuções paralelas).",
-     "linha": 146
+     "linha": 147
     },
     {
      "tipo": "funcao",
      "nome": "cmd_conformidade",
      "assinatura": "def cmd_conformidade(args) -> int",
      "doc": "Coleta o extrato de entregas de cada UF pedida e grava o estado de cada uma.",
-     "linha": 153
+     "linha": 154
     },
     {
      "tipo": "funcao",
      "nome": "cmd_rcl",
      "assinatura": "def cmd_rcl(args) -> int",
      "doc": "Coleta a RCL dos entes pendentes de cada UF pedida (RREO, Anexo 03) e grava o estado de cada uma.\n\nEnte que ainda não publicou não é falha: fica para a próxima tentativa. O código é 1 só quando uma coleta\nfoi interrompida.",
-     "linha": 169
+     "linha": 170
     },
     {
      "tipo": "funcao",
      "nome": "cmd_despesa_funcao",
      "assinatura": "def cmd_despesa_funcao(args) -> int",
      "doc": "Coleta a despesa por função (DCA, Anexo I-E) dos entes pendentes de cada UF pedida e grava o estado.\n\nO ``--limite-minutos`` vale para todas as UFs juntas: passado o tempo, os entes que faltam ficam para a\nexecução seguinte. O código é 1 só quando uma coleta foi interrompida.",
-     "linha": 188
+     "linha": 189
+    },
+    {
+     "tipo": "funcao",
+     "nome": "cmd_pessoal",
+     "assinatura": "def cmd_pessoal(args) -> int",
+     "doc": "Coleta a despesa com pessoal do Executivo (RGF, Anexo 1) dos entes pendentes de cada UF pedida.\n\nComo em ``despesa-funcao``, o ``--limite-minutos`` vale para todas as UFs juntas. O código é 1 só quando uma\ncoleta foi interrompida.",
+     "linha": 211
     },
     {
      "tipo": "funcao",
      "nome": "cmd_transparencia",
      "assinatura": "def cmd_transparencia(args) -> int",
      "doc": "Lê o ciclo mais recente do PNTP para ``transparencia-pntp.json.gz``; o código é 1 quando falhou.",
-     "linha": 210
+     "linha": 233
     },
     {
      "tipo": "funcao",
      "nome": "cmd_anp",
      "assinatura": "def cmd_anp(args) -> int",
      "doc": "Lê as planilhas semanais da ANP que faltam em ``anp-semanas.json.gz``; o código é 1 quando algo falhou.",
-     "linha": 218
+     "linha": 241
     },
     {
      "tipo": "funcao",
      "nome": "cmd_publicar",
      "assinatura": "def cmd_publicar(args) -> int",
      "doc": "Monta o site inteiro a partir do estado: índice, busca, contratações e conformidade.",
-     "linha": 227
+     "linha": 250
     },
     {
      "tipo": "funcao",
      "nome": "construir_parser",
      "assinatura": "def construir_parser() -> argparse.ArgumentParser",
      "doc": "Os subcomandos e as opções de cada um.",
-     "linha": 287
+     "linha": 312
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada de ``lumen painel``; falta de configuração (contato da coleta) vira código 2.",
-     "linha": 347
+     "linha": 378
     }
    ]
   },
@@ -9123,64 +9130,149 @@
   {
    "caminho": "packages/painel/lumen_painel/pares.py",
    "linguagem": "python",
-   "linhas": 206,
-   "doc": "Grupo de pares de cada ente na conformidade (ADR-038; UC-06).\n\nNa publicação, depois da avaliação da conformidade, cada ente avaliado ganha o bloco ``pares``:\n\n- **o grupo**: descrição, critérios e, abaixo do mínimo estatístico, a ressalva;\n- **a distribuição** da fração entregue no prazo (``resumo.no_prazo``) entre os entes do grupo: quartis e\n  mediana.\n\nEnte sem grupo leva o motivo, e a tela omite a comparação dizendo por quê (UC-06, exceção 5a). Cada grupo tem\ntambém o arquivo com os entes que o formam (``conformidade/pares/<id>.json``).\n\nCom os estados da RCL (``rcl-<UF>.json.gz``), os grupos se dividem pela RCL por habitante (versão 2) e o\nbloco do ente leva a RCL dele, com o exercício e o tipo do RREO de onde veio.\n\nCom os estados da despesa por função (``despesa-funcao-<UF>.json.gz``, a DCA do exercício), o bloco leva também\n``despesa``: o total e cada função por habitante do ente, ao lado dos quartis do grupo (RF-PU-05). A\ndistribuição só sai com ao menos ``MINIMO_ENTES`` entes do grupo com a DCA lida e somando o total; a função que\no ente não executou conta como zero.\n\nÉ comparação, não sinalização. A posição de um ente no grupo é contexto, como o resto do painel (ADR-028);\nindício só pelas regras do DOC-07, depois da calibração. Os grupos são formados sobre o cadastro do SICONFI,\ncom a população do exercício que ele informa.",
+   "linhas": 229,
+   "doc": "Grupo de pares de cada ente na conformidade (ADR-038; UC-06).\n\nNa publicação, depois da avaliação da conformidade, cada ente avaliado ganha o bloco ``pares``:\n\n- **o grupo**: descrição, critérios e, abaixo do mínimo estatístico, a ressalva;\n- **a distribuição** da fração entregue no prazo (``resumo.no_prazo``) entre os entes do grupo: quartis e\n  mediana.\n\nEnte sem grupo leva o motivo, e a tela omite a comparação dizendo por quê (UC-06, exceção 5a). Cada grupo tem\ntambém o arquivo com os entes que o formam (``conformidade/pares/<id>.json``).\n\nCom os estados da RCL (``rcl-<UF>.json.gz``), os grupos se dividem pela RCL por habitante (versão 2) e o\nbloco do ente leva a RCL dele, com o exercício e o tipo do RREO de onde veio.\n\nCom os estados da despesa por função (``despesa-funcao-<UF>.json.gz``, a DCA do exercício), o bloco leva também\n``despesa``: o total e cada função por habitante do ente, ao lado dos quartis do grupo (RF-PU-05). A\ndistribuição só sai com ao menos ``MINIMO_ENTES`` entes do grupo com a DCA lida e somando o total; a função que\no ente não executou conta como zero.\n\nCom os estados da despesa com pessoal (``pessoal-<UF>.json.gz``, o RGF do Executivo), o bloco leva ``pessoal``: o\npercentual da despesa total com pessoal sobre a RCL ajustada e os limites que o próprio RGF declara (ADR-042), ao\nlado dos quartis do mesmo percentual no grupo, com o mesmo mínimo de entes.\n\nÉ comparação, não sinalização. A posição de um ente no grupo é contexto, como o resto do painel (ADR-028);\nindício só pelas regras do DOC-07, depois da calibração. Os grupos são formados sobre o cadastro do SICONFI,\ncom a população do exercício que ele informa.",
    "itens": [
     {
      "tipo": "funcao",
      "nome": "rcl_por_habitante",
      "assinatura": "def rcl_por_habitante(cadastro: Cadastro, rcl: dict[str, dict]) -> dict[str, float]",
      "doc": "A RCL dividida pela população do cadastro, por código IBGE; ente sem população fica de fora.",
-     "linha": 47
+     "linha": 51
     },
     {
      "tipo": "funcao",
      "nome": "despesa_por_habitante",
      "assinatura": "def despesa_por_habitante(cadastro: Cadastro, despesa: dict[str, dict]) -> dict[str, dict[str, float]]",
      "doc": "Por código IBGE, o total (``TOTAL``) e cada função da ``FUNCOES`` divididos pela população do cadastro.\n\nEnte sem população fica de fora; a função que o ente não executou vale zero.",
-     "linha": 57
+     "linha": 61
     },
     {
      "tipo": "funcao",
      "nome": "distribuicoes_de_despesa",
      "assinatura": "def distribuicoes_de_despesa(membros: list[str], por_habitante: dict[str, dict[str, float]], despesa: dict[str, dict]) -> tuple[int, dict[str, dict] | None]",
      "doc": "Quantos membros têm a DCA que confere e, com ao menos ``MINIMO_ENTES``, a distribuição de cada conta.\n\nFica de fora a função que nenhum desses membros executou.",
-     "linha": 72
+     "linha": 76
     },
     {
      "tipo": "funcao",
      "nome": "despesa_do_ente",
      "assinatura": "def despesa_do_ente(codigo: str, exercicio: int | None, despesa: dict[str, dict], por_habitante: dict[str, dict[str, float]], entes_com_dca: int, distribuicoes: dict[str, dict] | None) -> dict",
      "doc": "O bloco ``despesa`` do ente: o total e as funções com valor do ente ou do grupo, os quartis ao lado.\n\nOrdem: o total e as funções pela mediana do grupo, da maior para a menor (sem distribuição, pelo valor do ente).",
-     "linha": 89
+     "linha": 93
+    },
+    {
+     "tipo": "funcao",
+     "nome": "pessoal_do_ente",
+     "assinatura": "def pessoal_do_ente(codigo: str, exercicio: int | None, pessoal: dict[str, dict], membros: list[str]) -> dict",
+     "doc": "O bloco ``pessoal`` do ente: o percentual e os limites do RGF dele e a distribuição do percentual no grupo.\n\nA distribuição só sai com ao menos ``MINIMO_ENTES`` membros com o percentual.",
+     "linha": 123
     },
     {
      "tipo": "funcao",
      "nome": "formar",
      "assinatura": "def formar(cadastro: Cadastro, calculado_em: datetime, rcl: dict[str, dict] | None=None, exercicio_rcl: int | None=None) -> ResultadoPares",
      "doc": "Os grupos de pares dos entes do cadastro; com a ``rcl`` do ``exercicio_rcl``, na versão que divide por ela.",
-     "linha": 119
+     "linha": 137
     },
     {
      "tipo": "funcao",
      "nome": "distribuicao",
      "assinatura": "def distribuicao(valores: list[float]) -> dict | None",
      "doc": "Quantos valores, quartis e mediana, com quatro casas; ``None`` sem nenhum valor.",
-     "linha": 128
+     "linha": 146
     },
     {
      "tipo": "funcao",
      "nome": "grupo_para_json",
      "assinatura": "def grupo_para_json(grupo: GrupoPares) -> dict",
      "doc": "O grupo como vai no arquivo do ente e no do grupo: descrição, célula, tamanho, ressalva e critérios.",
-     "linha": 138
+     "linha": 156
     },
     {
      "tipo": "funcao",
      "nome": "acrescentar",
-     "assinatura": "def acrescentar(avaliacao: Avaliacao, cadastro: Cadastro, gravar: Callable[[str, Any], Any], *, gerado_em: str, rcl: dict[str, dict] | None=None, exercicio_rcl: int | None=None, despesa: dict[str, dict] | None=None, exercicio_despesa: int | None=None) -> dict",
-     "doc": "Acrescenta ``pares`` aos arquivos dos entes avaliados e grava o arquivo de cada grupo.\n\n``rcl`` é a de ``rcl.ler_rcl`` e ``despesa``, a de ``despesa_funcao.ler_despesas``. Devolve o resumo para o\n``indice.json``: versão das regras, quantos grupos, quantos entes avaliados ficaram com e sem grupo, e o\nexercício e a quantidade de RCL e de DCA usadas.",
-     "linha": 145
+     "assinatura": "def acrescentar(avaliacao: Avaliacao, cadastro: Cadastro, gravar: Callable[[str, Any], Any], *, gerado_em: str, rcl: dict[str, dict] | None=None, exercicio_rcl: int | None=None, despesa: dict[str, dict] | None=None, exercicio_despesa: int | None=None, pessoal: dict[str, dict] | None=None, exercicio_pessoal: int | None=None) -> dict",
+     "doc": "Acrescenta ``pares`` aos arquivos dos entes avaliados e grava o arquivo de cada grupo.\n\n``rcl`` é a de ``rcl.ler_rcl``; ``despesa``, a de ``despesa_funcao.ler_despesas``; e ``pessoal``, a de\n``pessoal.ler_pessoal``. Devolve o resumo para o ``indice.json``: versão das regras, quantos grupos, quantos\nentes avaliados ficaram com e sem grupo, e o exercício e a quantidade de RCL, de DCA e de RGF usadas.",
+     "linha": 163
+    }
+   ]
+  },
+  {
+   "caminho": "packages/painel/lumen_painel/pessoal.py",
+   "linguagem": "python",
+   "linhas": 258,
+   "doc": "Despesa com pessoal do Poder Executivo em % da RCL ajustada, pelo RGF (ADR-042; LRF, arts. 19, 20, 22 e 59).\n\nA fonte é o RGF do último período do exercício anterior (3º quadrimestre ou 2º semestre), Anexo 1, do Poder\nExecutivo, no SICONFI. Dele saem a despesa total com pessoal (``DespesaComPessoalTotal``), o percentual sobre a\nRCL ajustada e os três limites que o próprio relatório declara: o de alerta (90% do máximo), o prudencial (95%) e\no máximo (em regra, 54% para o Executivo municipal e 49% para o estadual; 48,6% no estado com tribunal de contas\ndos municípios; art. 20).\n\nA consulta precisa do tipo (RGF ou RGF Simplificado, LRF art. 63) e da periodicidade (quadrimestral ou\nsemestral), e quem diz os dois é o extrato de entregas que a conformidade já coletou: o RGF do Executivo no último\nperíodo. O ente sem essa entrega não é consultado e volta depois de ``DIAS_PARA_TENTAR_DE_NOVO`` dias; sem\nextrato, vão as duas combinações comuns, o RGF quadrimestral primeiro e o simplificado semestral depois.\n\nComo a RCL e a despesa por função, o estado é por UF (``pessoal-<UF>.json.gz``), e a coleta vai em lotes até o\n``limite_minutos``.",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "nome_do_arquivo",
+     "assinatura": "def nome_do_arquivo(uf: str) -> str",
+     "doc": "``pessoal-RS.json.gz``.",
+     "linha": 53
+    },
+    {
+     "tipo": "funcao",
+     "nome": "exercicio_padrao",
+     "assinatura": "def exercicio_padrao(hoje: date) -> int",
+     "doc": "O exercício anterior: o RGF do último período sai até 30 de janeiro do ano seguinte (LRF, art. 55, § 2º).",
+     "linha": 58
+    },
+    {
+     "tipo": "funcao",
+     "nome": "consultas_pelo_extrato",
+     "assinatura": "def consultas_pelo_extrato(conformidade: dict | None, exercicio: int, esfera_de: dict[str, str]) -> dict[str, tuple[str, str] | None]",
+     "doc": "Por ente, o tipo e a periodicidade do RGF do Executivo no último período do ``exercicio``, pelo extrato.\n\n``None`` é o ente com o extrato lido e sem essa entrega; o ente cujo extrato do exercício não pôde ser lido\nfica de fora (vai com ``SEM_EXTRATO``). ``esfera_de`` dá a esfera de cada código (M, E ou D).",
+     "linha": 63
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_estado",
+     "assinatura": "def ler_estado(caminho: Path, exercicio: int) -> dict",
+     "doc": "O estado gravado da UF; vazio se não existe ou é de outro exercício.",
+     "linha": 91
+    },
+    {
+     "tipo": "funcao",
+     "nome": "pendentes",
+     "assinatura": "def pendentes(estado: dict, entes: list[Ente], hoje: date) -> list[Ente]",
+     "doc": "Os entes sem o percentual no estado: os nunca tentados e os sem dado tentados há ``DIAS_PARA_TENTAR_DE_NOVO``.",
+     "linha": 102
+    },
+    {
+     "tipo": "funcao",
+     "nome": "pessoal_da_silver",
+     "assinatura": "def pessoal_da_silver(silver: Path) -> dict[str, dict]",
+     "doc": "Por código IBGE, o percentual da despesa total com pessoal sobre a RCL ajustada, os valores e os limites.\n\nA coluna do percentual é a que começa com \"%\"; a dos valores, \"Valor\". Ente sem o percentual fica de fora.",
+     "linha": 113
+    },
+    {
+     "tipo": "classe",
+     "nome": "ResultadoPessoal",
+     "assinatura": "class ResultadoPessoal",
+     "doc": "O que a coleta de uma UF fez: pendentes, consultas, percentuais encontrados, sem dado e os que ficaram.",
+     "linha": 140
+    },
+    {
+     "tipo": "metodo",
+     "nome": "ResultadoPessoal.para_json",
+     "assinatura": "def para_json(self) -> dict",
+     "doc": "Resumo para imprimir na linha de comando.",
+     "linha": 151
+    },
+    {
+     "tipo": "funcao",
+     "nome": "coletar_uf",
+     "assinatura": "def coletar_uf(cfg, uf: str, cadastro: Cadastro, estado: Path | str, exercicio: int, *, coletar=None, normalizar=None, temporario: Path | None=None, hoje: date | None=None, limite_minutos: float | None=None, relogio=time.monotonic) -> ResultadoPessoal",
+     "doc": "Coleta o RGF (Anexo 1, Executivo) dos entes pendentes da UF e grava o estado; ``coletar`` e\n``normalizar`` são os de ``lumen_orquestracao.etapas``.\n\nPrimeira passada com a combinação do extrato (ou a primeira de ``SEM_EXTRATO``); segunda, só para quem ficou\nsem extrato e sem dado, com a outra. Cada passada vai em lotes de ``TAMANHO_DO_LOTE`` por combinação;\npassado o ``limite_minutos``, não começa outro lote, e quem não foi consultado continua pendente.",
+     "linha": 158
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_pessoal",
+     "assinatura": "def ler_pessoal(arquivos, exercicio: int | None=None) -> tuple[int | None, dict[str, dict]]",
+     "doc": "Junta os estados das UFs: o exercício (o mais recente entre os arquivos) e, por ente, o percentual.\n\nSó entram os entes com o percentual do exercício escolhido.",
+     "linha": 244
     }
    ]
   },
@@ -10992,7 +11084,7 @@
   {
    "caminho": "packages/portal/src/lib/paineis.ts",
    "linguagem": "typescript",
-   "linhas": 675,
+   "linhas": 732,
    "doc": "Acesso aos dados dos painéis de contratações e de conformidade (ADR-028).\n\nOs arquivos são gerados por `lumen painel publicar` a partir do PNCP e do\nextrato de entregas do SICONFI e publicados no GitHub Pages do repositório.\nA base é `NEXT_PUBLIC_DADOS_PAINEL`, fixada no build; sem ela, o endereço\npúblico do Pages. Os arquivos mudam uma vez por dia: o navegador revalida\n(`no-cache`) e recebe 304 quando nada mudou.",
    "itens": [
     {
@@ -11185,242 +11277,277 @@
      "linha": 326
     },
     {
+     "tipo": "interface",
+     "nome": "LimitesPessoal",
+     "assinatura": "export interface LimitesPessoal",
+     "doc": "Os limites da despesa com pessoal que o próprio RGF declara, em % da RCL ajustada (LRF, arts. 20, 22 e 59).",
+     "linha": 336
+    },
+    {
+     "tipo": "interface",
+     "nome": "PessoalPares",
+     "assinatura": "export interface PessoalPares",
+     "doc": "A despesa com pessoal do Executivo no RGF do último período do exercício (ADR-042), ao lado do grupo.",
+     "linha": 343
+    },
+    {
      "tipo": "tipo",
      "nome": "ParesConformidade",
      "assinatura": "export type ParesConformidade =",
      "doc": "Bloco `pares` do arquivo do ente: o grupo e a distribuição, ou o motivo de o ente não ter grupo.",
-     "linha": 336
+     "linha": 361
+    },
+    {
+     "tipo": "funcao",
+     "nome": "faixaDoLimite",
+     "assinatura": "export function faixaDoLimite(percentual: number, limites: LimitesPessoal): string | null",
+     "doc": "Onde o percentual fica em relação aos limites declarados no mesmo RGF.",
+     "linha": 367
+    },
+    {
+     "tipo": "funcao",
+     "nome": "periodoDoRgf",
+     "assinatura": "export function periodoDoRgf(periodo: number | null, periodicidade: \"Q\" | \"S\" | null, exercicio: number): string",
+     "doc": "\"RGF do 3º quadrimestre de 2025\" ou \"do 2º semestre\".",
+     "linha": 377
+    },
+    {
+     "tipo": "funcao",
+     "nome": "urlRgfDoEnte",
+     "assinatura": "export function urlRgfDoEnte(codigo: string, exercicio: number, pessoal: NonNullable<PessoalPares[\"ente\"]>): string",
+     "doc": "O RGF do Executivo no SICONFI, Anexo 1 (a fonte da despesa com pessoal).",
+     "linha": 383
     },
     {
      "tipo": "funcao",
      "nome": "posicaoNoGrupo",
      "assinatura": "export function posicaoNoGrupo(valor: number, d: DistribuicaoNoPrazo): \"acima\" | \"abaixo\" | \"central\"",
      "doc": "Onde o valor fica no grupo: acima do terceiro quartil, abaixo do primeiro ou na metade central.",
-     "linha": 341
+     "linha": 393
     },
     {
      "tipo": "funcao",
      "nome": "faixaCentralEmReais",
      "assinatura": "export function faixaCentralEmReais(d: DistribuicaoNoPrazo): string",
      "doc": "A metade central em reais: \"entre R$ 5.500,00 e R$ 12.500,00\".",
-     "linha": 348
+     "linha": 400
     },
     {
      "tipo": "constante",
      "nome": "urlDcaDoEnte",
      "assinatura": "export const urlDcaDoEnte = (codigo: string, exercicio: number) =>",
      "doc": "A DCA do ente no SICONFI, Anexo I-E (a fonte da despesa por função).",
-     "linha": 353
+     "linha": 405
     },
     {
      "tipo": "interface",
      "nome": "EntePares",
      "assinatura": "export interface EntePares",
      "doc": "Um ente do grupo de pares, com a sua fração no prazo.",
-     "linha": 357
+     "linha": 409
     },
     {
      "tipo": "interface",
      "nome": "ConformidadePares",
      "assinatura": "export interface ConformidadePares",
      "doc": "Arquivo `conformidade/pares/<id>.json`: o grupo, a distribuição e os entes que o formam, por nome.",
-     "linha": 370
+     "linha": 424
     },
     {
      "tipo": "funcao",
      "nome": "faixaCentral",
-     "assinatura": "export function faixaCentral(d: DistribuicaoNoPrazo): string",
-     "doc": "A metade central do grupo em palavras: \"entre 80,00% e 100,00%\" (do primeiro ao terceiro quartil).",
-     "linha": 381
+     "assinatura": "export function faixaCentral(d: DistribuicaoNoPrazo, fator = 100): string",
+     "doc": "A metade central do grupo em palavras: \"entre 80,00% e 100,00%\" (do primeiro ao terceiro quartil). `fator`\nleva o valor a pontos percentuais: 100 para frações (o padrão), 1 para valores que já estão em %.",
+     "linha": 438
     },
     {
      "tipo": "interface",
      "nome": "ConformidadeUf",
      "assinatura": "export interface ConformidadeUf",
      "doc": "Arquivo `conformidade/uf/<sigla>.json`: os entes avaliados da UF, por nome.",
-     "linha": 387
+     "linha": 444
     },
     {
      "tipo": "interface",
      "nome": "ConformidadePanorama",
      "assinatura": "export interface ConformidadePanorama",
      "doc": "Arquivo `conformidade/panorama.json`: o Brasil, por obrigação e por UF.",
-     "linha": 398
+     "linha": 455
     },
     {
      "tipo": "funcao",
      "nome": "conferir",
      "assinatura": "export function conferir<T>(bruto: unknown, tipo: string, url: string): T",
      "doc": "Confere versão e tipo de um arquivo dos painéis; o resto do formato é o que o Python grava e testa.",
-     "linha": 412
+     "linha": 469
     },
     {
      "tipo": "funcao",
      "nome": "ler",
      "assinatura": "async function ler<T>(url: string, tipo: string, sinal?: AbortSignal): Promise<T | null>",
      "doc": "Lê e confere um arquivo dos painéis; `null` quando ele não existe.",
-     "linha": 421
+     "linha": 478
     },
     {
      "tipo": "constante",
      "nome": "carregarContratacoesPanorama",
      "assinatura": "export const carregarContratacoesPanorama = (sinal?: AbortSignal) =>",
      "doc": "Panorama de contratações do Brasil.",
-     "linha": 427
+     "linha": 484
     },
     {
      "tipo": "constante",
      "nome": "carregarContratacoesEnte",
      "assinatura": "export const carregarContratacoesEnte = (codigo: string, sinal?: AbortSignal) =>",
      "doc": "Contratações de um ente pelo código IBGE; `null` sem publicação no período.",
-     "linha": 430
+     "linha": 487
     },
     {
      "tipo": "constante",
      "nome": "carregarContratacoesOrgao",
      "assinatura": "export const carregarContratacoesOrgao = (cnpj: string, sinal?: AbortSignal) =>",
      "doc": "Contratações de um órgão pelo CNPJ; `null` sem publicação no período.",
-     "linha": 433
+     "linha": 490
     },
     {
      "tipo": "constante",
      "nome": "carregarConformidadePanorama",
      "assinatura": "export const carregarConformidadePanorama = (sinal?: AbortSignal) =>",
      "doc": "Panorama da conformidade no Brasil.",
-     "linha": 436
+     "linha": 493
     },
     {
      "tipo": "constante",
      "nome": "carregarConformidadeUf",
      "assinatura": "export const carregarConformidadeUf = (uf: string, sinal?: AbortSignal) =>",
      "doc": "Conformidade dos entes de uma UF.",
-     "linha": 439
+     "linha": 496
     },
     {
      "tipo": "constante",
      "nome": "carregarConformidadeEnte",
      "assinatura": "export const carregarConformidadeEnte = (codigo: string, sinal?: AbortSignal) =>",
      "doc": "Conformidade de um ente; `null` se ainda não avaliado.",
-     "linha": 442
+     "linha": 499
     },
     {
      "tipo": "constante",
      "nome": "carregarConformidadePares",
      "assinatura": "export const carregarConformidadePares = (id: string, sinal?: AbortSignal) =>",
      "doc": "Um grupo de pares, com os entes que o formam; `null` se o arquivo não existe.",
-     "linha": 445
+     "linha": 502
     },
     {
      "tipo": "funcao",
      "nome": "carregarEntes",
      "assinatura": "export function carregarEntes(): Promise<EnteBusca[]>",
      "doc": "Cadastro de entes para a busca, baixado uma vez por visita; lista vazia se o arquivo não existe.",
-     "linha": 451
+     "linha": 508
     },
     {
      "tipo": "funcao",
      "nome": "lerEntes",
      "assinatura": "export function lerEntes(bruto: unknown): EnteBusca[]",
      "doc": "Converte o `entes.json` (linhas em lista, na ordem de `colunas`) em objetos.",
-     "linha": 462
+     "linha": 519
     },
     {
      "tipo": "funcao",
      "nome": "carregarOrgaos",
      "assinatura": "export function carregarOrgaos(): Promise<OrgaoBusca[]>",
      "doc": "Órgãos para a busca, com o cadastro de entes, baixados uma vez por visita; lista vazia sem o arquivo.",
-     "linha": 485
+     "linha": 542
     },
     {
      "tipo": "funcao",
      "nome": "siglaDoNome",
      "assinatura": "export function siglaDoNome(nome: string): string",
      "doc": "Sigla pelas iniciais das palavras do nome, sem as de ligação: \"Serviço Autônomo de Água e Esgoto\" → \"saae\".",
-     "linha": 501
+     "linha": 558
     },
     {
      "tipo": "funcao",
      "nome": "lerOrgaos",
      "assinatura": "export function lerOrgaos(bruto: unknown, entes: EnteBusca[]): OrgaoBusca[]",
      "doc": "Converte o `orgaos.json` (linhas em lista, na ordem de `colunas`) em objetos prontos para a busca.",
-     "linha": 510
+     "linha": 567
     },
     {
      "tipo": "funcao",
      "nome": "buscarOrgaos",
      "assinatura": "export function buscarOrgaos(termo: string, orgaos: OrgaoBusca[], limite = 8): OrgaoBusca[]",
      "doc": "Até `limite` órgãos que casam com o termo. Cada palavra do termo precisa começar uma palavra do nome do órgão\nou do ente a que ele pertence, ou, com três letras ou mais, aparecer na sigla do nome (\"saae sorocaba\" acha o\nServiço Autônomo de Água e Esgoto de Sorocaba). Termo só de dígitos busca pelo começo do CNPJ. Quem começa com\no termo vem antes; empate por mais publicações e depois pelo nome.",
-     "linha": 546
+     "linha": 603
     },
     {
      "tipo": "funcao",
      "nome": "descreverOrgao",
      "assinatura": "export function descreverOrgao(o: Pick<OrgaoBusca, \"esfera\" | \"ente\" | \"enteNome\" | \"uf\">): string",
      "doc": "Descrição curta do órgão: \"Órgão municipal · Sorocaba (SP)\", \"Órgão federal\" ou só \"Órgão\".",
-     "linha": 574
+     "linha": 631
     },
     {
      "tipo": "funcao",
      "nome": "tipoDoCodigo",
      "assinatura": "export function tipoDoCodigo(codigo: string): TipoEnte | null",
      "doc": "Tipo do ente pelo código: União (1), DF (53), estado (2 dígitos) ou município (7 dígitos).",
-     "linha": 585
+     "linha": 642
     },
     {
      "tipo": "funcao",
      "nome": "buscarEntes",
      "assinatura": "export function buscarEntes(termo: string, entes: EnteBusca[], limite = 12): EnteBusca[]",
      "doc": "Até `limite` entes cujo nome casa com o termo (sem acento e sem caixa), ou a sigla da UF: União e estados\nprimeiro, depois municípios; quem começa com o termo antes de quem só o contém; empate pelo maior.",
-     "linha": 597
+     "linha": 654
     },
     {
      "tipo": "funcao",
      "nome": "descreverEnte",
      "assinatura": "export function descreverEnte(e: { codigo: string; uf: string | null }): string",
      "doc": "Descrição curta do ente: \"União\", \"Estado\", \"Distrito Federal\" ou \"Município · SP\".",
-     "linha": 618
+     "linha": 675
     },
     {
      "tipo": "funcao",
      "nome": "moeda",
      "assinatura": "export function moeda(valor: number | null | undefined): string",
      "doc": "1234.5 → \"R$ 1.234,50\"; ausente → \"—\".",
-     "linha": 632
+     "linha": 689
     },
     {
      "tipo": "funcao",
      "nome": "moedaCompacta",
      "assinatura": "export function moedaCompacta(valor: number | null | undefined): string",
      "doc": "1500000 → \"R$ 1,5 mi\"; ausente → \"—\".",
-     "linha": 637
+     "linha": 694
     },
     {
      "tipo": "funcao",
      "nome": "mesCurto",
      "assinatura": "export function mesCurto(mes: string): string",
      "doc": "\"2026-03\" → \"mar/2026\".",
-     "linha": 643
+     "linha": 700
     },
     {
      "tipo": "funcao",
      "nome": "dataCurta",
      "assinatura": "export function dataCurta(iso: string | null | undefined): string",
      "doc": "\"2026-10-13\" → \"13/10/2026\"; ISO com hora → só a data, no horário de Brasília.",
-     "linha": 651
+     "linha": 708
     },
     {
      "tipo": "funcao",
      "nome": "topoDoEixo",
      "assinatura": "export function topoDoEixo(maximo: number): number",
      "doc": "Topo \"redondo\" do eixo de um gráfico: 1, 2 ou 5 vezes uma potência de 10, no maior valor ou acima.",
-     "linha": 664
+     "linha": 721
     },
     {
      "tipo": "funcao",
      "nome": "cnpj",
      "assinatura": "export function cnpj(texto: string | null | undefined): string",
      "doc": "CNPJ com máscara: 07854402000100 → 07.854.402/0001-00.",
-     "linha": 672
+     "linha": 729
     }
    ]
   },
@@ -13466,6 +13593,21 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/componentes/paineis/DespesaComPessoal.tsx",
+   "linguagem": "typescript",
+   "linhas": 89,
+   "doc": "Despesa com pessoal do Poder Executivo em % da receita corrente líquida ajustada, pelo RGF do último período do\nexercício (ADR-042; LRF, arts. 19, 20, 22 e 59). Mostra o percentual e os limites que o próprio relatório\ndeclara, ao lado da mediana do grupo de pares. São os números do ente; a verificação cabe ao tribunal de contas.",
+   "itens": [
+    {
+     "tipo": "componente",
+     "nome": "DespesaComPessoal",
+     "assinatura": "export function DespesaComPessoal({ codigo, pessoal, minimo }: { codigo: string; pessoal: PessoalPares | undefined;",
+     "doc": "A seção da despesa com pessoal; não aparece nos arquivos publicados antes dela.",
+     "linha": 21
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/componentes/paineis/DespesaPorFuncao.tsx",
    "linguagem": "typescript",
    "linhas": 122,
@@ -13512,22 +13654,22 @@
   {
    "caminho": "packages/portal/src/componentes/paineis/GrupoPares.tsx",
    "linguagem": "typescript",
-   "linhas": 141,
-   "doc": "Grupo de pares do ente na conformidade (ADR-038; UC-06): quais entes são comparáveis a ele, por quais\ncritérios, e como a fração entregue no prazo se distribui entre eles. É contexto, não avaliação: a tela não\nordena nem classifica o ente pela posição no grupo, e a lista dos entes vem por nome (PUB-07). Com a DCA lida,\nmostra também a despesa por função por habitante ao lado do grupo (ADR-041).",
+   "linhas": 146,
+   "doc": "Grupo de pares do ente na conformidade (ADR-038; UC-06): quais entes são comparáveis a ele, por quais\ncritérios, e como a fração entregue no prazo se distribui entre eles. É contexto, não avaliação: a tela não\nordena nem classifica o ente pela posição no grupo, e a lista dos entes vem por nome (PUB-07). Com a DCA lida,\nmostra também a despesa por função por habitante ao lado do grupo (ADR-041); com o RGF, a despesa com pessoal\ndo Executivo em % da RCL ajustada (ADR-042).",
    "itens": [
     {
      "tipo": "tipo",
      "nome": "Lista",
      "assinatura": "type Lista = { fase: \"fechada\" } | { fase: \"carregando\" } | { fase: \"pronta\"; entes: EntePares[] } | { fase: \"erro\" };",
      "doc": "A lista dos entes do grupo: fechada, carregando, lida ou com erro.",
-     "linha": 29
+     "linha": 31
     },
     {
      "tipo": "componente",
      "nome": "GrupoPares",
      "assinatura": "export function GrupoPares({ codigo, pares, resumo }: { codigo: string; pares: ParesConformidade | undefined;",
      "doc": "A seção do grupo de pares; não aparece nos arquivos publicados antes dele.",
-     "linha": 32
+     "linha": 34
     }
    ]
   },
@@ -14027,7 +14169,7 @@
   {
    "caminho": "packages/normalizacao/testes/test_normalizacao_ibge_siconfi.py",
    "doc": "Normalização das respostas reais do IBGE (localidades e população) e do SICONFI (entes e extrato).",
-   "testes": 16
+   "testes": 17
   },
   {
    "caminho": "packages/normalizacao/testes/test_normalizacao_pncp.py",
@@ -14077,7 +14219,7 @@
   {
    "caminho": "packages/painel/testes/test_cli.py",
    "doc": "``lumen painel``: dias a coletar, divisão em blocos e os comandos de ponta a ponta (ADR-028).",
-   "testes": 9
+   "testes": 10
   },
   {
    "caminho": "packages/painel/testes/test_conformidade.py",
@@ -14107,7 +14249,12 @@
   {
    "caminho": "packages/painel/testes/test_pares.py",
    "doc": "Testes do grupo de pares na conformidade (ADR-038).",
-   "testes": 5
+   "testes": 6
+  },
+  {
+   "caminho": "packages/painel/testes/test_pessoal.py",
+   "doc": "Testes da coleta da despesa com pessoal do Executivo (RGF, Anexo 1) para a Conformidade.",
+   "testes": 3
   },
   {
    "caminho": "packages/painel/testes/test_rcl.py",
@@ -14177,7 +14324,7 @@
   {
    "caminho": "packages/portal/src/lib/__testes__/paineis.test.ts",
    "doc": "",
-   "testes": 16
+   "testes": 18
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/periodo.test.ts",

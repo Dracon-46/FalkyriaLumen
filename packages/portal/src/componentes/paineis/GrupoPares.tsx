@@ -4,7 +4,8 @@
  * Grupo de pares do ente na conformidade (ADR-038; UC-06): quais entes são comparáveis a ele, por quais
  * critérios, e como a fração entregue no prazo se distribui entre eles. É contexto, não avaliação: a tela não
  * ordena nem classifica o ente pela posição no grupo, e a lista dos entes vem por nome (PUB-07). Com a DCA lida,
- * mostra também a despesa por função por habitante ao lado do grupo (ADR-041).
+ * mostra também a despesa por função por habitante ao lado do grupo (ADR-041); com o RGF, a despesa com pessoal
+ * do Executivo em % da RCL ajustada (ADR-042).
  */
 
 import Link from "next/link";
@@ -21,6 +22,7 @@ import {
   type ResumoConformidade,
 } from "@/lib/paineis";
 import { Numero } from "./Comuns";
+import { DespesaComPessoal } from "./DespesaComPessoal";
 import { DespesaPorFuncao } from "./DespesaPorFuncao";
 
 const METODO = "https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-038.md";
@@ -94,6 +96,7 @@ export function GrupoPares({ codigo, pares, resumo }: { codigo: string; pares: P
             .
           </p>
           <DespesaPorFuncao codigo={codigo} despesa={pares.despesa} minimo={pares.grupo.criterios.minimo_entes} />
+          <DespesaComPessoal codigo={codigo} pessoal={pares.pessoal} minimo={pares.grupo.criterios.minimo_entes} />
           {lista.fase === "fechada" && (
             <button type="button" className="botao-link" onClick={abrir}>
               ver os {numero(pares.grupo.entes)} entes do grupo
@@ -112,6 +115,7 @@ export function GrupoPares({ codigo, pares, resumo }: { codigo: string; pares: P
                       <th className="n">População</th>
                       <th className="n">RCL por habitante</th>
                       <th className="n">Despesa por habitante</th>
+                      <th className="n">Pessoal (% RCL)</th>
                       <th className="n">No prazo</th>
                     </tr>
                   </thead>
@@ -125,6 +129,7 @@ export function GrupoPares({ codigo, pares, resumo }: { codigo: string; pares: P
                         <td className="n">{numero(e.populacao)}</td>
                         <td className="n">{e.rcl_por_habitante == null ? "—" : moeda(e.rcl_por_habitante)}</td>
                         <td className="n">{e.despesa_por_habitante == null ? "—" : moeda(e.despesa_por_habitante)}</td>
+                        <td className="n">{e.pessoal_percentual == null ? "—" : percentual(e.pessoal_percentual)}</td>
                         <td className="n">{e.no_prazo === null ? "—" : percentual(e.no_prazo * 100)}</td>
                       </tr>
                     ))}

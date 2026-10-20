@@ -17,6 +17,10 @@ Com os estados da despesa por função (``despesa-funcao-<UF>.json.gz``, a DCA d
 distribuição só sai com ao menos ``MINIMO_ENTES`` entes do grupo com a DCA lida e somando o total; a função que
 o ente não executou conta como zero.
 
+Com os estados da despesa com pessoal (``pessoal-<UF>.json.gz``, o RGF do Executivo), o bloco leva ``pessoal``: o
+percentual da despesa total com pessoal sobre a RCL ajustada e os limites que o próprio RGF declara (ADR-042), ao
+lado dos quartis do mesmo percentual no grupo, com o mesmo mínimo de entes.
+
 É comparação, não sinalização. A posição de um ente no grupo é contexto, como o resto do painel (ADR-028);
 indício só pelas regras do DOC-07, depois da calibração. Os grupos são formados sobre o cadastro do SICONFI,
 com a população do exercício que ele informa.
@@ -116,6 +120,20 @@ def despesa_do_ente(codigo: str, exercicio: int | None, despesa: dict[str, dict]
     return bloco
 
 
+def pessoal_do_ente(codigo: str, exercicio: int | None, pessoal: dict[str, dict], membros: list[str]) -> dict:
+    """O bloco ``pessoal`` do ente: o percentual e os limites do RGF dele e a distribuição do percentual no grupo.
+
+    A distribuição só sai com ao menos ``MINIMO_ENTES`` membros com o percentual.
+    """
+    valores = [pessoal[m]["percentual"] for m in membros if m in pessoal]
+    proprio = pessoal.get(codigo)
+    return {"exercicio": exercicio, "entes_com_rgf": len(valores),
+            "grupo": distribuicao(valores) if len(valores) >= MINIMO_ENTES else None,
+            "ente": None if proprio is None else {
+                c: proprio.get(c) for c in ("percentual", "dtp", "rcl_ajustada", "limites", "demonstrativo",
+                                            "periodo", "periodicidade")}}
+
+
 def formar(cadastro: Cadastro, calculado_em: datetime, rcl: dict[str, dict] | None = None,
            exercicio_rcl: int | None = None) -> ResultadoPares:
     """Os grupos de pares dos entes do cadastro; com a ``rcl`` do ``exercicio_rcl``, na versão que divide por ela."""
@@ -144,14 +162,15 @@ def grupo_para_json(grupo: GrupoPares) -> dict:
 
 def acrescentar(avaliacao: Avaliacao, cadastro: Cadastro, gravar: Callable[[str, Any], Any], *,
                 gerado_em: str, rcl: dict[str, dict] | None = None, exercicio_rcl: int | None = None,
-                despesa: dict[str, dict] | None = None, exercicio_despesa: int | None = None) -> dict:
+                despesa: dict[str, dict] | None = None, exercicio_despesa: int | None = None,
+                pessoal: dict[str, dict] | None = None, exercicio_pessoal: int | None = None) -> dict:
     """Acrescenta ``pares`` aos arquivos dos entes avaliados e grava o arquivo de cada grupo.
 
-    ``rcl`` é a de ``rcl.ler_rcl`` e ``despesa``, a de ``despesa_funcao.ler_despesas``. Devolve o resumo para o
-    ``indice.json``: versão das regras, quantos grupos, quantos entes avaliados ficaram com e sem grupo, e o
-    exercício e a quantidade de RCL e de DCA usadas.
+    ``rcl`` é a de ``rcl.ler_rcl``; ``despesa``, a de ``despesa_funcao.ler_despesas``; e ``pessoal``, a de
+    ``pessoal.ler_pessoal``. Devolve o resumo para o ``indice.json``: versão das regras, quantos grupos, quantos
+    entes avaliados ficaram com e sem grupo, e o exercício e a quantidade de RCL, de DCA e de RGF usadas.
     """
-    rcl, despesa = rcl or {}, despesa or {}
+    rcl, despesa, pessoal = rcl or {}, despesa or {}, pessoal or {}
     resultado = formar(cadastro, datetime.fromisoformat(gerado_em.replace("Z", "+00:00")), rcl, exercicio_rcl)
     por_habitante = rcl_por_habitante(cadastro, rcl)
     despesa_hab = despesa_por_habitante(cadastro, despesa)
@@ -182,6 +201,8 @@ def acrescentar(avaliacao: Avaliacao, cadastro: Cadastro, gravar: Callable[[str,
         if despesa:
             arquivo["pares"]["despesa"] = despesa_do_ente(codigo, exercicio_despesa, despesa, despesa_hab,
                                                           *despesa_grupos[grupo.id])
+        if pessoal:
+            arquivo["pares"]["pessoal"] = pessoal_do_ente(codigo, exercicio_pessoal, pessoal, grupo.membros)
 
     for grupo in resultado.grupos:
         entes = []
@@ -193,6 +214,7 @@ def acrescentar(avaliacao: Avaliacao, cadastro: Cadastro, gravar: Callable[[str,
                           "rcl_por_habitante": round(por_habitante[codigo], 2) if codigo in por_habitante else None,
                           "despesa_por_habitante": (round(despesa_hab[codigo][TOTAL], 2)
                                                     if codigo in despesa_hab else None),
+                          "pessoal_percentual": (pessoal.get(codigo) or {}).get("percentual"),
                           "no_prazo": resumo.get("no_prazo"), "avaliaveis": resumo.get("avaliaveis")})
         entes.sort(key=lambda e: (e["nome"].casefold(), e["codigo"]))
         gravar(f"conformidade/pares/{grupo.id}.json", {
@@ -202,4 +224,5 @@ def acrescentar(avaliacao: Avaliacao, cadastro: Cadastro, gravar: Callable[[str,
     return {"versao": VERSAO_PARES, "grupos": len(resultado.grupos), "entes_com_grupo": com_grupo,
             "entes_sem_grupo": len(avaliacao.entes) - com_grupo, "exercicio_rcl": exercicio_rcl,
             "entes_com_rcl": len(por_habitante), "exercicio_despesa": exercicio_despesa,
-            "entes_com_despesa": len(despesa_hab)}
+            "entes_com_despesa": len(despesa_hab), "exercicio_pessoal": exercicio_pessoal,
+            "entes_com_pessoal": len(pessoal)}

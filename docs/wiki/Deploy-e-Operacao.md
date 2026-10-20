@@ -160,6 +160,10 @@ entregaram a DCA e ainda não a têm (`despesa-funcao-<UF>.json.gz`, ADR-041). S
 e o passo para de começar lote novo depois de 30 minutos (`--limite-minutos 30`). A primeira carga de um grupo
 grande leva duas execuções, e quem não foi consultado fica para a seguinte.
 
+Depois, a despesa com pessoal do Executivo (RGF do último período do exercício anterior, Anexo 1) dos entes que
+ainda não a têm (`pessoal-<UF>.json.gz`, ADR-042), no tipo e na periodicidade que o extrato diz, até 25 minutos
+(`--limite-minutos 25`). Com as quatro coletas, o job `conformidade` tem até 200 minutos.
+
 A situação das coletas fica no portal, em `/operacao/` (link no rodapé; ADR-039): a última execução e
 a última com sucesso de cada fluxo de dados, o volume diário do PNCP contra o usual e a coleta da
 conformidade por UF, com os alertas no topo. O `paineis-site` grava as execuções com `gh run list` antes de

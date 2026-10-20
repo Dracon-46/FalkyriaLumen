@@ -11,7 +11,7 @@ import pytest
 from lumen_ingestao.coleta_http import ErroColeta
 from lumen_orquestracao import cli as cli_lumen
 from lumen_orquestracao import etapas
-from lumen_painel import cli, comum, despesa_funcao
+from lumen_painel import cli, comum, despesa_funcao, pessoal
 from lumen_painel import conformidade as conf
 from lumen_painel import dia as m_dia
 from lumen_painel.cadastro import Cadastro, Ente
@@ -126,6 +126,21 @@ def test_comando_despesa_funcao_divide_o_prazo_entre_as_ufs(tmp_path, monkeypatc
     assert json.loads(capsys.readouterr().out)["ufs"][0]["para_depois"] == 1
 
 
+def test_comando_pessoal(tmp_path, monkeypatch, capsys):
+    comum.gravar_json(tmp_path / "e" / cli.ARQUIVO_CADASTRO,
+                      Cadastro({"43": Ente("43", "Rio Grande do Sul", "RS", "E")}).para_json(), comprimir=True)
+    pedidos = []
+
+    def coletar_uf(cfg, uf, cadastro, estado, exercicio, *, limite_minutos, relogio):
+        pedidos.append((uf, exercicio, limite_minutos))
+        return pessoal.ResultadoPessoal(uf, pendentes=1, consultas=1, encontradas=1)
+
+    monkeypatch.setattr(pessoal, "coletar_uf", coletar_uf)
+    assert cli.main(["pessoal", "--estado", str(tmp_path / "e"), "--ufs", "RS", "--exercicio", "2024"]) == 0
+    assert pedidos == [("RS", 2024, None)]
+    assert json.loads(capsys.readouterr().out)["ufs"][0]["encontradas"] == 1
+
+
 def test_publicar_de_ponta_a_ponta(tmp_path, apoio, capsys):
     estado, site = tmp_path / "e", tmp_path / "site"
     s_pncp = apoio.silver_pncp(tmp_path / "sp")
@@ -138,6 +153,9 @@ def test_publicar_de_ponta_a_ponta(tmp_path, apoio, capsys):
     comum.gravar_json(estado / "despesa-funcao-RS.json.gz", {"versao": 1, "exercicio": 2025, "entes": {
         "4319604": {"total": 1000.0, "funcoes": {"10": 600.0, "12": 400.0}, "coletado_em": "2026-10-14T12:00:00Z"}}},
         comprimir=True)
+    comum.gravar_json(estado / "pessoal-RS.json.gz", {"versao": 1, "exercicio": 2025, "entes": {
+        "4319604": {"percentual": 48.33, "dtp": 1.0, "rcl_ajustada": 2.0, "limites": {"maximo": 54.0},
+                    "demonstrativo": "RGF Simplificado", "periodo": 2, "periodicidade": "S"}}}, comprimir=True)
     comum.gravar_json(estado / cli.ARQUIVO_EXECUCOES, [
         {"workflowName": "paineis", "createdAt": "2026-10-13T12:00:00Z", "updatedAt": "2026-10-13T12:30:00Z",
          "status": "completed", "conclusion": "success", "event": "schedule", "url": "https://exemplo/1"}])
@@ -167,6 +185,9 @@ def test_publicar_de_ponta_a_ponta(tmp_path, apoio, capsys):
     assert [f["codigo"] for f in pares["despesa"]["funcoes"]] == ["total", "10", "12"]
     assert pares["despesa"]["exercicio"] == 2025 and pares["despesa"]["funcoes"][0]["grupo"] is None
     assert indice["conformidade"]["pares"]["entes_com_despesa"] == 1
+    # Despesa com pessoal (ADR-042): o percentual do ente, sem a distribuição do grupo de 1
+    assert pares["pessoal"]["ente"]["percentual"] == 48.33 and pares["pessoal"]["grupo"] is None
+    assert indice["conformidade"]["pares"]["entes_com_pessoal"] == 1
     # Painel operacional (ADR-039): as execuções gravadas pelo fluxo e o volume do dia coletado
     situacao = comum.ler_json(site / "operacao.json")
     assert next(f for f in situacao["fluxos"] if f["fluxo"] == "paineis")["ultimo_sucesso"] == "2026-10-13T12:30:00Z"

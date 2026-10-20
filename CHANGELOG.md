@@ -5,6 +5,19 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Conformidade: despesa com pessoal do Executivo (ADR-042)
+
+- O cartão do grupo de pares mostra a despesa total com pessoal do Poder
+  Executivo em % da RCL ajustada, com os limites de alerta, prudencial e
+  máximo que o próprio RGF declara (LRF, arts. 20, 22 e 59) e a mediana do
+  grupo. A verificação do cumprimento fica com o tribunal de contas, e a tela
+  diz isso.
+- Coleta nova no job `conformidade` de `paineis.yml`: `lumen painel pessoal`,
+  o RGF do último período do exercício anterior (Anexo 1), no tipo e na
+  periodicidade do extrato, até 25 minutos por grupo de UFs
+  (`pessoal-<UF>.json.gz`). O job passa a ter até 200 minutos.
+- Correção: o RGF também não traz o campo `demonstrativo`; ele vem do anexo.
+
 ### Economia: receita da União (ADR-033, adendo)
 
 - Grupo novo "Receita da União": receita corrente, impostos, contribuições

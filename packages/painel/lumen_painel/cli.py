@@ -9,6 +9,7 @@ Exemplos::
     lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026
     lumen painel rcl --estado estado/ --ufs SP,MG                  # RCL do exercício anterior, para os pares
     lumen painel despesa-funcao --estado estado/ --ufs SP,MG --limite-minutos 30   # DCA por função, pares
+    lumen painel pessoal --estado estado/ --ufs SP,MG --limite-minutos 20          # RGF: pessoal em % da RCL
     lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)
     lumen painel anp --estado estado/                               # preço de revenda da ANP por semana
     lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado
@@ -29,7 +30,7 @@ from pathlib import Path
 
 from . import conformidade as conf
 from . import contratacoes as contr
-from . import despesa_funcao, mercado, operacao, pares, rcl, transparencia
+from . import despesa_funcao, mercado, operacao, pares, pessoal, rcl, transparencia
 from .cadastro import Cadastro
 from .comum import gravar_json, hoje_brasilia, instante_utc, ler_json, uf_do_ente
 from .dia import coletar_dia, dias_guardados
@@ -207,6 +208,28 @@ def cmd_despesa_funcao(args) -> int:
     return 1 if any(r["problemas"] for r in resultados) else 0
 
 
+def cmd_pessoal(args) -> int:
+    """Coleta a despesa com pessoal do Executivo (RGF, Anexo 1) dos entes pendentes de cada UF pedida.
+
+    Como em ``despesa-funcao``, o ``--limite-minutos`` vale para todas as UFs juntas. O código é 1 só quando uma
+    coleta foi interrompida.
+    """
+    cfg = _configuracao(args)
+    cadastro = Cadastro.ler(Path(args.estado) / ARQUIVO_CADASTRO)
+    exercicio = args.exercicio or pessoal.exercicio_padrao(hoje_brasilia())
+    inicio, resultados = relogio(), []
+    for uf in _lista(args.ufs):
+        restante = None if args.limite_minutos is None else max(0.0, args.limite_minutos - (relogio() - inicio) / 60)
+        r = pessoal.coletar_uf(cfg, uf, cadastro, Path(args.estado), exercicio, limite_minutos=restante,
+                               relogio=relogio)
+        resultados.append(r.para_json())
+        print(f"{uf}: {r.encontradas} RGF de {r.pendentes} pendente(s), {r.consultas} consulta(s)"
+              + (f", {r.para_depois} para a próxima execução" if r.para_depois else "")
+              + (f"; {'; '.join(r.problemas)}" if r.problemas else ""), file=sys.stderr, flush=True)
+    _imprimir({"exercicio": exercicio, "ufs": resultados})
+    return 1 if any(r["problemas"] for r in resultados) else 0
+
+
 def cmd_transparencia(args) -> int:
     """Lê o ciclo mais recente do PNTP para ``transparencia-pntp.json.gz``; o código é 1 quando falhou."""
     from lumen_orquestracao import etapas
@@ -246,9 +269,11 @@ def cmd_publicar(args) -> int:
     avaliacao = conf.avaliar(estado.glob("conformidade-*.json.gz"), cadastro, hoje=hoje, gerado_em=gerado_em)
     exercicio_rcl, rcl_entes = rcl.ler_rcl(estado.glob("rcl-*.json.gz"))
     exercicio_despesa, despesa_entes = despesa_funcao.ler_despesas(estado.glob("despesa-funcao-*.json.gz"))
+    exercicio_pessoal, pessoal_entes = pessoal.ler_pessoal(estado.glob("pessoal-*.json.gz"))
     grupos = pares.acrescentar(avaliacao, cadastro, site.gravar, gerado_em=gerado_em, rcl=rcl_entes,
                                exercicio_rcl=exercicio_rcl, despesa=despesa_entes,
-                               exercicio_despesa=exercicio_despesa)
+                               exercicio_despesa=exercicio_despesa, pessoal=pessoal_entes,
+                               exercicio_pessoal=exercicio_pessoal)
     for codigo, arquivo in avaliacao.entes.items():
         site.gravar(f"conformidade/ente/{codigo}.json", arquivo)
     for uf in sorted({a["ente"]["uf"] for a in avaliacao.entes.values() if a["ente"]["uf"]}):
@@ -323,6 +348,12 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--exercicio", type=int, help="padrão: o último com a DCA no prazo (o anterior, a partir de maio)")
     c.add_argument("--limite-minutos", type=float, help="não começa lote novo depois deste tempo (todas as UFs)")
 
+    c = sub.add_parser("pessoal", help="despesa com pessoal do Executivo em %% da RCL por UF (RGF, Anexo 1)")
+    c.add_argument("--estado", required=True)
+    c.add_argument("--ufs", required=True, help="siglas separadas por vírgula")
+    c.add_argument("--exercicio", type=int, help="padrão: o anterior")
+    c.add_argument("--limite-minutos", type=float, help="não começa lote novo depois deste tempo (todas as UFs)")
+
     c = sub.add_parser("transparencia", help="portais de transparência dos entes pelo PNTP")
     c.add_argument("--estado", required=True)
 
@@ -339,7 +370,7 @@ def construir_parser() -> argparse.ArgumentParser:
 
 
 COMANDOS = {"cadastro": cmd_cadastro, "contratacoes": cmd_contratacoes, "faltando": cmd_faltando,
-            "conformidade": cmd_conformidade, "rcl": cmd_rcl, "despesa-funcao": cmd_despesa_funcao,
+            "conformidade": cmd_conformidade, "rcl": cmd_rcl, "despesa-funcao": cmd_despesa_funcao, "pessoal": cmd_pessoal,
             "transparencia": cmd_transparencia, "anp": cmd_anp,
             "publicar": cmd_publicar}
 

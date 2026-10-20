@@ -332,10 +332,62 @@ export interface DespesaPares {
   funcoes: LinhaDespesa[];
 }
 
+/** Os limites da despesa com pessoal que o próprio RGF declara, em % da RCL ajustada (LRF, arts. 20, 22 e 59). */
+export interface LimitesPessoal {
+  alerta?: number;
+  prudencial?: number;
+  maximo?: number;
+}
+
+/** A despesa com pessoal do Executivo no RGF do último período do exercício (ADR-042), ao lado do grupo. */
+export interface PessoalPares {
+  exercicio: number | null;
+  /** Entes do grupo com o percentual lido: a base da distribuição. */
+  entes_com_rgf: number;
+  /** Quartis e mediana do percentual no grupo, em pontos percentuais; nulo abaixo do mínimo de entes. */
+  grupo: DistribuicaoNoPrazo | null;
+  ente: {
+    percentual: number;
+    dtp: number | null;
+    rcl_ajustada: number | null;
+    limites: LimitesPessoal;
+    demonstrativo: string | null;
+    periodo: number | null;
+    periodicidade: "Q" | "S" | null;
+  } | null;
+}
+
 /** Bloco `pares` do arquivo do ente: o grupo e a distribuição, ou o motivo de o ente não ter grupo. */
 export type ParesConformidade =
-  | { grupo: GrupoPares; no_prazo: DistribuicaoNoPrazo | null; rcl?: RclEnte | null; despesa?: DespesaPares }
+  | { grupo: GrupoPares; no_prazo: DistribuicaoNoPrazo | null; rcl?: RclEnte | null; despesa?: DespesaPares;
+      pessoal?: PessoalPares }
   | { grupo: null; motivo: string };
+
+/** Onde o percentual fica em relação aos limites declarados no mesmo RGF. */
+export function faixaDoLimite(percentual: number, limites: LimitesPessoal): string | null {
+  const { alerta, prudencial, maximo } = limites;
+  if (maximo === undefined) return null;
+  if (percentual > maximo) return "acima do limite máximo";
+  if (prudencial !== undefined && percentual > prudencial) return "entre o limite prudencial e o máximo";
+  if (alerta !== undefined && percentual > alerta) return "entre o limite de alerta e o prudencial";
+  return alerta === undefined ? "abaixo do limite máximo" : "abaixo do limite de alerta";
+}
+
+/** "RGF do 3º quadrimestre de 2025" ou "do 2º semestre". */
+export function periodoDoRgf(periodo: number | null, periodicidade: "Q" | "S" | null, exercicio: number): string {
+  const nome = periodicidade === "S" ? "semestre" : "quadrimestre";
+  return periodo ? `${periodo}º ${nome} de ${exercicio}` : `${exercicio}`;
+}
+
+/** O RGF do Executivo no SICONFI, Anexo 1 (a fonte da despesa com pessoal). */
+export function urlRgfDoEnte(codigo: string, exercicio: number, pessoal: NonNullable<PessoalPares["ente"]>): string {
+  const p = new URLSearchParams({
+    an_exercicio: String(exercicio), in_periodicidade: pessoal.periodicidade ?? "Q",
+    nr_periodo: String(pessoal.periodo ?? 3), co_tipo_demonstrativo: pessoal.demonstrativo ?? "RGF",
+    no_anexo: "RGF-Anexo 01", co_poder: "E", id_ente: codigo,
+  });
+  return `https://apidatalake.tesouro.gov.br/ords/siconfi/tt/rgf?${p.toString().replace(/\+/g, "%20")}`;
+}
 
 /** Onde o valor fica no grupo: acima do terceiro quartil, abaixo do primeiro ou na metade central. */
 export function posicaoNoGrupo(valor: number, d: DistribuicaoNoPrazo): "acima" | "abaixo" | "central" {
@@ -362,6 +414,8 @@ export interface EntePares {
   rcl_por_habitante?: number | null;
   /** Despesa total da DCA por habitante (ADR-041); ausente nos arquivos anteriores. */
   despesa_por_habitante?: number | null;
+  /** Despesa com pessoal do Executivo em % da RCL ajustada (ADR-042); ausente nos arquivos anteriores. */
+  pessoal_percentual?: number | null;
   no_prazo: number | null;
   avaliaveis: number | null;
 }
@@ -377,9 +431,12 @@ export interface ConformidadePares {
   entes: EntePares[];
 }
 
-/** A metade central do grupo em palavras: "entre 80,00% e 100,00%" (do primeiro ao terceiro quartil). */
-export function faixaCentral(d: DistribuicaoNoPrazo): string {
-  const pct = (x: number) => percentual(x * 100);
+/**
+ * A metade central do grupo em palavras: "entre 80,00% e 100,00%" (do primeiro ao terceiro quartil). `fator`
+ * leva o valor a pontos percentuais: 100 para frações (o padrão), 1 para valores que já estão em %.
+ */
+export function faixaCentral(d: DistribuicaoNoPrazo, fator = 100): string {
+  const pct = (x: number) => percentual(x * fator);
   return d.q1 === d.q3 ? `em ${pct(d.q1)}` : `entre ${pct(d.q1)} e ${pct(d.q3)}`;
 }
 

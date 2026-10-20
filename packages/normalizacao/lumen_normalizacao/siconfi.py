@@ -112,8 +112,9 @@ def _linha_demonstrativo(ctx: Contexto, d: dict) -> list:
     """Converte uma linha do RREO, do RGF ou da DCA em ``LinhaDemonstrativo``.
 
     Ente, exercício, demonstrativo, anexo, coluna, código da conta e conta são obrigatórios. O período é
-    obrigatório no RREO e no RGF e nulo na DCA; o valor, quando vem, precisa ser numérico. A DCA não traz o
-    campo ``demonstrativo``: ele vem do anexo (``DCA-Anexo I-E`` é da DCA).
+    obrigatório no RREO e no RGF e nulo na DCA; o valor, quando vem, precisa ser numérico. A DCA e o RGF não
+    trazem o campo ``demonstrativo``: ele vem do prefixo do anexo (``DCA-Anexo I-E`` é da DCA; ``RGF-Anexo 01``,
+    do RGF, sem dizer se é o simplificado).
     """
     codigo = str(d.get("cod_ibge") or "").strip()
     if not codigo:
@@ -122,8 +123,9 @@ def _linha_demonstrativo(ctx: Contexto, d: dict) -> list:
     if exercicio is None:
         raise RegistroRejeitado("campo obrigatório ausente", "exercicio")
     textos = {c: texto_ou_nulo(d.get(c)) for c in ("demonstrativo", "anexo", "coluna", "cod_conta", "conta")}
-    if textos["demonstrativo"] is None and (textos["anexo"] or "").upper().startswith("DCA"):
-        textos["demonstrativo"] = "DCA"
+    prefixo = (textos["anexo"] or "").split("-")[0].upper()
+    if textos["demonstrativo"] is None and prefixo in ("DCA", "RGF"):
+        textos["demonstrativo"] = prefixo
     for campo, valor in textos.items():
         if valor is None:
             raise RegistroRejeitado("campo obrigatório ausente", campo)

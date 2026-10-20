@@ -10,6 +10,9 @@ import {
   criterioRcl,
   faixaCentral,
   faixaCentralEmReais,
+  faixaDoLimite,
+  periodoDoRgf,
+  urlRgfDoEnte,
   posicaoNoGrupo,
   urlDcaDoEnte,
   descreverOrgao,
@@ -221,6 +224,30 @@ describe("despesa por função no grupo de pares", () => {
     expect(faixaCentralEmReais({ entes: 15, q1: 0, mediana: 0, q3: 0 })).toMatch(/^em R\$\s0,00$/);
     expect(urlDcaDoEnte("4319604", 2025)).toBe(
       "https://apidatalake.tesouro.gov.br/ords/siconfi/tt/dca?an_exercicio=2025&no_anexo=DCA-Anexo%20I-E&id_ente=4319604",
+    );
+  });
+});
+
+describe("despesa com pessoal no grupo de pares", () => {
+  const limites = { alerta: 48.6, prudencial: 51.3, maximo: 54 };
+
+  it("diz onde o percentual fica em relação aos limites do próprio RGF", () => {
+    expect(faixaDoLimite(48.33, limites)).toBe("abaixo do limite de alerta");
+    expect(faixaDoLimite(50, limites)).toBe("entre o limite de alerta e o prudencial");
+    expect(faixaDoLimite(52, limites)).toBe("entre o limite prudencial e o máximo");
+    expect(faixaDoLimite(54.01, limites)).toBe("acima do limite máximo");
+    expect(faixaDoLimite(54, limites)).toBe("entre o limite prudencial e o máximo");
+    expect(faixaDoLimite(40, {})).toBeNull();
+  });
+
+  it("escreve o período, a metade central em % e aponta o RGF do ente", () => {
+    expect(periodoDoRgf(2, "S", 2025)).toBe("2º semestre de 2025");
+    expect(periodoDoRgf(3, "Q", 2025)).toBe("3º quadrimestre de 2025");
+    expect(faixaCentral({ entes: 15, q1: 43.5, mediana: 47, q3: 50.5 }, 1)).toBe("entre 43,50% e 50,50%");
+    expect(urlRgfDoEnte("4319604", 2025, { percentual: 48.33, dtp: null, rcl_ajustada: null, limites,
+      demonstrativo: "RGF Simplificado", periodo: 2, periodicidade: "S" })).toBe(
+      "https://apidatalake.tesouro.gov.br/ords/siconfi/tt/rgf?an_exercicio=2025&in_periodicidade=S&nr_periodo=2" +
+        "&co_tipo_demonstrativo=RGF%20Simplificado&no_anexo=RGF-Anexo%2001&co_poder=E&id_ente=4319604",
     );
   });
 });

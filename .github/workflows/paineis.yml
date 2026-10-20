@@ -21,7 +21,9 @@
 #    Por fim, a despesa por função (DCA, Anexo I-E) dos entes que entregaram
 #    a DCA e ainda não a têm, para a comparação com os pares (ADR-041):
 #    despesa-funcao-<UF>.json.gz, até 30 minutos por grupo de UFs (a primeira
-#    carga de um grupo grande pode levar duas execuções).
+#    carga de um grupo grande pode levar duas execuções). E a despesa com
+#    pessoal do Executivo em % da RCL ajustada (RGF do último período, Anexo
+#    1, ADR-042): pessoal-<UF>.json.gz, até 25 minutos por grupo de UFs.
 # 3. site: monta e publica o site no GitHub Pages (paineis-site.yml).
 #
 # A carga dos meses anteriores, em execuções paralelas, é a de
@@ -131,7 +133,7 @@ jobs:
     if: always() && (inputs.conformidade || github.event_name == 'schedule')
     needs: contratacoes
     runs-on: ubuntu-24.04
-    timeout-minutes: 150
+    timeout-minutes: 200      # extrato, RCL, DCA e RGF: a primeira carga de cada um pesa; depois, só o que falta
     strategy:
       fail-fast: false
       matrix:
@@ -176,6 +178,15 @@ jobs:
           lumen painel despesa-funcao --estado estado --ufs "$UFS" --limite-minutos 30 \
             || echo "::warning::Despesa por função com coleta interrompida (ver o registro)"
           find estado -name 'despesa-funcao-*.json.gz' -print0 | xargs -0 -r gh release upload "$TAG" --clobber
+      - name: Despesa com pessoal do Executivo (RGF, em % da RCL ajustada)
+        if: always()
+        run: |
+          for uf in $(echo "$UFS" | tr ',' ' '); do
+            gh release download "$TAG" -p "pessoal-$uf.json.gz" -D estado --clobber 2>/dev/null || true
+          done
+          lumen painel pessoal --estado estado --ufs "$UFS" --limite-minutos 25 \
+            || echo "::warning::Despesa com pessoal com coleta interrompida (ver o registro)"
+          find estado -name 'pessoal-*.json.gz' -print0 | xargs -0 -r gh release upload "$TAG" --clobber
 
   site:
     needs: [contratacoes, conformidade]

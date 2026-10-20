@@ -133,6 +133,16 @@ def test_dca_anexo_i_e_real_sem_o_campo_demonstrativo(fixture_bytes):
     assert str(saude.valor) == "32108759.99" and saude.populacao_declarada == 21189
 
 
+def test_rgf_anexo01_real_sem_o_campo_demonstrativo(fixture_bytes):
+    # O RGF também não traz "demonstrativo": vem do anexo, sem dizer se é o simplificado
+    r = siconfi.normalizar_demonstrativo(fixture_bytes("siconfi/rgf_anexo01_sao_sepe_2025_s2.json"),
+                                         fonte_id="siconfi_rgf", documento_fonte_id="doc-rgf")
+    assert len(r.registros) == 39 and not r.quarentena
+    assert {(x.demonstrativo, x.periodo, x.periodicidade) for x in r.registros} == {("RGF", 2, "S")}
+    (dtp,) = [x for x in r.registros if x.cod_conta == "DespesaComPessoalTotal" and x.coluna.startswith("%")]
+    assert str(dtp.valor) == "48.33"
+
+
 def test_rreo_anexo02_mesmo_codigo_de_conta_com_contas_diferentes(fixture_bytes):
     r = siconfi.normalizar_demonstrativo(fixture_bytes("siconfi/rreo_anexo02_amostra.json"),
                                          fonte_id="siconfi_rreo", documento_fonte_id="doc-2")

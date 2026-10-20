@@ -155,6 +155,7 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["formar", "Grupos de pares dos entes do cadastro", "Usa lumen_canonico.pares (ADR-038): municípios por porte e região, com recuo para o porte no país abaixo de 15; estados e DF num grupo; população do SICONFI"],
   ["distribuicao", "Quartis e mediana da fração entregue no prazo", "Só entes com obrigação avaliável; quatro casas"],
   ["acrescentar", "Bloco pares no arquivo de cada ente avaliado e o arquivo de cada grupo", "Ente sem grupo leva o motivo, e a tela omite a comparação (UC-06, exceção 5a)"],
+  ["pessoal_do_ente", "Bloco pessoal: o percentual da despesa com pessoal do Executivo e os limites do RGF, com os quartis do percentual no grupo (ADR-042)", "Distribuição só com 15 entes do grupo com o RGF lido"],
   ["despesa_por_habitante, distribuicoes_de_despesa, despesa_do_ente", "Bloco despesa: o total e cada função por habitante do ente, com os quartis do grupo (ADR-041)", "População do cadastro; distribuição só com 15 entes do grupo com a DCA lida e somando o total; função não executada vale zero"],
 ], { monoCols: [0], size: 17 }));
 
@@ -181,6 +182,14 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["ler_despesas", "A despesa de todas as UFs para a publicação", "Só o exercício mais recente entre os arquivos"],
 ], { monoCols: [0], size: 17 }));
 
+body.push(h2("4.11 pessoal.py"));
+body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
+  ["consultas_pelo_extrato", "O tipo (RGF ou simplificado) e a periodicidade do RGF do Executivo no último período, pelo extrato", "Entrega da prefeitura ou do governo; sem ela, o ente não é consultado; sem extrato, vão o RGF quadrimestral e o simplificado semestral"],
+  ["coletar_uf (lumen painel pessoal)", "RGF, Anexo 1, do Poder Executivo, dos entes pendentes da UF", "Lotes de 50 por combinação; --limite-minutos para todas as UFs; ente com combinação não consultada fica pendente; quem não publicou volta depois de 7 dias"],
+  ["pessoal_da_silver", "Percentual da despesa total com pessoal sobre a RCL ajustada, valores e limites declarados", "Coluna que começa com % para os percentuais e Valor para os valores; o tipo exato vem da consulta que achou o dado"],
+  ["ler_pessoal", "O percentual de todas as UFs para a publicação", "Só o exercício mais recente entre os arquivos"],
+], { monoCols: [0], size: 17 }));
+
 // ============================================================ 5. Estado
 
 body.push(h1("5. Estado guardado entre execuções"));
@@ -191,6 +200,7 @@ body.push(table(["Arquivo", "Conteúdo", "Colunas"], [2800, 3000, 3800], [
   ["conformidade-UF.json.gz", "Entregas da LRF de cada ente da UF e a situação da coleta por exercício", "instituicao, entregavel, exercicio, periodo, periodicidade, status, entregue_em"],
   ["cadastro-entes.json.gz", "Cadastro do SICONFI", "nome, uf, esfera, populacao, capital"],
   ["rcl-UF.json.gz", "Receita corrente líquida de cada ente da UF no exercício anterior (RREO, Anexo 03), ou a data da última tentativa sem dado", "por ente: rcl, demonstrativo, coletado_em ou tentado_em"],
+  ["pessoal-UF.json.gz", "Despesa com pessoal do Executivo de cada ente da UF no último período do exercício anterior (RGF, Anexo 1), ou a data da última tentativa sem dado", "por ente: percentual, dtp, rcl_ajustada, limites (alerta, prudencial, maximo), demonstrativo, periodo, periodicidade, coletado_em ou tentado_em"],
   ["despesa-funcao-UF.json.gz", "Despesa liquidada por função de cada ente da UF no último exercício com DCA (Anexo I-E), ou a data da última tentativa sem dado", "por ente: total, funcoes (código da função → valor), coletado_em ou tentado_em"],
 ], { monoCols: [0], size: 17 }));
 body.push(spacer(80));
@@ -286,6 +296,10 @@ body.push(t("Com a DCA do último exercício (ADR-041), o mesmo cartão mostra a
   "diferença (equipamento regional que atende vizinhos, classificação por função que varia, população desatualizada, " +
   "DCA como foi entregue) e liga para a DCA do ente no SICONFI. Sem escore e sem destaque: a marcação é a regra H-01, " +
   "da Fase 2."));
+body.push(t("Com o RGF do último período (ADR-042), o cartão mostra também a despesa total com pessoal do Poder Executivo " +
+  "em % da RCL ajustada, os limites de alerta, prudencial e máximo que o próprio relatório declara (LRF, arts. 20, 22 e " +
+  "59) e de que lado deles o percentual fica, ao lado da mediana e da metade central do grupo. São os números do ente: a " +
+  "verificação do cumprimento cabe ao tribunal de contas, e a tela diz isso."));
 
 // ============================================================ 9. Portal
 
@@ -296,6 +310,7 @@ body.push(table(["Arquivo", "Papel"], [4200, 5400], [
   ["src/componentes/paineis/PainelContratacoes.tsx", "Brasil, ente (?ente=) e órgão (?orgao=); tabelas de modalidades, fornecedores, órgãos, UFs e municípios; publicações recentes com link do PNCP"],
   ["src/componentes/paineis/PainelConformidade.tsx", "Brasil, UF (?uf=) e ente (?ente=); obrigações por exercício, que viram blocos no celular"],
   ["src/componentes/paineis/GrupoPares.tsx", "Grupo de pares do ente: descrição, ressalvas, a fração do ente ao lado da mediana e dos quartis do grupo, e a lista dos entes do grupo, sob demanda e por nome"],
+  ["src/componentes/paineis/DespesaComPessoal.tsx", "Despesa com pessoal do Executivo em % da RCL ajustada, os limites do RGF e a mediana do grupo, com o link do RGF (ADR-042)"],
   ["src/componentes/paineis/DespesaPorFuncao.tsx", "Despesa por função por habitante do ente ao lado da mediana e da metade central do grupo, com as ressalvas e o link da DCA (ADR-041)"],
   ["src/app/contratacoes/page.tsx, src/app/conformidade/page.tsx", "Páginas estáticas que envolvem os painéis em Suspense (leem a URL no navegador)"],
   ["src/app/operacao/page.tsx, src/componentes/paineis/PainelOperacao.tsx, src/lib/operacao.ts", "Situação das coletas (/operacao/, link no rodapé): alertas, fluxos, volume diário do PNCP e coleta da conformidade (ADR-039)"],
@@ -369,7 +384,7 @@ L.buildDoc({
   codigo: "DOC-13",
   titulo: "Painéis de Contratações e Conformidade",
   subtitulo: "O que cada ente publicou no PNCP e as entregas da LRF ao Tesouro, com a fonte de cada número",
-  meta: { versao: "1.5", data: "20 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038, o ADR-039 e o ADR-041",
+  meta: { versao: "1.6", data: "20 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038, o ADR-039, o ADR-041 e o ADR-042",
     verificado: "outubro de 2026" },
   body,
   outFile: path.join(__dirname, "..", "docs", "DOC-13_Paineis.docx"),
