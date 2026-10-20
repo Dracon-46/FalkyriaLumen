@@ -141,12 +141,12 @@ def montar(estado_dados: dict, *, agora: datetime | None = None) -> dict:
             # Conta sobre uma série só (IPCA em 12 meses, no ano): os releases do IBGE são os dela
             doc["releases"] = indicadores[d.usa[0]]["releases"]
         indicadores[d.id] = _publicado(doc, contas[d.id]())
-    def documentar(id_, nome, unidade, definicao, limitacoes, serie, url, coletado_em):
-        doc = {"nome": nome, "grupo": uniao.GRUPO[0], "unidade": unidade, "periodicidade": "anual",
+    def documentar(id_, nome, grupo, fonte, unidade, definicao, limitacoes, serie, url, coletado_em):
+        doc = {"nome": nome, "grupo": grupo, "unidade": unidade, "periodicidade": "anual",
                "definicao": definicao, "leitura": "Média anual no período escolhido, em reais do ano-base: "
                                                   "a inflação entre os anos já está descontada.",
-               "limitacoes": limitacoes, "agregacao": "valor_anual", "fonte": uniao.FONTE,
-               "fonte_primaria": uniao.FONTE, "url": url, "coletado_em": coletado_em, "quebras": []}
+               "limitacoes": limitacoes, "agregacao": "valor_anual", "fonte": fonte,
+               "fonte_primaria": fonte, "url": url, "coletado_em": coletado_em, "quebras": []}
         return _publicado(doc, serie)
 
     indicadores.update(uniao.indicadores(estado_dados, documentar))

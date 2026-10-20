@@ -1,4 +1,5 @@
-"""Despesa da União por função, para comparar os mandatos presidenciais (ADR-033, adendo de 20/10/2026).
+"""Despesa da União por função e receita por origem, para comparar os mandatos presidenciais (ADR-033, adendos
+de 20/10/2026).
 
 A fonte é o RREO da União do 6º bimestre, Anexo 2 (despesa por função e subfunção), no SICONFI (``id_ente=1``),
 de 2015 em diante, o primeiro exercício que o SICONFI tem. Vale a despesa liquidada no ano, sem as
@@ -11,9 +12,14 @@ intraorçamentárias:
   são as 28 da classificação funcional (Portaria MOG 42/1999), e as primeiras linhas delas somam o total. Em
   2015 e em 2025 a soma confere com o total ao centavo.
 
+A receita vem do mesmo RREO, Anexo 1 (Balanço Orçamentário), coluna ``Até o Bimestre (c)`` (a receita realizada no
+ano), pelos códigos de conta, que são os mesmos de 2015 a 2025. O bloco das intraorçamentárias tem códigos próprios
+(com ``Intra``) e fica de fora. As partes da receita corrente somam o total ao centavo em 2015, 2019 e 2025.
+
 Na publicação, os valores vão em bilhões de reais do último ano com o IPCA completo, corrigidos pelo IPCA médio
-de cada ano. Comparar dois mandatos mostra a média anual em cada um. Mostra o que foi gasto, não o que causou a
-diferença: boa parte da despesa (previdência, juros, transferências) vem de regras anteriores ao governo.
+de cada ano. Comparar dois mandatos mostra a média anual em cada um. Mostra o que foi gasto e arrecadado, não o
+que causou a diferença: boa parte da despesa (previdência, juros, transferências) e da receita (impostos e
+contribuições) vem de regras anteriores ao governo e da atividade econômica.
 """
 
 from __future__ import annotations
@@ -31,9 +37,12 @@ from .coleta import ARQUIVO_ESTADO, SerieIlegivel, ler_estado
 
 FONTE_ID = "siconfi_rreo"
 FONTE = "Tesouro Nacional, RREO da União (6º bimestre, Anexo 2), pelo SICONFI"
+FONTE_RECEITAS = "Tesouro Nacional, RREO da União (6º bimestre, Anexo 1), pelo SICONFI"
 PRIMEIRO_ANO = 2015
 ANOS_A_RECONFERIR = 2   # o RREO pode ser retificado: os dois últimos anos são lidos de novo a cada coleta
 GRUPO = ("despesa_uniao", "Despesa da União")
+GRUPO_RECEITAS = ("receita_uniao", "Receita da União")
+COLUNA_RECEITA = "Até o Bimestre (c)"
 
 # As 28 funções da classificação funcional (Portaria MOG 42/1999), como o RREO as escreve
 FUNCOES_DA_CLASSIFICACAO = (
@@ -57,12 +66,40 @@ MOSTRADAS = (
      "Benefícios assistenciais (BPC) e programas de transferência de renda, entre outros."),
     ("despesa_uniao_defesa", "Defesa nacional", "Defesa Nacional", "Forças Armadas."),
 )
+# As receitas que vão para o portal: id, nome, código da conta no Anexo 1 e o que entra nela
+RECEITAS = (
+    ("receita_uniao_corrente", "Receita corrente da União", "ReceitasCorrentes",
+     "Impostos, contribuições, receita patrimonial e de serviços, entre outras, arrecadadas no ano, sem as "
+     "intraorçamentárias. Inclui o que a União repassa a estados e municípios."),
+    ("receita_uniao_impostos", "Impostos", "Impostos",
+     "Imposto de renda, IPI, IOF, imposto de importação e ITR, entre outros. Parte vai a estados e municípios "
+     "pelos fundos de participação."),
+    ("receita_uniao_contribuicoes", "Contribuições sociais", "ContribuicoesSociais",
+     "Contribuição previdenciária, COFINS, CSLL e PIS/PASEP, entre outras."),
+    ("receita_uniao_patrimonial", "Receita patrimonial", "ReceitaPatrimonial",
+     "Royalties e participações do petróleo e da mineração, dividendos de estatais e juros, entre outras."),
+    ("receita_uniao_credito", "Operações de crédito", "ReceitasDeOperacoesDeCredito",
+     "Títulos emitidos e empréstimos contraídos no ano, fora os usados para refinanciar a dívida (o "
+     "refinanciamento vem em linha separada no RREO)."),
+)
+# As partes da receita corrente, que somam o total (as receitas a classificar não existiam em 2015)
+PARTES_DA_CORRENTE = ("ReceitaTributaria", "ReceitaDeContribuicoes", "ReceitaPatrimonial", "ReceitaAgropecuaria",
+                      "ReceitaIndustrial", "ReceitaDeServicos", "TransferenciasCorrentes", "OutrasReceitasCorrentes",
+                      "ReceitasCorrentesAClassificar")
 
 
-def url_rreo_uniao(ano: int) -> str:
-    """O RREO da União do 6º bimestre do ``ano``, Anexo 2, no SICONFI."""
+def url_rreo_uniao(ano: int, anexo: str = "02") -> str:
+    """O RREO da União do 6º bimestre do ``ano``, no SICONFI: o Anexo 2 (despesa por função) ou o 1 (receitas)."""
     return ("https://apidatalake.tesouro.gov.br/ords/siconfi/tt/rreo?an_exercicio="
-            f"{ano}&nr_periodo=6&co_tipo_demonstrativo=RREO&no_anexo=RREO-Anexo%2002&id_ente=1")
+            f"{ano}&nr_periodo=6&co_tipo_demonstrativo=RREO&no_anexo=RREO-Anexo%20{anexo}&id_ente=1")
+
+
+def _itens(conteudo: bytes) -> list[dict]:
+    """A lista ``items`` da resposta do SICONFI; levanta ``SerieIlegivel``."""
+    try:
+        return json.loads(conteudo)["items"]
+    except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError) as erro:
+        raise SerieIlegivel(f"RREO da União ilegível: {conteudo[:80]!r}") from erro
 
 
 def ler_despesas(conteudo: bytes) -> dict[str, float]:
@@ -70,10 +107,7 @@ def ler_despesas(conteudo: bytes) -> dict[str, float]:
 
     Confere que as 28 funções somam o total (diferença acima de 0,1% é erro de leitura).
     """
-    try:
-        itens = json.loads(conteudo)["items"]
-    except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError) as erro:
-        raise SerieIlegivel(f"RREO da União ilegível: {conteudo[:80]!r}") from erro
+    itens = _itens(conteudo)
     colunas = {i.get("coluna") for i in itens}
     coluna = next((c for c in colunas if c and "(d)" in c and ("LIQUIDADAS" in c.upper() or c.startswith("Até o Bimestre"))),
                   None)
@@ -96,23 +130,47 @@ def ler_despesas(conteudo: bytes) -> dict[str, float]:
     return {i: (total if funcao is None else funcoes.get(funcao, 0.0)) for i, _, funcao, _ in MOSTRADAS}
 
 
+def ler_receitas(conteudo: bytes) -> dict[str, float]:
+    """Por id de ``RECEITAS``, a receita realizada no ano, em reais da época; levanta ``SerieIlegivel``.
+
+    Confere que as partes da receita corrente somam o total (diferença acima de 0,1% é erro de leitura).
+    """
+    valores: dict[str, float] = {}
+    for item in _itens(conteudo):
+        conta = item.get("cod_conta")
+        if item.get("coluna") == COLUNA_RECEITA and conta not in valores and item.get("valor") is not None:
+            valores[conta] = float(item["valor"])
+    faltam = [c for _, _, c, _ in RECEITAS if c not in valores]
+    if faltam:
+        raise SerieIlegivel(f"RREO da União sem as contas {faltam} na coluna {COLUNA_RECEITA!r}")
+    soma, corrente = sum(valores.get(c, 0.0) for c in PARTES_DA_CORRENTE), valores["ReceitasCorrentes"]
+    if abs(soma - corrente) > abs(corrente) * 0.001:
+        raise SerieIlegivel(f"as partes da receita corrente somam {soma:.2f} e o total é {corrente:.2f}")
+    return {i: valores[c] for i, _, c, _ in RECEITAS}
+
+
 def coletar(cliente: ClienteHttp, estado: Path | str, *, ano_corrente: int | None = None,
-            agora: datetime | None = None) -> dict:
-    """Lê os anos que faltam no estado e os ``ANOS_A_RECONFERIR`` mais recentes; o ano que falha mantém o que havia."""
+            agora: datetime | None = None, receitas: bool = False) -> dict:
+    """Lê os anos que faltam no estado e os ``ANOS_A_RECONFERIR`` mais recentes; o ano que falha mantém o que havia.
+
+    A despesa por função (Anexo 2) vai em ``despesas_uniao``; com ``receitas``, a receita (Anexo 1), em
+    ``receitas_uniao``.
+    """
+    chave, anexo, ler = ("receitas_uniao", "01", ler_receitas) if receitas else ("despesas_uniao", "02", ler_despesas)
     dados = ler_estado(estado)
     agora = agora or datetime.now(timezone.utc)
     ultimo = (ano_corrente or agora.year) - 1
-    guardados = dados.setdefault("despesas_uniao", {})
+    guardados = dados.setdefault(chave, {})
     anos = [a for a in range(PRIMEIRO_ANO, ultimo + 1)
             if str(a) not in guardados or a > ultimo - ANOS_A_RECONFERIR]
     lidos, falhas = [], {}
     for ano in anos:
-        url = url_rreo_uniao(ano)
+        url = url_rreo_uniao(ano, anexo)
         try:
             artefato = cliente.obter(url, {"Accept": "application/json"})
             if artefato.status_http != 200:
                 raise SerieIlegivel(f"{url} respondeu {artefato.status_http}")
-            valores = ler_despesas(artefato.conteudo)
+            valores = ler(artefato.conteudo)
         except (ErroColeta, ValueError) as erro:
             falhas[str(ano)] = f"{type(erro).__name__}: {erro}"
             continue
@@ -133,26 +191,38 @@ def media_anual_do_ipca(observacoes: Iterable[tuple[str, str]]) -> dict[str, flo
 
 
 def indicadores(estado_dados: dict, documentar) -> dict[str, dict]:
-    """Os indicadores da despesa da União para ``economia/indicadores.json``, em bilhões de reais do ano-base.
+    """Os indicadores da despesa e da receita da União para ``economia/indicadores.json``, em bilhões de reais do
+    ano-base.
 
-    ``documentar(id, nome, unidade, definicao, limitacoes, serie)`` monta o indicador no formato do arquivo.
-    Sem IPCA para corrigir, a série sai vazia.
+    ``documentar(id, nome, grupo, fonte, unidade, definicao, limitacoes, serie, url, coletado_em)`` monta o
+    indicador no formato do arquivo. Sem IPCA para corrigir, a série sai vazia.
     """
     medias = media_anual_do_ipca((estado_dados.get("series", {}).get("433") or {}).get("observacoes") or [])
     base = max(medias) if medias else None
-    guardados = estado_dados.get("despesas_uniao") or {}
+    unidade = f"R$ bilhões de {base}" if base else "R$ bilhões"
+    correcao = f"corrigida pelo IPCA médio de cada ano para reais de {base}."
+    blocos = (
+        ("despesas_uniao", "02", GRUPO[0], FONTE, [(i, n, d) for i, n, _, d in MOSTRADAS],
+         [f"Despesa liquidada no ano pelo RREO da União, de {PRIMEIRO_ANO} em diante (antes, o SICONFI não tem); "
+          + correcao,
+          "Boa parte da despesa segue regras de antes do governo (previdência, juros, transferências "
+          "obrigatórias); a comparação mostra quanto foi gasto, não o que cada governo decidiu."]),
+        ("receitas_uniao", "01", GRUPO_RECEITAS[0], FONTE_RECEITAS, [(i, n, d) for i, n, _, d in RECEITAS],
+         [f"Receita realizada no ano pelo RREO da União, de {PRIMEIRO_ANO} em diante (antes, o SICONFI não tem); "
+          + correcao,
+          "A arrecadação acompanha a atividade econômica e as leis tributárias, muitas de antes do governo; a "
+          "comparação mostra quanto entrou, não o que cada governo decidiu."]),
+    )
     saida = {}
-    for id_, nome, _, definicao in MOSTRADAS:
-        serie = {}
-        for ano, registro in sorted(guardados.items()):
-            if base and ano in medias:
-                serie[ano] = round(registro["valores"][id_] * medias[base] / medias[ano] / 1e9, 2)
-        saida[id_] = documentar(
-            id_, nome, f"R$ bilhões de {base}" if base else "R$ bilhões", definicao,
-            [f"Despesa liquidada no ano pelo RREO da União, de {PRIMEIRO_ANO} em diante (antes, o SICONFI não tem); "
-             f"corrigida pelo IPCA médio de cada ano para reais de {base}.",
-             "Boa parte da despesa segue regras de antes do governo (previdência, juros, transferências "
-             "obrigatórias); a comparação mostra quanto foi gasto, não o que cada governo decidiu."],
-            serie, url_rreo_uniao(int(max(guardados))) if guardados else url_rreo_uniao(PRIMEIRO_ANO),
-            max((r["coletado_em"] for r in guardados.values()), default=None))
+    for chave, anexo, grupo, fonte, mostradas, limitacoes in blocos:
+        guardados = estado_dados.get(chave) or {}
+        url = url_rreo_uniao(int(max(guardados)) if guardados else PRIMEIRO_ANO, anexo)
+        coletado_em = max((r["coletado_em"] for r in guardados.values()), default=None)
+        for id_, nome, definicao in mostradas:
+            serie = {}
+            for ano, registro in sorted(guardados.items()):
+                if base and ano in medias:
+                    serie[ano] = round(registro["valores"][id_] * medias[base] / medias[ano] / 1e9, 2)
+            saida[id_] = documentar(id_, nome, grupo, fonte, unidade, definicao, limitacoes, serie, url,
+                                    coletado_em)
     return saida

@@ -232,7 +232,8 @@ def test_arquivo_do_portal(tmp_path):
     assert feed["versao"] == 1 and feed["tipo"] == "economia"
     assert [g["id"] for g in feed["grupos"]] == [g for g, _ in GRUPOS]
     ind = feed["indicadores"]
-    assert set(ind) == {s.id for s in SERIES} | {d.id for d in DERIVADOS} | {i for i, *_ in uniao.MOSTRADAS}
+    assert set(ind) == ({s.id for s in SERIES} | {d.id for d in DERIVADOS} | {i for i, *_ in uniao.MOSTRADAS}
+                        | {i for i, *_ in uniao.RECEITAS})
     assert ind["ipca"]["codigo_sgs"] == 433 and ind["ipca"]["url"].endswith("sgs.433/dados?formato=json")
     assert ind["ipca"]["ultimo"] == {"periodo": "2025-12", "valor": 0.33}
     # A Selic de dezembro estava em curso na coleta (10/12): fica de fora, marcada

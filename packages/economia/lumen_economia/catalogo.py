@@ -114,6 +114,7 @@ GRUPOS = (
     ("atividade", "Atividade econômica"),
     ("trabalho", "Trabalho"),
     ("populacao", "População"),
+    ("receita_uniao", "Receita da União"),
     ("despesa_uniao", "Despesa da União"),
 )
 

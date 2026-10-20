@@ -350,3 +350,12 @@ def test_rreo_da_uniao_mantem_as_funcoes():
     from lumen_economia.uniao import ler_despesas, url_rreo_uniao
     valores = ler_despesas(_obter_bytes(url_rreo_uniao(_date.today().year - 1)))
     assert valores["despesa_uniao_total"] > 1e12 and valores["despesa_uniao_saude"] > 0
+
+
+def test_rreo_da_uniao_mantem_as_receitas():
+    """O RREO da União do ano passado (Anexo 1) tem as contas da receita, e as partes somam a receita corrente."""
+    from datetime import date as _date
+
+    from lumen_economia.uniao import ler_receitas, url_rreo_uniao
+    valores = ler_receitas(_obter_bytes(url_rreo_uniao(_date.today().year - 1, "01")))
+    assert valores["receita_uniao_corrente"] > 1e12 and valores["receita_uniao_impostos"] > 0

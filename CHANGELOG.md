@@ -5,6 +5,14 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Economia: receita da União (ADR-033, adendo)
+
+- Grupo novo "Receita da União": receita corrente, impostos, contribuições
+  sociais, receita patrimonial e operações de crédito (sem o refinanciamento).
+  - Fonte: o RREO da União (6º bimestre, Anexo 1) de 2015 em diante, pelos
+    códigos de conta, em bilhões de reais do último ano (IPCA médio).
+  - Conferência: as partes da receita corrente somam o total.
+
 ### Conformidade: despesa por função ao lado do grupo de pares (ADR-041)
 
 - O cartão do grupo de pares mostra quanto o ente gastou por habitante em cada

@@ -81,6 +81,12 @@ painéis ([ADR-033](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/ad
 |---|---|
 | `https://apidatalake.tesouro.gov.br/ords/siconfi/tt/rreo?an_exercicio=<ano>&nr_periodo=6&co_tipo_demonstrativo=RREO&no_anexo=RREO-Anexo%2002&id_ente=1` | RREO da União, despesa liquidada por função, de 2015 em diante; a coluna é `Até o Bimestre (d)` em 2015 e `DESPESAS LIQUIDADAS ATÉ O BIMESTRE (d)` depois, e o bloco das intraorçamentárias fica de fora (adendo de 20/10/2026 do ADR-033) |
 
+### SICONFI — receita da União (Economia)
+
+| Endereço | Uso |
+|---|---|
+| `https://apidatalake.tesouro.gov.br/ords/siconfi/tt/rreo?an_exercicio=<ano>&nr_periodo=6&co_tipo_demonstrativo=RREO&no_anexo=RREO-Anexo%2001&id_ente=1` | RREO da União, Balanço Orçamentário, receita realizada (`Até o Bimestre (c)`) de 2015 em diante, pelos códigos de conta (`ReceitasCorrentes`, `Impostos`, `ContribuicoesSociais`, `ReceitaPatrimonial`, `ReceitasDeOperacoesDeCredito`); o bloco das intraorçamentárias tem códigos próprios e fica de fora |
+
 ### IBGE — SIDRA (séries da Economia que o SGS não tem conferidas)
 
 | Endereço | Uso |

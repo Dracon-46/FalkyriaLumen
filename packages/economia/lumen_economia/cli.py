@@ -41,8 +41,8 @@ def _anos(texto: str) -> list[int]:
 def cmd_coletar(args) -> int:
     """Baixa as séries pedidas (ou todas) e os releases do IBGE delas, e imprime o resumo.
 
-    Sem ``--series``, também a despesa da União por função (RREO, ``uniao.py``). Falha nos releases sai no
-    resumo, mas não muda o código de saída; nas séries e na despesa da União, muda.
+    Sem ``--series``, também a despesa da União por função e a receita dela (RREO, ``uniao.py``). Falha nos
+    releases sai no resumo, mas não muda o código de saída; nas séries e no RREO da União, muda.
     """
     pedidas = SERIES
     if args.series:
@@ -60,9 +60,12 @@ def cmd_coletar(args) -> int:
     releases = coleta.coletar_releases(_cliente(args, coleta.FONTE_RELEASES), args.estado, pedidas)
     saida = {**resumo.para_json(), "releases": releases}
     if not args.series:
-        saida["despesas_uniao"] = uniao.coletar(_cliente(args, uniao.FONTE_ID), args.estado)
+        cliente = _cliente(args, uniao.FONTE_ID)
+        saida["despesas_uniao"] = uniao.coletar(cliente, args.estado)
+        saida["receitas_uniao"] = uniao.coletar(cliente, args.estado, receitas=True)
     print(json.dumps(saida, ensure_ascii=False, indent=2))
-    return 1 if resumo.falhas or (saida.get("despesas_uniao") or {}).get("falhas") else 0
+    falhou_uniao = any((saida.get(c) or {}).get("falhas") for c in ("despesas_uniao", "receitas_uniao"))
+    return 1 if resumo.falhas or falhou_uniao else 0
 
 
 def cmd_estatais(args) -> int:

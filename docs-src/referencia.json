@@ -1015,7 +1015,7 @@
   {
    "caminho": "packages/economia/lumen_economia/catalogo.py",
    "linguagem": "python",
-   "linhas": 258,
+   "linhas": 259,
    "doc": "Catálogo dos indicadores da área Economia e Contas Públicas.\n\nCada série tem o código no SGS do Banco Central e o nome oficial, conferido no catálogo de dados abertos do\nBC (``dadosabertos.bcb.gov.br``) ou, para as séries que o IBGE produz e o BC replica, na tabela do SIDRA de\nonde vêm. Os derivados são contas sobre as séries, com a conta escrita em ``definicao``.\n\nRegras que valem para todos (ADR-033):\n\n- **Ausente não é zero.** Mês sem observação fica fora da série; um acumulado que precisa de 12 meses só\n  existe quando os 12 estão lá.\n- **Unidade e conceito explícitos.** Dívida bruta do governo geral e dívida líquida do setor público são\n  medidas diferentes; percentual do PIB, percentual ao mês e reais correntes não se misturam.\n- **O sinal da NFSP.** Na necessidade de financiamento do setor público, valor positivo é déficit e valor\n  negativo é superávit.\n\n``agregacao`` diz como o indicador se resume num período escolhido no portal: ``variacao_mensal`` (taxa do\nmês, que se acumula: IPCA, INPC, Selic do mês), ``variacao_anual`` (taxa do ano, que também se acumula: PIB\nreal) e ``nivel`` (um estado num momento, comparado do início ao fim do período: dívida, resultado em 12\nmeses, índices).\n\n**Espelho.** O SGS fica atrás de um firewall que às vezes recusa as requisições vindas de servidores em nuvem\n(em 18/10/2026 recusou as 11 séries no fluxo diário). Para as séries que o Ipeadata (Ipea) republica com os\nmesmos valores, ``espelho`` é o código lá: a coleta usa o espelho só quando o SGS falha, e diz que usou. Cada\nespelho foi conferido valor a valor contra o SGS (2024 e 2025; o PIB real, de 2015 a 2025, com as duas casas\ndo SGS) em 19/10/2026, e o da desocupação, de março de 2012 a agosto de 2026, em 20/10/2026; os que divergem (o Ipeadata guarda outra revisão do PIB mensal e do IBC-Br, e não\ntem a dívida bruta nem a líquida total) ficam sem espelho.",
    "itens": [
     {
@@ -1079,14 +1079,14 @@
      "nome": "series_por_id",
      "assinatura": "def series_por_id() -> dict[str, Serie]",
      "doc": "As séries do catálogo pelo identificador.",
-     "linha": 255
+     "linha": 256
     }
    ]
   },
   {
    "caminho": "packages/economia/lumen_economia/cli.py",
    "linguagem": "python",
-   "linhas": 103,
+   "linhas": 106,
    "doc": "Linha de comando da área Economia e Contas Públicas.\n\n    lumen economia coletar --estado DIR [--series ipca,selic_mes]\n    lumen economia estatais --estado DIR [--anos 2021-2025]\n    lumen economia publicar --estado DIR --saida SITE\n\n``coletar`` baixa as séries do SGS do Banco Central para ``DIR/economia-sgs.json.gz`` (o estado guardado\ncom o dos painéis). ``estatais`` lê o cadastro, o controle (FRE) e as demonstrações (DFP) das estatais com\nações na bolsa nos dados abertos da CVM para ``DIR/economia-cvm.json.gz`` (ADR-034). ``publicar`` monta\n``SITE/economia/indicadores.json`` e, se houver o estado das estatais, ``SITE/economia/estatais.json``. As\nestatais federais de capital fechado vêm dos dados abertos da SEST, no mesmo comando (``economia-sest.json.gz``). O\ncódigo de saída de ``coletar`` e de ``estatais`` é 1 quando algo falhou; o resto é gravado mesmo assim.",
    "itens": [
     {
@@ -1107,7 +1107,7 @@
      "tipo": "funcao",
      "nome": "cmd_coletar",
      "assinatura": "def cmd_coletar(args) -> int",
-     "doc": "Baixa as séries pedidas (ou todas) e os releases do IBGE delas, e imprime o resumo.\n\nSem ``--series``, também a despesa da União por função (RREO, ``uniao.py``). Falha nos releases sai no\nresumo, mas não muda o código de saída; nas séries e na despesa da União, muda.",
+     "doc": "Baixa as séries pedidas (ou todas) e os releases do IBGE delas, e imprime o resumo.\n\nSem ``--series``, também a despesa da União por função e a receita dela (RREO, ``uniao.py``). Falha nos\nreleases sai no resumo, mas não muda o código de saída; nas séries e no RREO da União, muda.",
      "linha": 41
     },
     {
@@ -1115,21 +1115,21 @@
      "nome": "cmd_estatais",
      "assinatura": "def cmd_estatais(args) -> int",
      "doc": "Lê cadastro, FRE e DFP da CVM para o estado das estatais e imprime o resumo.",
-     "linha": 68
+     "linha": 71
     },
     {
      "tipo": "funcao",
      "nome": "cmd_publicar",
      "assinatura": "def cmd_publicar(args) -> int",
      "doc": "Monta o arquivo dos indicadores e, se houver o estado das estatais, o das estatais.",
-     "linha": 77
+     "linha": 80
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada de ``lumen economia`` e de ``python -m lumen_economia``.",
-     "linha": 86
+     "linha": 89
     }
    ]
   },
@@ -1708,43 +1708,57 @@
   {
    "caminho": "packages/economia/lumen_economia/uniao.py",
    "linguagem": "python",
-   "linhas": 159,
-   "doc": "Despesa da União por função, para comparar os mandatos presidenciais (ADR-033, adendo de 20/10/2026).\n\nA fonte é o RREO da União do 6º bimestre, Anexo 2 (despesa por função e subfunção), no SICONFI (``id_ente=1``),\nde 2015 em diante, o primeiro exercício que o SICONFI tem. Vale a despesa liquidada no ano, sem as\nintraorçamentárias:\n\n- **Coluna**: ``Até o Bimestre (d)`` em 2015 e ``DESPESAS LIQUIDADAS ATÉ O BIMESTRE (d)`` depois.\n- **Bloco**: a partir de 2016, o anexo repete as funções num bloco das intraorçamentárias; vale o bloco cujo\n  rótulo diz \"Exceto\" (em 2015, o rótulo vem nulo e há um bloco só).\n- **Funções e subfunções**: o anexo põe funções e subfunções na mesma lista, sem marcar qual é qual. As funções\n  são as 28 da classificação funcional (Portaria MOG 42/1999), e as primeiras linhas delas somam o total. Em\n  2015 e em 2025 a soma confere com o total ao centavo.\n\nNa publicação, os valores vão em bilhões de reais do último ano com o IPCA completo, corrigidos pelo IPCA médio\nde cada ano. Comparar dois mandatos mostra a média anual em cada um. Mostra o que foi gasto, não o que causou a\ndiferença: boa parte da despesa (previdência, juros, transferências) vem de regras anteriores ao governo.",
+   "linhas": 229,
+   "doc": "Despesa da União por função e receita por origem, para comparar os mandatos presidenciais (ADR-033, adendos\nde 20/10/2026).\n\nA fonte é o RREO da União do 6º bimestre, Anexo 2 (despesa por função e subfunção), no SICONFI (``id_ente=1``),\nde 2015 em diante, o primeiro exercício que o SICONFI tem. Vale a despesa liquidada no ano, sem as\nintraorçamentárias:\n\n- **Coluna**: ``Até o Bimestre (d)`` em 2015 e ``DESPESAS LIQUIDADAS ATÉ O BIMESTRE (d)`` depois.\n- **Bloco**: a partir de 2016, o anexo repete as funções num bloco das intraorçamentárias; vale o bloco cujo\n  rótulo diz \"Exceto\" (em 2015, o rótulo vem nulo e há um bloco só).\n- **Funções e subfunções**: o anexo põe funções e subfunções na mesma lista, sem marcar qual é qual. As funções\n  são as 28 da classificação funcional (Portaria MOG 42/1999), e as primeiras linhas delas somam o total. Em\n  2015 e em 2025 a soma confere com o total ao centavo.\n\nA receita vem do mesmo RREO, Anexo 1 (Balanço Orçamentário), coluna ``Até o Bimestre (c)`` (a receita realizada no\nano), pelos códigos de conta, que são os mesmos de 2015 a 2025. O bloco das intraorçamentárias tem códigos próprios\n(com ``Intra``) e fica de fora. As partes da receita corrente somam o total ao centavo em 2015, 2019 e 2025.\n\nNa publicação, os valores vão em bilhões de reais do último ano com o IPCA completo, corrigidos pelo IPCA médio\nde cada ano. Comparar dois mandatos mostra a média anual em cada um. Mostra o que foi gasto e arrecadado, não o\nque causou a diferença: boa parte da despesa (previdência, juros, transferências) e da receita (impostos e\ncontribuições) vem de regras anteriores ao governo e da atividade econômica.",
    "itens": [
     {
      "tipo": "funcao",
      "nome": "url_rreo_uniao",
-     "assinatura": "def url_rreo_uniao(ano: int) -> str",
-     "doc": "O RREO da União do 6º bimestre do ``ano``, Anexo 2, no SICONFI.",
-     "linha": 62
+     "assinatura": "def url_rreo_uniao(ano: int, anexo: str='02') -> str",
+     "doc": "O RREO da União do 6º bimestre do ``ano``, no SICONFI: o Anexo 2 (despesa por função) ou o 1 (receitas).",
+     "linha": 91
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_itens",
+     "assinatura": "def _itens(conteudo: bytes) -> list[dict]",
+     "doc": "A lista ``items`` da resposta do SICONFI; levanta ``SerieIlegivel``.",
+     "linha": 97
     },
     {
      "tipo": "funcao",
      "nome": "ler_despesas",
      "assinatura": "def ler_despesas(conteudo: bytes) -> dict[str, float]",
      "doc": "Por id de ``MOSTRADAS``, a despesa liquidada no ano, em reais da época; levanta ``SerieIlegivel``.\n\nConfere que as 28 funções somam o total (diferença acima de 0,1% é erro de leitura).",
-     "linha": 68
+     "linha": 105
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_receitas",
+     "assinatura": "def ler_receitas(conteudo: bytes) -> dict[str, float]",
+     "doc": "Por id de ``RECEITAS``, a receita realizada no ano, em reais da época; levanta ``SerieIlegivel``.\n\nConfere que as partes da receita corrente somam o total (diferença acima de 0,1% é erro de leitura).",
+     "linha": 133
     },
     {
      "tipo": "funcao",
      "nome": "coletar",
-     "assinatura": "def coletar(cliente: ClienteHttp, estado: Path | str, *, ano_corrente: int | None=None, agora: datetime | None=None) -> dict",
-     "doc": "Lê os anos que faltam no estado e os ``ANOS_A_RECONFERIR`` mais recentes; o ano que falha mantém o que havia.",
-     "linha": 99
+     "assinatura": "def coletar(cliente: ClienteHttp, estado: Path | str, *, ano_corrente: int | None=None, agora: datetime | None=None, receitas: bool=False) -> dict",
+     "doc": "Lê os anos que faltam no estado e os ``ANOS_A_RECONFERIR`` mais recentes; o ano que falha mantém o que havia.\n\nA despesa por função (Anexo 2) vai em ``despesas_uniao``; com ``receitas``, a receita (Anexo 1), em\n``receitas_uniao``.",
+     "linha": 152
     },
     {
      "tipo": "funcao",
      "nome": "media_anual_do_ipca",
      "assinatura": "def media_anual_do_ipca(observacoes: Iterable[tuple[str, str]]) -> dict[str, float]",
      "doc": "O IPCA médio de cada ano completo, como número-índice, das observações mensais guardadas (data ISO, %).",
-     "linha": 126
+     "linha": 184
     },
     {
      "tipo": "funcao",
      "nome": "indicadores",
      "assinatura": "def indicadores(estado_dados: dict, documentar) -> dict[str, dict]",
-     "doc": "Os indicadores da despesa da União para ``economia/indicadores.json``, em bilhões de reais do ano-base.\n\n``documentar(id, nome, unidade, definicao, limitacoes, serie)`` monta o indicador no formato do arquivo.\nSem IPCA para corrigir, a série sai vazia.",
-     "linha": 135
+     "doc": "Os indicadores da despesa e da receita da União para ``economia/indicadores.json``, em bilhões de reais do\nano-base.\n\n``documentar(id, nome, grupo, fonte, unidade, definicao, limitacoes, serie, url, coletado_em)`` monta o\nindicador no formato do arquivo. Sem IPCA para corrigir, a série sai vazia.",
+     "linha": 193
     }
    ]
   },
@@ -13867,8 +13881,8 @@
   },
   {
    "caminho": "packages/economia/testes/test_uniao.py",
-   "doc": "Testes da despesa da União por função (RREO, Anexo 2).",
-   "testes": 5
+   "doc": "Testes da despesa da União por função (RREO, Anexo 2) e da receita (Anexo 1).",
+   "testes": 7
   },
   {
    "caminho": "packages/eleicoes/testes/test_antigas.py",
@@ -14108,7 +14122,7 @@
   {
    "caminho": "testes/contrato/test_contrato_fontes.py",
    "doc": "Testes de contrato contra as fontes reais (DOC-09, seção 3.2).\n\nValidam só o **esquema** — que os campos que o normalizador lê continuam\nexistindo, com o tipo esperado —, nunca o conteúdo. Rodam diariamente por\nagendamento na CI e não bloqueiam entrega: quando falham, alarmam, porque\nsignificam que a fonte mudou de formato sem aviso (risco R-03).\n\n    LUMEN_TESTE_CONTRATO=1 python -m pytest -m contrato\n\nO esquema de referência é o das fixtures de ``testes/fixtures``: se a fonte\nreal deixar de ter um campo que a fixture tem, o teste acusa.",
-   "testes": 19
+   "testes": 20
   },
   {
    "caminho": "testes/integracao/test_migracao_postgres.py",
