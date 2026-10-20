@@ -59,6 +59,8 @@ FABRICAS: dict[str, Callable[..., object]] = {
     "siconfi_entes": lambda c, **kw: FonteSiconfiEntes(c, **kw),
     "siconfi_extrato": lambda c, **kw: FonteSiconfiExtrato(c, **kw),
     "siconfi_rreo": lambda c, **kw: FonteSiconfiDemonstrativo(c, "rreo", **kw),
+    "siconfi_rgf": lambda c, **kw: FonteSiconfiDemonstrativo(c, "rgf", **kw),
+    "siconfi_dca": lambda c, **kw: FonteSiconfiDemonstrativo(c, "dca", **kw),
     "cgu_ceis": lambda c, **kw: FonteCguCeis(c, **kw),
     "cgu_cnep": lambda c, **kw: FonteCguCnep(c, **kw),
     "cgu_cepim": lambda c, **kw: FonteCguCepim(c, **kw),

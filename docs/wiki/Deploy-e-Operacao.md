@@ -155,6 +155,11 @@ Na conformidade, depois do extrato de entregas, cada máquina coleta a receita c
 ADR-038). O tipo de RREO de cada ente vem do extrato, e assim sai uma consulta por ente; a primeira carga leva
 perto de 25 minutos por máquina, e as seguintes quase nenhuma.
 
+Por fim, a mesma máquina coleta a despesa por função (DCA, Anexo I-E, do último exercício) dos entes que
+entregaram a DCA e ainda não a têm (`despesa-funcao-<UF>.json.gz`, ADR-041). São perto de 1,3 segundo por ente,
+e o passo para de começar lote novo depois de 30 minutos (`--limite-minutos 30`). A primeira carga de um grupo
+grande leva duas execuções, e quem não foi consultado fica para a seguinte.
+
 A situação das coletas fica no portal, em `/operacao/` (link no rodapé; ADR-039): a última execução e
 a última com sucesso de cada fluxo de dados, o volume diário do PNCP contra o usual e a coleta da
 conformidade por UF, com os alertas no topo. O `paineis-site` grava as execuções com `gh run list` antes de

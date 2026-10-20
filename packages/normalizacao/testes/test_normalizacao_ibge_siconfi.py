@@ -123,6 +123,16 @@ def test_rreo_anexo03_real_com_a_rcl(fixture_bytes):
     assert rcl.ente_id == id_canonico("ente_federativo", "4319604")
 
 
+def test_dca_anexo_i_e_real_sem_o_campo_demonstrativo(fixture_bytes):
+    # A DCA não traz "demonstrativo" nem "periodo": o demonstrativo vem do anexo
+    r = siconfi.normalizar_demonstrativo(fixture_bytes("siconfi/dca_anexo_i_e_sao_sepe_2025.json"),
+                                         fonte_id="siconfi_dca", documento_fonte_id="doc-dca")
+    assert len(r.registros) == 152 and not r.quarentena
+    assert {(x.demonstrativo, x.periodo, x.anexo) for x in r.registros} == {("DCA", None, "DCA-Anexo I-E")}
+    (saude,) = [x for x in r.registros if x.conta == "10 - Saúde" and x.coluna == "Despesas Liquidadas"]
+    assert str(saude.valor) == "32108759.99" and saude.populacao_declarada == 21189
+
+
 def test_rreo_anexo02_mesmo_codigo_de_conta_com_contas_diferentes(fixture_bytes):
     r = siconfi.normalizar_demonstrativo(fixture_bytes("siconfi/rreo_anexo02_amostra.json"),
                                          fonte_id="siconfi_rreo", documento_fonte_id="doc-2")

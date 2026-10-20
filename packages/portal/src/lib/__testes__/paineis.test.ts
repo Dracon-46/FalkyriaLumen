@@ -9,6 +9,9 @@ import {
   descreverEnte,
   criterioRcl,
   faixaCentral,
+  faixaCentralEmReais,
+  posicaoNoGrupo,
+  urlDcaDoEnte,
   descreverOrgao,
   lerEntes,
   lerOrgaos,
@@ -200,5 +203,24 @@ describe("RCL no grupo de pares", () => {
     );
     expect(criterioRcl(grupo("não usada: 3 ente(s)"))).toBe("Receita corrente líquida (RCL) não usada: 3 ente(s).");
     expect(criterioRcl(grupo(undefined))).toBe("A receita corrente líquida ainda não entra nos critérios.");
+  });
+});
+
+describe("despesa por função no grupo de pares", () => {
+  const d = { entes: 15, q1: 5500, mediana: 9000, q3: 12500 };
+
+  it("diz de que lado da metade central o ente fica", () => {
+    expect(posicaoNoGrupo(16000, d)).toBe("acima");
+    expect(posicaoNoGrupo(1000, d)).toBe("abaixo");
+    expect(posicaoNoGrupo(5500, d)).toBe("central");
+    expect(posicaoNoGrupo(12500, d)).toBe("central");
+  });
+
+  it("escreve a metade central em reais e aponta a DCA do ente", () => {
+    expect(faixaCentralEmReais(d)).toMatch(/^entre R\$\s5\.500,00 e R\$\s12\.500,00$/);
+    expect(faixaCentralEmReais({ entes: 15, q1: 0, mediana: 0, q3: 0 })).toMatch(/^em R\$\s0,00$/);
+    expect(urlDcaDoEnte("4319604", 2025)).toBe(
+      "https://apidatalake.tesouro.gov.br/ords/siconfi/tt/dca?an_exercicio=2025&no_anexo=DCA-Anexo%20I-E&id_ente=4319604",
+    );
   });
 });

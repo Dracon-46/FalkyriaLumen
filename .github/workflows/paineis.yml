@@ -18,6 +18,10 @@
 #    a receita corrente líquida do exercício anterior (RREO, Anexo 03) dos
 #    entes que ainda não a têm, no tipo de RREO que o extrato diz que cada um
 #    entregou, para os grupos de pares (ADR-038, versão 2): rcl-<UF>.json.gz.
+#    Por fim, a despesa por função (DCA, Anexo I-E) dos entes que entregaram
+#    a DCA e ainda não a têm, para a comparação com os pares (ADR-041):
+#    despesa-funcao-<UF>.json.gz, até 30 minutos por grupo de UFs (a primeira
+#    carga de um grupo grande pode levar duas execuções).
 # 3. site: monta e publica o site no GitHub Pages (paineis-site.yml).
 #
 # A carga dos meses anteriores, em execuções paralelas, é a de
@@ -163,6 +167,15 @@ jobs:
           done
           lumen painel rcl --estado estado --ufs "$UFS" || echo "::warning::RCL com coleta interrompida (ver o registro)"
           find estado -name 'rcl-*.json.gz' -print0 | xargs -0 -r gh release upload "$TAG" --clobber
+      - name: Despesa por função dos entes que faltam (DCA, para a comparação com os pares)
+        if: always()
+        run: |
+          for uf in $(echo "$UFS" | tr ',' ' '); do
+            gh release download "$TAG" -p "despesa-funcao-$uf.json.gz" -D estado --clobber 2>/dev/null || true
+          done
+          lumen painel despesa-funcao --estado estado --ufs "$UFS" --limite-minutos 30 \
+            || echo "::warning::Despesa por função com coleta interrompida (ver o registro)"
+          find estado -name 'despesa-funcao-*.json.gz' -print0 | xargs -0 -r gh release upload "$TAG" --clobber
 
   site:
     needs: [contratacoes, conformidade]

@@ -3,7 +3,8 @@
 /**
  * Grupo de pares do ente na conformidade (ADR-038; UC-06): quais entes são comparáveis a ele, por quais
  * critérios, e como a fração entregue no prazo se distribui entre eles. É contexto, não avaliação: a tela não
- * ordena nem classifica o ente pela posição no grupo, e a lista dos entes vem por nome (PUB-07).
+ * ordena nem classifica o ente pela posição no grupo, e a lista dos entes vem por nome (PUB-07). Com a DCA lida,
+ * mostra também a despesa por função por habitante ao lado do grupo (ADR-041).
  */
 
 import Link from "next/link";
@@ -20,6 +21,7 @@ import {
   type ResumoConformidade,
 } from "@/lib/paineis";
 import { Numero } from "./Comuns";
+import { DespesaPorFuncao } from "./DespesaPorFuncao";
 
 const METODO = "https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-038.md";
 
@@ -27,7 +29,8 @@ const METODO = "https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/AD
 type Lista = { fase: "fechada" } | { fase: "carregando" } | { fase: "pronta"; entes: EntePares[] } | { fase: "erro" };
 
 /** A seção do grupo de pares; não aparece nos arquivos publicados antes dele. */
-export function GrupoPares({ pares, resumo }: { pares: ParesConformidade | undefined; resumo: ResumoConformidade }) {
+export function GrupoPares({ codigo, pares, resumo }: { codigo: string; pares: ParesConformidade | undefined;
+  resumo: ResumoConformidade }) {
   const [lista, setLista] = useState<Lista>({ fase: "fechada" });
   const id = pares?.grupo?.id ?? null;
   useEffect(() => setLista({ fase: "fechada" }), [id]);
@@ -90,6 +93,7 @@ export function GrupoPares({ pares, resumo }: { pares: ParesConformidade | undef
             </a>
             .
           </p>
+          <DespesaPorFuncao codigo={codigo} despesa={pares.despesa} minimo={pares.grupo.criterios.minimo_entes} />
           {lista.fase === "fechada" && (
             <button type="button" className="botao-link" onClick={abrir}>
               ver os {numero(pares.grupo.entes)} entes do grupo
@@ -107,6 +111,7 @@ export function GrupoPares({ pares, resumo }: { pares: ParesConformidade | undef
                       <th>UF</th>
                       <th className="n">População</th>
                       <th className="n">RCL por habitante</th>
+                      <th className="n">Despesa por habitante</th>
                       <th className="n">No prazo</th>
                     </tr>
                   </thead>
@@ -119,6 +124,7 @@ export function GrupoPares({ pares, resumo }: { pares: ParesConformidade | undef
                         <td>{e.uf ?? "—"}</td>
                         <td className="n">{numero(e.populacao)}</td>
                         <td className="n">{e.rcl_por_habitante == null ? "—" : moeda(e.rcl_por_habitante)}</td>
+                        <td className="n">{e.despesa_por_habitante == null ? "—" : moeda(e.despesa_por_habitante)}</td>
                         <td className="n">{e.no_prazo === null ? "—" : percentual(e.no_prazo * 100)}</td>
                       </tr>
                     ))}

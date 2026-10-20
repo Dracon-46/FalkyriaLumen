@@ -291,7 +291,7 @@ function Ente({ dados, onUf }: { dados: ConformidadeEnte; onUf: (uf: string | nu
         {falhas.length > 0 && ` · o extrato de ${falhas.join(" e ")} não pôde ser lido: obrigações indeterminadas`}
       </p>
       <Resumo r={dados.resumo} titulo="Obrigações avaliadas" />
-      <GrupoPares pares={dados.pares} resumo={dados.resumo} />
+      <GrupoPares codigo={dados.ente.codigo} pares={dados.pares} resumo={dados.resumo} />
       <Transparencia codigo={e.codigo} />
       {exercicios.map((ano) => (
         <Exercicio key={ano} ano={ano} obrigacoes={dados.obrigacoes} />

@@ -46,6 +46,7 @@ nunca apagadas: uma ADR substituída continua aqui, marcada como tal.
 | [038](ADR-038.md) | Grupos de pares por porte e região, com recuo para o porte no país e a RCL para uma próxima versão | **proposta** |
 | [039](ADR-039.md) | Painel operacional: execuções dos fluxos, volume diário do PNCP e coleta da conformidade, numa página pública | **proposta** |
 | [040](ADR-040.md) | Governos municipais na Economia: mandatos de prefeito, população e despesa, lidos sob demanda | **proposta** |
+| [041](ADR-041.md) | Despesa por função dos entes, por habitante, ao lado do grupo de pares | **proposta** |
 
 As ADRs 011 a 015 foram tomadas durante a implementação da Fase 0, e as 016 a
 033 durante a Fase 1 e a criação da aba Eleições; todas aguardam revisão. Para aceitar, troque a situação para `aceita`. Para rejeitar, marque

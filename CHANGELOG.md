@@ -5,6 +5,20 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Conformidade: despesa por função ao lado do grupo de pares (ADR-041)
+
+- O cartão do grupo de pares mostra quanto o ente gastou por habitante em cada
+  função, com a mediana e a metade central do grupo ao lado (RF-PU-05).
+  - Fonte: a DCA do último exercício (Anexo I-E), despesa liquidada sem as
+    intraorçamentárias, dividida pela população do cadastro do SICONFI.
+  - Distribuição: só com 15 entes do grupo com a DCA lida e somando o total.
+  - Ressalvas: a tela lista as causas comuns de diferença e liga para a DCA.
+- Coleta nova no job `conformidade` de `paineis.yml`: `lumen painel
+  despesa-funcao`, só para quem entregou a DCA e ainda não a tem, até 30
+  minutos por grupo de UFs (`despesa-funcao-<UF>.json.gz`).
+- Correção: a normalização da DCA mandava toda linha para a quarentena, porque
+  a resposta não traz o campo `demonstrativo`. Ele agora vem do anexo.
+
 ### Economia: despesa da União por função (ADR-033, adendo)
 
 - Grupo novo "Despesa da União", com o total e seis funções: previdência,

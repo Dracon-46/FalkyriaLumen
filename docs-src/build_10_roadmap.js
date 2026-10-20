@@ -258,7 +258,7 @@ body.push(table(["Entregável", "Situação"], [5200, 4400], [
 body.push(h2("9.2 Fase 1 — Espinha dorsal nacional: núcleo pronto"));
 body.push(table(["Entregável", "Situação"], [5200, 4400], [
   ["Conector PNCP (contratações, contratos, atas, amparo legal, incremental)", "Concluído, com coleta por publicação e por atualização; itens e resultados com conector e normalizador prontos"],
-  ["Conector SICONFI com lista de entes ausentes", "Entes e extrato de entregas concluídos, com a avaliação da LRF; RREO, RGF e DCA com conector e normalização prontos (LinhaDemonstrativo), e a RCL de todos os entes coletada para os grupos de pares"],
+  ["Conector SICONFI com lista de entes ausentes", "Entes e extrato de entregas concluídos, com a avaliação da LRF; RREO, RGF e DCA com conector e normalização prontos (LinhaDemonstrativo), e a RCL e a despesa por função de todos os entes coletadas para os grupos de pares (ADR-038 e ADR-041)"],
   ["Portal da Transparência (CGU), com CEIS, CNEP e CEPIM", "Cadastros de sanções concluídos: coleta diária pelos arquivos de dados abertos, sem chave, e normalização com CPF mascarado (ADR-030); demais conjuntos da CGU (despesas, convênios, emendas) pendentes"],
   ["Base pública de CNPJ da Receita Federal", "Pendente"],
   ["Cadastro de entes do IBGE com população e porte", "Concluído"],
@@ -322,7 +322,7 @@ L.buildDoc({
   codigo: "DOC-10",
   titulo: "Roadmap",
   subtitulo: "Fases, marcos, esforço, custos e critérios de replanejamento",
-  meta: { versao: "1.8", data: "20 de outubro de 2026",
+  meta: { versao: "1.9", data: "20 de outubro de 2026",
     situacao: "Plano aprovado, com a situação de cada fase em outubro de 2026 (seção 9)",
     verificado: "outubro de 2026" },
   body,

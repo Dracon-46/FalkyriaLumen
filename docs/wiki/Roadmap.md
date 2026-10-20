@@ -115,10 +115,11 @@ Da seção "Pendente" do README:
 - **Portais da transparência municipais** (ADR-028): o que não passa pelo PNCP. O cadastro dos
   portais de todos os entes vem do PNTP (ADR-032). Próximos passos: o nível do PNTP nos painéis e a
   leitura dos próprios portais, por fornecedor de sistema.
-- **Economia e Contas Públicas** (ADR-033): no ar com inflação, juros, dívida, resultado fiscal e
-  atividade, e a comparação de períodos. Próximos: desemprego e rendimento (PNAD), receitas e despesas por
-  função, séries fiscais de estados e municípios com grupos de pares. Paginação (20 por página) e filtro de
-  período nas Contratações já no ar.
+- **Economia e Contas Públicas** (ADR-033): no ar com inflação, juros, dívida, resultado fiscal,
+  atividade, desocupação e rendimento (PNAD Contínua), população, despesa da União por função e a comparação
+  de períodos; os governos municipais (ADR-040) e a despesa por função de cada ente ao lado do grupo de pares
+  (ADR-041). Próximos: as receitas da União e as séries fiscais do próprio ente ano a ano (RREO e RGF).
+  Paginação (20 por página) e filtro de período nas Contratações já no ar.
 - **Visão 360 pelo filtro de local** (ADR-035): no ar. O local escolhido no cabeçalho filtra todas as abas,
   e a contratação abre num modal com itens, vencedores, aditivos e os documentos do PNCP para baixar. Também
   no ar: o portal de transparência avaliado pelo PNTP na Conformidade. Próximos: o resultado por zona de
@@ -136,7 +137,7 @@ Da seção "Pendente" do README:
 - **Regra J-01** (ADR-031): sanções da CGU × contratos do painel, em modo silencioso a cada carga;
   calibrar e revisar antes de publicar.
 - **Fase 1 restante:** base de CNPJ da Receita Federal (os grupos de pares têm o cálculo inicial,
-  ADR-038, e o painel operacional está no portal, ADR-039). Os
+  ADR-038, com a despesa por função ao lado, ADR-041, e o painel operacional está no portal, ADR-039). Os
   cadastros de sanções da CGU já entram no pipeline; o cruzamento com as contratações é a regra J-01 da
   Fase 2.
 

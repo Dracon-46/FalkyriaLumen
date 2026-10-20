@@ -31,7 +31,9 @@ def test_cada_ente_avaliado_recebe_o_grupo_e_cada_grupo_tem_arquivo():
     resumo = pares.acrescentar(avaliacao, cadastro, lambda caminho, dados: gravados.setdefault(caminho, dados),
                                gerado_em="2026-10-19T12:00:00Z")
     assert resumo == {"versao": "porte-regiao-rcl-1", "grupos": 1, "entes_com_grupo": MINIMO_ENTES,
-                      "entes_sem_grupo": 2, "exercicio_rcl": None, "entes_com_rcl": 0}
+                      "entes_sem_grupo": 2, "exercicio_rcl": None, "entes_com_rcl": 0,
+                      "exercicio_despesa": None, "entes_com_despesa": 0}
+    assert "despesa" not in avaliacao.entes[codigos[5]]["pares"]
     bloco = avaliacao.entes[codigos[5]]["pares"]
     assert bloco["grupo"]["descricao"] == "Municípios até 5 mil habitantes do Nordeste"
     assert bloco["grupo"]["entes"] == MINIMO_ENTES and not bloco["grupo"]["abaixo_do_minimo"]
@@ -62,3 +64,47 @@ def test_com_rcl_o_grupo_se_divide_e_o_ente_leva_a_rcl_dele():
                             "demonstrativo": "RREO"}
     arquivo = gravados[f"conformidade/pares/{bloco['grupo']['id']}.json"]
     assert {e["rcl_por_habitante"] for e in arquivo["entes"]} == {float(1015 + i) for i in range(15)}
+
+
+def test_despesa_por_funcao_por_habitante_ao_lado_dos_quartis_do_grupo():
+    # 16 municípios de 1.000 habitantes: saúde de 1.000 a 16.000 reais por habitante, educação fixa em 500
+    codigos = [str(2100000 + i) for i in range(16)]
+    cadastro = Cadastro({c: Ente(c, f"Município {c}", "MA", "M", 1_000) for c in codigos})
+    despesa = {c: {"total": 1_000.0 * (1000 * (i + 1) + 500), "funcoes": {"10": 1_000.0 * 1000 * (i + 1),
+                                                                          "12": 500_000.0}}
+               for i, c in enumerate(codigos)}
+    despesa[codigos[0]]["funcoes"]["01"] = 70_000.0           # só ele tem a Legislativa, e a soma não bate
+    avaliacao = _avaliacao({c: 0.5 for c in codigos})
+    gravados = {}
+    resumo = pares.acrescentar(avaliacao, cadastro, lambda caminho, dados: gravados.setdefault(caminho, dados),
+                               gerado_em="2026-10-20T12:00:00Z", despesa=despesa, exercicio_despesa=2025)
+    assert (resumo["exercicio_despesa"], resumo["entes_com_despesa"]) == (2025, 16)
+    ultimo = avaliacao.entes[codigos[-1]]["pares"]["despesa"]
+    # O que não confere fica fora da distribuição: 15 entes, o mínimo
+    assert (ultimo["exercicio"], ultimo["entes_com_dca"], ultimo["confere"]) == (2025, 15, True)
+    total, saude, educacao = ultimo["funcoes"]
+    assert (total["codigo"], total["nome"], total["por_habitante"]) == ("total", "Despesa total", 16_500.0)
+    assert (saude["codigo"], saude["nome"], saude["por_habitante"]) == ("10", "Saúde", 16_000.0)
+    assert saude["grupo"] == {"entes": 15, "q1": 5_500.0, "mediana": 9_000.0, "q3": 12_500.0}
+    assert educacao["grupo"]["mediana"] == 500.0
+    # A Legislativa: só o primeiro a executou, e ele não entra na distribuição; aparece só no bloco dele
+    primeiro = avaliacao.entes[codigos[0]]["pares"]["despesa"]
+    assert primeiro["confere"] is False
+    assert [f["codigo"] for f in primeiro["funcoes"]] == ["total", "10", "12", "01"]
+    assert primeiro["funcoes"][-1]["grupo"] is None
+    arquivo = gravados[f"conformidade/pares/{avaliacao.entes[codigos[0]]['pares']['grupo']['id']}.json"]
+    assert {e["despesa_por_habitante"] for e in arquivo["entes"]} == {1000.0 * (i + 1) + 500 for i in range(16)}
+
+
+def test_despesa_sem_entes_suficientes_no_grupo_sai_sem_distribuicao():
+    codigos = [str(2100000 + i) for i in range(15)]
+    cadastro = Cadastro({c: Ente(c, f"Município {c}", "MA", "M", 1_000) for c in codigos})
+    despesa = {c: {"total": 2_000.0, "funcoes": {"10": 2_000.0}} for c in codigos[:14]}
+    avaliacao = _avaliacao({c: 0.5 for c in codigos})
+    pares.acrescentar(avaliacao, cadastro, lambda caminho, dados: None, gerado_em="2026-10-20T12:00:00Z",
+                      despesa=despesa, exercicio_despesa=2025)
+    sem_dca = avaliacao.entes[codigos[-1]]["pares"]["despesa"]
+    assert sem_dca == {"exercicio": 2025, "entes_com_dca": 14, "confere": None, "funcoes": []}
+    com_dca = avaliacao.entes[codigos[0]]["pares"]["despesa"]
+    assert [(f["codigo"], f["por_habitante"], f["grupo"]) for f in com_dca["funcoes"]] == [
+        ("total", 2.0, None), ("10", 2.0, None)]

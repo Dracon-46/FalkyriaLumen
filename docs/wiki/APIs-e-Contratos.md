@@ -43,7 +43,7 @@ Base `https://apidatalake.tesouro.gov.br/ords/siconfi/tt`. Código:
 |---|---|---|
 | `/entes` | `siconfi_entes` | Cadastro de entes |
 | `/extrato_entregas` | `siconfi_extrato` | O que cada ente entregou, por exercício; base da conformidade |
-| `/rreo`, `/rgf`, `/dca` | `siconfi_rreo`, `siconfi_rgf`, `siconfi_dca` | Conector pronto, normalização pendente; RGF com periodicidade `Q` ou `S` (LRF, art. 63) |
+| `/rreo`, `/rgf`, `/dca` | `siconfi_rreo`, `siconfi_rgf`, `siconfi_dca` | Conector e normalização prontos (`LinhaDemonstrativo`); em uso, o RREO Anexo 03 (RCL dos pares, ADR-038) e a DCA Anexo I-E (despesa por função, ADR-041). A DCA não traz `demonstrativo` nem `periodo`: o demonstrativo vem do anexo. RGF com periodicidade `Q` ou `S` (LRF, art. 63) |
 
 ### IBGE
 

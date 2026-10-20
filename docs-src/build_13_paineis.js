@@ -155,6 +155,7 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["formar", "Grupos de pares dos entes do cadastro", "Usa lumen_canonico.pares (ADR-038): municípios por porte e região, com recuo para o porte no país abaixo de 15; estados e DF num grupo; população do SICONFI"],
   ["distribuicao", "Quartis e mediana da fração entregue no prazo", "Só entes com obrigação avaliável; quatro casas"],
   ["acrescentar", "Bloco pares no arquivo de cada ente avaliado e o arquivo de cada grupo", "Ente sem grupo leva o motivo, e a tela omite a comparação (UC-06, exceção 5a)"],
+  ["despesa_por_habitante, distribuicoes_de_despesa, despesa_do_ente", "Bloco despesa: o total e cada função por habitante do ente, com os quartis do grupo (ADR-041)", "População do cadastro; distribuição só com 15 entes do grupo com a DCA lida e somando o total; função não executada vale zero"],
 ], { monoCols: [0], size: 17 }));
 
 body.push(h2("4.8 operacao.py"));
@@ -172,6 +173,14 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["ler_rcl", "A RCL de todas as UFs para a publicação", "Só o exercício mais recente entre os arquivos"],
 ], { monoCols: [0], size: 17 }));
 
+body.push(h2("4.10 despesa_funcao.py"));
+body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
+  ["exercicio_padrao, entregues_pelo_extrato", "O último exercício com a DCA no prazo e quem a entregou, pelo extrato", "A DCA sai até 30/4 (municípios) e 31/5 (estados): o exercício anterior a partir de maio. Quem não tem a DCA no extrato não é consultado"],
+  ["coletar_uf (lumen painel despesa-funcao)", "DCA, Anexo I-E, dos entes pendentes da UF", "Lotes de 50; não começa lote novo depois de --limite-minutos (todas as UFs); o lote de uma coleta interrompida continua pendente; quem não publicou volta depois de 7 dias"],
+  ["despesas_da_silver, confere", "Total e funções (NN - Nome) da despesa liquidada, sem as intraorçamentárias", "As subfunções ficam de fora; as funções somam o total (tolerância de 1%), e a DCA que não soma fica fora das distribuições"],
+  ["ler_despesas", "A despesa de todas as UFs para a publicação", "Só o exercício mais recente entre os arquivos"],
+], { monoCols: [0], size: 17 }));
+
 // ============================================================ 5. Estado
 
 body.push(h1("5. Estado guardado entre execuções"));
@@ -182,6 +191,7 @@ body.push(table(["Arquivo", "Conteúdo", "Colunas"], [2800, 3000, 3800], [
   ["conformidade-UF.json.gz", "Entregas da LRF de cada ente da UF e a situação da coleta por exercício", "instituicao, entregavel, exercicio, periodo, periodicidade, status, entregue_em"],
   ["cadastro-entes.json.gz", "Cadastro do SICONFI", "nome, uf, esfera, populacao, capital"],
   ["rcl-UF.json.gz", "Receita corrente líquida de cada ente da UF no exercício anterior (RREO, Anexo 03), ou a data da última tentativa sem dado", "por ente: rcl, demonstrativo, coletado_em ou tentado_em"],
+  ["despesa-funcao-UF.json.gz", "Despesa liquidada por função de cada ente da UF no último exercício com DCA (Anexo I-E), ou a data da última tentativa sem dado", "por ente: total, funcoes (código da função → valor), coletado_em ou tentado_em"],
 ], { monoCols: [0], size: 17 }));
 body.push(spacer(80));
 body.push(callout("Dados pessoais no estado", [
@@ -270,6 +280,12 @@ body.push(t("A página do ente mostra a fração dele entregue no prazo ao lado 
   "municípios recua para o porte no país, e a tela diz isso; grupo abaixo de 15 leva a ressalva. Com o cadastro de " +
   "outubro de 2026, são 33 grupos para os 5.597 entes avaliados: 31 regionais, o nacional dos municípios acima de 500 " +
   "mil habitantes e o dos estados e DF. A posição no grupo é contexto: não ordena, não classifica e não vira indício."));
+body.push(t("Com a DCA do último exercício (ADR-041), o mesmo cartão mostra a despesa por função por habitante: o valor do " +
+  "ente, a mediana e a metade central do grupo (do 1º ao 3º quartil) e de que lado dela o ente fica. Aparecem o total e " +
+  "as sete funções de maior mediana no grupo, e o resto fica em \"ver todas\". A tela lista as causas comuns de " +
+  "diferença (equipamento regional que atende vizinhos, classificação por função que varia, população desatualizada, " +
+  "DCA como foi entregue) e liga para a DCA do ente no SICONFI. Sem escore e sem destaque: a marcação é a regra H-01, " +
+  "da Fase 2."));
 
 // ============================================================ 9. Portal
 
@@ -280,6 +296,7 @@ body.push(table(["Arquivo", "Papel"], [4200, 5400], [
   ["src/componentes/paineis/PainelContratacoes.tsx", "Brasil, ente (?ente=) e órgão (?orgao=); tabelas de modalidades, fornecedores, órgãos, UFs e municípios; publicações recentes com link do PNCP"],
   ["src/componentes/paineis/PainelConformidade.tsx", "Brasil, UF (?uf=) e ente (?ente=); obrigações por exercício, que viram blocos no celular"],
   ["src/componentes/paineis/GrupoPares.tsx", "Grupo de pares do ente: descrição, ressalvas, a fração do ente ao lado da mediana e dos quartis do grupo, e a lista dos entes do grupo, sob demanda e por nome"],
+  ["src/componentes/paineis/DespesaPorFuncao.tsx", "Despesa por função por habitante do ente ao lado da mediana e da metade central do grupo, com as ressalvas e o link da DCA (ADR-041)"],
   ["src/app/contratacoes/page.tsx, src/app/conformidade/page.tsx", "Páginas estáticas que envolvem os painéis em Suspense (leem a URL no navegador)"],
   ["src/app/operacao/page.tsx, src/componentes/paineis/PainelOperacao.tsx, src/lib/operacao.ts", "Situação das coletas (/operacao/, link no rodapé): alertas, fluxos, volume diário do PNCP e coleta da conformidade (ADR-039)"],
 ], { monoCols: [0], size: 17 }));
@@ -352,7 +369,7 @@ L.buildDoc({
   codigo: "DOC-13",
   titulo: "Painéis de Contratações e Conformidade",
   subtitulo: "O que cada ente publicou no PNCP e as entregas da LRF ao Tesouro, com a fonte de cada número",
-  meta: { versao: "1.4", data: "20 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038 e o ADR-039",
+  meta: { versao: "1.5", data: "20 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038, o ADR-039 e o ADR-041",
     verificado: "outubro de 2026" },
   body,
   outFile: path.join(__dirname, "..", "docs", "DOC-13_Paineis.docx"),

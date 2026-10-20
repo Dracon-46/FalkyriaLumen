@@ -310,10 +310,48 @@ export interface DistribuicaoNoPrazo {
   q3: number;
 }
 
+/** Uma linha da despesa por função (ADR-041): o total ou uma função, do ente e do grupo, em reais por habitante. */
+export interface LinhaDespesa {
+  /** "total" ou o código da função na classificação funcional ("10" é Saúde). */
+  codigo: string;
+  nome: string;
+  /** Despesa liquidada no exercício, em reais da época. */
+  valor: number;
+  por_habitante: number | null;
+  /** Quartis e mediana entre os entes do grupo com a DCA lida (mesmo formato da fração no prazo). */
+  grupo: DistribuicaoNoPrazo | null;
+}
+
+/** A despesa por função do ente na DCA do exercício, ao lado do grupo; `funcoes` vazia sem a DCA lida. */
+export interface DespesaPares {
+  exercicio: number | null;
+  /** Entes do grupo com a DCA lida e somando o total: a base das distribuições. */
+  entes_com_dca: number;
+  /** Se as funções da DCA do ente somam o total; nulo sem a DCA. */
+  confere: boolean | null;
+  funcoes: LinhaDespesa[];
+}
+
 /** Bloco `pares` do arquivo do ente: o grupo e a distribuição, ou o motivo de o ente não ter grupo. */
 export type ParesConformidade =
-  | { grupo: GrupoPares; no_prazo: DistribuicaoNoPrazo | null; rcl?: RclEnte | null }
+  | { grupo: GrupoPares; no_prazo: DistribuicaoNoPrazo | null; rcl?: RclEnte | null; despesa?: DespesaPares }
   | { grupo: null; motivo: string };
+
+/** Onde o valor fica no grupo: acima do terceiro quartil, abaixo do primeiro ou na metade central. */
+export function posicaoNoGrupo(valor: number, d: DistribuicaoNoPrazo): "acima" | "abaixo" | "central" {
+  if (valor > d.q3) return "acima";
+  if (valor < d.q1) return "abaixo";
+  return "central";
+}
+
+/** A metade central em reais: "entre R$ 5.500,00 e R$ 12.500,00". */
+export function faixaCentralEmReais(d: DistribuicaoNoPrazo): string {
+  return d.q1 === d.q3 ? `em ${moeda(d.q1)}` : `entre ${moeda(d.q1)} e ${moeda(d.q3)}`;
+}
+
+/** A DCA do ente no SICONFI, Anexo I-E (a fonte da despesa por função). */
+export const urlDcaDoEnte = (codigo: string, exercicio: number) =>
+  `https://apidatalake.tesouro.gov.br/ords/siconfi/tt/dca?an_exercicio=${exercicio}&no_anexo=${encodeURIComponent("DCA-Anexo I-E")}&id_ente=${codigo}`;
 
 /** Um ente do grupo de pares, com a sua fração no prazo. */
 export interface EntePares {
@@ -322,6 +360,8 @@ export interface EntePares {
   uf: string | null;
   populacao: number | null;
   rcl_por_habitante?: number | null;
+  /** Despesa total da DCA por habitante (ADR-041); ausente nos arquivos anteriores. */
+  despesa_por_habitante?: number | null;
   no_prazo: number | null;
   avaliaveis: number | null;
 }
