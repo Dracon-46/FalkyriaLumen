@@ -150,6 +150,11 @@ motivo.
 
 ### Painéis
 
+A situação das coletas fica no portal, em `/operacao/` (link no rodapé; ADR-039): a última execução e
+a última com sucesso de cada fluxo de dados, o volume diário do PNCP contra o usual e a coleta da
+conformidade por UF, com os alertas no topo. O `paineis-site` grava as execuções com `gh run list` antes de
+publicar, e por isso ele e os fluxos que o chamam têm a permissão `actions: read`.
+
 O estado fica nos anexos da versão `painel-estado`, criada pelo fluxo na primeira execução. Um dia
 só é gravado quando a coleta terminou sem falha nem resposta de erro; um dia com falha volta na
 execução seguinte. A primeira carga, de janeiro de 2026 em diante, leva várias execuções de

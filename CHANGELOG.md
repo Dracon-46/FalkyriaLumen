@@ -5,6 +5,27 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Situação das coletas: o painel operacional (ADR-039)
+
+- Página nova "Situação das coletas" (`/operacao/`, link no rodapé), refeita a
+  cada publicação dos painéis. Mostra:
+  - os alertas no topo;
+  - as execuções dos fluxos de dados em 30 dias: a última, a última com
+    sucesso, as falhas e o atraso dos diários;
+  - o volume diário do PNCP;
+  - a coleta da conformidade por UF.
+- Alarme de volume: dia útil com menos da metade da mediana do mesmo dia da
+  semana nas 8 semanas anteriores. Fins de semana, feriados, pontos
+  facultativos e pontes nacionais ficam de fora. Simulado nos 289 dias de
+  2026: nenhum alerta falso em 172 dias úteis.
+- `operacao.json` no site dos painéis. O `paineis-site` grava as execuções
+  com `gh run list` (permissão `actions: read`).
+- Na primeira montagem com os dados reais, o painel mostrou três problemas:
+  - os testes de contrato das fontes falhando (Banco Central, IBGE, TSE e ANP
+    em dias diferentes);
+  - a última carga por período com falha;
+  - o dia 10/04/2026 do PNCP sem coleta.
+
 ### Grupos de pares (ADR-038)
 
 - Cálculo inicial dos grupos de pares, entregável da Fase 1

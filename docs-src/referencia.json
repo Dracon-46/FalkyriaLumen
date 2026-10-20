@@ -8127,7 +8127,7 @@
   {
    "caminho": "packages/painel/lumen_painel/cli.py",
    "linguagem": "python",
-   "linhas": 289,
+   "linhas": 299,
    "doc": "``lumen painel``: coleta e publicação dos painéis de contratações e de conformidade (ADR-028).\n\nExemplos::\n\n    lumen painel cadastro --estado estado/                          # cadastro de entes do SICONFI\n    lumen painel contratacoes --estado estado/ --ultimos 3          # dias que faltam entre os 3 últimos\n    lumen painel contratacoes --estado estado/ --de 2026-01-01 --ate 2026-01-31 --limite-minutos 300\n    lumen painel faltando --estado estado/ --de 2026-01-01 --partes 6   # divisão para execuções paralelas\n    lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026\n    lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)\n    lumen painel anp --estado estado/                               # preço de revenda da ANP por semana\n    lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado\n\nO estado é um diretório com ``cadastro-entes.json.gz``, um ``contratacoes-<dia>.json.gz`` por dia coletado e\num ``conformidade-<UF>.json.gz`` por UF. No GitHub Actions, ele fica nos anexos de uma versão do repositório\n(``painel-estado``) entre uma execução e outra.",
    "itens": [
     {
@@ -8135,105 +8135,105 @@
      "nome": "_data",
      "assinatura": "def _data(texto: str) -> date",
      "doc": "``AAAA-MM-DD`` → ``date``, como ``type`` do argparse.",
-     "linha": 41
+     "linha": 43
     },
     {
      "tipo": "funcao",
      "nome": "_lista",
      "assinatura": "def _lista(texto: str) -> list[str]",
      "doc": "``SP, mg`` → ``[\"SP\", \"MG\"]``.",
-     "linha": 46
+     "linha": 48
     },
     {
      "tipo": "funcao",
      "nome": "_imprimir",
      "assinatura": "def _imprimir(dados) -> None",
      "doc": "JSON legível na saída padrão.",
-     "linha": 51
+     "linha": 53
     },
     {
      "tipo": "funcao",
      "nome": "_configuracao",
      "assinatura": "def _configuracao(args)",
      "doc": "A configuração do pipeline (contato da coleta e limites de requisições).",
-     "linha": 56
+     "linha": 58
     },
     {
      "tipo": "funcao",
      "nome": "dias_pedidos",
      "assinatura": "def dias_pedidos(estado: Path, *, de: date | None, ate: date | None, ultimos: int | None, hoje: date, refazer: bool=False) -> list[date]",
      "doc": "Os dias a coletar, do mais recente para o mais antigo, sem os que já estão no estado.\n\nSem ``de``, o intervalo é dos ``ultimos`` dias (padrão 3) até ontem; o dia corrente nunca entra, porque\nainda está recebendo publicações.",
-     "linha": 62
+     "linha": 64
     },
     {
      "tipo": "funcao",
      "nome": "partes",
      "assinatura": "def partes(dias: list[date], n: int) -> list[dict]",
      "doc": "Divide os dias (já do mais recente ao mais antigo) em até ``n`` blocos de dias seguidos, para execuções\nparalelas; cada bloco vira ``{\"de\": …, \"ate\": …, \"dias\": …}``.",
-     "linha": 75
+     "linha": 77
     },
     {
      "tipo": "funcao",
      "nome": "cmd_cadastro",
      "assinatura": "def cmd_cadastro(args) -> int",
      "doc": "Coleta o cadastro de entes do SICONFI (uma requisição), normaliza e grava ``cadastro-entes.json.gz``.",
-     "linha": 87
+     "linha": 89
     },
     {
      "tipo": "funcao",
      "nome": "cmd_contratacoes",
      "assinatura": "def cmd_contratacoes(args) -> int",
      "doc": "Coleta os dias pedidos que faltam no estado, do mais recente ao mais antigo, até o prazo.",
-     "linha": 118
+     "linha": 120
     },
     {
      "tipo": "funcao",
      "nome": "cmd_faltando",
      "assinatura": "def cmd_faltando(args) -> int",
      "doc": "Imprime, em JSON, os blocos de dias que faltam no estado (matriz das execuções paralelas).",
-     "linha": 142
+     "linha": 144
     },
     {
      "tipo": "funcao",
      "nome": "cmd_conformidade",
      "assinatura": "def cmd_conformidade(args) -> int",
      "doc": "Coleta o extrato de entregas de cada UF pedida e grava o estado de cada uma.",
-     "linha": 149
+     "linha": 151
     },
     {
      "tipo": "funcao",
      "nome": "cmd_transparencia",
      "assinatura": "def cmd_transparencia(args) -> int",
      "doc": "Lê o ciclo mais recente do PNTP para ``transparencia-pntp.json.gz``; o código é 1 quando falhou.",
-     "linha": 165
+     "linha": 167
     },
     {
      "tipo": "funcao",
      "nome": "cmd_anp",
      "assinatura": "def cmd_anp(args) -> int",
      "doc": "Lê as planilhas semanais da ANP que faltam em ``anp-semanas.json.gz``; o código é 1 quando algo falhou.",
-     "linha": 173
+     "linha": 175
     },
     {
      "tipo": "funcao",
      "nome": "cmd_publicar",
      "assinatura": "def cmd_publicar(args) -> int",
      "doc": "Monta o site inteiro a partir do estado: índice, busca, contratações e conformidade.",
-     "linha": 182
+     "linha": 184
     },
     {
      "tipo": "funcao",
      "nome": "construir_parser",
      "assinatura": "def construir_parser() -> argparse.ArgumentParser",
      "doc": "Os subcomandos e as opções de cada um.",
-     "linha": 230
+     "linha": 240
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada de ``lumen painel``; falta de configuração (contato da coleta) vira código 2.",
-     "linha": 278
+     "linha": 288
     }
    ]
   },
@@ -8452,7 +8452,7 @@
   {
    "caminho": "packages/painel/lumen_painel/contratacoes.py",
    "linguagem": "python",
-   "linhas": 407,
+   "linhas": 409,
    "doc": "Painel de contratações: soma os dias do PNCP guardados no estado em arquivos por ente (UC-01, UC-02).\n\nPara cada ente com alguma publicação no período, o arquivo ``contratacoes/ente/<código>.json`` traz:\n\n- os totais (processos publicados e a soma do valor estimado; contratos e a soma do valor global);\n- o mês a mês e a divisão por modalidade de contratação;\n- todos os órgãos do ente que publicaram (prefeitura, câmara, secretarias, autarquias, fundações e empresas\n  públicas, como um serviço autônomo de água e esgoto), cada um com o próprio arquivo\n  ``contratacoes/orgao/<CNPJ>.json``, com as mesmas seções;\n- os fornecedores pessoa jurídica com maior valor contratado e, numa linha só, a soma dos contratos com\n  pessoa física ou estrangeira, sem nome nem documento (RNF-19 e RNF-20);\n- os processos e contratos publicados mais recentemente, com o link de cada um no PNCP;\n- no arquivo de um estado, a tabela dos municípios da UF, para navegar.\n\nModalidades, órgãos, fornecedores, municípios, esferas e UFs levam também o mês a mês (``meses``, em\nlistas ``[mês, ...]``), para o portal refazer as tabelas num período escolhido sem outro arquivo. Os\nfornecedores listados são os de maior valor no período inteiro: num período menor, a ordem é refeita entre\neles, e o portal diz isso.\n\nO ente de cada publicação é o do órgão que publicou (``dia.resumir_dia``): os números de um município são os\ndos órgãos municipais, e não os de órgãos estaduais ou federais que ficam nele.\n\nOs valores são os publicados no PNCP, sem correção: valor estimado sigiloso ou zerado conta como processo\nsem valor. Um valor acima do teto de plausibilidade (``teto_do_ente``: R$ 10 bilhões, ou R$ 20 mil por\nhabitante do ente, o que for menor) conta o processo ou o contrato, mas fica fora das somas e das listas de\nfornecedores e aparece em \"valores a conferir\", com o link da publicação: um único contrato de R$ 240\nbilhões, como o publicado em 13/10/2026, faria sozinho mais de 90% do valor do país na semana. Não é juízo\nsobre o órgão nem sobre o fornecedor; é a conferência mínima de um valor que a fonte publicou. O painel não\nordena entes por nenhum critério de risco (PUB-07) e não publica indício: só soma o que a fonte publicou.",
    "itens": [
     {
@@ -8558,70 +8558,70 @@
      "nome": "Painel.cobertura",
      "assinatura": "def cobertura(self) -> dict",
      "doc": "Primeiro e último dia guardados, quantos dias e os que faltam entre eles.",
-     "linha": 208
+     "linha": 209
     },
     {
      "tipo": "funcao",
      "nome": "teto_do_ente",
      "assinatura": "def teto_do_ente(ente: str | None, cadastro: Cadastro | None) -> float",
      "doc": "Teto de plausibilidade de um processo ou contrato do ente: R$ 10 bilhões, ou R$ 20 mil por habitante\n(perto de quatro vezes o orçamento anual por habitante de um município médio), o que for menor. Sem\npopulação no cadastro (União, órgão sem ente), só o teto absoluto.",
-     "linha": 219
+     "linha": 220
     },
     {
      "tipo": "funcao",
      "nome": "somar_dias",
      "assinatura": "def somar_dias(arquivos: Iterable[Path], cadastro: Cadastro | None=None) -> Painel",
      "doc": "Lê os arquivos do dia em ordem de data e soma tudo por ente e para o Brasil. Com o ``cadastro``, o teto\nde plausibilidade usa a população do ente; sem ele, só o teto absoluto.",
-     "linha": 230
+     "linha": 231
     },
     {
      "tipo": "funcao",
      "nome": "_nome_orgao",
      "assinatura": "def _nome_orgao(painel: Painel, cnpj: str | None) -> str | None",
      "doc": "Razão social do órgão pelo CNPJ, do arquivo do dia mais recente que o trouxe.",
-     "linha": 267
+     "linha": 269
     },
     {
      "tipo": "funcao",
      "nome": "_secoes",
      "assinatura": "def _secoes(a: Acumulador, painel: Painel, *, fornecedores: int=FORNECEDORES) -> dict",
      "doc": "As seções comuns ao arquivo de um ente e ao panorama.",
-     "linha": 272
+     "linha": 274
     },
     {
      "tipo": "funcao",
      "nome": "ente_para_json",
      "assinatura": "def ente_para_json(codigo: str, a: Acumulador, painel: Painel, cadastro: Cadastro, gerado_em: str) -> dict",
      "doc": "O arquivo ``contratacoes/ente/<código>.json`` de um ente; o de um estado traz a tabela dos municípios.",
-     "linha": 316
+     "linha": 318
     },
     {
      "tipo": "funcao",
      "nome": "orgao_para_json",
      "assinatura": "def orgao_para_json(cnpj: str, a: Acumulador, painel: Painel, cadastro: Cadastro, gerado_em: str) -> dict",
      "doc": "O arquivo ``contratacoes/orgao/<CNPJ>.json`` de um órgão: o mesmo do ente, com o ente a que pertence.",
-     "linha": 330
+     "linha": 332
     },
     {
      "tipo": "funcao",
      "nome": "municipios_da_uf",
      "assinatura": "def municipios_da_uf(uf: str, painel: Painel, cadastro: Cadastro) -> list[dict]",
      "doc": "Os municípios da UF (os do cadastro e os que publicaram), em ordem de nome, com os totais de cada um.",
-     "linha": 344
+     "linha": 346
     },
     {
      "tipo": "funcao",
      "nome": "orgaos_para_busca",
      "assinatura": "def orgaos_para_busca(painel: Painel, gerado_em: str) -> dict",
      "doc": "``orgaos.json``: todo órgão com publicação no período (CNPJ, razão social, ente e contagens), para a\nbusca do portal achar uma entidade pelo nome, como um serviço autônomo de água e esgoto municipal.",
-     "linha": 358
+     "linha": 360
     },
     {
      "tipo": "funcao",
      "nome": "panorama_para_json",
      "assinatura": "def panorama_para_json(painel: Painel, cadastro: Cadastro, gerado_em: str) -> dict",
      "doc": "``contratacoes/panorama.json``: o Brasil, por esfera, por UF (governo do estado e municípios), meses,\nmodalidades e os fornecedores pessoa jurídica de maior valor no país.",
-     "linha": 371
+     "linha": 373
     }
    ]
   },
@@ -8771,6 +8771,119 @@
      "assinatura": "def publicar(estado: Path | str, cadastro: Cadastro, gravar: Callable[[str, dict], None], *, gerado_em: str) -> dict",
      "doc": "Grava os arquivos por UF com ``gravar`` e devolve o resumo; sem semanas no estado, não grava nada.",
      "linha": 198
+    }
+   ]
+  },
+  {
+   "caminho": "packages/painel/lumen_painel/operacao.py",
+   "linguagem": "python",
+   "linhas": 268,
+   "doc": "Painel operacional (RF-AD-05; DOC-04, seção 8; ADR-039): saúde das coletas, atrasos, falhas e volume.\n\nUm arquivo só, ``operacao.json``, publicado com os painéis, em três partes:\n\n- **Fluxos**: as execuções dos fluxos de dados no GitHub Actions nos últimos ``JANELA_DIAS`` dias. O\n  ``paineis-site`` as grava com ``gh run list`` em ``execucoes.json``, no estado, antes de publicar. Para\n  cada fluxo: quantas execuções, quantas falharam, a última, a última com sucesso e, nos fluxos diários, se\n  essa ficou velha demais (``TOLERANCIA_HORAS`` além da cadência, porque o GitHub atrasa os agendamentos).\n- **Volume das contratações**: processos publicados no PNCP por dia, contra a mediana do mesmo dia da semana\n  nas ``SEMANAS_BASE`` semanas anteriores. Dia útil abaixo de ``FRACAO_MINIMA`` dessa mediana é alerta. É o\n  alarme mais importante do DOC-04: a fonte que responde com sucesso e quase nada. Fim de semana, feriado,\n  ponto facultativo e ponte nacionais ficam de fora; dia não coletado também é alerta.\n- **Conformidade**: há quanto tempo o extrato de cada UF foi coletado e quantos entes ficaram com a coleta\n  malsucedida.\n\nOs limiares são iniciais, não calibrados, e vão no próprio arquivo. Os alertas falam do Lumen e das fontes,\nnunca de um ente.",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "_instante",
+     "assinatura": "def _instante(texto: str | None) -> datetime | None",
+     "doc": "ISO 8601 com ``Z`` ou fuso → ``datetime`` com fuso; ausente ou vazio → None.",
+     "linha": 47
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_iso",
+     "assinatura": "def _iso(instante: datetime | None) -> str | None",
+     "doc": "``datetime`` → ISO 8601 em UTC, sem frações; None → None.",
+     "linha": 54
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_horas",
+     "assinatura": "def _horas(desde: datetime | None, agora: datetime) -> float | None",
+     "doc": "Horas entre ``desde`` e ``agora``, com uma casa; None sem ``desde``.",
+     "linha": 59
+    },
+    {
+     "tipo": "funcao",
+     "nome": "resumir_fluxo",
+     "assinatura": "def resumir_fluxo(nome: str, execucoes: Iterable[dict], agora: datetime) -> dict",
+     "doc": "Uma linha do quadro dos fluxos, a partir das execuções do ``gh run list`` (todas do mesmo fluxo).\n\nFalha é ``failure``, ``timed_out`` ou ``startup_failure``; cancelada e pulada não contam como falha nem\nentram na taxa. Atrasado: fluxo com cadência cuja última execução com sucesso passou da cadência mais a\ntolerância, ou que não tem nenhuma.",
+     "linha": 66
+    },
+    {
+     "tipo": "funcao",
+     "nome": "resumir_fluxos",
+     "assinatura": "def resumir_fluxos(execucoes: Iterable[dict], agora: datetime) -> list[dict]",
+     "doc": "Uma linha por fluxo acompanhado (``FLUXOS``), na ordem de ``FLUXOS``; os outros fluxos ficam de fora.",
+     "linha": 96
+    },
+    {
+     "tipo": "funcao",
+     "nome": "pascoa",
+     "assinatura": "def pascoa(ano: int) -> date",
+     "doc": "Domingo de Páscoa no calendário gregoriano (algoritmo de Meeus/Jones/Butcher).",
+     "linha": 107
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_feriado",
+     "assinatura": "def _feriado(dia: date) -> bool",
+     "doc": "Feriado nacional ou ponto facultativo nacional de dia inteiro: os do calendário civil (Lei 662/1949, Lei\n6.802/1980 e Lei 14.759/2023), Carnaval, Sexta-feira Santa e Corpus Christi.",
+     "linha": 122
+    },
+    {
+     "tipo": "funcao",
+     "nome": "sem_expediente_nacional",
+     "assinatura": "def sem_expediente_nacional(dia: date) -> bool",
+     "doc": "Dia em que o volume do PNCP cai sem que a fonte tenha problema: feriado ou ponto facultativo nacional,\nQuarta-feira de Cinzas e Quinta-feira Santa (expediente reduzido) e a ponte, a segunda-feira antes de um\nferiado na terça ou a sexta-feira depois de um na quinta. No PNCP de 2026, foram esses os dias úteis com\nmenos da metade do volume usual (ADR-039).",
+     "linha": 131
+    },
+    {
+     "tipo": "funcao",
+     "nome": "volume_contratacoes",
+     "assinatura": "def volume_contratacoes(volume: dict[str, dict[str, int]], hoje: date) -> dict",
+     "doc": "Os ``DIAS_SERIE`` dias até ontem, com processos e contratos, a referência do dia e o alerta.\n\nA referência é a mediana dos processos no mesmo dia da semana nas ``SEMANAS_BASE`` semanas anteriores\n(dias úteis coletados; ao menos ``MINIMO_SEMANAS``). Dia não coletado aparece com ``coletado: false``.",
+     "linha": 145
+    },
+    {
+     "tipo": "funcao",
+     "nome": "coleta_conformidade",
+     "assinatura": "def coleta_conformidade(coletas: dict[str, str | None], entes: dict[str, dict], agora: datetime, uf_do_ente) -> list[dict]",
+     "doc": "Por UF: quando o extrato foi coletado, há quantas horas, quantos entes e quantos com coleta malsucedida.",
+     "linha": 175
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_tempo",
+     "assinatura": "def _tempo(horas: float) -> str",
+     "doc": "Horas em palavras para o alerta: \"30 h\" até dois dias, depois \"4 dias\".",
+     "linha": 197
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_data",
+     "assinatura": "def _data(iso: str) -> str",
+     "doc": "``2026-10-18`` → ``18/10/2026``.",
+     "linha": 202
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_lista",
+     "assinatura": "def _lista(itens: list[str], maximo: int=5) -> str",
+     "doc": "Até ``maximo`` itens separados por vírgula, com reticências se houver mais.",
+     "linha": 207
+    },
+    {
+     "tipo": "funcao",
+     "nome": "alertas",
+     "assinatura": "def alertas(fluxos: list[dict], volume: dict, conformidade: list[dict]) -> list[dict]",
+     "doc": "O que merece atenção, numa lista só, do mais grave ao menos: falha e atraso de fluxo, volume, coleta.\n\nA conformidade atrasada vira um alerta só, com as UFs: quando a coleta não roda, atrasam todas juntas.",
+     "linha": 212
+    },
+    {
+     "tipo": "funcao",
+     "nome": "operacao_para_json",
+     "assinatura": "def operacao_para_json(*, execucoes: list[dict] | None, volume: dict[str, dict[str, int]], faltando: list[str], coletas: dict[str, str | None], entes: dict[str, dict], uf_do_ente, agora: datetime, hoje: date, gerado_em: str) -> dict",
+     "doc": "``operacao.json``: ``agora`` mede os atrasos, ``hoje`` (Brasília) fecha a série de volume, ``faltando``\nsão os dias do PNCP sem coleta desde o primeiro guardado. Sem ``execucoes`` (rodando fora do GitHub\nActions), os fluxos ficam como None.",
+     "linha": 251
     }
    ]
   },
@@ -10224,6 +10337,63 @@
      "assinatura": "function desloca(iso: string, dias: number): string",
      "doc": "A data `dias` depois de `iso` (negativo para antes).",
      "linha": 244
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/lib/operacao.ts",
+   "linguagem": "typescript",
+   "linhas": 94,
+   "doc": "Painel operacional (RF-AD-05; ADR-039): o arquivo `operacao.json`, publicado com os painéis, com as execuções\ndos fluxos de dados, o volume diário do PNCP e a coleta da conformidade. Fala do Lumen e das fontes, nunca de\num ente.",
+   "itens": [
+    {
+     "tipo": "interface",
+     "nome": "AlertaOperacao",
+     "assinatura": "export interface AlertaOperacao",
+     "doc": "Um alerta: de fluxo, de volume ou de coleta da conformidade, com o link da execução quando há.",
+     "linha": 11
+    },
+    {
+     "tipo": "interface",
+     "nome": "FluxoOperacao",
+     "assinatura": "export interface FluxoOperacao",
+     "doc": "Uma linha do quadro dos fluxos: execuções na janela, falhas, a última e a última com sucesso.",
+     "linha": 18
+    },
+    {
+     "tipo": "interface",
+     "nome": "DiaVolume",
+     "assinatura": "export interface DiaVolume",
+     "doc": "Um dia da série do PNCP: processos e contratos publicados, a referência do dia e o alerta.",
+     "linha": 33
+    },
+    {
+     "tipo": "interface",
+     "nome": "ColetaUf",
+     "assinatura": "export interface ColetaUf",
+     "doc": "A coleta da conformidade de uma UF.",
+     "linha": 44
+    },
+    {
+     "tipo": "interface",
+     "nome": "Operacao",
+     "assinatura": "export interface Operacao",
+     "doc": "Arquivo `operacao.json`. Sem as execuções (publicado fora do GitHub Actions), `fluxos` vem nulo.",
+     "linha": 54
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarOperacao",
+     "assinatura": "export async function carregarOperacao(sinal?: AbortSignal): Promise<Operacao | null>",
+     "doc": "Lê e confere `operacao.json`; `null` se ainda não foi publicado.",
+     "linha": 73
+    },
+    {
+     "tipo": "funcao",
+     "nome": "rotuloExecucao",
+     "assinatura": "export function rotuloExecucao(situacao: string | null, resultado: string | null): string",
+     "doc": "O resultado de uma execução em português; sem resultado, a situação (\"em andamento\", \"na fila\").",
+     "linha": 89
     }
    ]
   },
@@ -11779,6 +11949,28 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/app/operacao/page.tsx",
+   "linguagem": "typescript",
+   "linhas": 27,
+   "doc": "Página `/operacao/`: a situação das coletas do Lumen (RF-AD-05, ADR-039). O trabalho é do `PainelOperacao`,\nque roda no navegador e lê o `operacao.json` publicado com os painéis.",
+   "itens": [
+    {
+     "tipo": "constante",
+     "nome": "metadata",
+     "assinatura": "export const metadata: Metadata =",
+     "doc": "Título e descrição da página, usados pelo navegador e nas prévias de link.",
+     "linha": 10
+    },
+    {
+     "tipo": "componente",
+     "nome": "SituacaoDasColetas",
+     "assinatura": "export default function SituacaoDasColetas()",
+     "doc": "A página: título e o painel.",
+     "linha": 18
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/app/page.tsx",
    "linguagem": "typescript",
    "linhas": 46,
@@ -12846,6 +13038,28 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/componentes/paineis/PainelOperacao.tsx",
+   "linguagem": "typescript",
+   "linhas": 176,
+   "doc": "Situação das coletas (RF-AD-05; ADR-039): os alertas, as execuções dos fluxos de dados, o volume diário do\nPNCP contra o usual e a coleta da conformidade por UF. É a saúde do Lumen e das fontes, não dos entes.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "Estado",
+     "assinatura": "type Estado = { fase: \"carregando\" } | { fase: \"pronto\"; dados: Operacao | null } | { fase: \"erro\"; erro: string };",
+     "doc": "Carregando, o arquivo lido (null quando ainda não publicado) ou o erro.",
+     "linha": 17
+    },
+    {
+     "tipo": "componente",
+     "nome": "PainelOperacao",
+     "assinatura": "export function PainelOperacao()",
+     "doc": "A página inteira da situação das coletas.",
+     "linha": 20
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/componentes/paineis/Transparencia.tsx",
    "linguagem": "typescript",
    "linhas": 94,
@@ -12870,15 +13084,15 @@
   {
    "caminho": "packages/portal/src/componentes/Rodape.tsx",
    "linguagem": "typescript",
-   "linhas": 16,
-   "doc": "Rodapé: de onde vêm os números e o compromisso editorial do projeto.",
+   "linhas": 26,
+   "doc": "Rodapé de todas as páginas: de onde vêm os números, o compromisso editorial do projeto e o link da situação das\ncoletas (ADR-039).",
    "itens": [
     {
      "tipo": "componente",
      "nome": "Rodape",
      "assinatura": "export function Rodape()",
      "doc": "Rodapé: de onde vêm os números e o compromisso editorial do projeto.",
-     "linha": 2
+     "linha": 9
     }
    ]
   }
@@ -13155,6 +13369,11 @@
    "testes": 7
   },
   {
+   "caminho": "packages/painel/testes/test_operacao.py",
+   "doc": "Testes do painel operacional (RF-AD-05; ADR-039).",
+   "testes": 8
+  },
+  {
    "caminho": "packages/painel/testes/test_pares.py",
    "doc": "Testes do grupo de pares na conformidade (ADR-038).",
    "testes": 2
@@ -13208,6 +13427,11 @@
    "caminho": "packages/portal/src/lib/__testes__/mercado.test.ts",
    "doc": "Um arquivo da ANP de SP com duas semanas, no formato que os painéis publicam.",
    "testes": 4
+  },
+  {
+   "caminho": "packages/portal/src/lib/__testes__/operacao.test.ts",
+   "doc": "",
+   "testes": 1
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/paineis.test.ts",

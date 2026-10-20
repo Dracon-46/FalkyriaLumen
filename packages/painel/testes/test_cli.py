@@ -116,6 +116,9 @@ def test_publicar_de_ponta_a_ponta(tmp_path, apoio, capsys):
     comum.gravar_json(estado / cli.ARQUIVO_CADASTRO, Cadastro.da_silver(s_sic).para_json(), comprimir=True)
     comum.gravar_json(estado / "conformidade-RS.json.gz",
                       conf.estado_da_uf("RS", ["4319604"], [2025], s_sic, {("4319604", 2025): True}), comprimir=True)
+    comum.gravar_json(estado / cli.ARQUIVO_EXECUCOES, [
+        {"workflowName": "paineis", "createdAt": "2026-10-13T12:00:00Z", "updatedAt": "2026-10-13T12:30:00Z",
+         "status": "completed", "conclusion": "success", "event": "schedule", "url": "https://exemplo/1"}])
     assert cli.main(["publicar", "--estado", str(estado), "--saida", str(site), "--hoje", "2026-10-14"]) == 0
     resumo = json.loads(capsys.readouterr().out)
     assert resumo["contratacoes"]["dias"] == 1 and resumo["conformidade"]["entes"] == 1
@@ -138,6 +141,11 @@ def test_publicar_de_ponta_a_ponta(tmp_path, apoio, capsys):
     grupo = comum.ler_json(site / "conformidade" / "pares" / f"{pares['grupo']['id']}.json")
     assert [e["codigo"] for e in grupo["entes"]] == ["4319604"] and grupo["tipo"] == "conformidade-pares"
     assert indice["conformidade"]["pares"]["entes_com_grupo"] == 1
+    # Painel operacional (ADR-039): as execuções gravadas pelo fluxo e o volume do dia coletado
+    situacao = comum.ler_json(site / "operacao.json")
+    assert next(f for f in situacao["fluxos"] if f["fluxo"] == "paineis")["ultimo_sucesso"] == "2026-10-13T12:30:00Z"
+    assert {d["dia"]: d["processos"] for d in situacao["contratacoes"]["dias"]}["2026-09-01"] is not None
+    assert indice["operacao"]["alertas"] == len(situacao["alertas"])
     # Sem cadastro e sem estado: site vazio, mas válido
     assert cli.main(["publicar", "--estado", str(tmp_path / "vazio"), "--saida", str(tmp_path / "s2")]) == 0
     assert comum.ler_json(tmp_path / "s2" / "contratacoes" / "panorama.json")["totais"]["processos"] == 0

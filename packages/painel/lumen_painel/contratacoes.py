@@ -204,6 +204,7 @@ class Painel:
     orgaos: dict[str, list] = field(default_factory=dict)      # CNPJ → [razão social, esfera, ente]
     dias: list[str] = field(default_factory=list)
     sem_ente: Totais = field(default_factory=Totais)
+    volume: dict[str, dict[str, int]] = field(default_factory=dict)   # dia → processos e contratos publicados
 
     def cobertura(self) -> dict:
         """Primeiro e último dia guardados, quantos dias e os que faltam entre eles."""
@@ -236,6 +237,7 @@ def somar_dias(arquivos: Iterable[Path], cadastro: Cadastro | None = None) -> Pa
         dados = ler_dia(caminho)
         dia = dados["dia"]
         painel.dias.append(dia)
+        painel.volume[dia] = {tipo: len(dados.get(tipo) or []) for tipo in ("processos", "contratos")}
         for cnpj, orgao in (dados.get("orgaos") or {}).items():
             painel.orgaos[cnpj] = orgao
         for tipo, metodo, campo in (("processos", "processo", "valor_estimado"),

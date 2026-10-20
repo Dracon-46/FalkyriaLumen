@@ -158,6 +158,7 @@ jobs:
     if: always()
     permissions:
       contents: read
+      actions: read       # execuções dos fluxos para o painel operacional (ADR-039)
       pages: write
       id-token: write
     uses: ./.github/workflows/paineis-site.yml

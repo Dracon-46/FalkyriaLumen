@@ -22,18 +22,20 @@ import argparse
 import json
 import sys
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from . import conformidade as conf
 from . import contratacoes as contr
-from . import mercado, pares, transparencia
+from . import mercado, operacao, pares, transparencia
 from .cadastro import Cadastro
-from .comum import gravar_json, hoje_brasilia, instante_utc
+from .comum import gravar_json, hoje_brasilia, instante_utc, ler_json, uf_do_ente
 from .dia import coletar_dia, dias_guardados
 from .site import Site
 
 ARQUIVO_CADASTRO = "cadastro-entes.json.gz"
+# Execuções dos fluxos de dados, gravadas pelo paineis-site com gh run list (painel operacional, ADR-039)
+ARQUIVO_EXECUCOES = "execucoes.json"
 INICIO_PADRAO = date(2026, 1, 1)
 relogio = time.monotonic          # o prazo de --limite-minutos (substituível nos testes)
 
@@ -206,6 +208,14 @@ def cmd_publicar(args) -> int:
         site.gravar(f"conformidade/uf/{uf}.json", conf.uf_para_json(uf, avaliacao, gerado_em))
     site.gravar("conformidade/panorama.json", conf.panorama_para_json(avaliacao, gerado_em))
 
+    caminho_execucoes = estado / ARQUIVO_EXECUCOES
+    situacao = operacao.operacao_para_json(
+        execucoes=ler_json(caminho_execucoes) if caminho_execucoes.exists() else None, volume=painel.volume,
+        faltando=painel.cobertura()["faltando"],
+        coletas=avaliacao.coletas, entes=avaliacao.entes, uf_do_ente=uf_do_ente,
+        agora=datetime.fromisoformat(gerado_em.replace("Z", "+00:00")), hoje=hoje, gerado_em=gerado_em)
+    site.gravar("operacao.json", situacao)
+
     pntp = transparencia.publicar(estado, site.gravar, gerado_em=gerado_em)
     precos_anp = mercado.publicar(estado, cadastro, site.gravar, gerado_em=gerado_em)
 
@@ -219,7 +229,7 @@ def cmd_publicar(args) -> int:
               "cadastro": {"entes": len(cadastro), "gerado_em": cadastro.gerado_em},
               "contratacoes": {**painel.cobertura(), "entes": len(painel.entes), "orgaos": len(painel.por_orgao)},
               "conformidade": {"entes": len(avaliacao.entes), "ufs": avaliacao.coletas, "pares": grupos},
-              "transparencia": pntp, "anp": precos_anp}
+              "transparencia": pntp, "anp": precos_anp, "operacao": {"alertas": len(situacao["alertas"])}}
     site.gravar("indice.json", indice)
     site.finalizar()
     _imprimir({"arquivos": site.arquivos, **{k: v for k, v in indice.items() if k != "versao"},

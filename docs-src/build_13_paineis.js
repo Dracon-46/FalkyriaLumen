@@ -157,6 +157,14 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["acrescentar", "Bloco pares no arquivo de cada ente avaliado e o arquivo de cada grupo", "Ente sem grupo leva o motivo, e a tela omite a comparação (UC-06, exceção 5a)"],
 ], { monoCols: [0], size: 17 }));
 
+body.push(h2("4.8 operacao.py"));
+body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
+  ["resumir_fluxos", "Uma linha por fluxo de dados acompanhado (FLUXOS): execuções, falhas, a última e a última com sucesso em 30 dias", "Lê as execuções que o paineis-site grava com gh run list; fluxo diário sem sucesso há mais de 36 h está atrasado (ADR-039)"],
+  ["volume_contratacoes", "Processos por dia nos últimos 60 dias, com a referência e o alerta", "Mediana do mesmo dia da semana em 8 semanas; dia útil abaixo da metade é alerta; feriado, ponto facultativo e ponte nacionais ficam de fora"],
+  ["coleta_conformidade", "Por UF: quando o extrato foi coletado e quantos entes com coleta malsucedida", "Mais de 36 h é atraso"],
+  ["alertas, operacao_para_json", "operacao.json, com os alertas do mais grave ao menos e os limiares", "As UFs atrasadas viram um alerta só; limiares iniciais, marcados como não calibrados"],
+], { monoCols: [0], size: 17 }));
+
 // ============================================================ 5. Estado
 
 body.push(h1("5. Estado guardado entre execuções"));
@@ -190,6 +198,7 @@ body.push(table(["Caminho", "tipo", "Conteúdo"], [3200, 2200, 4200], [
   ["conformidade/panorama.json", "conformidade-panorama", "Brasil, por obrigação e por UF"],
   ["conformidade/uf/<sigla>.json", "conformidade-uf", "Entes da UF com o resumo de cada um"],
   ["conformidade/ente/<código>.json", "conformidade-ente", "Obrigações avaliadas de um ente e o grupo de pares"],
+  ["operacao.json", "operacao", "Situação das coletas: fluxos, volume diário do PNCP e coleta da conformidade (ADR-039)"],
   ["conformidade/pares/<id>.json", "conformidade-pares", "Um grupo de pares: critérios, distribuição da fração no prazo e os entes que o formam, por nome"],
 ], { monoCols: [0, 1], size: 17 }));
 
@@ -264,6 +273,7 @@ body.push(table(["Arquivo", "Papel"], [4200, 5400], [
   ["src/componentes/paineis/PainelConformidade.tsx", "Brasil, UF (?uf=) e ente (?ente=); obrigações por exercício, que viram blocos no celular"],
   ["src/componentes/paineis/GrupoPares.tsx", "Grupo de pares do ente: descrição, ressalvas, a fração do ente ao lado da mediana e dos quartis do grupo, e a lista dos entes do grupo, sob demanda e por nome"],
   ["src/app/contratacoes/page.tsx, src/app/conformidade/page.tsx", "Páginas estáticas que envolvem os painéis em Suspense (leem a URL no navegador)"],
+  ["src/app/operacao/page.tsx, src/componentes/paineis/PainelOperacao.tsx, src/lib/operacao.ts", "Situação das coletas (/operacao/, link no rodapé): alertas, fluxos, volume diário do PNCP e coleta da conformidade (ADR-039)"],
 ], { monoCols: [0], size: 17 }));
 body.push(...figure("19_tela_contratacoes.png", "Figura 2. Contratações de um município, com dados sintéticos de teste: totais, gráficos por mês, modalidades, fornecedores e órgãos (inclusive a autarquia de água e esgoto).", 600, 640));
 body.push(...figure("20_tela_conformidade.png", "Figura 3. Conformidade de um município: resumo e obrigações por exercício (extrato real de 2025 de São Sepé, RS; 2026 sintético).", 600, 560));
@@ -282,7 +292,7 @@ body.push(h1("10. Operação"));
 body.push(table(["Fluxo", "Quando", "O que faz"], [2400, 2400, 4800], [
   ["paineis.yml", "Todo dia às 05:17 (Brasília); às segundas, também 05:47; à mão", "Dias que faltam entre os últimos 5; cadastro de entes; às segundas (ou com a entrada conformidade), o extrato de todas as UFs em 5 máquinas; publica"],
   ["paineis-carga.yml", "À mão", "Meses anteriores: divide os dias que faltam desde \"de\" em \"partes\" blocos (padrão 12) e coleta no máximo 4 ao mesmo tempo; publica"],
-  ["paineis-site.yml", "Chamado pelos dois acima; à mão", "Baixa o estado, monta o site e publica no GitHub Pages"],
+  ["paineis-site.yml", "Chamado pelos dois acima; à mão", "Baixa o estado, grava as execuções dos fluxos (gh run list, permissão actions: read), monta o site e publica no GitHub Pages"],
 ], { monoCols: [0], size: 17 }));
 body.push(h3("Configuração, uma vez"));
 novaLista();
@@ -334,7 +344,7 @@ L.buildDoc({
   codigo: "DOC-13",
   titulo: "Painéis de Contratações e Conformidade",
   subtitulo: "O que cada ente publicou no PNCP e as entregas da LRF ao Tesouro, com a fonte de cada número",
-  meta: { versao: "1.2", data: "19 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028 e o ADR-038",
+  meta: { versao: "1.3", data: "20 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038 e o ADR-039",
     verificado: "outubro de 2026" },
   body,
   outFile: path.join(__dirname, "..", "docs", "DOC-13_Paineis.docx"),

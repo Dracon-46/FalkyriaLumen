@@ -21,6 +21,7 @@ on:
 
 permissions:
   contents: read
+  actions: read       # execuções dos fluxos para o painel operacional (ADR-039)
   pages: write
   id-token: write
 
@@ -53,6 +54,15 @@ jobs:
             gh release download "$TAG" -D estado --clobber -p '*.json.gz'
           fi
           ls estado | sed -e 's/-[0-9-]*\.json\.gz$//' -e 's/-[A-Z]*\.json\.gz$//' | sort | uniq -c
+      - name: Execuções dos fluxos de dados (painel operacional)
+        run: |
+          desde=$(date -u -d '40 days ago' +%Y-%m-%d)
+          if gh run list --repo "$GITHUB_REPOSITORY" --limit 1000 --created ">=$desde"                --json workflowName,event,status,conclusion,createdAt,updatedAt,url > execucoes.tmp; then
+            mv execucoes.tmp estado/execucoes.json
+          else
+            rm -f execucoes.tmp
+            echo "::warning::As execuções dos fluxos não puderam ser lidas: o painel operacional sai sem elas."
+          fi
       - name: Montar o site
         run: lumen painel publicar --estado estado --saida site | tee resumo.json
       - name: Economia e Contas Públicas
