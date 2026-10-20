@@ -52,6 +52,10 @@ def cmd_coletar(args) -> int:
             return 2
         pedidas = tuple(por_id[i] for i in args.series)
     resumo = coleta.coletar(_cliente(args), args.estado, pedidas, espelho=_cliente(args, coleta.FONTE_ESPELHO))
+    if any(s.sidra for s in pedidas):
+        sidra = coleta.coletar_sidra(_cliente(args, coleta.FONTE_SIDRA_ID), args.estado, pedidas)
+        resumo.atualizadas.update(sidra.atualizadas)
+        resumo.falhas.update(sidra.falhas)
     releases = coleta.coletar_releases(_cliente(args, coleta.FONTE_RELEASES), args.estado, pedidas)
     print(json.dumps({**resumo.para_json(), "releases": releases}, ensure_ascii=False, indent=2))
     return 1 if resumo.falhas else 0

@@ -33,6 +33,7 @@ VERSAO_ESTADO = 1
 FONTE_ID = "bcb_sgs"
 FONTE_ESPELHO = "ipeadata"
 FONTE_RELEASES = "ibge_noticias"
+FONTE_SIDRA_ID = "ibge_sidra"
 ESPERA_ANTES_DE_REPETIR_S = 60
 _DATA = re.compile(r"^(\d{2})/(\d{2})/(\d{4})$")
 
@@ -151,7 +152,7 @@ def coletar(cliente: ClienteHttp, estado: Path | str, series: Iterable[Serie] = 
     dados = ler_estado(estado)
     resumo = ResumoColetaEconomia()
     instante = (agora or datetime.now(timezone.utc)).isoformat(timespec="seconds")
-    series = tuple(series)
+    series = tuple(s for s in series if s.codigo)   # as do SIDRA vão em ``coletar_sidra``
     motivos: dict[str, str] = {}
 
     def gravar(s: Serie, observacoes: list[tuple[str, str]], **extra) -> None:
@@ -243,3 +244,58 @@ def coletar_releases(cliente: ClienteHttp, estado: Path | str, series: Iterable[
     Path(estado).mkdir(parents=True, exist_ok=True)
     gravar_json(Path(estado) / ARQUIVO_ESTADO, dados, comprimir=True)
     return {"produtos": len(produtos) - len(falhas), "falhas": falhas}
+
+
+# ------------------------------------------------------------------------------------------- SIDRA
+
+def ler_sidra(conteudo: bytes) -> list[tuple[str, str]]:
+    """As observações de uma consulta de valores do SIDRA, como ``(AAAA-MM-01, valor)``, como as do SGS lidas.
+
+    A primeira linha da resposta é o cabeçalho; o período vem em ``D3C`` como ``AAAAMM`` (no trimestre móvel,
+    o último mês). Valor que não é número (``...``, ``-``, ``X``: não disponível, zero absoluto, sigilo) fica
+    de fora, como ausente.
+    """
+    try:
+        linhas = json.loads(conteudo)
+    except (UnicodeDecodeError, json.JSONDecodeError) as erro:
+        raise SerieIlegivel(f"resposta não é JSON: {conteudo[:80]!r}") from erro
+    if not isinstance(linhas, list) or not linhas or "D3C" not in linhas[0]:
+        raise SerieIlegivel("resposta sem o cabeçalho do SIDRA")
+    saida = []
+    for linha in linhas[1:]:
+        periodo, valor = str(linha.get("D3C") or ""), str(linha.get("V") or "")
+        if len(periodo) != 6 or not periodo.isdigit():
+            continue
+        try:
+            float(valor)
+        except ValueError:
+            continue
+        saida.append((f"{periodo[:4]}-{periodo[4:]}-01", valor))
+    return saida
+
+
+def coletar_sidra(cliente: ClienteHttp, estado: Path | str, series: Iterable[Serie] = SERIES, *,
+                  agora: datetime | None = None) -> ResumoColetaEconomia:
+    """Baixa as séries do catálogo que vêm direto do SIDRA (``Serie.sidra``) e grava o estado.
+
+    A série que falha mantém o que já havia, com a falha registrada, como nas do SGS. A série inteira é
+    regravada a cada coleta: no rendimento real, o IBGE muda os valores antigos a cada divulgação.
+    """
+    dados = ler_estado(estado)
+    resumo = ResumoColetaEconomia()
+    instante = (agora or datetime.now(timezone.utc)).isoformat(timespec="seconds")
+    for s in (s for s in series if s.sidra):
+        try:
+            observacoes = _obter(cliente, s.url, ler_sidra)
+        except (ErroColeta, ValueError) as erro:
+            resumo.falhas[s.id] = f"{type(erro).__name__}: {erro}"
+            anterior = dados["series"].get(s.chave, {})
+            dados["series"][s.chave] = {**anterior, "url": s.url, "ultima_falha": instante,
+                                        "motivo_da_falha": resumo.falhas[s.id]}
+            continue
+        dados["series"][s.chave] = {"url": s.url, "coletado_em": instante, "observacoes": observacoes,
+                                    "fonte_coleta": "sidra"}
+        resumo.atualizadas[s.id] = len(observacoes)
+    Path(estado).mkdir(parents=True, exist_ok=True)
+    gravar_json(Path(estado) / ARQUIVO_ESTADO, dados, comprimir=True)
+    return resumo

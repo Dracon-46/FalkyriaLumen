@@ -232,6 +232,16 @@ function Detalhe({ ind, id, a, b, dados, escolher }: { ind: Indicador; id: strin
                   ){ind.nome_oficial ? `: “${ind.nome_oficial}”` : ""}
                 </>
               )}
+              {!ind.codigo_sgs && ind.coletado_de === "sidra" && ind.url && (
+                <>
+                  {" "}
+                  (
+                  <a href={ind.url} target="_blank" rel="noreferrer">
+                    consulta no SIDRA
+                  </a>
+                  ){ind.nome_oficial ? `: “${ind.nome_oficial}”` : ""}
+                </>
+              )}
               .{" "}
             </>
           )}

@@ -32,11 +32,17 @@ from dataclasses import dataclass, field
 
 FONTE_SGS = "Banco Central do Brasil, Sistema Gerenciador de Séries Temporais (SGS)"
 FONTE_IPEADATA = "Ipeadata (Ipea), que republica a série do Banco Central ou do IBGE"
+FONTE_SIDRA = "IBGE, Sistema IBGE de Recuperação Automática (SIDRA)"
 
 
 def url_sgs(codigo: int) -> str:
     """Endereço público da série no SGS, em JSON (o mesmo que a coleta usa)."""
     return f"https://api.bcb.gov.br/dados/serie/bcdata.sgs.{codigo}/dados?formato=json"
+
+
+def url_sidra(caminho: str) -> str:
+    """Consulta de valores da API do SIDRA (``t/<tabela>/n1/all/v/<variável>/p/all``), sem chave."""
+    return f"https://apisidra.ibge.gov.br/values/{caminho}"
 
 
 def url_releases_ibge(produto: int, quantos: int = 3) -> str:
@@ -54,7 +60,7 @@ class Serie:
     """Uma série coletada do SGS e como ela aparece no portal."""
 
     id: str
-    codigo: int
+    codigo: int | None              # código no SGS; nulo na série que vem direto do SIDRA (``sidra``)
     nome: str                       # curto, para o portal
     nome_oficial: str               # como a fonte chama a série
     grupo: str
@@ -69,6 +75,17 @@ class Serie:
     espelho: str | None = None              # código no Ipeadata, usado só quando o SGS falha
     espelho_casas: int | None = None        # casas decimais do SGS, quando o espelho publica mais
     ibge_produto: int | None = None         # produto do IBGE cujos releases acompanham o indicador (ADR-033)
+    sidra: str | None = None                # consulta no SIDRA, quando o SGS não tem a série conferida
+
+    @property
+    def chave(self) -> str:
+        """Chave da série no estado da coleta: o código do SGS, ou ``sidra/<consulta>``."""
+        return str(self.codigo) if self.codigo else f"sidra/{self.sidra}"
+
+    @property
+    def url(self) -> str:
+        """Endereço da série na fonte de onde é coletada."""
+        return url_sgs(self.codigo) if self.codigo else url_sidra(self.sidra)
 
 
 @dataclass(frozen=True)
@@ -179,6 +196,22 @@ SERIES: tuple[Serie, ...] = (
           limitacoes=("Série iniciada em março de 2012; a PNAD e a PME anteriores têm outra metodologia e não são "
                       "comparáveis.", "Sem ajuste sazonal: compare o mesmo trimestre de anos diferentes."),
           espelho="PNADC12_TDESOC12", ibge_produto=9171),
+    Serie("rendimento_real", None, "Rendimento médio real",
+          "Rendimento médio mensal real das pessoas de 14 anos ou mais de idade ocupadas na semana de referência "
+          "com rendimento de trabalho, habitualmente recebido em todos os trabalhos", "trabalho",
+          "R$ por mês (preços do último trimestre)", "mensal",
+          "Quanto as pessoas ocupadas recebem por mês, em média, habitualmente, somando todos os trabalhos, na "
+          "média do trimestre móvel que termina no mês, corrigido pela inflação até o último trimestre divulgado.",
+          fonte_primaria="IBGE, Pesquisa Nacional por Amostra de Domicílios Contínua (SIDRA, tabela 6390, variável "
+                         "5933)",
+          leitura="Cada mês é a média de três meses (o trimestre móvel). Em reais do último trimestre divulgado: "
+                  "comparar dois meses já desconta a inflação entre eles.",
+          limitacoes=("A cada divulgação o IBGE corrige a série inteira pela inflação até o trimestre novo, e os "
+                      "valores antigos mudam; a comparação entre meses continua valendo.",
+                      "Só o rendimento do trabalho, habitual: não inclui aposentadoria, programas sociais nem "
+                      "rendimentos que não sejam do trabalho.",
+                      "Série iniciada em março de 2012."),
+          ibge_produto=9171, sidra="t/6390/n1/all/v/5933/p/all"),
 )
 
 DERIVADOS: tuple[Derivado, ...] = (

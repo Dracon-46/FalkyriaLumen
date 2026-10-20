@@ -15,6 +15,8 @@ from lumen_ingestao.coleta_http import ErroColeta
 
 FIX = Path(__file__).resolve().parents[3] / "testes" / "fixtures" / "bcb"
 RELEASES = (FIX.parent / "ibge" / "noticias_releases_9256.json").read_bytes()
+SIDRA_RENDIMENTO = (FIX.parent / "ibge" / "sidra_6390_rendimento_2024_2025.json").read_bytes()
+SERIES_SGS = tuple(s for s in SERIES if s.codigo)   # as do SIDRA têm coleta própria
 AGORA = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
 
 
@@ -33,12 +35,18 @@ class _Cliente:
     que cada série é pedida (``float("inf")``: sempre). No Ipeadata, responde a fixture do código, se houver.
     """
 
-    def __init__(self, falhar=(), status=200, corpo=None, recusar=0, espelho_falha=False, releases_falha=False):
+    def __init__(self, falhar=(), status=200, corpo=None, recusar=0, espelho_falha=False, releases_falha=False,
+                 sidra_falha=False):
         self.falhar, self.status, self.corpo, self.pedidos = set(falhar), status, corpo, []
-        self.releases_falha = releases_falha
+        self.releases_falha, self.sidra_falha = releases_falha, sidra_falha
         self.recusar, self.espelho_falha, self.vezes, self.espelhos = recusar, espelho_falha, {}, []
 
     def obter(self, url, cabecalhos=None):
+        if "apisidra.ibge.gov.br" in url:
+            if self.sidra_falha:
+                raise ErroColeta("SIDRA sem resposta")
+            return ArtefatoBruto(conteudo=SIDRA_RENDIMENTO, fonte_id="ibge_sidra", url_solicitada=url, url_efetiva=url,
+                                 status_http=200, tipo_midia="application/json")
         if "servicodados.ibge.gov.br/api/v3/noticias" in url:
             if self.releases_falha:
                 raise ErroColeta("IBGE sem resposta")
@@ -103,7 +111,7 @@ def test_coletar_grava_o_estado(tmp_path):
     assert not r.falhas and r.atualizadas["ipca"] == 24 and r.atualizadas["pib_real"] == 11
     estado = coleta.ler_estado(tmp_path)
     assert estado["series"]["433"]["coletado_em"] == "2026-01-15T12:00:00+00:00"
-    assert sorted(cliente.pedidos) == sorted(s.codigo for s in SERIES)
+    assert sorted(cliente.pedidos) == sorted(s.codigo for s in SERIES_SGS)
 
 
 def test_falha_mantem_o_anterior_e_registra(tmp_path):
@@ -135,7 +143,7 @@ def test_recusa_passageira_repete_depois_da_pausa(tmp_path):
     pausas = []
     cliente = _Cliente(recusar=1)
     r = coleta.coletar(cliente, tmp_path, agora=AGORA, espera_s=30, dormir=pausas.append)
-    assert pausas == [30] and not r.falhas and not r.pelo_espelho and len(r.atualizadas) == len(SERIES)
+    assert pausas == [30] and not r.falhas and not r.pelo_espelho and len(r.atualizadas) == len(SERIES_SGS)
     assert all(v == 2 for v in cliente.vezes.values()) and not cliente.espelhos
 
 
@@ -147,7 +155,7 @@ def test_recusa_persistente_usa_o_espelho_conferido(tmp_path):
     assert com_espelho == {"ipca", "inpc", "selic_mes", "primario_12m", "nominal_12m", "pib_real", "desocupacao"}
     # só há fixture do espelho do IPCA e do PIB real: as outras com espelho falham nele, e as sem espelho falham
     assert set(r.pelo_espelho) == {"ipca", "pib_real"} and "firewall" in r.pelo_espelho["ipca"]
-    assert set(r.falhas) == {s.id for s in SERIES} - {"ipca", "pib_real"}
+    assert set(r.falhas) == {s.id for s in SERIES_SGS} - {"ipca", "pib_real"}
     assert "espelho do Ipeadata" in r.falhas["inpc"] and "espelho" not in r.falhas["divida_bruta"]
     estado = coleta.ler_estado(tmp_path)["series"]
     ipca = estado["433"]
@@ -322,3 +330,37 @@ def test_indicador_do_ibge_leva_os_releases(tmp_path):
     assert feed["indicadores"]["ipca_12m"]["releases"] == releases
     assert "releases" not in feed["indicadores"]["juro_real_12m"]
     assert feed["indicadores"]["pib_real"]["releases"]["itens"] == []
+
+
+# ------------------------------------------------------------------ séries do SIDRA
+
+def test_ler_sidra_real_no_formato_do_sgs():
+    obs = coleta.ler_sidra(SIDRA_RENDIMENTO)
+    assert len(obs) == 24 and obs[0] == ("2024-01-01", "3456") and obs[-1] == ("2025-12-01", "3742")
+    corpo = json.dumps([{"D3C": "Mês (Código)", "V": "Valor"}, {"D3C": "202601", "V": "..."},
+                        {"D3C": "202602", "V": "3800"}, {"D3C": "x", "V": "1"}]).encode()
+    assert coleta.ler_sidra(corpo) == [("2026-02-01", "3800")]
+
+
+@pytest.mark.parametrize("corpo", [b"<html/>", b"[]", b'[{"V": "Valor"}]'])
+def test_ler_sidra_ilegivel(corpo):
+    with pytest.raises(SerieIlegivel):
+        coleta.ler_sidra(corpo)
+
+
+def test_coletar_sidra_grava_e_mantem_na_falha(tmp_path):
+    rendimento = series_por_id()["rendimento_real"]
+    assert rendimento.codigo is None and rendimento.chave == "sidra/t/6390/n1/all/v/5933/p/all"
+    r = coleta.coletar_sidra(_Cliente(), tmp_path, agora=AGORA)
+    assert r.atualizadas == {"rendimento_real": 24} and not r.falhas
+    guardado = coleta.ler_estado(tmp_path)["series"][rendimento.chave]
+    assert guardado["fonte_coleta"] == "sidra" and guardado["url"].startswith("https://apisidra.ibge.gov.br/values/")
+    r = coleta.coletar_sidra(_Cliente(sidra_falha=True), tmp_path, agora=AGORA)
+    assert "rendimento_real" in r.falhas
+    depois = coleta.ler_estado(tmp_path)["series"][rendimento.chave]
+    assert depois["observacoes"] == guardado["observacoes"] and depois["ultima_falha"]
+    feed = montar(coleta.ler_estado(tmp_path), agora=AGORA)
+    ind = feed["indicadores"]["rendimento_real"]
+    assert ind["codigo_sgs"] is None and ind["coletado_de"] == "sidra" and ind["ultimo"] == {"periodo": "2025-12",
+                                                                                          "valor": 3742.0}
+    assert ind["fonte"].startswith("IBGE, Sistema IBGE de Recuperação") and ind["grupo"] == "trabalho"

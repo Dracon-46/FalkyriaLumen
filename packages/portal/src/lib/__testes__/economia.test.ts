@@ -115,6 +115,7 @@ describe("formato", () => {
     expect(valorNaUnidade(4.581, "% em 12 meses")).toBe("4,58%");
     expect(valorNaUnidade(13402023.7, "R$ milhões correntes")).toBe("R$ 13,4 tri");
     expect(valorNaUnidade(950000, "R$ milhões correntes")).toBe("R$ 950 bi");
+    expect(valorNaUnidade(3777, "R$ por mês (preços do último trimestre)")).toBe("R$ 3.777,00");
     expect(valorNaUnidade(111.7192, "índice (2002 = 100)")).toBe("111,72");
     expect(valorNaUnidade(null, "%")).toBe("—");
   });

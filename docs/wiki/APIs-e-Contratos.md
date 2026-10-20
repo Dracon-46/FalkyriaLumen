@@ -75,6 +75,12 @@ O catálogo, com unidade, definição e limitações de cada série, fica em
 `packages/economia/lumen_economia/catalogo.py`; o portal lê `economia/indicadores.json`, publicado com os
 painéis ([ADR-033](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-033.md)).
 
+### IBGE — SIDRA (séries da Economia que o SGS não tem conferidas)
+
+| Endereço | Uso |
+|---|---|
+| `https://apisidra.ibge.gov.br/values/t/6390/n1/all/v/5933/p/all` | Rendimento médio real habitual da PNAD Contínua, por trimestre móvel (`D3C` = `AAAAMM`, o último mês), sem chave; regravado inteiro a cada coleta, porque o IBGE o recalcula a cada divulgação (adendo de 20/10/2026 do ADR-033) |
+
 ### IBGE — notícias (releases ao lado dos indicadores da Economia)
 
 | Endereço | Uso |

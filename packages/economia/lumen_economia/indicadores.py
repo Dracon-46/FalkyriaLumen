@@ -14,7 +14,7 @@ from typing import Iterable
 
 from lumen_painel.comum import gravar_json
 
-from .catalogo import DERIVADOS, FONTE_SGS, GRUPOS, SERIES, Derivado, Serie, url_sgs
+from .catalogo import DERIVADOS, FONTE_SGS, FONTE_SIDRA, GRUPOS, SERIES, Derivado, Serie
 from .coleta import ler_estado
 
 VERSAO_FEED = 1
@@ -105,15 +105,15 @@ def montar(estado_dados: dict, *, agora: datetime | None = None) -> dict:
     coletas: dict[str, str | None] = {}
     indicadores: dict[str, dict] = {}
     for s in SERIES:
-        guardado = estado_dados.get("series", {}).get(str(s.codigo), {})
+        guardado = estado_dados.get("series", {}).get(s.chave, {})
         valores[s.id] = serie_do_estado(guardado.get("observacoes", []), s.periodicidade)
         coletas[s.id] = guardado.get("coletado_em")
         parcial = None
         if s.parcial_no_mes_corrente and coletas[s.id]:
             parcial = coletas[s.id][:7]
             valores[s.id].pop(parcial, None)
-        doc = {**_documentacao(s), "nome_oficial": s.nome_oficial, "fonte": FONTE_SGS,
-               "fonte_primaria": s.fonte_primaria, "codigo_sgs": s.codigo, "url": url_sgs(s.codigo),
+        doc = {**_documentacao(s), "nome_oficial": s.nome_oficial, "fonte": FONTE_SGS if s.codigo else FONTE_SIDRA,
+               "fonte_primaria": s.fonte_primaria, "codigo_sgs": s.codigo, "url": s.url,
                "coletado_em": coletas[s.id], "ultima_falha": guardado.get("ultima_falha"),
                "periodo_parcial_omitido": parcial,
                "coletado_de": guardado.get("fonte_coleta", "sgs") if guardado.get("observacoes") else None,

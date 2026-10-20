@@ -51,6 +51,8 @@ LIMITES_PADRAO = {
     "ipeadata": 20,
     # Releases do IBGE que acompanham os indicadores dele (IPCA, INPC, PIB): uma requisição por produto.
     "ibge_noticias": 30,
+    # SIDRA: séries da Economia que o SGS não tem conferidas (o rendimento real da PNAD); uma por série.
+    "ibge_sidra": 30,
     "cvm_dados_abertos": 60,
     "sest_dados_abertos": 10,
     # PNTP (Radar da Transparência): quatro requisições por ciclo, por Range.

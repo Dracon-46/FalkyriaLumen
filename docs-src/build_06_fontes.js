@@ -194,6 +194,7 @@ body.push(table(["Recurso", "Endereço", "Uso"], [2200, 4400, 3000], [
   ["Localidades", "servicodados.ibge.gov.br/api/v1/localidades (visão nivelado)", "Cadastro de UFs e municípios; 5.571 municípios em outubro de 2026"],
   ["População", "SIDRA, agregado 6579, variável 9324, último período", "Gasto per capita e grupo de pares"],
   ["Malhas v3", "servicodados.ibge.gov.br/api/v3/malhas, formato TopoJSON", "Mapa da aba Eleições; código IBGE em codarea"],
+  ["SIDRA (valores)", "apisidra.ibge.gov.br/values, tabela 6390, variável 5933", "Rendimento médio real habitual da PNAD Contínua na área Economia, por trimestre móvel; recalculado inteiro a cada divulgação, por isso a série é regravada a cada coleta (ADR-033)"],
   ["Notícias v3 (releases)", "servicodados.ibge.gov.br/api/v3/noticias, tipo=release e idproduto", "Releases da Agência de Notícias ao lado do IPCA, do INPC e do PIB na área Economia (ADR-033, adendo de 20/10/2026); data como dd/mm/aaaa hh:mm:ss e link em http"],
 ], { size: 17 }));
 body.push(p("Sem autenticação. Limite padrão do Lumen: 30 requisições por minuto. A API responde comprimida " +
@@ -379,7 +380,7 @@ L.buildDoc({
   codigo: "DOC-06",
   titulo: "Catálogo de Fontes",
   subtitulo: "Fontes por esfera, estratégia de cobertura nacional e coleta responsável",
-  meta: { versao: "1.6", data: "20 de outubro de 2026",
+  meta: { versao: "1.7", data: "20 de outubro de 2026",
     situacao: "Atualizado com o comportamento real das fontes da Fase 1, as da aba Eleições e as de referência de mercado (seção 2.8)",
     verificado: "outubro de 2026" },
   body,

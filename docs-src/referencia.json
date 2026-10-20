@@ -1015,7 +1015,7 @@
   {
    "caminho": "packages/economia/lumen_economia/catalogo.py",
    "linguagem": "python",
-   "linhas": 210,
+   "linhas": 243,
    "doc": "Catálogo dos indicadores da área Economia e Contas Públicas.\n\nCada série tem o código no SGS do Banco Central e o nome oficial, conferido no catálogo de dados abertos do\nBC (``dadosabertos.bcb.gov.br``) ou, para as séries que o IBGE produz e o BC replica, na tabela do SIDRA de\nonde vêm. Os derivados são contas sobre as séries, com a conta escrita em ``definicao``.\n\nRegras que valem para todos (ADR-033):\n\n- **Ausente não é zero.** Mês sem observação fica fora da série; um acumulado que precisa de 12 meses só\n  existe quando os 12 estão lá.\n- **Unidade e conceito explícitos.** Dívida bruta do governo geral e dívida líquida do setor público são\n  medidas diferentes; percentual do PIB, percentual ao mês e reais correntes não se misturam.\n- **O sinal da NFSP.** Na necessidade de financiamento do setor público, valor positivo é déficit e valor\n  negativo é superávit.\n\n``agregacao`` diz como o indicador se resume num período escolhido no portal: ``variacao_mensal`` (taxa do\nmês, que se acumula: IPCA, INPC, Selic do mês), ``variacao_anual`` (taxa do ano, que também se acumula: PIB\nreal) e ``nivel`` (um estado num momento, comparado do início ao fim do período: dívida, resultado em 12\nmeses, índices).\n\n**Espelho.** O SGS fica atrás de um firewall que às vezes recusa as requisições vindas de servidores em nuvem\n(em 18/10/2026 recusou as 11 séries no fluxo diário). Para as séries que o Ipeadata (Ipea) republica com os\nmesmos valores, ``espelho`` é o código lá: a coleta usa o espelho só quando o SGS falha, e diz que usou. Cada\nespelho foi conferido valor a valor contra o SGS (2024 e 2025; o PIB real, de 2015 a 2025, com as duas casas\ndo SGS) em 19/10/2026, e o da desocupação, de março de 2012 a agosto de 2026, em 20/10/2026; os que divergem (o Ipeadata guarda outra revisão do PIB mensal e do IBC-Br, e não\ntem a dívida bruta nem a líquida total) ficam sem espelho.",
    "itens": [
     {
@@ -1023,49 +1023,70 @@
      "nome": "url_sgs",
      "assinatura": "def url_sgs(codigo: int) -> str",
      "doc": "Endereço público da série no SGS, em JSON (o mesmo que a coleta usa).",
-     "linha": 37
+     "linha": 38
+    },
+    {
+     "tipo": "funcao",
+     "nome": "url_sidra",
+     "assinatura": "def url_sidra(caminho: str) -> str",
+     "doc": "Consulta de valores da API do SIDRA (``t/<tabela>/n1/all/v/<variável>/p/all``), sem chave.",
+     "linha": 43
     },
     {
      "tipo": "funcao",
      "nome": "url_releases_ibge",
      "assinatura": "def url_releases_ibge(produto: int, quantos: int=3) -> str",
      "doc": "Os ``quantos`` releases mais recentes de um produto do IBGE, pela API de notícias (sem chave).",
-     "linha": 42
+     "linha": 48
     },
     {
      "tipo": "funcao",
      "nome": "url_ipeadata",
      "assinatura": "def url_ipeadata(codigo: str) -> str",
      "doc": "Endereço da série no Ipeadata (OData), em JSON.",
-     "linha": 47
+     "linha": 53
     },
     {
      "tipo": "classe",
      "nome": "Serie",
      "assinatura": "class Serie",
      "doc": "Uma série coletada do SGS e como ela aparece no portal.",
-     "linha": 53
+     "linha": 59
+    },
+    {
+     "tipo": "metodo",
+     "nome": "Serie.chave",
+     "assinatura": "def chave(self) -> str",
+     "doc": "Chave da série no estado da coleta: o código do SGS, ou ``sidra/<consulta>``.",
+     "linha": 81
+    },
+    {
+     "tipo": "metodo",
+     "nome": "Serie.url",
+     "assinatura": "def url(self) -> str",
+     "doc": "Endereço da série na fonte de onde é coletada.",
+     "linha": 86
     },
     {
      "tipo": "classe",
      "nome": "Derivado",
      "assinatura": "class Derivado",
      "doc": "Um indicador calculado a partir das séries, com a conta descrita.",
-     "linha": 75
+     "linha": 92
     },
     {
      "tipo": "funcao",
      "nome": "series_por_id",
      "assinatura": "def series_por_id() -> dict[str, Serie]",
      "doc": "As séries do catálogo pelo identificador.",
-     "linha": 207
+     "linha": 240
     }
    ]
   },
   {
    "caminho": "packages/economia/lumen_economia/cli.py",
    "linguagem": "python",
-   "linhas": 95,
+   "linhas": 99,
    "doc": "Linha de comando da área Economia e Contas Públicas.\n\n    lumen economia coletar --estado DIR [--series ipca,selic_mes]\n    lumen economia estatais --estado DIR [--anos 2021-2025]\n    lumen economia publicar --estado DIR --saida SITE\n\n``coletar`` baixa as séries do SGS do Banco Central para ``DIR/economia-sgs.json.gz`` (o estado guardado\ncom o dos painéis). ``estatais`` lê o cadastro, o controle (FRE) e as demonstrações (DFP) das estatais com\nações na bolsa nos dados abertos da CVM para ``DIR/economia-cvm.json.gz`` (ADR-034). ``publicar`` monta\n``SITE/economia/indicadores.json`` e, se houver o estado das estatais, ``SITE/economia/estatais.json``. As\nestatais federais de capital fechado vêm dos dados abertos da SEST, no mesmo comando (``economia-sest.json.gz``). O\ncódigo de saída de ``coletar`` e de ``estatais`` é 1 quando algo falhou; o resto é gravado mesmo assim.",
    "itens": [
     {
@@ -1094,28 +1115,28 @@
      "nome": "cmd_estatais",
      "assinatura": "def cmd_estatais(args) -> int",
      "doc": "Lê cadastro, FRE e DFP da CVM para o estado das estatais e imprime o resumo.",
-     "linha": 60
+     "linha": 64
     },
     {
      "tipo": "funcao",
      "nome": "cmd_publicar",
      "assinatura": "def cmd_publicar(args) -> int",
      "doc": "Monta o arquivo dos indicadores e, se houver o estado das estatais, o das estatais.",
-     "linha": 69
+     "linha": 73
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada de ``lumen economia`` e de ``python -m lumen_economia``.",
-     "linha": 78
+     "linha": 82
     }
    ]
   },
   {
    "caminho": "packages/economia/lumen_economia/coleta.py",
    "linguagem": "python",
-   "linhas": 246,
+   "linhas": 302,
    "doc": "Coleta das séries do SGS para o estado da área Economia (``economia-sgs.json.gz``).\n\nUma requisição por série, com a série inteira (as séries do catálogo são mensais ou anuais; o SGS limita a\ndez anos por consulta só as diárias). O estado guarda os valores como a fonte os publicou (texto, com o\nponto decimal), a URL e a hora da coleta de cada série. Uma série que falha na coleta mantém o que o estado\njá tinha e registra a falha: o portal mostra o dado anterior com a data em que foi coletado, sem fingir que\né de hoje.\n\nO firewall do Banco Central às vezes recusa requisições de servidores em nuvem, com uma página HTML de\n\"Requisição inválida\" no lugar do JSON (``SgsRecusou``). Quando isso acontece, a coleta tenta de novo depois\nde uma pausa e, se a série tem espelho conferido no Ipeadata (``catalogo.Serie.espelho``), coleta de lá e\nregistra no estado que usou o espelho e por quê.",
    "itens": [
     {
@@ -1123,84 +1144,98 @@
      "nome": "SerieIlegivel",
      "assinatura": "class SerieIlegivel(ErroColeta)",
      "doc": "O SGS respondeu, mas não com a lista de observações (página de erro, JSON inesperado).",
-     "linha": 40
+     "linha": 41
     },
     {
      "tipo": "classe",
      "nome": "SgsRecusou",
      "assinatura": "class SgsRecusou(SerieIlegivel)",
      "doc": "O firewall do Banco Central recusou a requisição: não é mudança de formato, é bloqueio de acesso.",
-     "linha": 44
+     "linha": 45
     },
     {
      "tipo": "funcao",
      "nome": "recusa_do_bc",
      "assinatura": "def recusa_do_bc(conteudo: bytes) -> str | None",
      "doc": "O código de erro da página de recusa do firewall do Banco Central, ou ``None`` se não é essa página.",
-     "linha": 48
+     "linha": 49
     },
     {
      "tipo": "funcao",
      "nome": "ler_resposta",
      "assinatura": "def ler_resposta(conteudo: bytes) -> list[tuple[str, str]]",
      "doc": "Observações da resposta do SGS como (``AAAA-MM-DD``, valor em texto), em ordem de data.\n\nO SGS publica ``[{\"data\": \"01/01/2025\", \"valor\": \"0.16\"}]``. Valor vazio é ausência e fica fora (não vira\nzero). Resposta que não é essa lista levanta ``SerieIlegivel``.",
-     "linha": 57
+     "linha": 58
     },
     {
      "tipo": "funcao",
      "nome": "ler_ipeadata",
      "assinatura": "def ler_ipeadata(conteudo: bytes, casas: int | None=None) -> list[tuple[str, str]]",
      "doc": "Observações da resposta do Ipeadata como (``AAAA-MM-DD``, valor em texto), em ordem de data.\n\nO Ipeadata publica ``{\"value\": [{\"VALDATA\": \"2024-01-01T00:00:00-03:00\", \"VALVALOR\": 0.42}]}``. Valor nulo\né ausência. Com ``casas``, o valor é arredondado como o SGS publica (o PIB real tem duas casas no SGS).",
-     "linha": 85
+     "linha": 86
     },
     {
      "tipo": "classe",
      "nome": "ResumoColetaEconomia",
      "assinatura": "class ResumoColetaEconomia",
      "doc": "O que a coleta fez: séries atualizadas, as que vieram do espelho e as que falharam, com o motivo.",
-     "linha": 108
+     "linha": 109
     },
     {
      "tipo": "metodo",
      "nome": "ResumoColetaEconomia.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "Resumo para imprimir na linha de comando.",
-     "linha": 115
+     "linha": 116
     },
     {
      "tipo": "funcao",
      "nome": "ler_estado",
      "assinatura": "def ler_estado(estado: Path | str) -> dict",
      "doc": "O estado gravado, ou um estado vazio na versão atual.",
-     "linha": 120
+     "linha": 121
     },
     {
      "tipo": "funcao",
      "nome": "_obter",
      "assinatura": "def _obter(cliente: ClienteHttp, url: str, ler: Callable[[bytes], list[tuple[str, str]]]) -> list[tuple[str, str]]",
      "doc": "Baixa e lê uma série; levanta ``ErroColeta`` (ou ``ValueError``) se não veio a lista de observações.",
-     "linha": 131
+     "linha": 132
     },
     {
      "tipo": "funcao",
      "nome": "coletar",
      "assinatura": "def coletar(cliente: ClienteHttp, estado: Path | str, series: Iterable[Serie]=SERIES, *, agora: datetime | None=None, espelho: ClienteHttp | None=None, espera_s: float=ESPERA_ANTES_DE_REPETIR_S, dormir: Callable[[float], None]=time.sleep) -> ResumoColetaEconomia",
      "doc": "Baixa cada série do SGS e grava o estado; a série que falha mantém o que já havia.\n\nAs séries que o firewall do BC recusou são pedidas de novo uma vez, depois de ``espera_s``. As que\ncontinuam falhando e têm espelho são coletadas do Ipeadata (com o cliente ``espelho``, ou o mesmo).",
-     "linha": 142
+     "linha": 143
     },
     {
      "tipo": "funcao",
      "nome": "ler_releases",
      "assinatura": "def ler_releases(conteudo: bytes) -> list[dict]",
      "doc": "Os releases da resposta da API de notícias do IBGE: título, data (ISO), link e a introdução.\n\nA API publica ``data_publicacao`` como ``09/10/2026 09:00:00`` e o link em ``http``; o link vai em ``https``,\nque a Agência de Notícias também serve. Item sem título, data ou link fica de fora.",
-     "linha": 197
+     "linha": 198
     },
     {
      "tipo": "funcao",
      "nome": "coletar_releases",
      "assinatura": "def coletar_releases(cliente: ClienteHttp, estado: Path | str, series: Iterable[Serie]=SERIES, *, agora: datetime | None=None) -> dict",
      "doc": "Guarda no estado os releases mais recentes do IBGE de cada produto das ``series`` (``ibge_produto``).\n\nO produto que falha mantém os releases que já havia; a falha vai no resumo e não derruba a coleta das séries.",
-     "linha": 223
+     "linha": 224
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_sidra",
+     "assinatura": "def ler_sidra(conteudo: bytes) -> list[tuple[str, str]]",
+     "doc": "As observações de uma consulta de valores do SIDRA, como ``(AAAA-MM-01, valor)``, como as do SGS lidas.\n\nA primeira linha da resposta é o cabeçalho; o período vem em ``D3C`` como ``AAAAMM`` (no trimestre móvel,\no último mês). Valor que não é número (``...``, ``-``, ``X``: não disponível, zero absoluto, sigilo) fica\nde fora, como ausente.",
+     "linha": 251
+    },
+    {
+     "tipo": "funcao",
+     "nome": "coletar_sidra",
+     "assinatura": "def coletar_sidra(cliente: ClienteHttp, estado: Path | str, series: Iterable[Serie]=SERIES, *, agora: datetime | None=None) -> ResumoColetaEconomia",
+     "doc": "Baixa as séries do catálogo que vêm direto do SIDRA (``Serie.sidra``) e grava o estado.\n\nA série que falha mantém o que já havia, com a falha registrada, como nas do SGS. A série inteira é\nregravada a cada coleta: no rendimento real, o IBGE muda os valores antigos a cada divulgação.",
+     "linha": 277
     }
    ]
   },
@@ -7935,7 +7970,7 @@
   {
    "caminho": "packages/orquestracao/lumen_orquestracao/configuracao.py",
    "linguagem": "python",
-   "linhas": 113,
+   "linhas": 115,
    "doc": "Configuração do pipeline local, lida de ``lumen.toml`` e do ambiente.\n\nPrecedência: variável de ambiente > arquivo > padrão. Nada sensível vive no\narquivo: o Lumen não usa credencial nas fontes da fase 1 (o token da CGU, que\nentra depois, virá só de variável de ambiente ou cofre — RNF-13).\n\nExemplo de ``lumen.toml``::\n\n    [coleta]\n    contato = \"contato@falkyria.com.br\"   # vai no User-Agent (RF-CO-09)\n\n    [dados]\n    raiz = \"dados\"                        # bronze/ e silver/ ficam aqui\n\n    [limites_rpm]                         # por fonte; o padrão é conservador\n    pncp_contratacoes = 60",
    "itens": [
     {
@@ -7943,42 +7978,42 @@
      "nome": "Configuracao",
      "assinatura": "class Configuracao",
      "doc": "Configuração resolvida do pipeline: contato da coleta, raiz dos dados e limites de requisições por minuto.",
-     "linha": 64
+     "linha": 66
     },
     {
      "tipo": "metodo",
      "nome": "Configuracao.bronze",
      "assinatura": "def bronze(self) -> Path",
      "doc": "Diretório da camada bronze, sob a raiz dos dados.",
-     "linha": 72
+     "linha": 74
     },
     {
      "tipo": "metodo",
      "nome": "Configuracao.silver",
      "assinatura": "def silver(self) -> Path",
      "doc": "Diretório da camada silver, sob a raiz dos dados.",
-     "linha": 77
+     "linha": 79
     },
     {
      "tipo": "metodo",
      "nome": "Configuracao.rpm",
      "assinatura": "def rpm(self, fonte_id: str) -> int",
      "doc": "Limite de requisições por minuto da fonte; 30 quando a fonte não tem limite configurado.",
-     "linha": 81
+     "linha": 83
     },
     {
      "tipo": "classe",
      "nome": "ConfiguracaoAusente",
      "assinatura": "class ConfiguracaoAusente(Exception)",
      "doc": "Falta configuração obrigatória: hoje, o contato que identifica a coleta no User-Agent.",
-     "linha": 86
+     "linha": 88
     },
     {
      "tipo": "funcao",
      "nome": "carregar",
      "assinatura": "def carregar(caminho: Path | None=None) -> Configuracao",
      "doc": "Monta a ``Configuracao`` a partir do arquivo e do ambiente, com o ambiente prevalecendo.\n\nO arquivo é ``caminho``, ``LUMEN_CONFIG`` ou ``lumen.toml``, e pode não existir. ``LUMEN_CONTATO`` e\n``LUMEN_DADOS`` substituem o contato e a raiz; os limites do arquivo sobrescrevem os padrões fonte a\nfonte. Sem contato, levanta ``ConfiguracaoAusente``: toda requisição precisa se identificar (RF-CO-09).",
-     "linha": 91
+     "linha": 93
     }
    ]
   },
@@ -9755,7 +9790,7 @@
   {
    "caminho": "packages/portal/src/lib/economia.ts",
    "linguagem": "typescript",
-   "linhas": 226,
+   "linhas": 227,
    "doc": "Economia e Contas Públicas (ADR-033): o arquivo `economia/indicadores.json`, publicado com os painéis, e\nas contas que a página faz sobre ele.\n\nAs séries vêm prontas do Python, com a documentação de cada indicador. Aqui ficam só as comparações entre\nperíodos que a pessoa escolhe: o valor no início e no fim, a variação, a média e o acumulado. As regras\nsão as do Python: período sem observação não entra na conta (ausente não é zero), e um acumulado com mês\nfaltando não é calculado.",
    "itens": [
     {
@@ -9889,7 +9924,7 @@
      "nome": "variacaoTexto",
      "assinatura": "export function variacaoTexto(r: Resumo): string",
      "doc": "Variação de um resumo de nível: \"+3,12 p.p.\" nas unidades percentuais, \"+4,5%\" nas demais.",
-     "linha": 220
+     "linha": 221
     }
    ]
   },
@@ -12215,7 +12250,7 @@
   {
    "caminho": "packages/portal/src/componentes/economia/PainelEconomia.tsx",
    "linguagem": "typescript",
-   "linhas": 394,
+   "linhas": 404,
    "doc": "Economia e Contas Públicas (ADR-033): os indicadores de inflação, juros, dívida, resultado fiscal e\natividade, com a fonte e a data de cada um, a série histórica e a comparação entre dois períodos.\n\nO estado fica na URL, para compartilhar a consulta: `?ind=` (o indicador do gráfico), `?a=` e `?b=` (os\nperíodos comparados, `AAAA-MM..AAAA-MM`). A comparação mostra o que as séries oficiais registraram em\ncada período; ela não atribui o resultado a quem governava.",
    "itens": [
     {
@@ -12265,21 +12300,21 @@
      "nome": "Celula",
      "assinatura": "function Celula({ ind, r, p }: { ind: Indicador; r: Resumo; p: Periodo })",
      "doc": "Uma célula da comparação: nível (início → fim) ou taxa (acumulado e média).",
-     "linha": 260
+     "linha": 270
     },
     {
      "tipo": "componente",
      "nome": "EscolhaPeriodo",
      "assinatura": "function EscolhaPeriodo({ nome, rotulo, p, mudar }: { nome: string; rotulo: string; p: Periodo;",
      "doc": "Escolha de um período: um mandato ou um intervalo de meses.",
-     "linha": 294
+     "linha": 304
     },
     {
      "tipo": "componente",
      "nome": "Comparacao",
      "assinatura": "function Comparacao({ dados, a, b, mudar }: { dados: FeedEconomia; a: Periodo; b: Periodo;",
      "doc": "Dois períodos lado a lado, para todos os indicadores, agrupados.",
-     "linha": 323
+     "linha": 333
     }
    ]
   },
@@ -13315,7 +13350,7 @@
   {
    "caminho": "packages/economia/testes/test_economia.py",
    "doc": "Economia e Contas Públicas: coleta do SGS, indicadores derivados e o arquivo do portal, com respostas reais.",
-   "testes": 27
+   "testes": 30
   },
   {
    "caminho": "packages/economia/testes/test_estatais.py",
@@ -13560,7 +13595,7 @@
   {
    "caminho": "testes/contrato/test_contrato_fontes.py",
    "doc": "Testes de contrato contra as fontes reais (DOC-09, seção 3.2).\n\nValidam só o **esquema** — que os campos que o normalizador lê continuam\nexistindo, com o tipo esperado —, nunca o conteúdo. Rodam diariamente por\nagendamento na CI e não bloqueiam entrega: quando falham, alarmam, porque\nsignificam que a fonte mudou de formato sem aviso (risco R-03).\n\n    LUMEN_TESTE_CONTRATO=1 python -m pytest -m contrato\n\nO esquema de referência é o das fixtures de ``testes/fixtures``: se a fonte\nreal deixar de ter um campo que a fixture tem, o teste acusa.",
-   "testes": 17
+   "testes": 18
   },
   {
    "caminho": "testes/integracao/test_migracao_postgres.py",

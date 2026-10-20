@@ -33,7 +33,7 @@ export interface Indicador {
   coletado_em: string | null;
   ultima_falha?: string | null;
   /** De onde veio a última coleta: o SGS, ou o espelho conferido no Ipeadata quando o SGS recusou. */
-  coletado_de?: "sgs" | "ipeadata" | null;
+  coletado_de?: "sgs" | "ipeadata" | "sidra" | null;
   url_coleta?: string | null;
   periodo_parcial_omitido?: string | null;
   serie: [string, number][];
@@ -211,6 +211,7 @@ export function valorNaUnidade(valor: number | null | undefined, unidade: string
     return `R$ ${(reais / 1e9).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} bi`;
   }
   const n = valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (unidade.startsWith("R$")) return `R$ ${n}`;
   if (unidade === "% do PIB") return `${n}% do PIB`;
   if (unidade.startsWith("%")) return `${n}%`;
   return n;

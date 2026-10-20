@@ -5,7 +5,13 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
-### Economia: taxa de desocupação (ADR-033, adendo)
+### Economia: desocupação e rendimento (ADR-033, adendos)
+
+- Rendimento médio real habitual da PNAD Contínua, no grupo "Trabalho",
+  direto do SIDRA (tabela 6390). Nenhuma série de rendimento do SGS conferiu
+  com o IBGE: o rendimento real é recalculado a cada divulgação. Coleta
+  própria do SIDRA no catálogo, com teste de contrato. O portal mostra o
+  link da consulta e os valores em reais.
 
 - Indicador novo no grupo "Trabalho" e nos destaques: a taxa de desocupação
   da PNAD Contínua, por trimestre móvel, desde março de 2012.

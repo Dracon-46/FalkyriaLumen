@@ -286,7 +286,7 @@ def test_sgs_series_da_economia_respondem_e_ipca_confere_com_o_sidra():
     from lumen_economia.catalogo import SERIES, url_sgs
     from lumen_economia.coleta import SerieIlegivel, SgsRecusou, ler_resposta
     try:
-        for s in SERIES:
+        for s in (s for s in SERIES if s.codigo):
             obs = ler_resposta(_obter_bytes(url_sgs(s.codigo).replace("dados?", "dados/ultimos/3?")))
             assert obs, f"série {s.codigo} ({s.id}) sem observações"
         sgs = dict(ler_resposta(_obter_bytes(url_sgs(433).replace("dados?", "dados/ultimos/12?"))))
@@ -332,3 +332,12 @@ def test_ibge_noticias_mantem_os_campos_lidos():
     assert all(i["link"].startswith("https://") and len(i["data"]) == 10 for i in itens)
     assert _campos(_referencia("ibge/noticias_releases_9256.json")["items"][0]) <= _campos(
         json.loads(_obter_bytes(url_releases_ibge(9256, 1)))["items"][0])
+
+
+def test_sidra_das_series_da_economia_mantem_o_formato():
+    """As séries da Economia que vêm direto do SIDRA (o rendimento real da PNAD) respondem no formato lido."""
+    from lumen_economia.catalogo import SERIES
+    from lumen_economia.coleta import ler_sidra
+    for s in (s for s in SERIES if s.sidra):
+        obs = ler_sidra(_obter_bytes(s.url.replace("/p/all", "/p/last%203")))
+        assert len(obs) == 3, f"{s.id}: {obs}"
