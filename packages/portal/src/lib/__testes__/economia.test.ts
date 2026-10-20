@@ -117,6 +117,7 @@ describe("formato", () => {
     expect(valorNaUnidade(950000, "R$ milhões correntes")).toBe("R$ 950 bi");
     expect(valorNaUnidade(3777, "R$ por mês (preços do último trimestre)")).toBe("R$ 3.777,00");
     expect(valorNaUnidade(213421037, "pessoas")).toBe("213,4 milhões");
+    expect(valorNaUnidade(3705.42, "R$ bilhões de 2025")).toBe("R$ 3.705,4 bi");
     expect(valorNaUnidade(111.7192, "índice (2002 = 100)")).toBe("111,72");
     expect(valorNaUnidade(null, "%")).toBe("—");
   });
@@ -157,5 +158,29 @@ describe("quebra de método", () => {
     const r = resumir(pop, { de: "2019-01", ate: "2022-12" });
     expect(r.quebra).toBeNull();
     expect(r.variacao).toBeCloseTo((213.3 / 208.5 - 1) * 100, 6);
+  });
+});
+
+describe("valor anual", () => {
+  const despesa = {
+    nome: "Despesa total da União", grupo: "despesa_uniao", unidade: "R$ bilhões de 2025", periodicidade: "anual",
+    definicao: "", leitura: null, limitacoes: [], agregacao: "valor_anual", fonte: "", coletado_em: null, lacunas: [],
+    serie: [["2019", 3100], ["2020", 3900], ["2021", 3300], ["2022", 3200], ["2023", 3500], ["2024", 3600]],
+    ultimo: { periodo: "2024", valor: 3600 },
+  } as unknown as Indicador;
+
+  it("mantém a agregação ao ler o arquivo", () => {
+    const feed = normalizarFeed({ indicadores: { d: { ...despesa }, x: { ...despesa, agregacao: "outra" } } } as never);
+    expect([feed.indicadores.d!.agregacao, feed.indicadores.x!.agregacao]).toEqual(["valor_anual", "nivel"]);
+  });
+
+  it("resume pela média dos anos do período, sem acumular", () => {
+    const r = resumir(despesa, { de: "2019-01", ate: "2022-12" });
+    expect(r.media).toBe(3375);
+    expect(r.acumulado).toBeNull();
+    expect([r.observacoes, r.esperadas]).toEqual([4, 4]);
+    const parcial = resumir(despesa, { de: "2023-01", ate: "2026-12" });
+    expect(parcial.media).toBe(3550);
+    expect(parcial.ateEfetivo).toBe("2024-12");
   });
 });

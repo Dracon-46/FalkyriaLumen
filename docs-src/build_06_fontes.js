@@ -108,6 +108,7 @@ body.push(table(["Comportamento", "Como o Lumen trata"], [4600, 5000], [
   ["/extrato_entregas diz o que cada ente entregou num exercício", "Origem da lista de ausentes (família I, RF-CF-01)"],
   ["/rreo exige o tipo do demonstrativo: RREO ou RREO Simplificado (municípios com menos de 50 mil habitantes podem optar, LRF art. 63), e cada ente publica só um. O porte não diz qual: em 2025, quase todos os pequenos de Roraima e do Amapá publicaram o completo", "O tipo vem do extrato de entregas (\"Relatório Resumido de Execução Orçamentária\" ou \"… Simplificado\", no 6º bimestre); uma consulta por ente"],
   ["/dca, Anexo I-E: despesa por função de cada ano, de 2014 em diante (2013 vem vazio); até 2016 o total se chama \"Despesas (Exceto Intraorçamentárias)\", com parênteses", "Lida sob demanda no portal, pelo endereço /api/siconfi/dca, que a Vercel repassa (a API não aceita pedido de outro site): governos municipais (ADR-040)"],
+  ["RREO da União (id_ente=1), Anexo 2: despesa por função de 2015 em diante; funções e subfunções na mesma lista, sem marcação; a coluna da liquidada mudou de nome em 2016 e, depois, as funções se repetem num bloco das intraorçamentárias", "As 28 funções da Portaria 42/1999 somam o total (conferido em toda leitura); em bilhões de reais corrigidos pelo IPCA na Economia (ADR-033)"],
   ["A RCL fica no Anexo 03, conta RREO3ReceitaCorrenteLiquida, coluna TOTAL (ÚLTIMOS 12 MESES); a resposta do anexo tem perto de 430 linhas por ente, com valores numéricos", "Cada linha vira LinhaDemonstrativo; a RCL do exercício anterior entra nos grupos de pares (ADR-038, versão 2)"],
 ], { size: 17 }));
 body.push(p("Limite padrão do Lumen: 50 requisições por minuto, abaixo da recomendação do Tesouro de cerca de uma " +
@@ -382,7 +383,7 @@ L.buildDoc({
   codigo: "DOC-06",
   titulo: "Catálogo de Fontes",
   subtitulo: "Fontes por esfera, estratégia de cobertura nacional e coleta responsável",
-  meta: { versao: "1.8", data: "20 de outubro de 2026",
+  meta: { versao: "1.9", data: "20 de outubro de 2026",
     situacao: "Atualizado com o comportamento real das fontes da Fase 1, as da aba Eleições e as de referência de mercado (seção 2.8)",
     verificado: "outubro de 2026" },
   body,

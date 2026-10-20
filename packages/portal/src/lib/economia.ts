@@ -12,7 +12,8 @@ import { obterJson } from "./feeds";
 import { BASE_PAINEL, conferir } from "./paineis";
 
 /** Como o indicador se resume num período: estado num momento, ou taxa que se acumula. */
-export type Agregacao = "nivel" | "variacao_mensal" | "variacao_anual";
+/** Como o indicador se resume num período: estado no começo e no fim, taxa acumulada, ou média de valores anuais. */
+export type Agregacao = "nivel" | "variacao_mensal" | "variacao_anual" | "valor_anual";
 
 /** Um indicador publicado: documentação do catálogo e a série. */
 export interface Indicador {
@@ -78,7 +79,7 @@ export async function carregarEconomia(sinal?: AbortSignal): Promise<FeedEconomi
  */
 export function normalizarFeed(feed: FeedEconomia): FeedEconomia {
   for (const ind of Object.values(feed.indicadores)) {
-    if (ind.agregacao !== "variacao_mensal" && ind.agregacao !== "variacao_anual") ind.agregacao = "nivel";
+    if (!["variacao_mensal", "variacao_anual", "valor_anual"].includes(ind.agregacao)) ind.agregacao = "nivel";
     if (!Array.isArray(ind.serie)) ind.serie = [];
     if (!Array.isArray(ind.limitacoes)) ind.limitacoes = [];
     if (!Array.isArray(ind.lacunas)) ind.lacunas = [];
@@ -192,6 +193,11 @@ export function resumir(ind: Indicador, p: Pick<Periodo, "de" | "ate">): Resumo 
     return { inicio, fim, variacao, variacaoEmPercentual: !pontosEmPontos, media, acumulado: null,
              observacoes: pontos.length, esperadas, ateEfetivo, quebra };
   }
+  if (ind.agregacao === "valor_anual") {
+    // Um valor por ano (a despesa da União): a média dos anos do período com dado
+    return { inicio: null, fim, variacao: null, variacaoEmPercentual: false, media, acumulado: null,
+             observacoes: pontos.length, esperadas, ateEfetivo };
+  }
   const completo = pontos.length > 0 && pontos.length === esperadas;
   const acumulado = completo ? (valores.reduce((f, v) => f * (1 + v / 100), 1) - 1) * 100 : null;
   return { inicio: null, fim, variacao: null, variacaoEmPercentual: false, media, acumulado,
@@ -215,6 +221,9 @@ export function valorNaUnidade(valor: number | null | undefined, unidade: string
     const reais = valor * 1e6;
     if (Math.abs(reais) >= 1e12) return `R$ ${(reais / 1e12).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} tri`;
     return `R$ ${(reais / 1e9).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} bi`;
+  }
+  if (unidade.startsWith("R$ bilhões")) {
+    return `R$ ${valor.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} bi`;
   }
   if (unidade === "pessoas") {
     return `${(valor / 1e6).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} milhões`;

@@ -75,6 +75,12 @@ O catálogo, com unidade, definição e limitações de cada série, fica em
 `packages/economia/lumen_economia/catalogo.py`; o portal lê `economia/indicadores.json`, publicado com os
 painéis ([ADR-033](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-033.md)).
 
+### SICONFI — despesa da União por função (Economia)
+
+| Endereço | Uso |
+|---|---|
+| `https://apidatalake.tesouro.gov.br/ords/siconfi/tt/rreo?an_exercicio=<ano>&nr_periodo=6&co_tipo_demonstrativo=RREO&no_anexo=RREO-Anexo%2002&id_ente=1` | RREO da União, despesa liquidada por função, de 2015 em diante; a coluna é `Até o Bimestre (d)` em 2015 e `DESPESAS LIQUIDADAS ATÉ O BIMESTRE (d)` depois, e o bloco das intraorçamentárias fica de fora (adendo de 20/10/2026 do ADR-033) |
+
 ### IBGE — SIDRA (séries da Economia que o SGS não tem conferidas)
 
 | Endereço | Uso |

@@ -299,6 +299,18 @@ function Celula({ ind, r, p }: { ind: Indicador; r: Resumo; p: Periodo }) {
       </>
     );
   }
+  if (ind.agregacao === "valor_anual") {
+    if (r.media === null) return <span className="situacao-painel">sem dado no período</span>;
+    return (
+      <>
+        <span className="num">{valorNaUnidade(r.media, ind.unidade)} por ano</span>
+        <span className="total-detalhe">
+          média de {r.observacoes} ano(s){parcial ? ` · até ${r.ateEfetivo.slice(0, 4)}` : ""}
+          {cobertura}
+        </span>
+      </>
+    );
+  }
   return (
     <>
       <span className="num">

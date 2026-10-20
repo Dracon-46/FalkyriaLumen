@@ -1015,7 +1015,7 @@
   {
    "caminho": "packages/economia/lumen_economia/catalogo.py",
    "linguagem": "python",
-   "linhas": 257,
+   "linhas": 258,
    "doc": "Catálogo dos indicadores da área Economia e Contas Públicas.\n\nCada série tem o código no SGS do Banco Central e o nome oficial, conferido no catálogo de dados abertos do\nBC (``dadosabertos.bcb.gov.br``) ou, para as séries que o IBGE produz e o BC replica, na tabela do SIDRA de\nonde vêm. Os derivados são contas sobre as séries, com a conta escrita em ``definicao``.\n\nRegras que valem para todos (ADR-033):\n\n- **Ausente não é zero.** Mês sem observação fica fora da série; um acumulado que precisa de 12 meses só\n  existe quando os 12 estão lá.\n- **Unidade e conceito explícitos.** Dívida bruta do governo geral e dívida líquida do setor público são\n  medidas diferentes; percentual do PIB, percentual ao mês e reais correntes não se misturam.\n- **O sinal da NFSP.** Na necessidade de financiamento do setor público, valor positivo é déficit e valor\n  negativo é superávit.\n\n``agregacao`` diz como o indicador se resume num período escolhido no portal: ``variacao_mensal`` (taxa do\nmês, que se acumula: IPCA, INPC, Selic do mês), ``variacao_anual`` (taxa do ano, que também se acumula: PIB\nreal) e ``nivel`` (um estado num momento, comparado do início ao fim do período: dívida, resultado em 12\nmeses, índices).\n\n**Espelho.** O SGS fica atrás de um firewall que às vezes recusa as requisições vindas de servidores em nuvem\n(em 18/10/2026 recusou as 11 séries no fluxo diário). Para as séries que o Ipeadata (Ipea) republica com os\nmesmos valores, ``espelho`` é o código lá: a coleta usa o espelho só quando o SGS falha, e diz que usou. Cada\nespelho foi conferido valor a valor contra o SGS (2024 e 2025; o PIB real, de 2015 a 2025, com as duas casas\ndo SGS) em 19/10/2026, e o da desocupação, de março de 2012 a agosto de 2026, em 20/10/2026; os que divergem (o Ipeadata guarda outra revisão do PIB mensal e do IBC-Br, e não\ntem a dívida bruta nem a líquida total) ficam sem espelho.",
    "itens": [
     {
@@ -1079,14 +1079,14 @@
      "nome": "series_por_id",
      "assinatura": "def series_por_id() -> dict[str, Serie]",
      "doc": "As séries do catálogo pelo identificador.",
-     "linha": 254
+     "linha": 255
     }
    ]
   },
   {
    "caminho": "packages/economia/lumen_economia/cli.py",
    "linguagem": "python",
-   "linhas": 99,
+   "linhas": 103,
    "doc": "Linha de comando da área Economia e Contas Públicas.\n\n    lumen economia coletar --estado DIR [--series ipca,selic_mes]\n    lumen economia estatais --estado DIR [--anos 2021-2025]\n    lumen economia publicar --estado DIR --saida SITE\n\n``coletar`` baixa as séries do SGS do Banco Central para ``DIR/economia-sgs.json.gz`` (o estado guardado\ncom o dos painéis). ``estatais`` lê o cadastro, o controle (FRE) e as demonstrações (DFP) das estatais com\nações na bolsa nos dados abertos da CVM para ``DIR/economia-cvm.json.gz`` (ADR-034). ``publicar`` monta\n``SITE/economia/indicadores.json`` e, se houver o estado das estatais, ``SITE/economia/estatais.json``. As\nestatais federais de capital fechado vêm dos dados abertos da SEST, no mesmo comando (``economia-sest.json.gz``). O\ncódigo de saída de ``coletar`` e de ``estatais`` é 1 quando algo falhou; o resto é gravado mesmo assim.",
    "itens": [
     {
@@ -1107,7 +1107,7 @@
      "tipo": "funcao",
      "nome": "cmd_coletar",
      "assinatura": "def cmd_coletar(args) -> int",
-     "doc": "Baixa as séries pedidas (ou todas) e os releases do IBGE delas, e imprime o resumo.\n\nFalha nos releases sai no resumo, mas não muda o código de saída: só as séries contam.",
+     "doc": "Baixa as séries pedidas (ou todas) e os releases do IBGE delas, e imprime o resumo.\n\nSem ``--series``, também a despesa da União por função (RREO, ``uniao.py``). Falha nos releases sai no\nresumo, mas não muda o código de saída; nas séries e na despesa da União, muda.",
      "linha": 41
     },
     {
@@ -1115,21 +1115,21 @@
      "nome": "cmd_estatais",
      "assinatura": "def cmd_estatais(args) -> int",
      "doc": "Lê cadastro, FRE e DFP da CVM para o estado das estatais e imprime o resumo.",
-     "linha": 64
+     "linha": 68
     },
     {
      "tipo": "funcao",
      "nome": "cmd_publicar",
      "assinatura": "def cmd_publicar(args) -> int",
      "doc": "Monta o arquivo dos indicadores e, se houver o estado das estatais, o das estatais.",
-     "linha": 73
+     "linha": 77
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada de ``lumen economia`` e de ``python -m lumen_economia``.",
-     "linha": 82
+     "linha": 86
     }
    ]
   },
@@ -1517,7 +1517,7 @@
   {
    "caminho": "packages/economia/lumen_economia/indicadores.py",
    "linguagem": "python",
-   "linhas": 156,
+   "linhas": 166,
    "doc": "Os indicadores publicados: as séries do estado, os derivados e o arquivo que o portal lê.\n\nO portal lê ``economia/indicadores.json``, publicado com os painéis no GitHub Pages. Cada indicador leva a\nsérie inteira (mês ``AAAA-MM`` ou ano ``AAAA`` e valor), o último valor, a data da coleta, a fonte e a\ndocumentação do catálogo. As comparações entre períodos (variação, média, acumulado) são feitas no\nportal sobre estas séries, com as mesmas regras: sem dado, sem conta.",
    "itens": [
     {
@@ -1525,84 +1525,84 @@
      "nome": "chave",
      "assinatura": "def chave(data_iso: str, periodicidade: str) -> str",
      "doc": "Chave do período na série: ``AAAA-MM`` na mensal, ``AAAA`` na anual.",
-     "linha": 24
+     "linha": 25
     },
     {
      "tipo": "funcao",
      "nome": "mes_anterior",
      "assinatura": "def mes_anterior(mes: str) -> str",
      "doc": "``2025-01`` → ``2024-12``.",
-     "linha": 29
+     "linha": 30
     },
     {
      "tipo": "funcao",
      "nome": "serie_do_estado",
      "assinatura": "def serie_do_estado(observacoes: Iterable[tuple[str, str]], periodicidade: str) -> dict[str, float]",
      "doc": "Valores por período, a partir das observações do estado (a última do período, se houver mais de uma).",
-     "linha": 35
+     "linha": 36
     },
     {
      "tipo": "funcao",
      "nome": "acumulado",
      "assinatura": "def acumulado(variacoes: dict[str, float], meses: int) -> dict[str, float]",
      "doc": "Variação acumulada em ``meses`` meses seguidos, em %, só onde os ``meses`` estão todos na série.",
-     "linha": 40
+     "linha": 41
     },
     {
      "tipo": "funcao",
      "nome": "no_ano",
      "assinatura": "def no_ano(variacoes: dict[str, float]) -> dict[str, float]",
      "doc": "Variação acumulada de janeiro até o mês, em %, só onde todos os meses do ano até ele estão na série.",
-     "linha": 55
+     "linha": 56
     },
     {
      "tipo": "funcao",
      "nome": "juro_real",
      "assinatura": "def juro_real(selic: dict[str, float], inflacao: dict[str, float]) -> dict[str, float]",
      "doc": "(1 + Selic) / (1 + inflação) - 1, em %, nos períodos em que há as duas.",
-     "linha": 61
+     "linha": 62
     },
     {
      "tipo": "funcao",
      "nome": "diferenca",
      "assinatura": "def diferenca(a: dict[str, float], b: dict[str, float]) -> dict[str, float]",
      "doc": "``a - b`` nos períodos em que há os dois, com duas casas.",
-     "linha": 67
+     "linha": 68
     },
     {
      "tipo": "funcao",
      "nome": "lacunas",
      "assinatura": "def lacunas(serie: dict[str, float], periodicidade: str) -> list[str]",
      "doc": "Períodos sem observação entre o primeiro e o último da série (ausentes, e não zero).",
-     "linha": 72
+     "linha": 73
     },
     {
      "tipo": "funcao",
      "nome": "_documentacao",
      "assinatura": "def _documentacao(item: Serie | Derivado) -> dict",
      "doc": "Os campos de documentação comuns a séries e derivados.",
-     "linha": 87
+     "linha": 88
     },
     {
      "tipo": "funcao",
      "nome": "_publicado",
      "assinatura": "def _publicado(doc: dict, serie: dict[str, float]) -> dict",
      "doc": "Acrescenta a série, o último valor e as lacunas à documentação do indicador.",
-     "linha": 94
+     "linha": 95
     },
     {
      "tipo": "funcao",
      "nome": "montar",
      "assinatura": "def montar(estado_dados: dict, *, agora: datetime | None=None) -> dict",
      "doc": "O arquivo ``economia/indicadores.json`` a partir do estado da coleta.",
-     "linha": 102
+     "linha": 103
     },
     {
      "tipo": "funcao",
      "nome": "publicar",
      "assinatura": "def publicar(estado: Path | str, saida: Path | str, *, agora: datetime | None=None) -> dict",
      "doc": "Grava ``economia/indicadores.json`` em ``saida`` e devolve um resumo (indicadores e último período).",
-     "linha": 150
+     "linha": 160
     }
    ]
   },
@@ -1702,6 +1702,49 @@
      "assinatura": "def montar(dados: dict) -> dict",
      "doc": "A parte das estatais federais da SEST no arquivo ``economia/estatais.json``.",
      "linha": 238
+    }
+   ]
+  },
+  {
+   "caminho": "packages/economia/lumen_economia/uniao.py",
+   "linguagem": "python",
+   "linhas": 159,
+   "doc": "Despesa da União por função, para comparar os mandatos presidenciais (ADR-033, adendo de 20/10/2026).\n\nA fonte é o RREO da União do 6º bimestre, Anexo 2 (despesa por função e subfunção), no SICONFI (``id_ente=1``),\nde 2015 em diante, o primeiro exercício que o SICONFI tem. Vale a despesa liquidada no ano, sem as\nintraorçamentárias:\n\n- **Coluna**: ``Até o Bimestre (d)`` em 2015 e ``DESPESAS LIQUIDADAS ATÉ O BIMESTRE (d)`` depois.\n- **Bloco**: a partir de 2016, o anexo repete as funções num bloco das intraorçamentárias; vale o bloco cujo\n  rótulo diz \"Exceto\" (em 2015, o rótulo vem nulo e há um bloco só).\n- **Funções e subfunções**: o anexo põe funções e subfunções na mesma lista, sem marcar qual é qual. As funções\n  são as 28 da classificação funcional (Portaria MOG 42/1999), e as primeiras linhas delas somam o total. Em\n  2015 e em 2025 a soma confere com o total ao centavo.\n\nNa publicação, os valores vão em bilhões de reais do último ano com o IPCA completo, corrigidos pelo IPCA médio\nde cada ano. Comparar dois mandatos mostra a média anual em cada um. Mostra o que foi gasto, não o que causou a\ndiferença: boa parte da despesa (previdência, juros, transferências) vem de regras anteriores ao governo.",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "url_rreo_uniao",
+     "assinatura": "def url_rreo_uniao(ano: int) -> str",
+     "doc": "O RREO da União do 6º bimestre do ``ano``, Anexo 2, no SICONFI.",
+     "linha": 62
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_despesas",
+     "assinatura": "def ler_despesas(conteudo: bytes) -> dict[str, float]",
+     "doc": "Por id de ``MOSTRADAS``, a despesa liquidada no ano, em reais da época; levanta ``SerieIlegivel``.\n\nConfere que as 28 funções somam o total (diferença acima de 0,1% é erro de leitura).",
+     "linha": 68
+    },
+    {
+     "tipo": "funcao",
+     "nome": "coletar",
+     "assinatura": "def coletar(cliente: ClienteHttp, estado: Path | str, *, ano_corrente: int | None=None, agora: datetime | None=None) -> dict",
+     "doc": "Lê os anos que faltam no estado e os ``ANOS_A_RECONFERIR`` mais recentes; o ano que falha mantém o que havia.",
+     "linha": 99
+    },
+    {
+     "tipo": "funcao",
+     "nome": "media_anual_do_ipca",
+     "assinatura": "def media_anual_do_ipca(observacoes: Iterable[tuple[str, str]]) -> dict[str, float]",
+     "doc": "O IPCA médio de cada ano completo, como número-índice, das observações mensais guardadas (data ISO, %).",
+     "linha": 126
+    },
+    {
+     "tipo": "funcao",
+     "nome": "indicadores",
+     "assinatura": "def indicadores(estado_dados: dict, documentar) -> dict[str, dict]",
+     "doc": "Os indicadores da despesa da União para ``economia/indicadores.json``, em bilhões de reais do ano-base.\n\n``documentar(id, nome, unidade, definicao, limitacoes, serie)`` monta o indicador no formato do arquivo.\nSem IPCA para corrigir, a série sai vazia.",
+     "linha": 135
     }
    ]
   },
@@ -9790,141 +9833,141 @@
   {
    "caminho": "packages/portal/src/lib/economia.ts",
    "linguagem": "typescript",
-   "linhas": 236,
+   "linhas": 245,
    "doc": "Economia e Contas Públicas (ADR-033): o arquivo `economia/indicadores.json`, publicado com os painéis, e\nas contas que a página faz sobre ele.\n\nAs séries vêm prontas do Python, com a documentação de cada indicador. Aqui ficam só as comparações entre\nperíodos que a pessoa escolhe: o valor no início e no fim, a variação, a média e o acumulado. As regras\nsão as do Python: período sem observação não entra na conta (ausente não é zero), e um acumulado com mês\nfaltando não é calculado.",
    "itens": [
     {
      "tipo": "tipo",
      "nome": "Agregacao",
-     "assinatura": "export type Agregacao = \"nivel\" | \"variacao_mensal\" | \"variacao_anual\";",
-     "doc": "Como o indicador se resume num período: estado num momento, ou taxa que se acumula.",
-     "linha": 15
+     "assinatura": "export type Agregacao = \"nivel\" | \"variacao_mensal\" | \"variacao_anual\" | \"valor_anual\";",
+     "doc": "Como o indicador se resume num período: estado no começo e no fim, taxa acumulada, ou média de valores anuais.",
+     "linha": 16
     },
     {
      "tipo": "interface",
      "nome": "Indicador",
      "assinatura": "export interface Indicador",
      "doc": "Um indicador publicado: documentação do catálogo e a série.",
-     "linha": 18
+     "linha": 19
     },
     {
      "tipo": "interface",
      "nome": "ReleaseIbge",
      "assinatura": "export interface ReleaseIbge",
      "doc": "Um release oficial do IBGE: título, data (ISO), link na Agência de Notícias e a introdução.",
-     "linha": 49
+     "linha": 50
     },
     {
      "tipo": "interface",
      "nome": "FeedEconomia",
      "assinatura": "export interface FeedEconomia",
      "doc": "O arquivo inteiro.",
-     "linha": 57
+     "linha": 58
     },
     {
      "tipo": "constante",
      "nome": "urlEconomia",
      "assinatura": "export const urlEconomia = () => `${BASE_PAINEL}/economia/indicadores.json`;",
      "doc": "Endereço do arquivo dos indicadores, ao lado dos painéis.",
-     "linha": 66
+     "linha": 67
     },
     {
      "tipo": "funcao",
      "nome": "carregarEconomia",
      "assinatura": "export async function carregarEconomia(sinal?: AbortSignal): Promise<FeedEconomia | null>",
      "doc": "Lê e confere o arquivo; `null` quando ainda não foi publicado.",
-     "linha": 69
+     "linha": 70
     },
     {
      "tipo": "funcao",
      "nome": "normalizarFeed",
      "assinatura": "export function normalizarFeed(feed: FeedEconomia): FeedEconomia",
      "doc": "Garante os campos que as contas usam: indicador sem `agregacao` é tratado como nível (comparado do início\nao fim, nunca acumulado), e sem `serie`, como série vazia. Acumular um nível daria número sem sentido.",
-     "linha": 79
+     "linha": 80
     },
     {
      "tipo": "interface",
      "nome": "Periodo",
      "assinatura": "export interface Periodo",
      "doc": "Um intervalo de meses, inclusivo nas duas pontas (`AAAA-MM`).",
-     "linha": 92
+     "linha": 93
     },
     {
      "tipo": "constante",
      "nome": "MANDATOS",
      "assinatura": "export const MANDATOS: Periodo[] = [",
      "doc": "Mandatos presidenciais, para atalho na comparação. São só intervalos de datas: o que muda num período\nnão é atribuído a quem governava (ADR-033). Dilma Rousseff foi afastada em 12/05/2016 e o impeachment\nconcluído em 31/08/2016; o corte é por mês.",
-     "linha": 103
+     "linha": 104
     },
     {
      "tipo": "funcao",
      "nome": "mesValido",
      "assinatura": "export function mesValido(m: string | null | undefined): m is string",
      "doc": "O mês é `AAAA-MM` válido?",
-     "linha": 118
+     "linha": 119
     },
     {
      "tipo": "funcao",
      "nome": "dentro",
      "assinatura": "function dentro(periodo: string, p: Pick<Periodo, \"de\" | \"ate\">): boolean",
      "doc": "Mês da série (`AAAA-MM`, ou `AAAA` na anual) cai no período? Na série anual, vale o ano inteiro dentro.",
-     "linha": 123
+     "linha": 124
     },
     {
      "tipo": "funcao",
      "nome": "recortar",
      "assinatura": "export function recortar(ind: Pick<Indicador, \"serie\">, p: Pick<Periodo, \"de\" | \"ate\">): [string, number][]",
      "doc": "Os pontos da série dentro do período.",
-     "linha": 129
+     "linha": 130
     },
     {
      "tipo": "interface",
      "nome": "Resumo",
      "assinatura": "export interface Resumo",
      "doc": "Resumo de um indicador num período: o que a tabela de comparação mostra.",
-     "linha": 134
+     "linha": 135
     },
     {
      "tipo": "funcao",
      "nome": "emPontos",
      "assinatura": "function emPontos(unidade: string): boolean",
      "doc": "Unidade em que a variação é diferença de pontos (as percentuais) e não variação percentual.",
-     "linha": 148
+     "linha": 149
     },
     {
      "tipo": "funcao",
      "nome": "tamanho",
      "assinatura": "export function tamanho(p: Pick<Periodo, \"de\" | \"ate\">, periodicidade: \"mensal\" | \"anual\"): number",
      "doc": "Quantos meses (ou anos, na série anual) o período tem, contando as duas pontas.",
-     "linha": 153
+     "linha": 154
     },
     {
      "tipo": "funcao",
      "nome": "resumir",
      "assinatura": "export function resumir(ind: Indicador, p: Pick<Periodo, \"de\" | \"ate\">): Resumo",
      "doc": "Resume o indicador no período. O início de um nível é o último valor **antes** do período (a dívida ao\ncomeçar 2019 é a de dezembro de 2018); o fim, o último dentro dele. Nas taxas, o acumulado só existe se\nnão faltar nenhum mês (ou ano) do período, até o último publicado.",
-     "linha": 165
+     "linha": 166
     },
     {
      "tipo": "funcao",
      "nome": "periodoCurto",
      "assinatura": "export function periodoCurto(periodo: string): string",
      "doc": "`2025-03` → \"mar/2025\"; `2025` → \"2025\".",
-     "linha": 206
+     "linha": 212
     },
     {
      "tipo": "funcao",
      "nome": "valorNaUnidade",
      "assinatura": "export function valorNaUnidade(valor: number | null | undefined, unidade: string): string",
      "doc": "Valor do indicador na unidade dele, em português (\"4,58%\", \"82,87% do PIB\", \"R$ 13,40 tri\").",
-     "linha": 212
+     "linha": 218
     },
     {
      "tipo": "funcao",
      "nome": "variacaoTexto",
      "assinatura": "export function variacaoTexto(r: Resumo): string",
      "doc": "Variação de um resumo de nível: \"+3,12 p.p.\" nas unidades percentuais, \"+4,5%\" nas demais.",
-     "linha": 230
+     "linha": 239
     }
    ]
   },
@@ -12511,7 +12554,7 @@
   {
    "caminho": "packages/portal/src/componentes/economia/PainelEconomia.tsx",
    "linguagem": "typescript",
-   "linhas": 417,
+   "linhas": 429,
    "doc": "Economia e Contas Públicas (ADR-033): os indicadores de inflação, juros, dívida, resultado fiscal e\natividade, com a fonte e a data de cada um, a série histórica e a comparação entre dois períodos.\n\nO estado fica na URL, para compartilhar a consulta: `?ind=` (o indicador do gráfico), `?a=` e `?b=` (os\nperíodos comparados, `AAAA-MM..AAAA-MM`). A comparação mostra o que as séries oficiais registraram em\ncada período; ela não atribui o resultado a quem governava.",
    "itens": [
     {
@@ -12568,14 +12611,14 @@
      "nome": "EscolhaPeriodo",
      "assinatura": "function EscolhaPeriodo({ nome, rotulo, p, mudar }: { nome: string; rotulo: string; p: Periodo;",
      "doc": "Escolha de um período: um mandato ou um intervalo de meses.",
-     "linha": 317
+     "linha": 329
     },
     {
      "tipo": "componente",
      "nome": "Comparacao",
      "assinatura": "function Comparacao({ dados, a, b, mudar }: { dados: FeedEconomia; a: Periodo; b: Periodo;",
      "doc": "Dois períodos lado a lado, para todos os indicadores, agrupados.",
-     "linha": 346
+     "linha": 358
     }
    ]
   },
@@ -13653,6 +13696,11 @@
    "testes": 10
   },
   {
+   "caminho": "packages/economia/testes/test_uniao.py",
+   "doc": "Testes da despesa da União por função (RREO, Anexo 2).",
+   "testes": 5
+  },
+  {
    "caminho": "packages/eleicoes/testes/test_antigas.py",
    "doc": "Eleições de 1933 a 1990: leitura dos arquivos por UF do TSE e feeds gerados.\n\nAs fixtures (``testes/fixtures/tse/dados_abertos_uf``) são linhas reais, sem alteração, recortadas dos\narquivos publicados pelo TSE; os ZIPs são montados aqui, como o tribunal os publica.",
    "testes": 17
@@ -13885,7 +13933,7 @@
   {
    "caminho": "testes/contrato/test_contrato_fontes.py",
    "doc": "Testes de contrato contra as fontes reais (DOC-09, seção 3.2).\n\nValidam só o **esquema** — que os campos que o normalizador lê continuam\nexistindo, com o tipo esperado —, nunca o conteúdo. Rodam diariamente por\nagendamento na CI e não bloqueiam entrega: quando falham, alarmam, porque\nsignificam que a fonte mudou de formato sem aviso (risco R-03).\n\n    LUMEN_TESTE_CONTRATO=1 python -m pytest -m contrato\n\nO esquema de referência é o das fixtures de ``testes/fixtures``: se a fonte\nreal deixar de ter um campo que a fixture tem, o teste acusa.",
-   "testes": 18
+   "testes": 19
   },
   {
    "caminho": "testes/integracao/test_migracao_postgres.py",
@@ -13905,7 +13953,7 @@
   {
    "caminho": "packages/portal/src/lib/__testes__/economia.test.ts",
    "doc": "",
-   "testes": 11
+   "testes": 13
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/estatais.test.ts",

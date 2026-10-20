@@ -19,7 +19,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import coleta, estatais, indicadores, sest
+from . import coleta, estatais, indicadores, sest, uniao
 from .catalogo import SERIES, series_por_id
 
 
@@ -41,7 +41,8 @@ def _anos(texto: str) -> list[int]:
 def cmd_coletar(args) -> int:
     """Baixa as séries pedidas (ou todas) e os releases do IBGE delas, e imprime o resumo.
 
-    Falha nos releases sai no resumo, mas não muda o código de saída: só as séries contam.
+    Sem ``--series``, também a despesa da União por função (RREO, ``uniao.py``). Falha nos releases sai no
+    resumo, mas não muda o código de saída; nas séries e na despesa da União, muda.
     """
     pedidas = SERIES
     if args.series:
@@ -57,8 +58,11 @@ def cmd_coletar(args) -> int:
         resumo.atualizadas.update(sidra.atualizadas)
         resumo.falhas.update(sidra.falhas)
     releases = coleta.coletar_releases(_cliente(args, coleta.FONTE_RELEASES), args.estado, pedidas)
-    print(json.dumps({**resumo.para_json(), "releases": releases}, ensure_ascii=False, indent=2))
-    return 1 if resumo.falhas else 0
+    saida = {**resumo.para_json(), "releases": releases}
+    if not args.series:
+        saida["despesas_uniao"] = uniao.coletar(_cliente(args, uniao.FONTE_ID), args.estado)
+    print(json.dumps(saida, ensure_ascii=False, indent=2))
+    return 1 if resumo.falhas or (saida.get("despesas_uniao") or {}).get("falhas") else 0
 
 
 def cmd_estatais(args) -> int:

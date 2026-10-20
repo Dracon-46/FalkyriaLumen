@@ -114,6 +114,7 @@ GRUPOS = (
     ("atividade", "Atividade econômica"),
     ("trabalho", "Trabalho"),
     ("populacao", "População"),
+    ("despesa_uniao", "Despesa da União"),
 )
 
 SERIES: tuple[Serie, ...] = (

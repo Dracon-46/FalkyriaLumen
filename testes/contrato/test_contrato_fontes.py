@@ -341,3 +341,12 @@ def test_sidra_das_series_da_economia_mantem_o_formato():
     for s in (s for s in SERIES if s.sidra):
         obs = ler_sidra(_obter_bytes(s.url.replace("/p/all", "/p/last%203")))
         assert len(obs) == 3, f"{s.id}: {obs}"
+
+
+def test_rreo_da_uniao_mantem_as_funcoes():
+    """O RREO da União do ano passado (Anexo 2) tem a coluna liquidada, o total e funções que somam o total."""
+    from datetime import date as _date
+
+    from lumen_economia.uniao import ler_despesas, url_rreo_uniao
+    valores = ler_despesas(_obter_bytes(url_rreo_uniao(_date.today().year - 1)))
+    assert valores["despesa_uniao_total"] > 1e12 and valores["despesa_uniao_saude"] > 0

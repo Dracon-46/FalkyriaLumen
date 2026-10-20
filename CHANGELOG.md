@@ -5,6 +5,16 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Economia: despesa da União por função (ADR-033, adendo)
+
+- Grupo novo "Despesa da União", com o total e seis funções: previdência,
+  encargos especiais, saúde, educação, assistência social e defesa.
+  - Fonte: o RREO da União (6º bimestre, Anexo 2) de 2015 em diante, em
+    bilhões de reais do último ano, corrigidos pelo IPCA médio de cada ano.
+  - Comparação de mandatos: pela média anual no período (agregação nova
+    `valor_anual`).
+  - Conferência: a leitura confere que as 28 funções somam o total.
+
 ### Economia: governos municipais e população nos governos (ADR-040; ADR-033, adendo)
 
 - Página nova "Governos municipais" (`/economia/municipio/?ente=<código>`),
