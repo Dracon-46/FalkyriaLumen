@@ -79,6 +79,7 @@ painéis ([ADR-033](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/ad
 
 | Endereço | Uso |
 |---|---|
+| `https://apisidra.ibge.gov.br/values/t/6579/n1/all/v/9324/p/all` | Estimativa anual da população do Brasil (grupo "População"), com as quebras de método de 2013 e 2024 marcadas na série |
 | `https://apisidra.ibge.gov.br/values/t/6390/n1/all/v/5933/p/all` | Rendimento médio real habitual da PNAD Contínua, por trimestre móvel (`D3C` = `AAAAMM`, o último mês), sem chave; regravado inteiro a cada coleta, porque o IBGE o recalcula a cada divulgação (adendo de 20/10/2026 do ADR-033) |
 
 ### IBGE — notícias (releases ao lado dos indicadores da Economia)
@@ -133,6 +134,11 @@ O portal faz esses pedidos só quando a pessoa abre uma contratação. A API lib
 
 A API responde 403 a pedido com cabeçalho `Origin` de outro site. Por isso o portal chama
 `/api/precos/material` e `/api/precos/servico`, que o Vercel repassa à fonte (`rewrites` no `vercel.json`).
+
+Os governos municipais da Economia (ADR-040) leem, para o município escolhido e sob demanda: os resultados de
+prefeito dos feeds da aba Eleições; a população do SIDRA (tabela 6579, nível `n6`, e a tabela 4709 para o Censo
+2022), direto do navegador; e a DCA, Anexo I-E, de cada ano, por `/api/siconfi/dca`, que o Vercel repassa ao
+SICONFI (`apidatalake.tesouro.gov.br/ords/siconfi/tt/dca`).
 O `idCompra` de material vem como número maior que o inteiro seguro do JavaScript, e o portal usa os 17
 primeiros caracteres de `idCompraItem`. O código do item vem do PNCP: `catalogo.id = 1` e
 `catalogoCodigoItem`

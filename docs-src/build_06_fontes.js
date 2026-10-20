@@ -107,6 +107,7 @@ body.push(table(["Comportamento", "Como o Lumen trata"], [4600, 5000], [
   ["Estados vêm com uf = \"BR\"; a União vem com cod_ibge = 1, uf nulo e população que não é a do país", "A UF sai do código IBGE (divergência vira marcação); a população da União fica como veio, marcada, e nunca entra em grupo de pares"],
   ["/extrato_entregas diz o que cada ente entregou num exercício", "Origem da lista de ausentes (família I, RF-CF-01)"],
   ["/rreo exige o tipo do demonstrativo: RREO ou RREO Simplificado (municípios com menos de 50 mil habitantes podem optar, LRF art. 63), e cada ente publica só um. O porte não diz qual: em 2025, quase todos os pequenos de Roraima e do Amapá publicaram o completo", "O tipo vem do extrato de entregas (\"Relatório Resumido de Execução Orçamentária\" ou \"… Simplificado\", no 6º bimestre); uma consulta por ente"],
+  ["/dca, Anexo I-E: despesa por função de cada ano, de 2014 em diante (2013 vem vazio); até 2016 o total se chama \"Despesas (Exceto Intraorçamentárias)\", com parênteses", "Lida sob demanda no portal, pelo endereço /api/siconfi/dca, que a Vercel repassa (a API não aceita pedido de outro site): governos municipais (ADR-040)"],
   ["A RCL fica no Anexo 03, conta RREO3ReceitaCorrenteLiquida, coluna TOTAL (ÚLTIMOS 12 MESES); a resposta do anexo tem perto de 430 linhas por ente, com valores numéricos", "Cada linha vira LinhaDemonstrativo; a RCL do exercício anterior entra nos grupos de pares (ADR-038, versão 2)"],
 ], { size: 17 }));
 body.push(p("Limite padrão do Lumen: 50 requisições por minuto, abaixo da recomendação do Tesouro de cerca de uma " +
@@ -194,6 +195,7 @@ body.push(table(["Recurso", "Endereço", "Uso"], [2200, 4400, 3000], [
   ["Localidades", "servicodados.ibge.gov.br/api/v1/localidades (visão nivelado)", "Cadastro de UFs e municípios; 5.571 municípios em outubro de 2026"],
   ["População", "SIDRA, agregado 6579, variável 9324, último período", "Gasto per capita e grupo de pares"],
   ["Malhas v3", "servicodados.ibge.gov.br/api/v3/malhas, formato TopoJSON", "Mapa da aba Eleições; código IBGE em codarea"],
+  ["SIDRA (valores)", "apisidra.ibge.gov.br/values, tabela 6579 (população estimada; n1 e n6) e tabela 4709 (Censo 2022)", "População do país na Economia e de cada município nos governos municipais (ADR-040), com as quebras de método de 2013 e 2024"],
   ["SIDRA (valores)", "apisidra.ibge.gov.br/values, tabela 6390, variável 5933", "Rendimento médio real habitual da PNAD Contínua na área Economia, por trimestre móvel; recalculado inteiro a cada divulgação, por isso a série é regravada a cada coleta (ADR-033)"],
   ["Notícias v3 (releases)", "servicodados.ibge.gov.br/api/v3/noticias, tipo=release e idproduto", "Releases da Agência de Notícias ao lado do IPCA, do INPC e do PIB na área Economia (ADR-033, adendo de 20/10/2026); data como dd/mm/aaaa hh:mm:ss e link em http"],
 ], { size: 17 }));
@@ -380,7 +382,7 @@ L.buildDoc({
   codigo: "DOC-06",
   titulo: "Catálogo de Fontes",
   subtitulo: "Fontes por esfera, estratégia de cobertura nacional e coleta responsável",
-  meta: { versao: "1.7", data: "20 de outubro de 2026",
+  meta: { versao: "1.8", data: "20 de outubro de 2026",
     situacao: "Atualizado com o comportamento real das fontes da Fase 1, as da aba Eleições e as de referência de mercado (seção 2.8)",
     verificado: "outubro de 2026" },
   body,

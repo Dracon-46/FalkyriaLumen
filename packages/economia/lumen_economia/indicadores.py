@@ -117,7 +117,7 @@ def montar(estado_dados: dict, *, agora: datetime | None = None) -> dict:
                "coletado_em": coletas[s.id], "ultima_falha": guardado.get("ultima_falha"),
                "periodo_parcial_omitido": parcial,
                "coletado_de": guardado.get("fonte_coleta", "sgs") if guardado.get("observacoes") else None,
-               "url_coleta": guardado.get("url_coleta")}
+               "url_coleta": guardado.get("url_coleta"), "quebras": list(s.quebras)}
         if s.ibge_produto:
             # Releases do IBGE sobre o indicador, como a Agência de Notícias os publicou (ADR-033, adendo)
             releases = estado_dados.get("releases", {}).get(str(s.ibge_produto)) or {}

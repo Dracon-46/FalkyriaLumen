@@ -27,7 +27,8 @@ import {
 } from "@/lib/economia";
 import { Escolha } from "@/componentes/Escolha";
 import { instante } from "@/lib/formato";
-import { dataCurta } from "@/lib/paineis";
+import { lerMemoria } from "@/lib/local";
+import { dataCurta, tipoDoCodigo } from "@/lib/paineis";
 import { GraficoLinha } from "./GraficoLinha";
 
 const METODOLOGIA = "https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-033.md";
@@ -59,6 +60,12 @@ export function PainelEconomia() {
   const params = useSearchParams();
   const router = useRouter();
   const [estado, setEstado] = useState<Estado>({ carregando: true });
+  // Local do filtro do cabeçalho: se for um município, o atalho dos governos municipais já abre nele
+  const [municipio, setMunicipio] = useState<string | null>(null);
+  useEffect(() => {
+    const local = lerMemoria();
+    setMunicipio(local && tipoDoCodigo(local.codigo) === "municipio" ? local.codigo : null);
+  }, []);
   const a = periodoDaUrl(params.get("a"), PADRAO_A);
   const b = periodoDaUrl(params.get("b"), PADRAO_B);
 
@@ -101,9 +108,14 @@ export function PainelEconomia() {
             Publicado em {instante(dados.gerado_em)}.
           </p>
         </div>
-        <Link href="/economia/estatais/" className="botao">
-          Empresas estatais: gastos e investimentos ›
-        </Link>
+        <div className="controles">
+          <Link href={municipio ? `/economia/municipio/?ente=${municipio}` : "/economia/municipio/"} className="botao">
+            Governos municipais ›
+          </Link>
+          <Link href="/economia/estatais/" className="botao">
+            Empresas estatais: gastos e investimentos ›
+          </Link>
+        </div>
       </div>
       <aside className="faixa aviso-metodologico" aria-label="Aviso metodológico">
         Cada número traz a fonte, o período a que se refere e a data da coleta. Comparar períodos mostra o que as
@@ -280,7 +292,8 @@ function Celula({ ind, r, p }: { ind: Indicador; r: Resumo; p: Periodo }) {
           {valorNaUnidade(r.fim.valor, ind.unidade)}
         </span>
         <span className="total-detalhe">
-          {variacaoTexto(r)} ({r.inicio ? periodoCurto(r.inicio.periodo) : "—"} a {periodoCurto(r.fim.periodo)})
+          {r.quebra ? `variação não calculada: mudança de método em ${r.quebra}` : variacaoTexto(r)} (
+          {r.inicio ? periodoCurto(r.inicio.periodo) : "—"} a {periodoCurto(r.fim.periodo)})
           {cobertura}
         </span>
       </>

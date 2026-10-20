@@ -20,6 +20,14 @@
     {
       "source": "/api/precos/servico",
       "destination": "https://dadosabertos.compras.gov.br/modulo-pesquisa-preco/3_consultarServico"
+    },
+    {
+      "source": "/api/siconfi/dca/",
+      "destination": "https://apidatalake.tesouro.gov.br/ords/siconfi/tt/dca"
+    },
+    {
+      "source": "/api/siconfi/dca",
+      "destination": "https://apidatalake.tesouro.gov.br/ords/siconfi/tt/dca"
     }
   ]
 }

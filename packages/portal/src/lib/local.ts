@@ -65,7 +65,8 @@ export function hrefDaArea(area: Area, local: Local | null, atual?: URLSearchPar
  */
 export function codigoNaUrl(caminho: string, params: URLSearchParams): string | null {
   const ente = params.get("ente");
-  if (/^\/(contratacoes|conformidade|economia\/estatais)\/?$/.test(caminho) && ente && CODIGO.test(ente)) return ente;
+  if (/^\/(contratacoes|conformidade|economia\/estatais|economia\/municipio)\/?$/.test(caminho) && ente &&
+      CODIGO.test(ente)) return ente;
   if (/^\/conformidade\/?$/.test(caminho)) {
     const uf = params.get("uf");
     return uf ? codigoDaUf(uf) : null;

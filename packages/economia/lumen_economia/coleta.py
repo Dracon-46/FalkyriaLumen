@@ -252,7 +252,7 @@ def ler_sidra(conteudo: bytes) -> list[tuple[str, str]]:
     """As observações de uma consulta de valores do SIDRA, como ``(AAAA-MM-01, valor)``, como as do SGS lidas.
 
     A primeira linha da resposta é o cabeçalho; o período vem em ``D3C`` como ``AAAAMM`` (no trimestre móvel,
-    o último mês). Valor que não é número (``...``, ``-``, ``X``: não disponível, zero absoluto, sigilo) fica
+    o último mês) ou ``AAAA`` (série anual, que vira ``AAAA-01-01``). Valor que não é número (``...``, ``-``, ``X``: não disponível, zero absoluto, sigilo) fica
     de fora, como ausente.
     """
     try:
@@ -264,8 +264,9 @@ def ler_sidra(conteudo: bytes) -> list[tuple[str, str]]:
     saida = []
     for linha in linhas[1:]:
         periodo, valor = str(linha.get("D3C") or ""), str(linha.get("V") or "")
-        if len(periodo) != 6 or not periodo.isdigit():
+        if len(periodo) not in (4, 6) or not periodo.isdigit():
             continue
+        periodo = periodo if len(periodo) == 6 else f"{periodo}01"
         try:
             float(valor)
         except ValueError:

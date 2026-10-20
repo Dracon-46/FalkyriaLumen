@@ -39,6 +39,8 @@ export interface Indicador {
   serie: [string, number][];
   ultimo: { periodo: string; valor: number } | null;
   lacunas: string[];
+  /** Períodos em que o método da série muda: não se calcula variação entre um lado e o outro. */
+  quebras?: string[];
   /** Releases do IBGE sobre o indicador, como a Agência de Notícias os publicou; só nos indicadores do IBGE. */
   releases?: { fonte: string; coletado_em: string | null; itens: ReleaseIbge[] };
 }
@@ -139,6 +141,7 @@ export interface Resumo {
   observacoes: number;
   esperadas: number;         // quantas observações o período teria sem lacunas, até o último publicado
   ateEfetivo: string;        // o fim do período, ou o último mês publicado, se for antes
+  quebra?: string | null;    // quebra de método entre o início e o fim: a variação fica sem cálculo
 }
 
 /** Unidade em que a variação é diferença de pontos (as percentuais) e não variação percentual. */
@@ -179,12 +182,15 @@ export function resumir(ind: Indicador, p: Pick<Periodo, "de" | "ate">): Resumo 
         ? { periodo: primeiro[0], valor: primeiro[1] }
         : null;
     const pontosEmPontos = emPontos(ind.unidade);
+    const quebra = inicio && fim
+      ? (ind.quebras ?? []).find((q) => inicio.periodo < q && q <= fim.periodo) ?? null
+      : null;
     let variacao: number | null = null;
-    if (inicio && fim && inicio.periodo !== fim.periodo) {
+    if (inicio && fim && inicio.periodo !== fim.periodo && !quebra) {
       variacao = pontosEmPontos ? fim.valor - inicio.valor : inicio.valor ? (fim.valor / inicio.valor - 1) * 100 : null;
     }
     return { inicio, fim, variacao, variacaoEmPercentual: !pontosEmPontos, media, acumulado: null,
-             observacoes: pontos.length, esperadas, ateEfetivo };
+             observacoes: pontos.length, esperadas, ateEfetivo, quebra };
   }
   const completo = pontos.length > 0 && pontos.length === esperadas;
   const acumulado = completo ? (valores.reduce((f, v) => f * (1 + v / 100), 1) - 1) * 100 : null;
@@ -209,6 +215,9 @@ export function valorNaUnidade(valor: number | null | undefined, unidade: string
     const reais = valor * 1e6;
     if (Math.abs(reais) >= 1e12) return `R$ ${(reais / 1e12).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} tri`;
     return `R$ ${(reais / 1e9).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} bi`;
+  }
+  if (unidade === "pessoas") {
+    return `${(valor / 1e6).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} milhões`;
   }
   const n = valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   if (unidade.startsWith("R$")) return `R$ ${n}`;

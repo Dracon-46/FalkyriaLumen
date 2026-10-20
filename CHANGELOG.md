@@ -5,6 +5,25 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Economia: governos municipais e população nos governos (ADR-040; ADR-033, adendo)
+
+- Página nova "Governos municipais" (`/economia/municipio/?ente=<código>`),
+  com atalho na Economia que abre no município do filtro de local. Para cada
+  mandato de prefeito desde 2001, mostra:
+  - quem foi eleito, pelos resultados da aba Eleições (o 2º turno quando
+    houve);
+  - a população no começo e no fim;
+  - a média anual da despesa liquidada (total, saúde, educação, assistência
+    social e urbanismo), corrigida pelo IPCA e por habitante, pelas contas
+    anuais (DCA) entregues ao Tesouro de 2014 em diante.
+
+  Mais o ano a ano. Tudo é lido sob demanda, no navegador. A DCA passa pelo
+  endereço do portal, que a Vercel repassa ao SICONFI (`/api/siconfi/dca`).
+- População do país na Economia (grupo "População", SIDRA 6579), e com ela a
+  população nos períodos de cada presidente. A série guarda as quebras de
+  método do IBGE (2013 e 2024), e a comparação não calcula variação entre
+  lados diferentes de uma quebra.
+
 ### Economia: desocupação e rendimento (ADR-033, adendos)
 
 - Rendimento médio real habitual da PNAD Contínua, no grupo "Trabalho",

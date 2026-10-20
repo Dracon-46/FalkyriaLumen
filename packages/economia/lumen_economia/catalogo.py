@@ -76,6 +76,8 @@ class Serie:
     espelho_casas: int | None = None        # casas decimais do SGS, quando o espelho publica mais
     ibge_produto: int | None = None         # produto do IBGE cujos releases acompanham o indicador (ADR-033)
     sidra: str | None = None                # consulta no SIDRA, quando o SGS não tem a série conferida
+    # Períodos em que o método da série muda: a comparação não calcula variação entre um lado e o outro
+    quebras: tuple[str, ...] = field(default_factory=tuple)
 
     @property
     def chave(self) -> str:
@@ -111,6 +113,7 @@ GRUPOS = (
     ("fiscal", "Resultado fiscal"),
     ("atividade", "Atividade econômica"),
     ("trabalho", "Trabalho"),
+    ("populacao", "População"),
 )
 
 SERIES: tuple[Serie, ...] = (
@@ -212,6 +215,17 @@ SERIES: tuple[Serie, ...] = (
                       "rendimentos que não sejam do trabalho.",
                       "Série iniciada em março de 2012."),
           ibge_produto=9171, sidra="t/6390/n1/all/v/5933/p/all"),
+    Serie("populacao", None, "População estimada", "População residente estimada", "populacao", "pessoas",
+          "anual",
+          "Quantas pessoas moram no país em 1º de julho de cada ano, pela estimativa anual do IBGE.",
+          fonte_primaria="IBGE, Estimativas da População (SIDRA, tabela 6579, variável 9324)",
+          leitura="Estimativa, não contagem: o IBGE projeta a população a partir do último censo. A comparação "
+                  "não calcula variação entre anos de métodos diferentes.",
+          limitacoes=("Sem estimativa em 2007, 2010, 2022 e 2023, anos de contagem e de censo.",
+                      "Quebras de método em 2013 (nova projeção do IBGE) e em 2024 (estimativas a partir do Censo "
+                      "2022, que contou menos gente do que as estimativas anteriores previam): a série sobe 7 "
+                      "milhões de 2012 para 2013 e cai de 2021 para 2024 sem que a população tenha mudado assim."),
+          quebras=("2013", "2024"), sidra="t/6579/n1/all/v/9324/p/all"),
 )
 
 DERIVADOS: tuple[Derivado, ...] = (

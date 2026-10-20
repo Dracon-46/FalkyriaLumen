@@ -116,6 +116,7 @@ describe("formato", () => {
     expect(valorNaUnidade(13402023.7, "R$ milhões correntes")).toBe("R$ 13,4 tri");
     expect(valorNaUnidade(950000, "R$ milhões correntes")).toBe("R$ 950 bi");
     expect(valorNaUnidade(3777, "R$ por mês (preços do último trimestre)")).toBe("R$ 3.777,00");
+    expect(valorNaUnidade(213421037, "pessoas")).toBe("213,4 milhões");
     expect(valorNaUnidade(111.7192, "índice (2002 = 100)")).toBe("111,72");
     expect(valorNaUnidade(null, "%")).toBe("—");
   });
@@ -132,5 +133,29 @@ describe("arquivo", () => {
     });
     const d = feed.indicadores.divida!;
     expect([d.agregacao, d.serie, d.limitacoes, d.lacunas]).toEqual(["nivel", [], [], []]);
+  });
+});
+
+describe("quebra de método", () => {
+  const pop = {
+    nome: "População", grupo: "populacao", unidade: "pessoas", periodicidade: "anual", definicao: "", leitura: null,
+    limitacoes: [], agregacao: "nivel", fonte: "IBGE", coletado_em: null, lacunas: [], quebras: ["2013", "2024"],
+    serie: [["2018", 208.5e6], ["2019", 210.1e6], ["2020", 211.8e6], ["2021", 213.3e6], ["2024", 212.6e6],
+            ["2025", 213.4e6]],
+    ultimo: { periodo: "2025", valor: 213.4e6 },
+  } as unknown as Indicador;
+
+  it("não calcula variação quando o período atravessa uma quebra", () => {
+    const r = resumir(pop, { de: "2023-01", ate: "2026-12" });
+    expect(r.inicio?.periodo).toBe("2021");
+    expect(r.fim?.periodo).toBe("2025");
+    expect(r.quebra).toBe("2024");
+    expect(r.variacao).toBeNull();
+  });
+
+  it("calcula quando início e fim estão do mesmo lado", () => {
+    const r = resumir(pop, { de: "2019-01", ate: "2022-12" });
+    expect(r.quebra).toBeNull();
+    expect(r.variacao).toBeCloseTo((213.3 / 208.5 - 1) * 100, 6);
   });
 });

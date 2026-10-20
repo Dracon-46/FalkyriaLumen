@@ -16,6 +16,7 @@ from lumen_ingestao.coleta_http import ErroColeta
 FIX = Path(__file__).resolve().parents[3] / "testes" / "fixtures" / "bcb"
 RELEASES = (FIX.parent / "ibge" / "noticias_releases_9256.json").read_bytes()
 SIDRA_RENDIMENTO = (FIX.parent / "ibge" / "sidra_6390_rendimento_2024_2025.json").read_bytes()
+SIDRA_POPULACAO = (FIX.parent / "ibge" / "sidra_6579_populacao_br.json").read_bytes()
 SERIES_SGS = tuple(s for s in SERIES if s.codigo)   # as do SIDRA têm coleta própria
 AGORA = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
 
@@ -45,8 +46,9 @@ class _Cliente:
         if "apisidra.ibge.gov.br" in url:
             if self.sidra_falha:
                 raise ErroColeta("SIDRA sem resposta")
-            return ArtefatoBruto(conteudo=SIDRA_RENDIMENTO, fonte_id="ibge_sidra", url_solicitada=url, url_efetiva=url,
-                                 status_http=200, tipo_midia="application/json")
+            return ArtefatoBruto(conteudo=SIDRA_POPULACAO if "/t/6579/" in url else SIDRA_RENDIMENTO,
+                                 fonte_id="ibge_sidra", url_solicitada=url, url_efetiva=url, status_http=200,
+                                 tipo_midia="application/json")
         if "servicodados.ibge.gov.br/api/v3/noticias" in url:
             if self.releases_falha:
                 raise ErroColeta("IBGE sem resposta")
@@ -352,7 +354,7 @@ def test_coletar_sidra_grava_e_mantem_na_falha(tmp_path):
     rendimento = series_por_id()["rendimento_real"]
     assert rendimento.codigo is None and rendimento.chave == "sidra/t/6390/n1/all/v/5933/p/all"
     r = coleta.coletar_sidra(_Cliente(), tmp_path, agora=AGORA)
-    assert r.atualizadas == {"rendimento_real": 24} and not r.falhas
+    assert r.atualizadas == {"rendimento_real": 24, "populacao": 22} and not r.falhas
     guardado = coleta.ler_estado(tmp_path)["series"][rendimento.chave]
     assert guardado["fonte_coleta"] == "sidra" and guardado["url"].startswith("https://apisidra.ibge.gov.br/values/")
     r = coleta.coletar_sidra(_Cliente(sidra_falha=True), tmp_path, agora=AGORA)
@@ -364,3 +366,16 @@ def test_coletar_sidra_grava_e_mantem_na_falha(tmp_path):
     assert ind["codigo_sgs"] is None and ind["coletado_de"] == "sidra" and ind["ultimo"] == {"periodo": "2025-12",
                                                                                           "valor": 3742.0}
     assert ind["fonte"].startswith("IBGE, Sistema IBGE de Recuperação") and ind["grupo"] == "trabalho"
+
+
+
+def test_populacao_anual_com_as_quebras_de_metodo(tmp_path):
+    obs = coleta.ler_sidra(SIDRA_POPULACAO)
+    assert obs[0] == ("2001-01-01", "172385826") and ("2010-01-01", obs[0][1]) not in obs
+    assert {d[:4] for d, _ in obs} >= {"2012", "2013", "2021", "2024"} and not {"2007", "2010", "2022", "2023"} & {
+        d[:4] for d, _ in obs}
+    coleta.coletar_sidra(_Cliente(), tmp_path, [series_por_id()["populacao"]], agora=AGORA)
+    ind = montar(coleta.ler_estado(tmp_path), agora=AGORA)["indicadores"]["populacao"]
+    assert ind["quebras"] == ["2013", "2024"] and ind["periodicidade"] == "anual" and ind["grupo"] == "populacao"
+    assert ind["ultimo"]["periodo"] == "2026" and "2022" in ind["lacunas"]
+    assert montar(coleta.ler_estado(tmp_path), agora=AGORA)["indicadores"]["ipca"]["quebras"] == []

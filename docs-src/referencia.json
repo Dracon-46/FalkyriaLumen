@@ -1015,7 +1015,7 @@
   {
    "caminho": "packages/economia/lumen_economia/catalogo.py",
    "linguagem": "python",
-   "linhas": 243,
+   "linhas": 257,
    "doc": "Catálogo dos indicadores da área Economia e Contas Públicas.\n\nCada série tem o código no SGS do Banco Central e o nome oficial, conferido no catálogo de dados abertos do\nBC (``dadosabertos.bcb.gov.br``) ou, para as séries que o IBGE produz e o BC replica, na tabela do SIDRA de\nonde vêm. Os derivados são contas sobre as séries, com a conta escrita em ``definicao``.\n\nRegras que valem para todos (ADR-033):\n\n- **Ausente não é zero.** Mês sem observação fica fora da série; um acumulado que precisa de 12 meses só\n  existe quando os 12 estão lá.\n- **Unidade e conceito explícitos.** Dívida bruta do governo geral e dívida líquida do setor público são\n  medidas diferentes; percentual do PIB, percentual ao mês e reais correntes não se misturam.\n- **O sinal da NFSP.** Na necessidade de financiamento do setor público, valor positivo é déficit e valor\n  negativo é superávit.\n\n``agregacao`` diz como o indicador se resume num período escolhido no portal: ``variacao_mensal`` (taxa do\nmês, que se acumula: IPCA, INPC, Selic do mês), ``variacao_anual`` (taxa do ano, que também se acumula: PIB\nreal) e ``nivel`` (um estado num momento, comparado do início ao fim do período: dívida, resultado em 12\nmeses, índices).\n\n**Espelho.** O SGS fica atrás de um firewall que às vezes recusa as requisições vindas de servidores em nuvem\n(em 18/10/2026 recusou as 11 séries no fluxo diário). Para as séries que o Ipeadata (Ipea) republica com os\nmesmos valores, ``espelho`` é o código lá: a coleta usa o espelho só quando o SGS falha, e diz que usou. Cada\nespelho foi conferido valor a valor contra o SGS (2024 e 2025; o PIB real, de 2015 a 2025, com as duas casas\ndo SGS) em 19/10/2026, e o da desocupação, de março de 2012 a agosto de 2026, em 20/10/2026; os que divergem (o Ipeadata guarda outra revisão do PIB mensal e do IBC-Br, e não\ntem a dívida bruta nem a líquida total) ficam sem espelho.",
    "itens": [
     {
@@ -1058,28 +1058,28 @@
      "nome": "Serie.chave",
      "assinatura": "def chave(self) -> str",
      "doc": "Chave da série no estado da coleta: o código do SGS, ou ``sidra/<consulta>``.",
-     "linha": 81
+     "linha": 83
     },
     {
      "tipo": "metodo",
      "nome": "Serie.url",
      "assinatura": "def url(self) -> str",
      "doc": "Endereço da série na fonte de onde é coletada.",
-     "linha": 86
+     "linha": 88
     },
     {
      "tipo": "classe",
      "nome": "Derivado",
      "assinatura": "class Derivado",
      "doc": "Um indicador calculado a partir das séries, com a conta descrita.",
-     "linha": 92
+     "linha": 94
     },
     {
      "tipo": "funcao",
      "nome": "series_por_id",
      "assinatura": "def series_por_id() -> dict[str, Serie]",
      "doc": "As séries do catálogo pelo identificador.",
-     "linha": 240
+     "linha": 254
     }
    ]
   },
@@ -1136,7 +1136,7 @@
   {
    "caminho": "packages/economia/lumen_economia/coleta.py",
    "linguagem": "python",
-   "linhas": 302,
+   "linhas": 303,
    "doc": "Coleta das séries do SGS para o estado da área Economia (``economia-sgs.json.gz``).\n\nUma requisição por série, com a série inteira (as séries do catálogo são mensais ou anuais; o SGS limita a\ndez anos por consulta só as diárias). O estado guarda os valores como a fonte os publicou (texto, com o\nponto decimal), a URL e a hora da coleta de cada série. Uma série que falha na coleta mantém o que o estado\njá tinha e registra a falha: o portal mostra o dado anterior com a data em que foi coletado, sem fingir que\né de hoje.\n\nO firewall do Banco Central às vezes recusa requisições de servidores em nuvem, com uma página HTML de\n\"Requisição inválida\" no lugar do JSON (``SgsRecusou``). Quando isso acontece, a coleta tenta de novo depois\nde uma pausa e, se a série tem espelho conferido no Ipeadata (``catalogo.Serie.espelho``), coleta de lá e\nregistra no estado que usou o espelho e por quê.",
    "itens": [
     {
@@ -1227,7 +1227,7 @@
      "tipo": "funcao",
      "nome": "ler_sidra",
      "assinatura": "def ler_sidra(conteudo: bytes) -> list[tuple[str, str]]",
-     "doc": "As observações de uma consulta de valores do SIDRA, como ``(AAAA-MM-01, valor)``, como as do SGS lidas.\n\nA primeira linha da resposta é o cabeçalho; o período vem em ``D3C`` como ``AAAAMM`` (no trimestre móvel,\no último mês). Valor que não é número (``...``, ``-``, ``X``: não disponível, zero absoluto, sigilo) fica\nde fora, como ausente.",
+     "doc": "As observações de uma consulta de valores do SIDRA, como ``(AAAA-MM-01, valor)``, como as do SGS lidas.\n\nA primeira linha da resposta é o cabeçalho; o período vem em ``D3C`` como ``AAAAMM`` (no trimestre móvel,\no último mês) ou ``AAAA`` (série anual, que vira ``AAAA-01-01``). Valor que não é número (``...``, ``-``, ``X``: não disponível, zero absoluto, sigilo) fica\nde fora, como ausente.",
      "linha": 251
     },
     {
@@ -1235,7 +1235,7 @@
      "nome": "coletar_sidra",
      "assinatura": "def coletar_sidra(cliente: ClienteHttp, estado: Path | str, series: Iterable[Serie]=SERIES, *, agora: datetime | None=None) -> ResumoColetaEconomia",
      "doc": "Baixa as séries do catálogo que vêm direto do SIDRA (``Serie.sidra``) e grava o estado.\n\nA série que falha mantém o que já havia, com a falha registrada, como nas do SGS. A série inteira é\nregravada a cada coleta: no rendimento real, o IBGE muda os valores antigos a cada divulgação.",
-     "linha": 277
+     "linha": 278
     }
    ]
   },
@@ -9790,7 +9790,7 @@
   {
    "caminho": "packages/portal/src/lib/economia.ts",
    "linguagem": "typescript",
-   "linhas": 227,
+   "linhas": 236,
    "doc": "Economia e Contas Públicas (ADR-033): o arquivo `economia/indicadores.json`, publicado com os painéis, e\nas contas que a página faz sobre ele.\n\nAs séries vêm prontas do Python, com a documentação de cada indicador. Aqui ficam só as comparações entre\nperíodos que a pessoa escolhe: o valor no início e no fim, a variação, a média e o acumulado. As regras\nsão as do Python: período sem observação não entra na conta (ausente não é zero), e um acumulado com mês\nfaltando não é calculado.",
    "itens": [
     {
@@ -9812,119 +9812,119 @@
      "nome": "ReleaseIbge",
      "assinatura": "export interface ReleaseIbge",
      "doc": "Um release oficial do IBGE: título, data (ISO), link na Agência de Notícias e a introdução.",
-     "linha": 47
+     "linha": 49
     },
     {
      "tipo": "interface",
      "nome": "FeedEconomia",
      "assinatura": "export interface FeedEconomia",
      "doc": "O arquivo inteiro.",
-     "linha": 55
+     "linha": 57
     },
     {
      "tipo": "constante",
      "nome": "urlEconomia",
      "assinatura": "export const urlEconomia = () => `${BASE_PAINEL}/economia/indicadores.json`;",
      "doc": "Endereço do arquivo dos indicadores, ao lado dos painéis.",
-     "linha": 64
+     "linha": 66
     },
     {
      "tipo": "funcao",
      "nome": "carregarEconomia",
      "assinatura": "export async function carregarEconomia(sinal?: AbortSignal): Promise<FeedEconomia | null>",
      "doc": "Lê e confere o arquivo; `null` quando ainda não foi publicado.",
-     "linha": 67
+     "linha": 69
     },
     {
      "tipo": "funcao",
      "nome": "normalizarFeed",
      "assinatura": "export function normalizarFeed(feed: FeedEconomia): FeedEconomia",
      "doc": "Garante os campos que as contas usam: indicador sem `agregacao` é tratado como nível (comparado do início\nao fim, nunca acumulado), e sem `serie`, como série vazia. Acumular um nível daria número sem sentido.",
-     "linha": 77
+     "linha": 79
     },
     {
      "tipo": "interface",
      "nome": "Periodo",
      "assinatura": "export interface Periodo",
      "doc": "Um intervalo de meses, inclusivo nas duas pontas (`AAAA-MM`).",
-     "linha": 90
+     "linha": 92
     },
     {
      "tipo": "constante",
      "nome": "MANDATOS",
      "assinatura": "export const MANDATOS: Periodo[] = [",
      "doc": "Mandatos presidenciais, para atalho na comparação. São só intervalos de datas: o que muda num período\nnão é atribuído a quem governava (ADR-033). Dilma Rousseff foi afastada em 12/05/2016 e o impeachment\nconcluído em 31/08/2016; o corte é por mês.",
-     "linha": 101
+     "linha": 103
     },
     {
      "tipo": "funcao",
      "nome": "mesValido",
      "assinatura": "export function mesValido(m: string | null | undefined): m is string",
      "doc": "O mês é `AAAA-MM` válido?",
-     "linha": 116
+     "linha": 118
     },
     {
      "tipo": "funcao",
      "nome": "dentro",
      "assinatura": "function dentro(periodo: string, p: Pick<Periodo, \"de\" | \"ate\">): boolean",
      "doc": "Mês da série (`AAAA-MM`, ou `AAAA` na anual) cai no período? Na série anual, vale o ano inteiro dentro.",
-     "linha": 121
+     "linha": 123
     },
     {
      "tipo": "funcao",
      "nome": "recortar",
      "assinatura": "export function recortar(ind: Pick<Indicador, \"serie\">, p: Pick<Periodo, \"de\" | \"ate\">): [string, number][]",
      "doc": "Os pontos da série dentro do período.",
-     "linha": 127
+     "linha": 129
     },
     {
      "tipo": "interface",
      "nome": "Resumo",
      "assinatura": "export interface Resumo",
      "doc": "Resumo de um indicador num período: o que a tabela de comparação mostra.",
-     "linha": 132
+     "linha": 134
     },
     {
      "tipo": "funcao",
      "nome": "emPontos",
      "assinatura": "function emPontos(unidade: string): boolean",
      "doc": "Unidade em que a variação é diferença de pontos (as percentuais) e não variação percentual.",
-     "linha": 145
+     "linha": 148
     },
     {
      "tipo": "funcao",
      "nome": "tamanho",
      "assinatura": "export function tamanho(p: Pick<Periodo, \"de\" | \"ate\">, periodicidade: \"mensal\" | \"anual\"): number",
      "doc": "Quantos meses (ou anos, na série anual) o período tem, contando as duas pontas.",
-     "linha": 150
+     "linha": 153
     },
     {
      "tipo": "funcao",
      "nome": "resumir",
      "assinatura": "export function resumir(ind: Indicador, p: Pick<Periodo, \"de\" | \"ate\">): Resumo",
      "doc": "Resume o indicador no período. O início de um nível é o último valor **antes** do período (a dívida ao\ncomeçar 2019 é a de dezembro de 2018); o fim, o último dentro dele. Nas taxas, o acumulado só existe se\nnão faltar nenhum mês (ou ano) do período, até o último publicado.",
-     "linha": 162
+     "linha": 165
     },
     {
      "tipo": "funcao",
      "nome": "periodoCurto",
      "assinatura": "export function periodoCurto(periodo: string): string",
      "doc": "`2025-03` → \"mar/2025\"; `2025` → \"2025\".",
-     "linha": 200
+     "linha": 206
     },
     {
      "tipo": "funcao",
      "nome": "valorNaUnidade",
      "assinatura": "export function valorNaUnidade(valor: number | null | undefined, unidade: string): string",
      "doc": "Valor do indicador na unidade dele, em português (\"4,58%\", \"82,87% do PIB\", \"R$ 13,40 tri\").",
-     "linha": 206
+     "linha": 212
     },
     {
      "tipo": "funcao",
      "nome": "variacaoTexto",
      "assinatura": "export function variacaoTexto(r: Resumo): string",
      "doc": "Variação de um resumo de nível: \"+3,12 p.p.\" nas unidades percentuais, \"+4,5%\" nas demais.",
-     "linha": 221
+     "linha": 230
     }
    ]
   },
@@ -10305,9 +10305,248 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/lib/governos.ts",
+   "linguagem": "typescript",
+   "linhas": 320,
+   "doc": "Governos municipais na Economia (ADR-040): para um município, os mandatos de prefeito pelas eleições que o Lumen\npublica, e o que a população (estimativas do IBGE) e as contas anuais (DCA do SICONFI) registraram em cada um.\n\nTudo é lido sob demanda, no navegador, para o município escolhido:\n- os resultados de prefeito, dos feeds da aba Eleições (`<eleição>/prefeito/mu-<código IBGE>.json`; o eleito do\n  2º turno vem do arquivo do 2º turno);\n- a população, do SIDRA (tabela 6579; o Censo 2022, tabela 4709, nos anos sem estimativa, 2022 e 2023);\n- a despesa por função, da DCA (Anexo I-E, despesa liquidada), pelo endereço do próprio portal, que a Vercel\n  repassa ao SICONFI (a API do Tesouro não aceita pedido de outro site).\n\nOs valores em reais são corrigidos pelo IPCA médio de cada ano, para reais do último ano com o IPCA completo.\nComo na comparação de presidentes, os números mostram o que as fontes registraram; não dizem o que causou a\ndiferença entre um mandato e outro.",
+   "itens": [
+    {
+     "tipo": "constante",
+     "nome": "API_SICONFI",
+     "assinatura": "export const API_SICONFI = \"/api/siconfi\";",
+     "doc": "Endereço do portal que a Vercel repassa ao SICONFI (`vercel.json`).",
+     "linha": 23
+    },
+    {
+     "tipo": "constante",
+     "nome": "PRIMEIRO_ANO_DCA",
+     "assinatura": "export const PRIMEIRO_ANO_DCA = 2014;",
+     "doc": "O primeiro exercício com DCA no SICONFI: o de 2013 vem vazio.",
+     "linha": 25
+    },
+    {
+     "tipo": "constante",
+     "nome": "PRIMEIRA_ELEICAO",
+     "assinatura": "export const PRIMEIRA_ELEICAO = 2000;",
+     "doc": "A primeira eleição municipal mostrada: o mandato dela (2001–2004) é o primeiro com estimativa de população.",
+     "linha": 27
+    },
+    {
+     "tipo": "constante",
+     "nome": "QUEBRAS_POPULACAO",
+     "assinatura": "export const QUEBRAS_POPULACAO = [\"2013\", \"2024\"];",
+     "doc": "Quebras de método nas estimativas de população do IBGE (as mesmas da série do país).",
+     "linha": 29
+    },
+    {
+     "tipo": "interface",
+     "nome": "Mandato",
+     "assinatura": "export interface Mandato",
+     "doc": "Um mandato de prefeito: período, quem foi eleito e em que turno.",
+     "linha": 32
+    },
+    {
+     "tipo": "tipo",
+     "nome": "Despesas",
+     "assinatura": "export type Despesas = Partial<Record<IdFuncao, number>>;",
+     "doc": "As despesas liquidadas de um ano, por grupo, em reais da época.",
+     "linha": 44
+    },
+    {
+     "tipo": "tipo",
+     "nome": "IdFuncao",
+     "assinatura": "export type IdFuncao = \"total\" | \"saude\" | \"educacao\" | \"assistencia\" | \"urbanismo\";",
+     "doc": "Os grupos de despesa mostrados: o total e quatro funções.",
+     "linha": 46
+    },
+    {
+     "tipo": "constante",
+     "nome": "FUNCOES",
+     "assinatura": "export const FUNCOES: { id: IdFuncao; rotulo: string; conta: string }[] = [",
+     "doc": "As funções mostradas: a conta como a DCA (Anexo I-E) a escreve.",
+     "linha": 49
+    },
+    {
+     "tipo": "funcao",
+     "nome": "anosMunicipais",
+     "assinatura": "export function anosMunicipais(indice: Indice | null, uf: string): number[]",
+     "doc": "Os anos de eleição municipal com resultado de prefeito publicado para a UF, do mais antigo ao mais novo.",
+     "linha": 60
+    },
+    {
+     "tipo": "funcao",
+     "nome": "eleicoesMunicipais",
+     "assinatura": "export function eleicoesMunicipais(hoje: Date): number[]",
+     "doc": "As eleições municipais do calendário (a cada quatro anos, desde ``PRIMEIRA_ELEICAO``) já realizadas em ``hoje``:\na do ano corrente só entra depois de outubro, quando o resultado sai. Os mandatos vêm daqui, e não dos resultados\npublicados: sem o resultado, o mandato aparece assim mesmo, com os números do período.",
+     "linha": 77
+    },
+    {
+     "tipo": "funcao",
+     "nome": "candidatos",
+     "assinatura": "function candidatos(feed: Feed | null): Candidato[]",
+     "doc": "Os candidatos do resultado, ou nenhum (panorama, ausente).",
+     "linha": 85
+    },
+    {
+     "tipo": "funcao",
+     "nome": "eleitoNoFeed",
+     "assinatura": "export function eleitoNoFeed(feed: Feed | null): Candidato | null",
+     "doc": "O candidato marcado como eleito no resultado, se houver um.",
+     "linha": 90
+    },
+    {
+     "tipo": "funcao",
+     "nome": "foiAoSegundoTurno",
+     "assinatura": "export function foiAoSegundoTurno(feed: Feed | null): boolean",
+     "doc": "Se o resultado do 1º turno levou a eleição ao 2º turno.",
+     "linha": 95
+    },
+    {
+     "tipo": "funcao",
+     "nome": "mandatoDe",
+     "assinatura": "export function mandatoDe(ano: number, eleito: Candidato | null, turno: 1 | 2 | null, publicado: boolean): Mandato",
+     "doc": "O mandato que a eleição de `ano` abriu: de 1º de janeiro do ano seguinte ao fim do quarto ano.",
+     "linha": 100
+    },
+    {
+     "tipo": "funcao",
+     "nome": "quemGovernou",
+     "assinatura": "export function quemGovernou(m: Mandato): string",
+     "doc": "Quem governou: \"Nome (PARTIDO)\", ou por que não se sabe.",
+     "linha": 106
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarMandatos",
+     "assinatura": "export async function carregarMandatos(codigo: string, uf: string, sinal?: AbortSignal,",
+     "doc": "Os mandatos do calendário, com o eleito pelos resultados de prefeito publicados no Lumen.",
+     "linha": 112
+    },
+    {
+     "tipo": "constante",
+     "nome": "urlPopulacao",
+     "assinatura": "export const urlPopulacao = (codigo: string) =>",
+     "doc": "Consulta do SIDRA: estimativa anual da população do município (tabela 6579, variável 9324).",
+     "linha": 132
+    },
+    {
+     "tipo": "constante",
+     "nome": "urlCenso2022",
+     "assinatura": "export const urlCenso2022 = (codigo: string) => `https://apisidra.ibge.gov.br/values/t/4709/n6/${codigo}/v/93/p/2022`;",
+     "doc": "Consulta do SIDRA: população residente do Censo 2022 (tabela 4709, variável 93).",
+     "linha": 135
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lerSidraAnual",
+     "assinatura": "export function lerSidraAnual(bruto: unknown): [string, number][]",
+     "doc": "`[ano, valor]` de uma consulta anual do SIDRA; a primeira linha é o cabeçalho e valor não numérico fica de fora.",
+     "linha": 138
+    },
+    {
+     "tipo": "funcao",
+     "nome": "populacaoPorAno",
+     "assinatura": "export function populacaoPorAno(estimativas: [string, number][], censo2022: number | null): Map<string, number>",
+     "doc": "A população de cada ano para a conta por habitante: a estimativa e, em 2022 e 2023, o Censo 2022.",
+     "linha": 150
+    },
+    {
+     "tipo": "constante",
+     "nome": "urlDca",
+     "assinatura": "export const urlDca = (codigo: string, ano: number) =>",
+     "doc": "Consulta da DCA, Anexo I-E, de um ano, pelo endereço do portal (a Vercel repassa ao SICONFI).",
+     "linha": 159
+    },
+    {
+     "tipo": "funcao",
+     "nome": "semParenteses",
+     "assinatura": "function semParenteses(conta: string): string",
+     "doc": "O nome da conta sem parênteses e espaços repetidos: até 2016 a DCA escrevia \"Despesas (Exceto Intraorçamentárias)\".",
+     "linha": 163
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lerDca",
+     "assinatura": "export function lerDca(bruto: unknown): Despesas | null",
+     "doc": "As despesas liquidadas das funções de `FUNCOES` numa resposta da DCA; `null` se o ano não foi entregue.",
+     "linha": 168
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ipcaMedioAnual",
+     "assinatura": "export function ipcaMedioAnual(ipca: Pick<Indicador, \"serie\">): Map<string, number>",
+     "doc": "O IPCA médio de cada ano, como número-índice (o primeiro mês da série vale 1), a partir da série mensal da\nEconomia. Só entram os anos com os 12 meses.",
+     "linha": 186
+    },
+    {
+     "tipo": "funcao",
+     "nome": "anoBase",
+     "assinatura": "export function anoBase(medias: Map<string, number>): string | null",
+     "doc": "O ano-base da correção: o último com o IPCA completo.",
+     "linha": 202
+    },
+    {
+     "tipo": "funcao",
+     "nome": "emReaisDe",
+     "assinatura": "export function emReaisDe(valor: number, ano: string, base: string, medias: Map<string, number>): number | null",
+     "doc": "`valor` do `ano` em reais do `base`, pelo IPCA médio; `null` sem IPCA de um dos dois anos.",
+     "linha": 207
+    },
+    {
+     "tipo": "interface",
+     "nome": "AnoMunicipal",
+     "assinatura": "export interface AnoMunicipal",
+     "doc": "Um ano do município: população usada, despesas da época e corrigidas, e por habitante.",
+     "linha": 216
+    },
+    {
+     "tipo": "interface",
+     "nome": "ResumoMandato",
+     "assinatura": "export interface ResumoMandato",
+     "doc": "O resumo de um mandato: a população no começo e no fim e a média anual de cada despesa, corrigida.",
+     "linha": 225
+    },
+    {
+     "tipo": "funcao",
+     "nome": "anosMunicipaisComDespesa",
+     "assinatura": "export function anosMunicipaisComDespesa(anos: string[], populacao: Map<string, number>,",
+     "doc": "Os anos do município, com a despesa corrigida para reais do `base` e dividida pela população do ano.",
+     "linha": 237
+    },
+    {
+     "tipo": "funcao",
+     "nome": "media",
+     "assinatura": "function media(anos: AnoMunicipal[], chave: \"reais\" | \"porHabitante\"): Despesas",
+     "doc": "A média das despesas dos anos com contas, por função.",
+     "linha": 257
+    },
+    {
+     "tipo": "funcao",
+     "nome": "resumirMandatos",
+     "assinatura": "export function resumirMandatos(mandatos: Mandato[], estimativas: [string, number][],",
+     "doc": "O resumo de cada mandato. A população de início é a do primeiro ano do mandato com estimativa (ou a última antes\ndele) e a de fim, a do último ano com estimativa no mandato; entre uma quebra de método e outra, a variação fica\nsem cálculo, como na comparação de presidentes.",
+     "linha": 271
+    },
+    {
+     "tipo": "interface",
+     "nome": "DadosMunicipio",
+     "assinatura": "export interface DadosMunicipio",
+     "doc": "Tudo o que a página precisa de um município, lido das três fontes.",
+     "linha": 290
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarMunicipio",
+     "assinatura": "export async function carregarMunicipio(codigo: string, uf: string, ultimoAno: number,",
+     "doc": "Lê os mandatos, a população e as contas anuais de 2014 até `ultimoAno`; falha de uma fonte vai em `falhas`.",
+     "linha": 299
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/lib/local.ts",
    "linguagem": "typescript",
-   "linhas": 107,
+   "linhas": 108,
    "doc": "O local escolhido (União, estado, DF ou município), que filtra todas as abas do portal (ADR-035).\n\nNão há página própria: a pessoa escolhe o local no cabeçalho, ou entra num município ou estado em qualquer\naba, e as outras abas passam a abrir já nele: Eleições no mapa do município, Contratações e Conformidade no\nente, as estatais filtradas pelas que ele controla. O local fica na URL de cada aba e, entre uma visita e\noutra, na memória do navegador.",
    "itens": [
     {
@@ -10357,21 +10596,21 @@
      "nome": "lerMemoria",
      "assinatura": "export function lerMemoria(): Local | null",
      "doc": "O local guardado no navegador, ou `null` (sem memória, em janela privada, ou valor estranho).",
-     "linha": 84
+     "linha": 85
     },
     {
      "tipo": "funcao",
      "nome": "gravarMemoria",
      "assinatura": "export function gravarMemoria(local: Local | null): void",
      "doc": "Guarda (ou apaga, com `null`) o local no navegador; sem memória disponível, só não guarda.",
-     "linha": 97
+     "linha": 98
     },
     {
      "tipo": "constante",
      "nome": "EVENTO_LOCAL",
      "assinatura": "export const EVENTO_LOCAL = \"lumen:local\";",
      "doc": "Avisa as abas abertas na mesma página que o local mudou.",
-     "linha": 107
+     "linha": 108
     }
    ]
   },
@@ -12065,6 +12304,28 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/app/economia/municipio/page.tsx",
+   "linguagem": "typescript",
+   "linhas": 25,
+   "doc": "Página `/economia/municipio/`: os governos municipais de um município (ADR-040). O trabalho é do\n`PainelGovernos`, que roda no navegador e lê as fontes sob demanda.",
+   "itens": [
+    {
+     "tipo": "constante",
+     "nome": "metadata",
+     "assinatura": "export const metadata: Metadata =",
+     "doc": "Título e descrição da página, usados pelo navegador e nas prévias de link.",
+     "linha": 11
+    },
+    {
+     "tipo": "componente",
+     "nome": "GovernosMunicipais",
+     "assinatura": "export default function GovernosMunicipais()",
+     "doc": "Envolve o painel em `Suspense`: ele lê a URL com `useSearchParams`, que só existe no navegador.",
+     "linha": 19
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/app/economia/page.tsx",
    "linguagem": "typescript",
    "linhas": 25,
@@ -12250,7 +12511,7 @@
   {
    "caminho": "packages/portal/src/componentes/economia/PainelEconomia.tsx",
    "linguagem": "typescript",
-   "linhas": 404,
+   "linhas": 417,
    "doc": "Economia e Contas Públicas (ADR-033): os indicadores de inflação, juros, dívida, resultado fiscal e\natividade, com a fonte e a data de cada um, a série histórica e a comparação entre dois períodos.\n\nO estado fica na URL, para compartilhar a consulta: `?ind=` (o indicador do gráfico), `?a=` e `?b=` (os\nperíodos comparados, `AAAA-MM..AAAA-MM`). A comparação mostra o que as séries oficiais registraram em\ncada período; ela não atribui o resultado a quem governava.",
    "itens": [
     {
@@ -12258,63 +12519,63 @@
      "nome": "Estado",
      "assinatura": "type Estado = { carregando: true } | { carregando: false; dados: FeedEconomia | null; erro: string | null };",
      "doc": "Carregando, ou o arquivo lido (null quando ainda não foi publicado) e o erro, se houve.",
-     "linha": 41
+     "linha": 42
     },
     {
      "tipo": "funcao",
      "nome": "periodoDaUrl",
      "assinatura": "function periodoDaUrl(bruto: string | null, padrao: Periodo): Periodo",
      "doc": "Período da URL (`2019-01..2022-12`), ou o padrão. O rótulo vem do mandato com as mesmas datas, se houver.",
-     "linha": 44
+     "linha": 45
     },
     {
      "tipo": "funcao",
      "nome": "defasado",
      "assinatura": "function defasado(ind: Indicador, agora = Date.now()): boolean",
      "doc": "A coleta ficou para trás: falhou na última tentativa ou tem mais de alguns dias.",
-     "linha": 51
+     "linha": 52
     },
     {
      "tipo": "componente",
      "nome": "PainelEconomia",
      "assinatura": "export function PainelEconomia()",
      "doc": "Página inteira da área.",
-     "linha": 58
+     "linha": 59
     },
     {
      "tipo": "componente",
      "nome": "Destaques",
      "assinatura": "function Destaques({ dados, escolhido, escolher }: { dados: FeedEconomia; escolhido: string;",
      "doc": "Cartões dos indicadores principais: valor, período de referência e coleta.",
-     "linha": 126
+     "linha": 138
     },
     {
      "tipo": "componente",
      "nome": "Detalhe",
      "assinatura": "function Detalhe({ ind, id, a, b, dados, escolher }: { ind: Indicador; id: string; a: Periodo; b: Periodo;",
      "doc": "O indicador escolhido: gráfico, definição, como ler, limitações e fonte.",
-     "linha": 154
+     "linha": 166
     },
     {
      "tipo": "componente",
      "nome": "Celula",
      "assinatura": "function Celula({ ind, r, p }: { ind: Indicador; r: Resumo; p: Periodo })",
      "doc": "Uma célula da comparação: nível (início → fim) ou taxa (acumulado e média).",
-     "linha": 270
+     "linha": 282
     },
     {
      "tipo": "componente",
      "nome": "EscolhaPeriodo",
      "assinatura": "function EscolhaPeriodo({ nome, rotulo, p, mudar }: { nome: string; rotulo: string; p: Periodo;",
      "doc": "Escolha de um período: um mandato ou um intervalo de meses.",
-     "linha": 304
+     "linha": 317
     },
     {
      "tipo": "componente",
      "nome": "Comparacao",
      "assinatura": "function Comparacao({ dados, a, b, mudar }: { dados: FeedEconomia; a: Periodo; b: Periodo;",
      "doc": "Dois períodos lado a lado, para todos os indicadores, agrupados.",
-     "linha": 333
+     "linha": 346
     }
    ]
   },
@@ -12379,6 +12640,35 @@
      "assinatura": "function DetalheCvm({ c, ano, anos, indicadores }: { c: CompanhiaCvm; ano: string; anos: string[];",
      "doc": "Uma companhia: controladores, cada indicador no exercício (conta e descrição publicadas) e a série.",
      "linha": 450
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/economia/PainelGovernos.tsx",
+   "linguagem": "typescript",
+   "linhas": 257,
+   "doc": "Governos municipais (ADR-040): para o município de `?ente=`, cada mandato de prefeito, com quem foi eleito, a\npopulação no começo e no fim e a média anual da despesa (total, saúde, educação, assistência social e\nurbanismo), corrigida pelo IPCA e por habitante. Ano a ano, os mesmos números. Lido sob demanda das fontes\n(`lib/governos.ts`); como a comparação de presidentes, mostra o que foi registrado, não o que causou a diferença.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "Estado",
+     "assinatura": "type Estado =",
+     "doc": "O andamento da leitura do município.",
+     "linha": 35
+    },
+    {
+     "tipo": "componente",
+     "nome": "PainelGovernos",
+     "assinatura": "export function PainelGovernos()",
+     "doc": "A página dos governos municipais, a partir de `?ente=` na URL.",
+     "linha": 42
+    },
+    {
+     "tipo": "componente",
+     "nome": "Municipio",
+     "assinatura": "function Municipio({ ente, dados, medias, base }: Extract<Estado, { fase: \"pronto\" }>)",
+     "doc": "Os mandatos e os anos do município lido.",
+     "linha": 104
     }
    ]
   },
@@ -13350,7 +13640,7 @@
   {
    "caminho": "packages/economia/testes/test_economia.py",
    "doc": "Economia e Contas Públicas: coleta do SGS, indicadores derivados e o arquivo do portal, com respostas reais.",
-   "testes": 30
+   "testes": 31
   },
   {
    "caminho": "packages/economia/testes/test_estatais.py",
@@ -13615,7 +13905,7 @@
   {
    "caminho": "packages/portal/src/lib/__testes__/economia.test.ts",
    "doc": "",
-   "testes": 9
+   "testes": 11
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/estatais.test.ts",
@@ -13626,6 +13916,11 @@
    "caminho": "packages/portal/src/lib/__testes__/feeds.test.ts",
    "doc": "",
    "testes": 5
+  },
+  {
+   "caminho": "packages/portal/src/lib/__testes__/governos.test.ts",
+   "doc": "",
+   "testes": 7
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/local.test.ts",
