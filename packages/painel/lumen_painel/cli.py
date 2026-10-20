@@ -7,6 +7,7 @@ Exemplos::
     lumen painel contratacoes --estado estado/ --de 2026-01-01 --ate 2026-01-31 --limite-minutos 300
     lumen painel faltando --estado estado/ --de 2026-01-01 --partes 6   # divisão para execuções paralelas
     lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026
+    lumen painel rcl --estado estado/ --ufs SP,MG                  # RCL do exercício anterior, para os pares
     lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)
     lumen painel anp --estado estado/                               # preço de revenda da ANP por semana
     lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado
@@ -27,7 +28,7 @@ from pathlib import Path
 
 from . import conformidade as conf
 from . import contratacoes as contr
-from . import mercado, operacao, pares, transparencia
+from . import mercado, operacao, pares, rcl, transparencia
 from .cadastro import Cadastro
 from .comum import gravar_json, hoje_brasilia, instante_utc, ler_json, uf_do_ente
 from .dia import coletar_dia, dias_guardados
@@ -164,6 +165,25 @@ def cmd_conformidade(args) -> int:
     return 1 if any(not r["gravado"] for r in resultados) else 0
 
 
+def cmd_rcl(args) -> int:
+    """Coleta a RCL dos entes pendentes de cada UF pedida (RREO, Anexo 03) e grava o estado de cada uma.
+
+    Ente que ainda não publicou não é falha: fica para a próxima tentativa. O código é 1 só quando uma coleta
+    foi interrompida.
+    """
+    cfg = _configuracao(args)
+    cadastro = Cadastro.ler(Path(args.estado) / ARQUIVO_CADASTRO)
+    exercicio = args.exercicio or rcl.exercicio_padrao(hoje_brasilia())
+    resultados = []
+    for uf in _lista(args.ufs):
+        r = rcl.coletar_uf(cfg, uf, cadastro, Path(args.estado), exercicio)
+        resultados.append(r.para_json())
+        print(f"{uf}: {r.encontradas} RCL de {r.pendentes} pendente(s), {r.consultas} consulta(s)"
+              + (f"; {'; '.join(r.problemas)}" if r.problemas else ""), file=sys.stderr, flush=True)
+    _imprimir({"exercicio": exercicio, "ufs": resultados})
+    return 1 if any(r["problemas"] for r in resultados) else 0
+
+
 def cmd_transparencia(args) -> int:
     """Lê o ciclo mais recente do PNTP para ``transparencia-pntp.json.gz``; o código é 1 quando falhou."""
     from lumen_orquestracao import etapas
@@ -201,7 +221,9 @@ def cmd_publicar(args) -> int:
     site.gravar("orgaos.json", contr.orgaos_para_busca(painel, gerado_em))
 
     avaliacao = conf.avaliar(estado.glob("conformidade-*.json.gz"), cadastro, hoje=hoje, gerado_em=gerado_em)
-    grupos = pares.acrescentar(avaliacao, cadastro, site.gravar, gerado_em=gerado_em)
+    exercicio_rcl, rcl_entes = rcl.ler_rcl(estado.glob("rcl-*.json.gz"))
+    grupos = pares.acrescentar(avaliacao, cadastro, site.gravar, gerado_em=gerado_em, rcl=rcl_entes,
+                               exercicio_rcl=exercicio_rcl)
     for codigo, arquivo in avaliacao.entes.items():
         site.gravar(f"conformidade/ente/{codigo}.json", arquivo)
     for uf in sorted({a["ente"]["uf"] for a in avaliacao.entes.values() if a["ente"]["uf"]}):
@@ -265,6 +287,11 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--ufs", required=True, help="siglas separadas por vírgula")
     c.add_argument("--exercicios", help="padrão: o anterior e o corrente")
 
+    c = sub.add_parser("rcl", help="receita corrente líquida dos entes por UF (RREO, Anexo 03), para os pares")
+    c.add_argument("--estado", required=True)
+    c.add_argument("--ufs", required=True, help="siglas separadas por vírgula")
+    c.add_argument("--exercicio", type=int, help="padrão: o anterior")
+
     c = sub.add_parser("transparencia", help="portais de transparência dos entes pelo PNTP")
     c.add_argument("--estado", required=True)
 
@@ -281,7 +308,7 @@ def construir_parser() -> argparse.ArgumentParser:
 
 
 COMANDOS = {"cadastro": cmd_cadastro, "contratacoes": cmd_contratacoes, "faltando": cmd_faltando,
-            "conformidade": cmd_conformidade, "transparencia": cmd_transparencia, "anp": cmd_anp,
+            "conformidade": cmd_conformidade, "rcl": cmd_rcl, "transparencia": cmd_transparencia, "anp": cmd_anp,
             "publicar": cmd_publicar}
 
 

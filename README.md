@@ -423,7 +423,7 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
 - **Regra J-01** (ADR-031): roda em modo silencioso a cada carga; calibrar e revisar antes de
   publicar qualquer coisa.
 - Fase 1 restante: base de CNPJ da Receita Federal (DOC-10). Os grupos de pares têm o cálculo inicial
-  (ADR-038), por porte e região; a receita corrente líquida entra com a normalização do RREO. O painel
+  (ADR-038), por porte, região e receita corrente líquida por habitante, do RREO normalizado. O painel
   operacional está no portal, em "Situação das coletas" (ADR-039).
   Os cadastros de sanções da CGU (CEIS, CNEP e CEPIM) já são coletados e normalizados (ADR-030); o
   cruzamento com as contratações é a regra J-01 da Fase 2. Despesas, convênios e emendas da CGU

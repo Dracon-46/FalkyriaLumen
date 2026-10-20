@@ -14,7 +14,10 @@
 #    40 por execução).
 # 2. conformidade (todo dia, desde 19/10/2026): o extrato de entregas do
 #    SICONFI de todos os entes, em cinco grupos de UFs em paralelo, para o
-#    exercício anterior e o corrente; um arquivo por UF no mesmo lugar.
+#    exercício anterior e o corrente; um arquivo por UF no mesmo lugar. Depois,
+#    a receita corrente líquida do exercício anterior (RREO, Anexo 03) dos
+#    entes que ainda não a têm, no tipo de RREO que o extrato diz que cada um
+#    entregou, para os grupos de pares (ADR-038, versão 2): rcl-<UF>.json.gz.
 # 3. site: monta e publica o site no GitHub Pages (paineis-site.yml).
 #
 # A carga dos meses anteriores, em execuções paralelas, é a de
@@ -152,6 +155,14 @@ jobs:
       - name: Guardar as UFs
         if: always()
         run: find estado -name 'conformidade-*.json.gz' -print0 | xargs -0 -r gh release upload "$TAG" --clobber
+      - name: Receita corrente líquida dos entes que faltam (para os grupos de pares)
+        if: always()
+        run: |
+          for uf in $(echo "$UFS" | tr ',' ' '); do
+            gh release download "$TAG" -p "rcl-$uf.json.gz" -D estado --clobber 2>/dev/null || true
+          done
+          lumen painel rcl --estado estado --ufs "$UFS" || echo "::warning::RCL com coleta interrompida (ver o registro)"
+          find estado -name 'rcl-*.json.gz' -print0 | xargs -0 -r gh release upload "$TAG" --clobber
 
   site:
     needs: [contratacoes, conformidade]

@@ -12,7 +12,9 @@ import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import { numero, percentual } from "@/lib/formato";
 import {
   carregarConformidadePares,
+  criterioRcl,
   faixaCentral,
+  moeda,
   type EntePares,
   type ParesConformidade,
   type ResumoConformidade,
@@ -72,10 +74,17 @@ export function GrupoPares({ pares, resumo }: { pares: ParesConformidade | undef
               detalhe={pares.no_prazo ? `metade dos entes ${faixaCentral(pares.no_prazo)}` : undefined}
             />
             <Numero rotulo="Entes do grupo com obrigação avaliável" valor={numero(pares.no_prazo?.entes ?? 0)} />
+            {pares.rcl && (
+              <Numero
+                rotulo={`RCL por habitante (${pares.rcl.exercicio})`}
+                valor={pares.rcl.por_habitante === null ? "—" : moeda(pares.rcl.por_habitante)}
+                detalhe={`RCL de ${moeda(pares.rcl.valor)} no ${pares.rcl.demonstrativo ?? "RREO"}, Anexo 03`}
+              />
+            )}
           </div>
           <p className="busca-detalhe">
-            Critérios: porte pela população (classes de tamanho do IBGE) e região; a receita corrente líquida
-            ainda não entra. A posição no grupo é contexto, não avaliação do ente.{" "}
+            Critérios: porte pela população (classes de tamanho do IBGE), região e capacidade fiscal.{" "}
+            {criterioRcl(pares.grupo)} A posição no grupo é contexto, não avaliação do ente.{" "}
             <a href={METODO} target="_blank" rel="noreferrer">
               Como o grupo é formado
             </a>
@@ -97,6 +106,7 @@ export function GrupoPares({ pares, resumo }: { pares: ParesConformidade | undef
                       <th>Ente</th>
                       <th>UF</th>
                       <th className="n">População</th>
+                      <th className="n">RCL por habitante</th>
                       <th className="n">No prazo</th>
                     </tr>
                   </thead>
@@ -108,6 +118,7 @@ export function GrupoPares({ pares, resumo }: { pares: ParesConformidade | undef
                         </td>
                         <td>{e.uf ?? "—"}</td>
                         <td className="n">{numero(e.populacao)}</td>
+                        <td className="n">{e.rcl_por_habitante == null ? "—" : moeda(e.rcl_por_habitante)}</td>
                         <td className="n">{e.no_prazo === null ? "—" : percentual(e.no_prazo * 100)}</td>
                       </tr>
                     ))}

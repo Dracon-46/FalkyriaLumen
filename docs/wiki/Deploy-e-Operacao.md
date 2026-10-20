@@ -150,6 +150,11 @@ motivo.
 
 ### Painéis
 
+Na conformidade, depois do extrato de entregas, cada máquina coleta a receita corrente líquida (RREO, Anexo 03,
+6º bimestre do exercício anterior) dos entes que ainda não a têm, para os grupos de pares (`rcl-<UF>.json.gz`,
+ADR-038). O tipo de RREO de cada ente vem do extrato, e assim sai uma consulta por ente; a primeira carga leva
+perto de 25 minutos por máquina, e as seguintes quase nenhuma.
+
 A situação das coletas fica no portal, em `/operacao/` (link no rodapé; ADR-039): a última execução e
 a última com sucesso de cada fluxo de dados, o volume diário do PNCP contra o usual e a coleta da
 conformidade por UF, com os alertas no topo. O `paineis-site` grava as execuções com `gh run list` antes de

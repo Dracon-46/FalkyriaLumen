@@ -43,7 +43,7 @@ por um comando. Tudo concluído; ADRs 011 em diante registradas durante a implem
 | Base pública de CNPJ da Receita Federal | Pendente |
 | Cadastro de entes do IBGE com população e porte | Concluído |
 | Normalização com qualidade e quarentena | Concluída para PNCP, SICONFI e IBGE |
-| Grupos de pares | Cálculo inicial (ADR-038): porte e região, comparação na conformidade de cada ente; a RCL entra com o RREO |
+| Grupos de pares | Concluído (ADR-038): porte, região e RCL por habitante (versão 2), comparação na conformidade de cada ente |
 | Painel operacional | Concluído (ADR-039): "Situação das coletas", com fluxos, volume diário do PNCP e coleta da conformidade |
 | Parâmetros legais verificados | Concluído além do previsto: limites de dispensa de 2021 a 2026, fator do § 2º e acréscimos do art. 125 |
 | Regra A-05 (antecipada da Fase 2) | Relatório silencioso; sob demanda no modal para combustível e gás de cozinha (ADR-037), limiares não calibrados |

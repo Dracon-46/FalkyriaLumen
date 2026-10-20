@@ -258,12 +258,12 @@ body.push(table(["Entregável", "Situação"], [5200, 4400], [
 body.push(h2("9.2 Fase 1 — Espinha dorsal nacional: núcleo pronto"));
 body.push(table(["Entregável", "Situação"], [5200, 4400], [
   ["Conector PNCP (contratações, contratos, atas, amparo legal, incremental)", "Concluído, com coleta por publicação e por atualização; itens e resultados com conector e normalizador prontos"],
-  ["Conector SICONFI com lista de entes ausentes", "Entes e extrato de entregas concluídos, com a avaliação da LRF; RREO, RGF e DCA com conector pronto e normalização pendente"],
+  ["Conector SICONFI com lista de entes ausentes", "Entes e extrato de entregas concluídos, com a avaliação da LRF; RREO, RGF e DCA com conector e normalização prontos (LinhaDemonstrativo), e a RCL de todos os entes coletada para os grupos de pares"],
   ["Portal da Transparência (CGU), com CEIS, CNEP e CEPIM", "Cadastros de sanções concluídos: coleta diária pelos arquivos de dados abertos, sem chave, e normalização com CPF mascarado (ADR-030); demais conjuntos da CGU (despesas, convênios, emendas) pendentes"],
   ["Base pública de CNPJ da Receita Federal", "Pendente"],
   ["Cadastro de entes do IBGE com população e porte", "Concluído"],
   ["Normalização com qualidade e quarentena", "Concluída para PNCP, SICONFI e IBGE; silver idempotente, reconstruível do bronze"],
-  ["Grupos de pares", "Cálculo inicial concluído (ADR-038): municípios por porte e região, com recuo para o porte no país abaixo de 15 entes; estados e DF num grupo; 33 grupos sobre o cadastro de outubro de 2026. Comparação publicada na conformidade de cada ente. A receita corrente líquida entra com a normalização do RREO"],
+  ["Grupos de pares", "Concluído (ADR-038): municípios por porte e região, com recuo para o porte no país abaixo de 15 entes; estados e DF num grupo; versão 2 com a receita corrente líquida por habitante (todo grupo com 30 entes com RCL publicada se divide na mediana). Comparação publicada na conformidade de cada ente"],
   ["Painel operacional", "Concluído (ADR-039): página pública \"Situação das coletas\" com as execuções dos fluxos, o volume diário do PNCP contra o usual (alarme de queda, sem falso positivo em 172 dias úteis de 2026) e a coleta da conformidade; limiares iniciais"],
   ["Cadastro dos portais de transparência (ADR-028)", "Concluído pelo PNTP (ADR-032): 11.697 entidades com endereço do portal e nível de transparência; leitura dos portais pendente"],
   ["Regra J-01: contratação de sancionado (antecipada da Fase 2)", "Em modo silencioso (ADR-031), a cada carga do painel; calibração e revisão pendentes"],
@@ -322,7 +322,7 @@ L.buildDoc({
   codigo: "DOC-10",
   titulo: "Roadmap",
   subtitulo: "Fases, marcos, esforço, custos e critérios de replanejamento",
-  meta: { versao: "1.7", data: "20 de outubro de 2026",
+  meta: { versao: "1.8", data: "20 de outubro de 2026",
     situacao: "Plano aprovado, com a situação de cada fase em outubro de 2026 (seção 9)",
     verificado: "outubro de 2026" },
   body,

@@ -165,6 +165,13 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["alertas, operacao_para_json", "operacao.json, com os alertas do mais grave ao menos e os limiares", "As UFs atrasadas viram um alerta só; limiares iniciais, marcados como não calibrados"],
 ], { monoCols: [0], size: 17 }));
 
+body.push(h2("4.9 rcl.py"));
+body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
+  ["tipos_pelo_extrato, ordem_de_tentativa", "O tipo de RREO de cada ente pelo extrato de entregas do 6º bimestre", "O porte não diz se o ente publica o RREO completo ou o simplificado; o extrato diz. Sem a entrega, o ente não é consultado; sem extrato, vão os dois tipos"],
+  ["coletar_uf (lumen painel rcl)", "RCL dos entes pendentes da UF: RREO, Anexo 03, 6º bimestre do exercício anterior", "Bronze e silver num diretório temporário; LinhaDemonstrativo; quem não publicou volta depois de 7 dias"],
+  ["ler_rcl", "A RCL de todas as UFs para a publicação", "Só o exercício mais recente entre os arquivos"],
+], { monoCols: [0], size: 17 }));
+
 // ============================================================ 5. Estado
 
 body.push(h1("5. Estado guardado entre execuções"));
@@ -174,6 +181,7 @@ body.push(table(["Arquivo", "Conteúdo", "Colunas"], [2800, 3000, 3800], [
   ["contratacoes-AAAA-MM-DD.json.gz", "Um dia do PNCP: órgãos, processos e contratos", "processos: chave, orgao, ente, uf, municipio, modalidade, valor_estimado, valor_homologado, objeto, situacao, srp. contratos: chave, orgao, ente, uf, municipio, tipo_pessoa, fornecedor_cnpj, fornecedor_nome, valor_global, data_assinatura, processo, instrumento, objeto. orgaos: razao_social, esfera, ente"],
   ["conformidade-UF.json.gz", "Entregas da LRF de cada ente da UF e a situação da coleta por exercício", "instituicao, entregavel, exercicio, periodo, periodicidade, status, entregue_em"],
   ["cadastro-entes.json.gz", "Cadastro do SICONFI", "nome, uf, esfera, populacao, capital"],
+  ["rcl-UF.json.gz", "Receita corrente líquida de cada ente da UF no exercício anterior (RREO, Anexo 03), ou a data da última tentativa sem dado", "por ente: rcl, demonstrativo, coletado_em ou tentado_em"],
 ], { monoCols: [0], size: 17 }));
 body.push(spacer(80));
 body.push(callout("Dados pessoais no estado", [
@@ -344,7 +352,7 @@ L.buildDoc({
   codigo: "DOC-13",
   titulo: "Painéis de Contratações e Conformidade",
   subtitulo: "O que cada ente publicou no PNCP e as entregas da LRF ao Tesouro, com a fonte de cada número",
-  meta: { versao: "1.3", data: "20 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038 e o ADR-039",
+  meta: { versao: "1.4", data: "20 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038 e o ADR-039",
     verificado: "outubro de 2026" },
   body,
   outFile: path.join(__dirname, "..", "docs", "DOC-13_Paineis.docx"),

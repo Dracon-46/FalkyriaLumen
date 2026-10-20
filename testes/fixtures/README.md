@@ -22,6 +22,7 @@ quantidade de itens em `data` ou `items`.
 | `pncp/atas_20260901_p1.json` | 2 dos 10 itens |
 | `siconfi/entes_amostra.json` | 5 dos 5.598 entes; `count` ajustado para 5 |
 | `siconfi/rreo_anexo02_amostra.json` | 4 linhas; `count` ajustado para 4 |
+| `siconfi/rreo_anexo03_amostra.json` | 28 das 427 linhas do RREO Simplificado de 2025, 6º bimestre, Anexo 03, de São Sepé (capturado em 20/10/2026): as contas da RCL e das deduções, em todas as colunas; `count` ajustado para 28 |
 | `ibge/municipios_nivelado_amostra.json` | 2 dos 5.571 municípios |
 | `ibge/noticias_releases_9256.json` | sem corte: a resposta inteira da API de notícias do IBGE pedida com `qtd=2` (releases do IPCA, capturada em 20/10/2026) |
 | `cgu/ceis_amostra.zip` | 5 das 23.787 linhas do `20261015_CEIS.csv`, capturado em 16/10/2026, mais 1 linha fictícia de pessoa física (abaixo) |

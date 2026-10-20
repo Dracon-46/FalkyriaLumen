@@ -106,3 +106,36 @@ def test_extrato_de_entregas(fixture_bytes):
     assert dca[0].entregue_em == datetime(2026, 4, 30, 8, 28, 58, tzinfo=timezone.utc)
     assert dca[0].ente_id == id_canonico("ente_federativo", "4319604")
     assert dca[0].status_relatorio == "HO"
+
+
+# ---------------------------------------------------------------- demonstrativos (RREO, RGF, DCA)
+
+def test_rreo_anexo03_real_com_a_rcl(fixture_bytes):
+    r = siconfi.normalizar_demonstrativo(fixture_bytes("siconfi/rreo_anexo03_amostra.json"),
+                                         fonte_id="siconfi_rreo", documento_fonte_id="doc-1")
+    assert len(r.registros) == 28 and not r.quarentena
+    assert len({x.id for x in r.registros}) == 28
+    (rcl,) = [x for x in r.registros
+              if x.cod_conta == "RREO3ReceitaCorrenteLiquida" and x.coluna == "TOTAL (ÚLTIMOS 12 MESES)"]
+    assert (rcl.ente_codigo_ibge, rcl.exercicio, rcl.periodo, rcl.demonstrativo) == ("4319604", 2025, 6,
+                                                                                     "RREO Simplificado")
+    assert str(rcl.valor) == "127898463.53" and rcl.anexo == "RREO-Anexo 03"
+    assert rcl.ente_id == id_canonico("ente_federativo", "4319604")
+
+
+def test_rreo_anexo02_mesmo_codigo_de_conta_com_contas_diferentes(fixture_bytes):
+    r = siconfi.normalizar_demonstrativo(fixture_bytes("siconfi/rreo_anexo02_amostra.json"),
+                                         fonte_id="siconfi_rreo", documento_fonte_id="doc-2")
+    assert {x.cod_conta for x in r.registros} == {"RREO2TotalDespesas"}
+    assert len({x.id for x in r.registros}) == len(r.registros) == 4
+
+
+def test_linha_de_demonstrativo_incompleta_vai_para_quarentena():
+    base = {"cod_ibge": 4319604, "exercicio": 2025, "periodo": 6, "demonstrativo": "RREO", "anexo": "RREO-Anexo 03",
+            "coluna": "TOTAL", "cod_conta": "X", "conta": "Y", "valor": 1.5}
+    itens = [base, {**base, "conta": None}, {**base, "periodo": None},
+             {**base, "demonstrativo": "DCA", "periodo": None, "conta": "Z"}, {**base, "valor": "abc", "conta": "W"}]
+    r = siconfi.normalizar_demonstrativo(json.dumps({"items": itens}).encode(), fonte_id="siconfi_rreo",
+                                         documento_fonte_id="doc-3")
+    assert [x.conta for x in r.registros] == ["Y", "Z"]
+    assert {e.campo for e in r.quarentena} == {"conta", "periodo", "valor"}

@@ -100,3 +100,43 @@ def test_descricao_do_grupo():
     estados = formar_grupos([EnteFederativo(id="e", codigo_ibge="43", nome="RS", esfera=Esfera.ESTADUAL, uf="RS")],
                             AGORA).grupos[0]
     assert descrever(estados) == "Estados e Distrito Federal"
+
+
+# ---------------------------------------------------------------- versão 2: RCL por habitante
+
+def test_grupo_com_rcl_suficiente_se_divide_na_mediana():
+    from lumen_canonico.pares import ACIMA_DA_MEDIANA, ATE_A_MEDIANA, MINIMO_PARA_DIVIDIR, descrever
+    entes = _municipios(4100000, MINIMO_PARA_DIVIDIR + 2, 30_000)          # 32 municípios do Sul
+    rcl = {e.codigo_ibge: 3000.0 + 100 * i for i, e in enumerate(entes[:MINIMO_PARA_DIVIDIR])}   # 30 com RCL
+    r = formar_grupos(entes, AGORA, rcl, 2025)
+    baixo, alto = r.grupo(entes[0].codigo_ibge), r.grupo(entes[29].codigo_ibge)
+    assert (baixo.faixa_rcl, alto.faixa_rcl) == (ATE_A_MEDIANA, ACIMA_DA_MEDIANA)
+    assert baixo.quantidade_entes == alto.quantidade_entes == 15 and baixo.id != alto.id
+    assert baixo.criterios["receita_corrente_liquida"] == {"exercicio": 2025, "mediana_por_habitante": 4450.0,
+                                                           "entes_com_rcl": 30, "faixa": ATE_A_MEDIANA}
+    assert descrever(alto) == ("Municípios de 20 mil a 50 mil habitantes do Sul, com RCL por habitante acima da "
+                               "mediana do grupo")
+    # Os dois sem RCL ficam no grupo inteiro, que tem todos os 32
+    inteiro = r.grupo(entes[31].codigo_ibge)
+    assert inteiro.faixa_rcl is None and inteiro.quantidade_entes == 32 and r.grupo(entes[30].codigo_ibge) is inteiro
+    assert inteiro.criterios["receita_corrente_liquida"]["uso"] == "grupo inteiro, para os entes sem RCL publicada"
+    assert len(r.grupos) == 3
+
+
+def test_grupo_com_pouca_rcl_nao_se_divide_e_diz_por_que():
+    entes = _municipios(4100000, 40, 30_000)
+    rcl = {e.codigo_ibge: 5000.0 for e in entes[:29]}
+    r = formar_grupos(entes, AGORA, rcl, 2025)
+    (g,) = r.grupos
+    assert g.faixa_rcl is None and g.quantidade_entes == 40
+    assert g.criterios["receita_corrente_liquida"] == (
+        "não usada: 29 ente(s) do grupo com RCL de 2025 publicada, menos que os 30 para dividir")
+    assert "sem RCL" not in str(g.criterios) and not r.fora
+
+
+def test_todos_com_rcl_nao_criam_o_grupo_inteiro():
+    entes = _municipios(2100000, 30, 4_000)
+    rcl = {e.codigo_ibge: float(i) for i, e in enumerate(entes)}
+    r = formar_grupos(entes, AGORA, rcl, 2025)
+    assert len(r.grupos) == 2 and all(g.faixa_rcl for g in r.grupos)
+    assert sorted(len(g.membros) for g in r.grupos) == [15, 15]

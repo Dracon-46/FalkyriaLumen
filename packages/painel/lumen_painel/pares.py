@@ -9,6 +9,9 @@ Na publicação, depois da avaliação da conformidade, cada ente avaliado ganha
 Ente sem grupo leva o motivo, e a tela omite a comparação dizendo por quê (UC-06, exceção 5a). Cada grupo tem
 também o arquivo com os entes que o formam (``conformidade/pares/<id>.json``).
 
+Com os estados da RCL (``rcl-<UF>.json.gz``), os grupos se dividem pela RCL por habitante (versão 2) e o
+bloco do ente leva a RCL dele, com o exercício e o tipo do RREO de onde veio.
+
 É comparação, não sinalização. A posição de um ente no grupo é contexto, como o resto do painel (ADR-028);
 indício só pelas regras do DOC-07, depois da calibração. Os grupos são formados sobre o cadastro do SICONFI,
 com a população do exercício que ele informa.
@@ -33,12 +36,23 @@ ESFERAS = {"F": Esfera.UNIAO, "E": Esfera.ESTADUAL, "M": Esfera.MUNICIPAL, "D": 
 FORA_DO_CADASTRO = "o ente não está no cadastro do SICONFI"
 
 
-def formar(cadastro: Cadastro, calculado_em: datetime) -> ResultadoPares:
-    """Os grupos de pares dos entes do cadastro."""
+def rcl_por_habitante(cadastro: Cadastro, rcl: dict[str, dict]) -> dict[str, float]:
+    """A RCL dividida pela população do cadastro, por código IBGE; ente sem população fica de fora."""
+    saida = {}
+    for codigo, registro in rcl.items():
+        ente = cadastro.get(codigo)
+        if ente and ente.populacao:
+            saida[codigo] = registro["rcl"] / ente.populacao
+    return saida
+
+
+def formar(cadastro: Cadastro, calculado_em: datetime, rcl: dict[str, dict] | None = None,
+           exercicio_rcl: int | None = None) -> ResultadoPares:
+    """Os grupos de pares dos entes do cadastro; com a ``rcl`` do ``exercicio_rcl``, na versão que divide por ela."""
     entes = [EnteFederativo(id=codigo, codigo_ibge=codigo, nome=e.nome, esfera=ESFERAS.get(e.esfera or ""),
                             uf=e.uf, populacao=e.populacao)
              for codigo, e in cadastro.entes.items()]
-    return formar_grupos(entes, calculado_em)
+    return formar_grupos(entes, calculado_em, rcl_por_habitante(cadastro, rcl or {}), exercicio_rcl)
 
 
 def distribuicao(valores: list[float]) -> dict | None:
@@ -54,18 +68,27 @@ def distribuicao(valores: list[float]) -> dict | None:
 def grupo_para_json(grupo: GrupoPares) -> dict:
     """O grupo como vai no arquivo do ente e no do grupo: descrição, célula, tamanho, ressalva e critérios."""
     return {"id": grupo.id, "descricao": descrever(grupo), "esfera": grupo.esfera,
-            "faixa_populacional": grupo.faixa_populacional, "regiao": grupo.regiao, "entes": grupo.quantidade_entes,
-            "abaixo_do_minimo": grupo.abaixo_do_minimo, "criterios": grupo.criterios}
+            "faixa_populacional": grupo.faixa_populacional, "regiao": grupo.regiao, "faixa_rcl": grupo.faixa_rcl,
+            "entes": grupo.quantidade_entes, "abaixo_do_minimo": grupo.abaixo_do_minimo, "criterios": grupo.criterios}
 
 
 def acrescentar(avaliacao: Avaliacao, cadastro: Cadastro, gravar: Callable[[str, Any], Any], *,
-                gerado_em: str) -> dict:
+                gerado_em: str, rcl: dict[str, dict] | None = None, exercicio_rcl: int | None = None) -> dict:
     """Acrescenta ``pares`` aos arquivos dos entes avaliados e grava o arquivo de cada grupo.
 
-    Devolve o resumo para o ``indice.json``: versão das regras, quantos grupos e quantos entes avaliados ficaram
-    com e sem grupo.
+    ``rcl`` é a de ``rcl.ler_rcl``. Devolve o resumo para o ``indice.json``: versão das regras, quantos grupos,
+    quantos entes avaliados ficaram com e sem grupo, e o exercício e a quantidade de RCL usadas.
     """
-    resultado = formar(cadastro, datetime.fromisoformat(gerado_em.replace("Z", "+00:00")))
+    rcl = rcl or {}
+    resultado = formar(cadastro, datetime.fromisoformat(gerado_em.replace("Z", "+00:00")), rcl, exercicio_rcl)
+    por_habitante = rcl_por_habitante(cadastro, rcl)
+
+    def rcl_do_ente(codigo: str) -> dict | None:
+        if codigo not in rcl:
+            return None
+        return {"exercicio": exercicio_rcl, "valor": rcl[codigo]["rcl"],
+                "por_habitante": round(por_habitante[codigo], 2) if codigo in por_habitante else None,
+                "demonstrativo": rcl[codigo].get("demonstrativo")}
 
     def no_prazo(codigo: str) -> float | None:
         arquivo = avaliacao.entes.get(codigo)
@@ -80,7 +103,8 @@ def acrescentar(avaliacao: Avaliacao, cadastro: Cadastro, gravar: Callable[[str,
             arquivo["pares"] = {"grupo": None, "motivo": resultado.fora.get(codigo, FORA_DO_CADASTRO)}
             continue
         com_grupo += 1
-        arquivo["pares"] = {"grupo": grupo_para_json(grupo), "no_prazo": distribuicoes[grupo.id]}
+        arquivo["pares"] = {"grupo": grupo_para_json(grupo), "no_prazo": distribuicoes[grupo.id],
+                            "rcl": rcl_do_ente(codigo)}
 
     for grupo in resultado.grupos:
         entes = []
@@ -89,6 +113,7 @@ def acrescentar(avaliacao: Avaliacao, cadastro: Cadastro, gravar: Callable[[str,
             resumo = (avaliacao.entes.get(codigo) or {}).get("resumo") or {}
             entes.append({"codigo": codigo, "nome": cadastro.nome(codigo), "uf": uf_do_ente(codigo),
                           "populacao": ente.populacao if ente else None,
+                          "rcl_por_habitante": round(por_habitante[codigo], 2) if codigo in por_habitante else None,
                           "no_prazo": resumo.get("no_prazo"), "avaliaveis": resumo.get("avaliaveis")})
         entes.sort(key=lambda e: (e["nome"].casefold(), e["codigo"]))
         gravar(f"conformidade/pares/{grupo.id}.json", {
@@ -96,4 +121,5 @@ def acrescentar(avaliacao: Avaliacao, cadastro: Cadastro, gravar: Callable[[str,
             "avaliado_em": avaliacao.hoje.isoformat(), "grupo": grupo_para_json(grupo),
             "no_prazo": distribuicoes[grupo.id], "entes": entes})
     return {"versao": VERSAO_PARES, "grupos": len(resultado.grupos), "entes_com_grupo": com_grupo,
-            "entes_sem_grupo": len(avaliacao.entes) - com_grupo}
+            "entes_sem_grupo": len(avaliacao.entes) - com_grupo, "exercicio_rcl": exercicio_rcl,
+            "entes_com_rcl": len(por_habitante)}

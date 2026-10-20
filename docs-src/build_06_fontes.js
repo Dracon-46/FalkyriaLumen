@@ -106,6 +106,8 @@ body.push(table(["Comportamento", "Como o Lumen trata"], [4600, 5000], [
   ["capital vem como texto com espaços (\"1  \")", "Normalizado antes da conversão"],
   ["Estados vêm com uf = \"BR\"; a União vem com cod_ibge = 1, uf nulo e população que não é a do país", "A UF sai do código IBGE (divergência vira marcação); a população da União fica como veio, marcada, e nunca entra em grupo de pares"],
   ["/extrato_entregas diz o que cada ente entregou num exercício", "Origem da lista de ausentes (família I, RF-CF-01)"],
+  ["/rreo exige o tipo do demonstrativo: RREO ou RREO Simplificado (municípios com menos de 50 mil habitantes podem optar, LRF art. 63), e cada ente publica só um. O porte não diz qual: em 2025, quase todos os pequenos de Roraima e do Amapá publicaram o completo", "O tipo vem do extrato de entregas (\"Relatório Resumido de Execução Orçamentária\" ou \"… Simplificado\", no 6º bimestre); uma consulta por ente"],
+  ["A RCL fica no Anexo 03, conta RREO3ReceitaCorrenteLiquida, coluna TOTAL (ÚLTIMOS 12 MESES); a resposta do anexo tem perto de 430 linhas por ente, com valores numéricos", "Cada linha vira LinhaDemonstrativo; a RCL do exercício anterior entra nos grupos de pares (ADR-038, versão 2)"],
 ], { size: 17 }));
 body.push(p("Limite padrão do Lumen: 50 requisições por minuto, abaixo da recomendação do Tesouro de cerca de uma " +
   "por segundo."));
@@ -345,7 +347,7 @@ body.push(table(["Fonte", "Situação", "Observação"], [3000, 2400, 4200], [
   ["PNCP — contratações, contratos e atas (publicação e atualização)", "Integrado", "Coleta, bronze e normalização para a silver no pipeline padrão"],
   ["PNCP — itens e resultados", "Integrado sob demanda", "lumen coletar pncp_itens --objeto busca os itens só dos processos da silver que interessam (regra A-05)"],
   ["SICONFI — entes e extrato de entregas", "Integrado", "Base do cadastro e da conformidade (família I)"],
-  ["SICONFI — RREO, RGF e DCA", "Conector pronto", "Normalização na Fase 2"],
+  ["SICONFI — RREO, RGF e DCA", "Conector e normalização prontos (LinhaDemonstrativo)", "RCL de todos os entes coletada todo dia, só a que falta (Anexo 03 do RREO); demais anexos sob demanda"],
   ["IBGE — localidades e população", "Integrado", "Cadastro de entes, população aplicada aos municípios"],
   ["IBGE — malhas", "Integrado (aba Eleições)", "Mapa"],
   ["TSE — resultados e dados abertos", "Integrado (aba Eleições)", "DOC-12"],
@@ -377,7 +379,7 @@ L.buildDoc({
   codigo: "DOC-06",
   titulo: "Catálogo de Fontes",
   subtitulo: "Fontes por esfera, estratégia de cobertura nacional e coleta responsável",
-  meta: { versao: "1.5", data: "20 de outubro de 2026",
+  meta: { versao: "1.6", data: "20 de outubro de 2026",
     situacao: "Atualizado com o comportamento real das fontes da Fase 1, as da aba Eleições e as de referência de mercado (seção 2.8)",
     verificado: "outubro de 2026" },
   body,

@@ -1,18 +1,18 @@
-"""Normalização das respostas do SICONFI (cadastro de entes e extrato de entregas)."""
+"""Normalização das respostas do SICONFI (cadastro de entes, extrato de entregas e demonstrativos fiscais)."""
 
 from __future__ import annotations
 
 from datetime import date
 
 from lumen_canonico.documentos import cnpj_valido, limpar
-from lumen_canonico.fato import EnteFederativo, EntregaSiconfi, Esfera
+from lumen_canonico.fato import EnteFederativo, EntregaSiconfi, Esfera, LinhaDemonstrativo
 from lumen_canonico.identidade import id_canonico
 from lumen_canonico.ufs import sigla_da_uf
 
 from . import qualidade as q
 from .comum import Contexto, converter, processar_lista
 from .qualidade import RegistroRejeitado, ResultadoNormalizacao
-from .transformacoes import instante_brt_ou_nulo, inteiro_ou_nulo, texto_ou_nulo
+from .transformacoes import decimal_ou_nulo, instante_brt_ou_nulo, inteiro_ou_nulo, texto_ou_nulo
 
 VERSAO_NORMALIZADOR = "siconfi-1"
 
@@ -105,4 +105,46 @@ def normalizar_extrato(conteudo: bytes, *, fonte_id: str, documento_fonte_id: st
     ctx = Contexto(fonte_id, documento_fonte_id, hoje)
     return processar_lista(conteudo, ctx, lambda d: _entrega(ctx, d),
                             lambda d: f"{d.get('cod_ibge')}|{d.get('entregavel')}|{d.get('periodo')}",
+                            paginado=False, lista_em="items")
+
+
+def _linha_demonstrativo(ctx: Contexto, d: dict) -> list:
+    """Converte uma linha do RREO, do RGF ou da DCA em ``LinhaDemonstrativo``.
+
+    Ente, exercício, demonstrativo, anexo, coluna, código da conta e conta são obrigatórios. O período é
+    obrigatório no RREO e no RGF e nulo na DCA; o valor, quando vem, precisa ser numérico.
+    """
+    codigo = str(d.get("cod_ibge") or "").strip()
+    if not codigo:
+        raise RegistroRejeitado("campo obrigatório ausente", "cod_ibge")
+    exercicio = converter(inteiro_ou_nulo, d, "exercicio")
+    if exercicio is None:
+        raise RegistroRejeitado("campo obrigatório ausente", "exercicio")
+    textos = {c: texto_ou_nulo(d.get(c)) for c in ("demonstrativo", "anexo", "coluna", "cod_conta", "conta")}
+    for campo, valor in textos.items():
+        if valor is None:
+            raise RegistroRejeitado("campo obrigatório ausente", campo)
+    periodo = converter(inteiro_ou_nulo, d, "periodo")
+    if periodo is None and not textos["demonstrativo"].upper().startswith("DCA"):
+        raise RegistroRejeitado("campo obrigatório ausente", "periodo")
+    instituicao, rotulo = texto_ou_nulo(d.get("instituicao")), texto_ou_nulo(d.get("rotulo"))
+    partes = (codigo, exercicio, periodo, textos["demonstrativo"], textos["anexo"], instituicao, rotulo,
+              textos["coluna"], textos["cod_conta"], textos["conta"])
+    return [LinhaDemonstrativo(
+        id=id_canonico("linha_demonstrativo", *(p if p is not None else "-" for p in partes)),
+        ente_id=id_canonico("ente_federativo", codigo), ente_codigo_ibge=codigo, exercicio=exercicio,
+        periodo=periodo, periodicidade=texto_ou_nulo(d.get("periodicidade")),
+        demonstrativo=textos["demonstrativo"], anexo=textos["anexo"], instituicao=instituicao, rotulo=rotulo,
+        coluna=textos["coluna"], cod_conta=textos["cod_conta"], conta=textos["conta"],
+        valor=converter(decimal_ou_nulo, d, "valor"),
+        populacao_declarada=converter(inteiro_ou_nulo, d, "populacao"),
+        chave_origem="|".join("-" if p is None else str(p) for p in partes), **ctx.prov(),
+    )]
+
+
+def normalizar_demonstrativo(conteudo: bytes, *, fonte_id: str, documento_fonte_id: str) -> ResultadoNormalizacao:
+    """Página do RREO, do RGF ou da DCA de um ente, com a lista em ``items`` (formato do ORDS)."""
+    ctx = Contexto(fonte_id, documento_fonte_id, None)
+    return processar_lista(conteudo, ctx, lambda d: _linha_demonstrativo(ctx, d),
+                            lambda d: f"{d.get('cod_ibge')}|{d.get('anexo')}|{d.get('cod_conta')}|{d.get('coluna')}",
                             paginado=False, lista_em="items")

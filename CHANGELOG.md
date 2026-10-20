@@ -5,6 +5,21 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### RREO normalizado e grupos de pares com a receita corrente líquida (ADR-038, adendo)
+
+- Normalização do RREO, do RGF e da DCA do SICONFI. Cada linha vira
+  `LinhaDemonstrativo`: ente, exercício, período, demonstrativo, anexo,
+  coluna, conta e valor, como o Tesouro publica.
+- `lumen painel rcl`: a receita corrente líquida (RCL) do exercício anterior
+  de cada ente, pelo Anexo 03 do RREO do 6º bimestre. O tipo de RREO
+  (completo ou simplificado) vem do extrato de entregas, e assim sai uma
+  consulta por ente. Roda no fluxo diário da conformidade, só para quem
+  falta.
+- Grupos de pares, versão 2 (`porte-regiao-rcl-1`): todo grupo com 30 entes
+  com RCL publicada se divide na mediana da RCL por habitante. O cartão do
+  ente mostra a RCL por habitante dele e como a RCL entrou no grupo, e a
+  lista do grupo ganha a coluna.
+
 ### Economia: releases oficiais do IBGE ao lado dos indicadores (ADR-033, adendo)
 
 - O IPCA, o INPC e o PIB real (e os derivados de uma série só, como o IPCA em

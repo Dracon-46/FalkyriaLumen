@@ -7,6 +7,7 @@ import {
   conferir,
   dataCurta,
   descreverEnte,
+  criterioRcl,
   faixaCentral,
   descreverOrgao,
   lerEntes,
@@ -181,5 +182,23 @@ describe("grupo de pares", () => {
   it("descreve a metade central do grupo", () => {
     expect(faixaCentral({ entes: 20, q1: 0.8, mediana: 0.9, q3: 1 })).toBe("entre 80,00% e 100,00%");
     expect(faixaCentral({ entes: 3, q1: 1, mediana: 1, q3: 1 })).toBe("em 100,00%");
+  });
+});
+
+describe("RCL no grupo de pares", () => {
+  const grupo = (rcl?: unknown) =>
+    ({ id: "x", descricao: "", esfera: "municipal", faixa_populacional: "ate_5_mil", regiao: "S", entes: 30,
+       abaixo_do_minimo: false, criterios: { minimo_entes: 15, receita_corrente_liquida: rcl } }) as never;
+
+  it("diz como a RCL entrou no grupo", () => {
+    const base = { exercicio: 2025, mediana_por_habitante: 4450.5, entes_com_rcl: 30 };
+    expect(criterioRcl(grupo({ ...base, faixa: "acima_da_mediana" }))).toMatch(
+      /^Divididos pela receita corrente líquida \(RCL\) por habitante: mediana de R\$\s4\.450,50 por habitante entre 30 entes/,
+    );
+    expect(criterioRcl(grupo({ ...base, faixa: null, uso: "grupo inteiro" }))).toMatch(
+      /^O ente não publicou a RCL de 2025: a comparação é com o grupo inteiro/,
+    );
+    expect(criterioRcl(grupo("não usada: 3 ente(s)"))).toBe("Receita corrente líquida (RCL) não usada: 3 ente(s).");
+    expect(criterioRcl(grupo(undefined))).toBe("A receita corrente líquida ainda não entra nos critérios.");
   });
 });

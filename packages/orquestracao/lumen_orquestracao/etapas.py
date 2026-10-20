@@ -21,7 +21,7 @@ from lumen_ingestao.adaptadores.api.pncp import (
     FontePncpItens,
 )
 from lumen_ingestao.adaptadores.api.pntp import FontePntpAvaliacoes
-from lumen_ingestao.adaptadores.api.siconfi import FonteSiconfiEntes, FonteSiconfiExtrato
+from lumen_ingestao.adaptadores.api.siconfi import FonteSiconfiDemonstrativo, FonteSiconfiEntes, FonteSiconfiExtrato
 from lumen_ingestao.bronze import ArmazemBronze, ArmazemBronzeLocal, RegistroColeta
 from lumen_ingestao.cliente_http import ClienteHttp
 from lumen_ingestao.coleta_http import user_agent_lumen
@@ -58,6 +58,7 @@ FABRICAS: dict[str, Callable[..., object]] = {
     "ibge_populacao": lambda c, **kw: FonteIbgePopulacao(c, **kw),
     "siconfi_entes": lambda c, **kw: FonteSiconfiEntes(c, **kw),
     "siconfi_extrato": lambda c, **kw: FonteSiconfiExtrato(c, **kw),
+    "siconfi_rreo": lambda c, **kw: FonteSiconfiDemonstrativo(c, "rreo", **kw),
     "cgu_ceis": lambda c, **kw: FonteCguCeis(c, **kw),
     "cgu_cnep": lambda c, **kw: FonteCguCnep(c, **kw),
     "cgu_cepim": lambda c, **kw: FonteCguCepim(c, **kw),
@@ -180,6 +181,8 @@ def _normalizador_de(registro: RegistroColeta) -> Callable[[bytes, str], Resulta
         return lambda c: n_siconfi.normalizar_entes(c, **kw())
     if f == "siconfi_extrato":
         return lambda c: n_siconfi.normalizar_extrato(c, **kw())
+    if f in ("siconfi_rreo", "siconfi_rgf", "siconfi_dca"):
+        return lambda c: n_siconfi.normalizar_demonstrativo(c, **kw())
     if f in ("cgu_ceis", "cgu_cnep", "cgu_cepim"):
         return lambda c: n_cgu.normalizar_sancoes(c, **kw())
     if f == "pntp_avaliacoes":

@@ -10,7 +10,7 @@
 
 import { normalizar } from "./busca";
 import { obterJson } from "./feeds";
-import { percentual } from "./formato";
+import { numero, percentual } from "./formato";
 import { ErroFeed } from "./validacao";
 
 /** Raiz dos dados dos painéis, sem barra final. Variável vazia vale como ausente. */
@@ -269,7 +269,37 @@ export interface GrupoPares {
   regiao: string;
   entes: number;
   abaixo_do_minimo: boolean;
-  criterios: { minimo_entes: number; motivo?: string } & Record<string, unknown>;
+  /** Metade da RCL por habitante na divisão (versão 2); nula no grupo inteiro e nos arquivos anteriores. */
+  faixa_rcl?: "ate_a_mediana" | "acima_da_mediana" | null;
+  criterios: { minimo_entes: number; motivo?: string; receita_corrente_liquida?: string | CriterioRcl } &
+    Record<string, unknown>;
+}
+
+/** Como a RCL entrou no grupo: a mediana por habitante do exercício e a metade, ou o grupo inteiro (`uso`). */
+export interface CriterioRcl {
+  exercicio: number | null;
+  mediana_por_habitante: number;
+  entes_com_rcl: number;
+  faixa: "ate_a_mediana" | "acima_da_mediana" | null;
+  uso?: string;
+}
+
+/** A RCL do ente: exercício, valor, por habitante e o tipo do RREO de onde veio. */
+export interface RclEnte {
+  exercicio: number | null;
+  valor: number;
+  por_habitante: number | null;
+  demonstrativo: string | null;
+}
+
+/** A frase dos critérios sobre a RCL, para o cartão do grupo de pares. */
+export function criterioRcl(grupo: GrupoPares): string {
+  const c = grupo.criterios.receita_corrente_liquida;
+  if (c === undefined) return "A receita corrente líquida ainda não entra nos critérios.";
+  if (typeof c === "string") return `Receita corrente líquida (RCL) ${c}.`;
+  const base = `mediana de ${moeda(c.mediana_por_habitante)} por habitante entre ${numero(c.entes_com_rcl)} entes com a RCL de ${c.exercicio} publicada`;
+  if (c.faixa) return `Divididos pela receita corrente líquida (RCL) por habitante: ${base}.`;
+  return `O ente não publicou a RCL de ${c.exercicio}: a comparação é com o grupo inteiro (${base}).`;
 }
 
 /** Quartis e mediana da fração entregue no prazo entre os entes do grupo com obrigação avaliável. */
@@ -282,7 +312,7 @@ export interface DistribuicaoNoPrazo {
 
 /** Bloco `pares` do arquivo do ente: o grupo e a distribuição, ou o motivo de o ente não ter grupo. */
 export type ParesConformidade =
-  | { grupo: GrupoPares; no_prazo: DistribuicaoNoPrazo | null }
+  | { grupo: GrupoPares; no_prazo: DistribuicaoNoPrazo | null; rcl?: RclEnte | null }
   | { grupo: null; motivo: string };
 
 /** Um ente do grupo de pares, com a sua fração no prazo. */
@@ -291,6 +321,7 @@ export interface EntePares {
   nome: string;
   uf: string | null;
   populacao: number | null;
+  rcl_por_habitante?: number | null;
   no_prazo: number | null;
   avaliaveis: number | null;
 }

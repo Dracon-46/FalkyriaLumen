@@ -685,6 +685,56 @@ class EntregaSiconfi(RegistroCanonico):
     marcacoes_qualidade: list[str] = field(default_factory=list)
 
 
+
+@dataclass
+class LinhaDemonstrativo(RegistroCanonico):
+    """Uma linha de demonstrativo fiscal declarado ao SICONFI (RREO, RGF ou DCA), como o Tesouro publica.
+
+    Chave: ente + exercício + período + demonstrativo + anexo + instituição + rótulo + coluna + código da
+    conta + conta. A conta entra na chave porque o mesmo código se repete com contas diferentes (no Anexo 02
+    do RREO, ``RREO2TotalDespesas`` vale para Saúde, Educação e as demais funções). O demonstrativo é o tipo
+    declarado: ``RREO`` ou ``RREO Simplificado`` (municípios abaixo de 50 mil habitantes, LRF art. 63), e
+    cada ente publica só um deles. O valor vem como número na fonte e vira ``Decimal``.
+    """
+
+    ENTIDADE: ClassVar[str] = "linha_demonstrativo"
+    SENSIBILIDADE: ClassVar[dict[str, Sensibilidade]] = {
+        "ente_id": Sensibilidade.INTERNO,
+        "ente_codigo_ibge": Sensibilidade.PUBLICO,
+        "exercicio": Sensibilidade.PUBLICO,
+        "periodo": Sensibilidade.PUBLICO,
+        "periodicidade": Sensibilidade.PUBLICO,
+        "demonstrativo": Sensibilidade.PUBLICO,
+        "anexo": Sensibilidade.PUBLICO,
+        "instituicao": Sensibilidade.PUBLICO,
+        "rotulo": Sensibilidade.PUBLICO,
+        "coluna": Sensibilidade.PUBLICO,
+        "cod_conta": Sensibilidade.PUBLICO,
+        "conta": Sensibilidade.PUBLICO,
+        "valor": Sensibilidade.PUBLICO,
+        "populacao_declarada": Sensibilidade.PUBLICO,
+    }
+
+    id: str
+    ente_id: str
+    ente_codigo_ibge: str
+    exercicio: int
+    periodo: int | None              # bimestre do RREO, período do RGF; nulo na DCA
+    periodicidade: str | None        # B, Q, S, A
+    demonstrativo: str
+    anexo: str
+    instituicao: str | None
+    rotulo: str | None
+    coluna: str
+    cod_conta: str
+    conta: str
+    valor: Decimal | None
+    populacao_declarada: int | None
+    chave_origem: str | None = None
+    fonte_id: str | None = None
+    documento_fonte_id: str | None = None
+    marcacoes_qualidade: list[str] = field(default_factory=list)
+
 @dataclass
 class Sancao(RegistroCanonico):
     """Sanção ou impedimento de pessoa física ou jurídica num cadastro da CGU (CEIS, CNEP ou CEPIM).
@@ -834,6 +884,7 @@ ENTIDADES_FATO: tuple[type[RegistroCanonico], ...] = (
     Contrato,
     AtaRegistroPreco,
     EntregaSiconfi,
+    LinhaDemonstrativo,
     Sancao,
     AvaliacaoTransparencia,
 )
