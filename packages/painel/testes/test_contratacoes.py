@@ -220,6 +220,20 @@ def _cadastro():
                      "35": Ente("35", "São Paulo", "SP", "E", 46_000_000)}, "2026-10-14T00:00:00Z")
 
 
+def test_estatal_federal_sem_esfera_entra_na_uniao(estado_sintetico, tmp_path):
+    # ADR-048: o órgão "SEM ESFERA" (raiz 00000000) está no cadastro da SEST e passa à União, com a esfera federal
+    sest = comum.gravar_json(tmp_path / "economia-sest.json.gz", {"identificacao": {"empresas": {
+        "1": {"sigla": "X", "cnpj": "00.000.000/0004-00"}, "2": {"sigla": "SEM CNPJ", "cnpj": None}}}}, comprimir=True)
+    vinculos = contratacoes.estatais_federais(sest)
+    assert vinculos == {"00000000": ("1", "F")} and contratacoes.estatais_federais(tmp_path / "nao-existe") == {}
+    painel = contratacoes.somar_dias(estado_sintetico.glob("contratacoes-*.json.gz"), vinculos=vinculos)
+    assert painel.sem_ente.processos == 0 and painel.entes["1"].totais.processos == 1
+    assert painel.orgaos["00000000000400"] == ["SEM ESFERA", "F", "1"]
+    assert painel.orgaos["00000000000100"] == ["MUNICIPIO X", "M", "3550308"]     # quem tem ente fica como está
+    sem = contratacoes.somar_dias(estado_sintetico.glob("contratacoes-*.json.gz"))
+    assert sem.sem_ente.processos == 1 and "1" not in {e for e, a in sem.entes.items() if a.totais.processos}
+
+
 def test_soma_por_ente_e_panorama(estado_sintetico):
     painel = contratacoes.somar_dias(estado_sintetico.glob("contratacoes-*.json.gz"))
     assert set(painel.entes) == {"3550308", "35", "1"}

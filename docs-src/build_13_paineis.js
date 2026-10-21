@@ -122,7 +122,8 @@ body.push(h2("4.4 contratacoes.py"));
 body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["Totais", "Processos, valor estimado, processos sem valor, contratos, valor global", "Estimado ausente ou zero conta como processo sem valor (sigiloso ou não informado)"],
   ["Acumulador", "Tudo o que se soma de um recorte: meses, modalidades, órgãos, fornecedores PJ, soma anônima de pessoas físicas, recentes", "Listas de recentes com tamanho fixo (25 processos e 15 contratos; 10 e 10 por órgão, para caber na memória com dezenas de milhares de órgãos)"],
-  ["somar_dias", "Lê os dias em ordem e soma por ente, por órgão, por esfera e para o Brasil", "Linha sem ente reconhecido vai só para o Brasil e para sem_ente"],
+  ["somar_dias", "Lê os dias em ordem e soma por ente, por órgão, por esfera e para o Brasil", "Linha sem ente reconhecido vai só para o Brasil e para sem_ente; antes, o órgão sem ente da lista de vínculos ganha o ente"],
+  ["estatais_federais", "As estatais federais do cadastro da SEST pela raiz do CNPJ, ligadas à União", "O PNCP publica algumas sem esfera (Caixa, EBSERH, BNDES); ADR-048"],
   ["ente_para_json", "Arquivo de um ente; o de um estado traz os municípios da UF", "Municípios do cadastro e os que publicaram, por nome, com zero quando não publicaram"],
   ["orgao_para_json", "Arquivo de um órgão, com o ente a que pertence", "Para quem procura uma entidade: um serviço autônomo de água e esgoto, uma fundação, uma empresa pública"],
   ["teto_do_ente", "Teto de plausibilidade de um processo ou contrato: R$ 10 bilhões ou R$ 20 mil por habitante do ente, o menor", "Acima dele, conta na quantidade e fica fora das somas, em \"valores a conferir\""],
@@ -223,7 +224,7 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["anos_com_publicacao", "Os anos com ao menos um processo ou um contrato no acumulador do ente", "Mês sem nada não conta"],
   ["ate_20_mil", "Se o município tem até 20 mil habitantes pela população do cadastro", "Lei 14.133, art. 176: até 1º/4/2027 para divulgar no PNCP; até lá, diário oficial"],
   ["montar", "cobertura.json: uma linha por estado, DF e município, somas por UF e do Brasil, a União à parte", "Critério de saída da Fase 1 (ADR-048); mede o que o Lumen tem, não avalia o ente"],
-  ["sem_ente", "O publicado sem ente: totais, fração dos processos e do valor e os 20 órgãos sem ente com mais processos", "Fica no panorama do Brasil e fora das linhas; em 2026, 13,9% do valor estimado"],
+  ["sem_ente", "O publicado sem ente: totais, fração dos processos e do valor e os 20 órgãos sem ente com mais processos", "Fica no panorama do Brasil e fora das linhas; em 2026, 9,8% do valor estimado, depois das estatais federais"],
 ], { monoCols: [0], size: 17 }));
 
 body.push(h2("4.16 pessoas_juridicas.py"));

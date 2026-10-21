@@ -322,7 +322,9 @@ def cmd_publicar(args) -> int:
     cadastro = Cadastro.ler(caminho_cadastro) if caminho_cadastro.exists() else Cadastro({})
     site = Site(args.saida)
 
-    painel = contr.somar_dias(estado.glob("contratacoes-*.json.gz"), cadastro)
+    # Estatais federais que o PNCP publica sem esfera entram na União, pelo cadastro da SEST (ADR-048)
+    painel = contr.somar_dias(estado.glob("contratacoes-*.json.gz"), cadastro,
+                              contr.estatais_federais(estado / "economia-sest.json.gz"))
     corte = contr.corte_mes_a_mes(painel.cobertura()["ate"])
     # Por grupo de entes e de órgãos, comprimidos: menos arquivos e menos bytes para o GitHub Pages
     avisos = av.Avisos()

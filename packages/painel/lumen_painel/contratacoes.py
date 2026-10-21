@@ -45,7 +45,7 @@ from pathlib import Path
 from typing import Iterable
 
 from .cadastro import Cadastro
-from .comum import MODALIDADES, UFS, link_pncp, somar, tipo_do_ente, uf_do_ente
+from .comum import MODALIDADES, UFS, UNIAO, ler_json, link_pncp, somar, tipo_do_ente, uf_do_ente
 from .dia import ler_dia
 
 RECENTES = 25
@@ -296,22 +296,43 @@ def teto_do_ente(ente: str | None, cadastro: Cadastro | None) -> float:
     return min(TETO_ABSOLUTO, TETO_POR_HABITANTE * populacao) if populacao else TETO_ABSOLUTO
 
 
-def somar_dias(arquivos: Iterable[Path], cadastro: Cadastro | None = None) -> Painel:
+def estatais_federais(caminho: Path | str) -> dict[str, tuple[str, str]]:
+    """As estatais federais do cadastro da SEST (ADR-034) pela raiz do CNPJ (8 dígitos): ``{raiz: ("1", "F")}``.
+
+    O PNCP publica algumas delas sem esfera (Caixa, EBSERH, BNDES, Banco do Brasil), e o processo ficava sem ente
+    (ADR-048); com o vínculo, ele entra na União. Sem o arquivo, nenhum vínculo."""
+    caminho = Path(caminho)
+    if not caminho.exists():
+        return {}
+    empresas = ((ler_json(caminho).get("identificacao") or {}).get("empresas") or {}).values()
+    raizes = ("".join(c for c in (e.get("cnpj") or "") if c.isdigit())[:8] for e in empresas)
+    return {raiz: (UNIAO, "F") for raiz in raizes if len(raiz) == 8}
+
+
+def somar_dias(arquivos: Iterable[Path], cadastro: Cadastro | None = None,
+               vinculos: dict[str, tuple[str, str]] | None = None) -> Painel:
     """Lê os arquivos do dia em ordem de data e soma tudo por ente e para o Brasil. Com o ``cadastro``, o teto
-    de plausibilidade usa a população do ente; sem ele, só o teto absoluto."""
+    de plausibilidade usa a população do ente; sem ele, só o teto absoluto. ``vinculos`` liga ao ente e à esfera
+    o órgão publicado sem ente, pela raiz do CNPJ (``estatais_federais``)."""
     painel = Painel()
     tetos: dict[str | None, float] = {}
+    vinculos = vinculos or {}
     for caminho in sorted(arquivos, key=lambda p: p.name):
         dados = ler_dia(caminho)
         dia = dados["dia"]
         painel.dias.append(dia)
         painel.volume[dia] = {tipo: len(dados.get(tipo) or []) for tipo in ("processos", "contratos")}
         for cnpj, orgao in (dados.get("orgaos") or {}).items():
-            painel.orgaos[cnpj] = orgao
+            vinculo = vinculos.get(cnpj[:8]) if tipo_do_ente(orgao[2]) is None else None
+            painel.orgaos[cnpj] = [orgao[0], vinculo[1], vinculo[0]] if vinculo else orgao
         for tipo, metodo, campo in (("processos", "processo", "valor_estimado"),
                                     ("contratos", "contrato", "valor_global")):
             for linha in _linhas(dados, tipo):
                 ente = linha["ente"]
+                if vinculos and tipo_do_ente(ente) is None and linha["orgao"]:
+                    vinculo = vinculos.get(linha["orgao"][:8])
+                    if vinculo:
+                        ente = linha["ente"] = vinculo[0]
                 if ente not in tetos:
                     tetos[ente] = teto_do_ente(ente, cadastro)
                 valor = linha[campo]

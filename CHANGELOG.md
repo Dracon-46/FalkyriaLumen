@@ -29,6 +29,9 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   publicação no PNCP ano a ano.
 - O publicado no PNCP sem ente identificado vai à parte: a fração dos
   processos e do valor estimado e os 20 órgãos com mais processos.
+- As estatais federais que o PNCP publica sem esfera (Caixa, EBSERH, IMBEL,
+  BNDES, Banco do Brasil e outras do cadastro da SEST) passam a contar na
+  União. O publicado sem ente cai de 13,9% para 9,8% do valor estimado.
 - Novo arquivo dos painéis, `cobertura.json`, gerado pelo `publicar`.
 
 ### Avisos: o que aconteceu e o que observar, em público (ADR-047)
