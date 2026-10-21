@@ -8,6 +8,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { BaixarCsv } from "@/componentes/BaixarCsv";
 import { percentual } from "@/lib/formato";
 import { type EmendasEnte, recebidoNoPeriodo } from "@/lib/emendas";
 import { cnpj as formatarCnpj } from "@/lib/paineis";
@@ -81,6 +82,9 @@ export function EmendasMandato({ estado, anos, anosComparado, rotulos, conv, fmt
               </tbody>
             </table>
           </div>
+          <BaixarCsv nome={`emendas-por-categoria-${rotulos[0]}`}
+            colunas={["Para quem", `Recebido (${unidade})`, "% do recebido"]}
+            linhas={() => r.porCategoria.map((c) => [c.rotulo, c.valor, r.total ? (c.valor / r.total) * 100 : null])} />
           <div className="tabela-rolavel">
             <table className="tabela">
               <thead>
@@ -106,6 +110,8 @@ export function EmendasMandato({ estado, anos, anosComparado, rotulos, conv, fmt
               {todosAutores ? "mostrar menos" : `ver os ${r.porAutor.length} autores`}
             </button>
           )}
+          <BaixarCsv nome={`emendas-por-autor-${rotulos[0]}`} colunas={["Autor da emenda", "Tipo", `Recebido (${unidade})`]}
+            linhas={() => r.porAutor.map((a) => [a.rotulo, a.detalhe, a.valor])} />
           {r.favorecidos.length > 0 && (
             <div className="tabela-rolavel">
               <table className="tabela">
@@ -135,6 +141,11 @@ export function EmendasMandato({ estado, anos, anosComparado, rotulos, conv, fmt
             <button type="button" className="botao-link" onClick={() => setTodosFavorecidos(!todosFavorecidos)}>
               {todosFavorecidos ? "mostrar menos" : `ver os ${r.favorecidos.length} favorecidos`}
             </button>
+          )}
+          {r.favorecidos.length > 0 && (
+            <BaixarCsv nome={`emendas-favorecidos-${rotulos[0]}`}
+              colunas={["CNPJ", "Favorecido (pessoa jurídica)", "Categoria", `Recebido (${unidade})`]}
+              linhas={() => r.favorecidos.map((f) => [formatarCnpj(f.cnpj), f.rotulo, f.detalhe, f.valor])} />
           )}
         </>
       )}

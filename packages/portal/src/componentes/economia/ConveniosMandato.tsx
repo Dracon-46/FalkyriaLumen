@@ -8,6 +8,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { BaixarCsv } from "@/componentes/BaixarCsv";
 import { numero } from "@/lib/formato";
 import { type ConveniosEnte, conveniosNoPeriodo } from "@/lib/convenios";
 import { cnpj as formatarCnpj, dataCurta } from "@/lib/paineis";
@@ -102,6 +103,14 @@ export function ConveniosMandato({ estado, anos, anosComparado, rotulos, conv, f
         <button type="button" className="botao-link" onClick={() => setTodos(!todos)}>
           {todos ? "mostrar menos" : `ver os ${numero(r.lista.length)} convênios`}
         </button>
+      )}
+      {r.lista.length > 0 && (
+        <BaixarCsv nome={`convenios-${rotulos[0]}`}
+          colunas={["Convênio", "Objeto", "Órgão concedente", "Início", "Fim", "CNPJ do convenente", "Convenente", "Categoria",
+                    "Situação no SIAFI", `Valor (${unidade})`, `Liberado (${unidade})`]}
+          linhas={() => r.lista.map((x) => [x.numero, x.objeto, x.orgao, x.inicio, x.fim, x.cnpj ? formatarCnpj(x.cnpj) : "",
+                                            x.convenente, c.categorias[x.categoria] ?? x.categoria, x.situacao, x.valor,
+                                            x.liberado])} />
       )}
       <p className="busca-detalhe">
         Convênios da União com início de vigência nos anos do mandato, com a situação como o SIAFI a registra hoje

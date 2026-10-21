@@ -15,6 +15,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { BaixarCsv, PrefixoCsv } from "@/componentes/BaixarCsv";
 import { Escolha } from "@/componentes/Escolha";
 import { LigacoesDoEnte } from "@/componentes/Ligacoes";
 import { EmendasMandato, type EstadoEmendas } from "@/componentes/economia/EmendasMandato";
@@ -337,9 +338,12 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
 
   const fmt = opcoes.medida === "total" ? moedaCompacta : moeda;
   const unidade = `${opcoes.medida === "habitante" ? "por habitante, " : ""}${valores === "reais" ? `em R$ de ${base}` : "em R$ da época"}`;
+  const prefixoCsv = ["governos", ente.codigo, opcoes.medida === "habitante" && "por-habitante",
+                      valores === "reais" && `reais-de-${base}`, lidoOutro && `com-${lidoOutro.ente.codigo}`]
+    .filter(Boolean).join("-");
 
   return (
-    <>
+    <PrefixoCsv.Provider value={prefixoCsv}>
       <h2 className="painel-ente">
         {ente.nome}
         <span className="busca-detalhe">
@@ -425,6 +429,22 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
           </div>
         )}
         <p className="busca-detalhe">Valores {unidade}. Despesa liquidada nas contas anuais, sem as intraorçamentárias.</p>
+        {resumos.length > 0 && (
+          <BaixarCsv nome="mandatos"
+            colunas={["Mandato", "Prefeito", "Turno", "População no início", "População no fim", "Anos com contas",
+                      `Gasto no mandato (${unidade})`, `Média por ano (${unidade})`,
+                      ...(lidoOutro ? [`${lidoOutro.ente.nome}: gasto no mandato (${unidade})`,
+                                       `${lidoOutro.ente.nome}: média por ano (${unidade})`] : [])]}
+            linhas={() => resumos.map((r) => {
+              const s = somas.get(r.mandato.eleicao)!;
+              const n = s.anos.length;
+              const o = lidoOutro ? noOutro(r.mandato.eleicao).soma : null;
+              const nOutro = o?.anos.length ?? 0;
+              return [`${r.mandato.de} a ${r.mandato.ate}`, quemGovernou(r.mandato), r.mandato.turno,
+                      r.populacaoInicio?.[1], r.populacaoFim?.[1], n, n ? s.total : null, n ? s.total / n : null,
+                      ...(lidoOutro ? [nOutro ? o!.total : null, nOutro ? o!.total / nOutro : null] : [])];
+            })} />
+        )}
       </section>
 
       {aberto && (
@@ -464,7 +484,7 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
           </li>
         </ul>
       </section>
-    </>
+    </PrefixoCsv.Provider>
   );
 }
 
@@ -860,6 +880,14 @@ function AnoAAno({ contas, conv, fmt, populacao, unidade }: { contas: Map<string
         </table>
       </div>
       <p className="busca-detalhe">Valores {unidade}.</p>
+      <BaixarCsv nome="ano-a-ano"
+        colunas={["Ano", "População", `Despesa total (${unidade})`, ...FUNCOES_DO_ANO.map(([, nome]) => `${nome} (${unidade})`)]}
+        linhas={() => anos.map((ano) => {
+          const c = contas.get(ano);
+          const valor = (v: number | undefined) => (c && v !== undefined ? conv(v, ano) : null);
+          return [ano, populacao.get(ano) ?? null, c ? valor(c.total) : null,
+                  ...FUNCOES_DO_ANO.map(([codigo]) => (c ? valor(c.valores[codigo!] ?? 0) : null))];
+        })} />
     </details>
   );
 }

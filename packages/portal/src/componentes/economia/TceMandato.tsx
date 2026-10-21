@@ -9,6 +9,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { BaixarCsv } from "@/componentes/BaixarCsv";
 import { numero } from "@/lib/formato";
 import { cnpj as formatarCnpj } from "@/lib/paineis";
 import { type TceEnte, tceNoPeriodo } from "@/lib/tce";
@@ -87,6 +88,11 @@ export function TceMandato({ estado, anos, anosComparado, outroMunicipio = null,
         <button type="button" className="botao-link" onClick={() => setTodos(!todos)}>
           {todos ? "mostrar menos" : `ver os ${r.fornecedores.length} fornecedores`}
         </button>
+      )}
+      {r.fornecedores.length > 0 && (
+        <BaixarCsv nome={`tribunal-de-contas-fornecedores-${rotulos[0]}`}
+          colunas={["CNPJ", "Fornecedor (pessoa jurídica)", "Contratos", `Valor (${unidade})`]}
+          linhas={() => r.fornecedores.map((f) => [formatarCnpj(f.cnpj), f.nome, f.contratos, f.valor])} />
       )}
       <p className="busca-detalhe">
         Contratos que os órgãos do município (prefeitura, câmara, fundos, autarquias e fundações; consórcios ficam
