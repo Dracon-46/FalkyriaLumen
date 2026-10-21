@@ -36,9 +36,15 @@ type Estado = { fase: "carregando" } | { fase: "pronto"; dados: PessoaJuridica |
 /** Nome e UF de cada ente, do cadastro da busca. */
 type Nomes = Map<string, { nome: string; uf: string | null }>;
 
-/** "20261009" → "09/10/2026". */
+/**
+ * A data do arquivo da CGU: "20261009" (convênios, a data na página de download) ou o `Last-Modified` do servidor
+ * (emendas) → "09/10/2026".
+ */
 function dataDoArquivo(d: string | null): string {
-  return d && /^\d{8}$/.test(d) ? `${d.slice(6, 8)}/${d.slice(4, 6)}/${d.slice(0, 4)}` : "data não informada";
+  if (d && /^\d{8}$/.test(d)) return `${d.slice(6, 8)}/${d.slice(4, 6)}/${d.slice(0, 4)}`;
+  const data = d ? new Date(d) : null;
+  return data && !Number.isNaN(data.getTime())
+    ? data.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "data não informada";
 }
 
 /** A página: o campo do CNPJ e, com um CNPJ válido na URL, tudo o que o Lumen tem dele. */
