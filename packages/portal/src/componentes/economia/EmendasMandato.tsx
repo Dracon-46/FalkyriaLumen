@@ -2,8 +2,8 @@
 
 /**
  * Emendas parlamentares recebidas no mandato aberto em Governos municipais (ADR-044): quanto chegou aos
- * favorecidos do município, por categoria, por autor e por favorecido pessoa jurídica, com o link para as
- * contratações do favorecido no município (visão 360). Na comparação, o total do outro mandato ao lado.
+ * favorecidos do município, por categoria, por autor e por favorecido pessoa jurídica, com o link para a página
+ * do favorecido pelo CNPJ (visão 360, ADR-049). Na comparação, o total do outro mandato ao lado.
  */
 
 import Link from "next/link";
@@ -20,8 +20,7 @@ const INICIAIS = 8;
 export type EstadoEmendas = { fase: "carregando" } | { fase: "pronto"; emendas: EmendasEnte | null } | { fase: "erro" };
 
 /** A seção das emendas recebidas no mandato aberto (e no comparado, se houver). */
-export function EmendasMandato({ codigo, estado, anos, anosComparado, rotulos, conv, fmt, unidade }: {
-  codigo: string;
+export function EmendasMandato({ estado, anos, anosComparado, rotulos, conv, fmt, unidade }: {
   estado: EstadoEmendas;
   anos: string[];
   anosComparado: string[] | null;
@@ -121,7 +120,7 @@ export function EmendasMandato({ codigo, estado, anos, anosComparado, rotulos, c
                   {favorecidos.map((f) => (
                     <tr key={f.chave}>
                       <td>
-                        <Link href={`/contratacoes/?ente=${codigo}&forn=${f.cnpj}`}>{f.rotulo}</Link>
+                        <Link href={`/pessoa-juridica/?cnpj=${f.cnpj}`}>{f.rotulo}</Link>
                         <div className="busca-detalhe">{formatarCnpj(f.cnpj)}</div>
                       </td>
                       <td className="busca-detalhe">{f.detalhe}</td>
@@ -143,7 +142,8 @@ export function EmendasMandato({ codigo, estado, anos, anosComparado, rotulos, c
         Pagamentos de emendas parlamentares aos favorecidos do município, pelo ano do pagamento (Portal da
         Transparência, arquivo de {e.data_arquivo ? new Date(e.data_arquivo).toLocaleDateString("pt-BR") : "data não informada"}).
         Valores {unidade}. O banco que opera os repasses fica de fora, e a pessoa física entra só na soma. O link do
-        favorecido abre as contratações dele no município e o cadastro na Receita.
+        favorecido abre o que o Lumen tem dele: o cadastro na Receita, os contratos com cada ente, as emendas e os
+        convênios.
       </p>
     </>
   );

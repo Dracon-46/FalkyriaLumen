@@ -349,13 +349,14 @@ Os arquivos `.json.gz` vão comprimidos com gzip, e o portal os descomprime no n
 | `orgaos.json` | Órgãos com publicação no período (CNPJ, razão social, ente, esfera, processos, contratos), para a busca |
 | `contratacoes/panorama.json` | Brasil: totais, esferas, UFs, meses, modalidades, fornecedores |
 | `contratacoes/ente/<grupo>.json.gz` | Os entes do grupo (`entes`, pelo código): União (1), estados, DF e municípios. O grupo é o 3º, o 4º e o 5º dígitos do município, ou o próprio código (`comum.grupo_do_ente`) |
-| `contratacoes/orgao/<grupo>.json.gz` | Os órgãos do grupo (`orgaos`, pelo CNPJ): prefeitura, câmara, autarquia, fundação ou empresa pública. O grupo é o 6º, o 7º e o 8º dígitos do CNPJ (`comum.grupo_do_orgao`) |
+| `contratacoes/orgao/<grupo>.json.gz` | Os órgãos do grupo (`orgaos`, pelo CNPJ): prefeitura, câmara, autarquia, fundação ou empresa pública. O grupo é o 6º, o 7º e o 8º dígitos do CNPJ (`comum.grupo_do_cnpj`) |
 | `emendas/ente/<grupo>.json.gz`, `convenios/ente/<grupo>.json.gz` | Emendas parlamentares e convênios da União recebidos pelos entes do grupo (ADR-044 e ADR-045) |
 | `cnpj/<3 primeiros dígitos>.json.gz`, `cnpj/tabelas.json` | Base de CNPJ da Receita dos fornecedores e as tabelas de códigos (ADR-043) |
 | `conformidade/panorama.json` | Brasil: resultados por UF e por obrigação |
 | `conformidade/uf/<sigla>.json` | Entes da UF, com o resumo de cada um |
 | `conformidade/ente/<código>.json` | Obrigações avaliadas de um ente e o grupo de pares (ADR-038) |
 | `operacao.json` | Situação das coletas: fluxos de dados, volume diário do PNCP e coleta da conformidade (ADR-039) |
+| `pj/<grupo>.json.gz` | Visão 360 por CNPJ (ADR-049): contratos no PNCP por ente e ano, emendas recebidas por ente e ano e convênios com a União; o grupo é o 6º, o 7º e o 8º dígitos (`comum.grupo_do_cnpj`) |
 | `cobertura.json` | Cobertura por ente e UF (ADR-048): por ente, os anos com publicação no PNCP, os exercícios do extrato coletados, a DCA, o RGF e a RCL e se é município com até 20 mil habitantes; somas por UF e do Brasil |
 | `conformidade/pares/<id>.json` | Um grupo de pares: critérios, distribuição da fração no prazo e os entes que o formam |
 | `transparencia/uf-<sigla>.json`, `transparencia/uniao.json` | Entidades avaliadas pelo PNTP, agrupadas pelo ente (ADR-035) |

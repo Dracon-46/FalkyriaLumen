@@ -3,7 +3,7 @@
 /**
  * Convênios da União iniciados no mandato aberto em Governos municipais (ADR-045): quantos, quanto foi
  * conveniado e liberado, a situação de cada um como o SIAFI a registra e a lista, do maior ao menor, com o link
- * do convenente pessoa jurídica para as contratações dele no município (visão 360).
+ * do convenente pessoa jurídica para a página dele pelo CNPJ (visão 360, ADR-049).
  */
 
 import Link from "next/link";
@@ -20,8 +20,7 @@ const INICIAIS = 10;
 export type EstadoConvenios = { fase: "carregando" } | { fase: "pronto"; convenios: ConveniosEnte | null } | { fase: "erro" };
 
 /** A seção dos convênios iniciados no mandato aberto (e no comparado, se houver). */
-export function ConveniosMandato({ codigo, estado, anos, anosComparado, rotulos, conv, fmt, unidade }: {
-  codigo: string;
+export function ConveniosMandato({ estado, anos, anosComparado, rotulos, conv, fmt, unidade }: {
   estado: EstadoConvenios;
   anos: string[];
   anosComparado: string[] | null;
@@ -85,7 +84,7 @@ export function ConveniosMandato({ codigo, estado, anos, anosComparado, rotulos,
                     </div>
                   </td>
                   <td>
-                    {x.cnpj ? <Link href={`/contratacoes/?ente=${codigo}&forn=${x.cnpj}`}>{x.convenente}</Link> : x.convenente}
+                    {x.cnpj ? <Link href={`/pessoa-juridica/?cnpj=${x.cnpj}`}>{x.convenente}</Link> : x.convenente}
                     <div className="busca-detalhe">
                       {c.categorias[x.categoria] ?? x.categoria}{x.cnpj ? ` · ${formatarCnpj(x.cnpj)}` : ""}
                     </div>

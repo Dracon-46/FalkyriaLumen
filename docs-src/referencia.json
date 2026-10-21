@@ -8402,7 +8402,7 @@
   {
    "caminho": "packages/painel/lumen_painel/cli.py",
    "linguagem": "python",
-   "linhas": 482,
+   "linhas": 495,
    "doc": "``lumen painel``: coleta e publicação dos painéis de contratações e de conformidade (ADR-028).\n\nExemplos::\n\n    lumen painel cadastro --estado estado/                          # cadastro de entes do SICONFI\n    lumen painel contratacoes --estado estado/ --ultimos 3          # dias que faltam entre os 3 últimos\n    lumen painel contratacoes --estado estado/ --de 2026-01-01 --ate 2026-01-31 --limite-minutos 300\n    lumen painel faltando --estado estado/ --de 2026-01-01 --partes 6   # divisão para execuções paralelas\n    lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026\n    lumen painel rcl --estado estado/ --ufs SP,MG                  # RCL do exercício anterior, para os pares\n    lumen painel despesa-funcao --estado estado/ --ufs SP,MG --limite-minutos 30   # DCA por função, pares\n    lumen painel pessoal --estado estado/ --ufs SP,MG --limite-minutos 20          # RGF: pessoal em % da RCL\n    lumen painel cnpj --estado estado/                              # base de CNPJ da Receita, dos fornecedores\n    lumen painel emendas --estado estado/                           # emendas parlamentares (CGU), por ente\n    lumen painel convenios --estado estado/                         # convênios da União (CGU), por ente\n    lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)\n    lumen painel anp --estado estado/                               # preço de revenda da ANP por semana\n    lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado\n\nO estado é um diretório com ``cadastro-entes.json.gz``, um ``contratacoes-<dia>.json.gz`` por dia coletado e\num ``conformidade-<UF>.json.gz`` por UF. No GitHub Actions, ele fica nos anexos de uma versão do repositório\n(``painel-estado``) entre uma execução e outra.",
    "itens": [
     {
@@ -8410,161 +8410,161 @@
      "nome": "_data",
      "assinatura": "def _data(texto: str) -> date",
      "doc": "``AAAA-MM-DD`` → ``date``, como ``type`` do argparse.",
-     "linha": 52
+     "linha": 64
     },
     {
      "tipo": "funcao",
      "nome": "_lista",
      "assinatura": "def _lista(texto: str) -> list[str]",
      "doc": "``SP, mg`` → ``[\"SP\", \"MG\"]``.",
-     "linha": 57
+     "linha": 69
     },
     {
      "tipo": "funcao",
      "nome": "_imprimir",
      "assinatura": "def _imprimir(dados) -> None",
      "doc": "JSON legível na saída padrão.",
-     "linha": 62
+     "linha": 74
     },
     {
      "tipo": "funcao",
      "nome": "_configuracao",
      "assinatura": "def _configuracao(args)",
      "doc": "A configuração do pipeline (contato da coleta e limites de requisições).",
-     "linha": 67
+     "linha": 79
     },
     {
      "tipo": "funcao",
      "nome": "dias_pedidos",
      "assinatura": "def dias_pedidos(estado: Path, *, de: date | None, ate: date | None, ultimos: int | None, hoje: date, refazer: bool=False) -> list[date]",
      "doc": "Os dias a coletar, do mais recente para o mais antigo, sem os que já estão no estado.\n\nSem ``de``, o intervalo é dos ``ultimos`` dias (padrão 3) até ontem; o dia corrente nunca entra, porque\nainda está recebendo publicações.",
-     "linha": 73
+     "linha": 85
     },
     {
      "tipo": "funcao",
      "nome": "partes",
      "assinatura": "def partes(dias: list[date], n: int) -> list[dict]",
      "doc": "Divide os dias (já do mais recente ao mais antigo) em até ``n`` blocos de dias seguidos, para execuções\nparalelas; cada bloco vira ``{\"de\": …, \"ate\": …, \"dias\": …}``.",
-     "linha": 86
+     "linha": 98
     },
     {
      "tipo": "funcao",
      "nome": "cmd_cadastro",
      "assinatura": "def cmd_cadastro(args) -> int",
      "doc": "Coleta o cadastro de entes do SICONFI (uma requisição), normaliza e grava ``cadastro-entes.json.gz``.",
-     "linha": 98
+     "linha": 110
     },
     {
      "tipo": "funcao",
      "nome": "cmd_contratacoes",
      "assinatura": "def cmd_contratacoes(args) -> int",
      "doc": "Coleta os dias pedidos que faltam no estado, do mais recente ao mais antigo, até o prazo.",
-     "linha": 129
+     "linha": 141
     },
     {
      "tipo": "funcao",
      "nome": "cmd_faltando",
      "assinatura": "def cmd_faltando(args) -> int",
      "doc": "Imprime, em JSON, os blocos de dias que faltam no estado (matriz das execuções paralelas).",
-     "linha": 153
+     "linha": 165
     },
     {
      "tipo": "funcao",
      "nome": "cmd_conformidade",
      "assinatura": "def cmd_conformidade(args) -> int",
      "doc": "Coleta o extrato de entregas de cada UF pedida e grava o estado de cada uma.",
-     "linha": 160
+     "linha": 172
     },
     {
      "tipo": "funcao",
      "nome": "cmd_rcl",
      "assinatura": "def cmd_rcl(args) -> int",
      "doc": "Coleta a RCL dos entes pendentes de cada UF pedida (RREO, Anexo 03) e grava o estado de cada uma.\n\nEnte que ainda não publicou não é falha: fica para a próxima tentativa. O código é 1 só quando uma coleta\nfoi interrompida.",
-     "linha": 175
+     "linha": 187
     },
     {
      "tipo": "funcao",
      "nome": "cmd_despesa_funcao",
      "assinatura": "def cmd_despesa_funcao(args) -> int",
      "doc": "Coleta a despesa por função (DCA, Anexo I-E) dos entes pendentes de cada UF pedida e grava o estado.\n\nO ``--limite-minutos`` vale para todas as UFs juntas: passado o tempo, os entes que faltam ficam para a\nexecução seguinte. O código é 1 só quando uma coleta foi interrompida.",
-     "linha": 194
+     "linha": 206
     },
     {
      "tipo": "funcao",
      "nome": "cmd_pessoal",
      "assinatura": "def cmd_pessoal(args) -> int",
      "doc": "Coleta a despesa com pessoal do Executivo (RGF, Anexo 1) dos entes pendentes de cada UF pedida.\n\nComo em ``despesa-funcao``, o ``--limite-minutos`` vale para todas as UFs juntas. O código é 1 só quando uma\ncoleta foi interrompida.",
-     "linha": 216
+     "linha": 228
     },
     {
      "tipo": "funcao",
      "nome": "cmd_cnpj",
      "assinatura": "def cmd_cnpj(args) -> int",
      "doc": "Lê a base pública de CNPJ da Receita para os fornecedores do estado e grava ``cnpj-fornecedores.json.gz``.\n\nPula quando o estado já tem a base do mês para todos os fornecedores (ADR-043).",
-     "linha": 238
+     "linha": 250
     },
     {
      "tipo": "funcao",
      "nome": "cmd_emendas",
      "assinatura": "def cmd_emendas(args) -> int",
      "doc": "Lê o arquivo de emendas parlamentares da CGU quando ele muda e grava ``emendas.json.gz`` (ADR-044).",
-     "linha": 249
+     "linha": 261
     },
     {
      "tipo": "funcao",
      "nome": "cmd_convenios",
      "assinatura": "def cmd_convenios(args) -> int",
      "doc": "Lê o arquivo de convênios da CGU quando sai um novo e grava ``convenios.json.gz`` (ADR-045).",
-     "linha": 257
+     "linha": 269
     },
     {
      "tipo": "funcao",
      "nome": "cmd_mascarar",
      "assinatura": "def cmd_mascarar(args) -> int",
      "doc": "Reescreve os arquivos do dia gravados antes da máscara de CPF (ADR-043) e lista os que mudaram.",
-     "linha": 265
+     "linha": 277
     },
     {
      "tipo": "funcao",
      "nome": "cmd_transparencia",
      "assinatura": "def cmd_transparencia(args) -> int",
      "doc": "Lê o ciclo mais recente do PNTP para ``transparencia-pntp.json.gz``; o código é 1 quando falhou.",
-     "linha": 279
+     "linha": 291
     },
     {
      "tipo": "funcao",
      "nome": "cmd_anp",
      "assinatura": "def cmd_anp(args) -> int",
      "doc": "Lê as planilhas semanais da ANP que faltam em ``anp-semanas.json.gz``; o código é 1 quando algo falhou.",
-     "linha": 287
+     "linha": 299
     },
     {
      "tipo": "funcao",
      "nome": "_agrupar",
      "assinatura": "def _agrupar(chaves, grupo) -> list[tuple[str, list[str]]]",
      "doc": "As chaves em grupos (``grupo(chave)``), na ordem dos grupos: um grupo de cada vez vai para a memória.",
-     "linha": 296
+     "linha": 308
     },
     {
      "tipo": "funcao",
      "nome": "cmd_publicar",
      "assinatura": "def cmd_publicar(args) -> int",
      "doc": "Monta o site inteiro a partir do estado: índice, busca, contratações e conformidade.",
-     "linha": 304
+     "linha": 316
     },
     {
      "tipo": "funcao",
      "nome": "construir_parser",
      "assinatura": "def construir_parser() -> argparse.ArgumentParser",
      "doc": "Os subcomandos e as opções de cada um.",
-     "linha": 389
+     "linha": 402
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada de ``lumen painel``; falta de configuração (contato da coleta) vira código 2.",
-     "linha": 471
+     "linha": 484
     }
    ]
   },
@@ -8762,7 +8762,7 @@
   {
    "caminho": "packages/painel/lumen_painel/comum.py",
    "linguagem": "python",
-   "linhas": 160,
+   "linhas": 161,
    "doc": "Peças comuns dos painéis: JSON em disco, códigos dos entes, modalidades do PNCP, links e valores.",
    "itens": [
     {
@@ -8823,9 +8823,9 @@
     },
     {
      "tipo": "funcao",
-     "nome": "grupo_do_orgao",
-     "assinatura": "def grupo_do_orgao(cnpj: str) -> str",
-     "doc": "O arquivo que leva o órgão nas contratações publicadas por grupo: o 6º, o 7º e o 8º dígitos do CNPJ (1.000\ngrupos, o maior com 48 órgãos em outubro de 2026); os primeiros se concentram em poucos valores.",
+     "nome": "grupo_do_cnpj",
+     "assinatura": "def grupo_do_cnpj(cnpj: str) -> str",
+     "doc": "O arquivo que leva um CNPJ nos conjuntos publicados por grupo (órgãos das contratações, pessoas jurídicas):\no 6º, o 7º e o 8º dígitos (1.000 grupos; o maior tinha 48 órgãos em outubro de 2026). Os primeiros dígitos se\nconcentram em poucos valores.",
      "linha": 135
     },
     {
@@ -8833,14 +8833,14 @@
      "nome": "gravar_json",
      "assinatura": "def gravar_json(caminho: Path | str, conteudo: Any, *, comprimir: bool=False) -> Path",
      "doc": "Grava JSON compacto em UTF-8 por troca atômica (temporário no mesmo diretório e ``os.replace``).\n\n``comprimir`` grava com gzip (nível 6, sem data no cabeçalho, para o mesmo conteúdo dar os mesmos bytes).",
-     "linha": 141
+     "linha": 142
     },
     {
      "tipo": "funcao",
      "nome": "instante_utc",
      "assinatura": "def instante_utc(agora: datetime | None=None) -> str",
      "doc": "Instante em ISO 8601, UTC, sem frações de segundo (``2026-10-14T12:00:00Z``).",
-     "linha": 157
+     "linha": 158
     }
    ]
   },
@@ -9010,7 +9010,7 @@
    "caminho": "packages/painel/lumen_painel/contratacoes.py",
    "linguagem": "python",
    "linhas": 479,
-   "doc": "Painel de contratações: soma os dias do PNCP guardados no estado em arquivos por ente (UC-01, UC-02).\n\nPara cada ente com alguma publicação no período, o arquivo do ente (dentro de ``contratacoes/ente/<grupo>.json.gz``,\ncomprimido, com os entes do grupo; ``comum.grupo_do_ente``) traz:\n\n- os totais (processos publicados e a soma do valor estimado; contratos e a soma do valor global);\n- o mês a mês e a divisão por modalidade de contratação;\n- todos os órgãos do ente que publicaram (prefeitura, câmara, secretarias, autarquias, fundações e empresas\n  públicas, como um serviço autônomo de água e esgoto), cada um com o próprio arquivo\n  o arquivo do órgão (dentro de ``contratacoes/orgao/<grupo>.json.gz``; ``comum.grupo_do_orgao``), com as mesmas\n  seções;\n- os fornecedores pessoa jurídica com maior valor contratado e, numa linha só, a soma dos contratos com\n  pessoa física ou estrangeira, sem nome nem documento (RNF-19 e RNF-20);\n- os processos e contratos publicados mais recentemente, com o link de cada um no PNCP;\n- no arquivo de um estado, a tabela dos municípios da UF, para navegar.\n\nModalidades, órgãos, fornecedores, municípios, esferas e UFs levam também o mês a mês (``meses``, em\nlistas ``[mês, ...]``), para o portal refazer as tabelas num período escolhido sem outro arquivo. Os\nfornecedores listados são os de maior valor no período inteiro: num período menor, a ordem é refeita entre\neles, e o portal diz isso.\n\nCom o histórico inteiro (desde agosto de 2021), o mês a mês dos anos mais antigos vira ano a ano\n(``compactar_meses``): ficam mês a mês o ano corrente e o anterior; antes deles, uma linha por ano\n(``\"2023\"``). Sem isso, o mês a mês de cada linha das tabelas passaria de 60 entradas e o site, de 1 GB. O\nportal filtra por ano nesse trecho.\n\nO ente de cada publicação é o do órgão que publicou (``dia.resumir_dia``): os números de um município são os\ndos órgãos municipais, e não os de órgãos estaduais ou federais que ficam nele.\n\nOs valores são os publicados no PNCP, sem correção: valor estimado sigiloso ou zerado conta como processo\nsem valor. Um valor acima do teto de plausibilidade (``teto_do_ente``: R$ 10 bilhões, ou R$ 20 mil por\nhabitante do ente, o que for menor) conta o processo ou o contrato, mas fica fora das somas e das listas de\nfornecedores e aparece em \"valores a conferir\", com o link da publicação: um único contrato de R$ 240\nbilhões, como o publicado em 13/10/2026, faria sozinho mais de 90% do valor do país na semana. Não é juízo\nsobre o órgão nem sobre o fornecedor; é a conferência mínima de um valor que a fonte publicou. O painel não\nordena entes por nenhum critério de risco (PUB-07) e não publica indício: só soma o que a fonte publicou.",
+   "doc": "Painel de contratações: soma os dias do PNCP guardados no estado em arquivos por ente (UC-01, UC-02).\n\nPara cada ente com alguma publicação no período, o arquivo do ente (dentro de ``contratacoes/ente/<grupo>.json.gz``,\ncomprimido, com os entes do grupo; ``comum.grupo_do_ente``) traz:\n\n- os totais (processos publicados e a soma do valor estimado; contratos e a soma do valor global);\n- o mês a mês e a divisão por modalidade de contratação;\n- todos os órgãos do ente que publicaram (prefeitura, câmara, secretarias, autarquias, fundações e empresas\n  públicas, como um serviço autônomo de água e esgoto), cada um com o próprio arquivo\n  o arquivo do órgão (dentro de ``contratacoes/orgao/<grupo>.json.gz``; ``comum.grupo_do_cnpj``), com as mesmas\n  seções;\n- os fornecedores pessoa jurídica com maior valor contratado e, numa linha só, a soma dos contratos com\n  pessoa física ou estrangeira, sem nome nem documento (RNF-19 e RNF-20);\n- os processos e contratos publicados mais recentemente, com o link de cada um no PNCP;\n- no arquivo de um estado, a tabela dos municípios da UF, para navegar.\n\nModalidades, órgãos, fornecedores, municípios, esferas e UFs levam também o mês a mês (``meses``, em\nlistas ``[mês, ...]``), para o portal refazer as tabelas num período escolhido sem outro arquivo. Os\nfornecedores listados são os de maior valor no período inteiro: num período menor, a ordem é refeita entre\neles, e o portal diz isso.\n\nCom o histórico inteiro (desde agosto de 2021), o mês a mês dos anos mais antigos vira ano a ano\n(``compactar_meses``): ficam mês a mês o ano corrente e o anterior; antes deles, uma linha por ano\n(``\"2023\"``). Sem isso, o mês a mês de cada linha das tabelas passaria de 60 entradas e o site, de 1 GB. O\nportal filtra por ano nesse trecho.\n\nO ente de cada publicação é o do órgão que publicou (``dia.resumir_dia``): os números de um município são os\ndos órgãos municipais, e não os de órgãos estaduais ou federais que ficam nele.\n\nOs valores são os publicados no PNCP, sem correção: valor estimado sigiloso ou zerado conta como processo\nsem valor. Um valor acima do teto de plausibilidade (``teto_do_ente``: R$ 10 bilhões, ou R$ 20 mil por\nhabitante do ente, o que for menor) conta o processo ou o contrato, mas fica fora das somas e das listas de\nfornecedores e aparece em \"valores a conferir\", com o link da publicação: um único contrato de R$ 240\nbilhões, como o publicado em 13/10/2026, faria sozinho mais de 90% do valor do país na semana. Não é juízo\nsobre o órgão nem sobre o fornecedor; é a conferência mínima de um valor que a fonte publicou. O painel não\nordena entes por nenhum critério de risco (PUB-07) e não publica indício: só soma o que a fonte publicou.",
    "itens": [
     {
      "tipo": "funcao",
@@ -9891,6 +9891,63 @@
    ]
   },
   {
+   "caminho": "packages/painel/lumen_painel/pessoas_juridicas.py",
+   "linguagem": "python",
+   "linhas": 125,
+   "doc": "Tudo o que o Lumen tem de uma pessoa jurídica, pelo CNPJ: a visão 360 da empresa ou entidade (ADR-049).\n\nAs contratações, as emendas e os convênios são publicados por ente (quem contrata ou recebe). Aqui, o mesmo dado\né virado para o CNPJ, em ``pj/<grupo>.json.gz`` (comprimido; o grupo é ``comum.grupo_do_cnpj``):\n\n- **contratos:** os contratos publicados no PNCP com ela como fornecedora, por ente contratante e ano\n  (``[ente, ano, contratos, valor]``), da mesma soma do painel de contratações;\n- **emendas:** o recebido de emendas parlamentares como favorecida, por ente e ano (``[ente, ano, valor]``,\n  ADR-044);\n- **convenios:** os convênios com a União como convenente (ADR-045), com o objeto cortado em ``OBJETO``\n  caracteres.\n\nO nome é o mais recente das contratações e, sem elas, o dos convênios ou das emendas; as fontes já chegam com o\nCPF do MEI mascarado (ADR-043). A página do portal junta o cartão da Receita (``cnpj/``). Pessoa física não\nentra: o índice é por CNPJ.",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "_registro",
+     "assinatura": "def _registro(indice: dict[str, dict], cnpj: str) -> dict",
+     "doc": "O registro do CNPJ no índice, criado vazio na primeira vez.",
+     "linha": 31
+    },
+    {
+     "tipo": "funcao",
+     "nome": "de_contratacoes",
+     "assinatura": "def de_contratacoes(indice: dict[str, dict], painel: Painel) -> None",
+     "doc": "Os contratos de cada fornecedor pessoa jurídica, por ente contratante e ano.",
+     "linha": 36
+    },
+    {
+     "tipo": "funcao",
+     "nome": "de_emendas",
+     "assinatura": "def de_emendas(indice: dict[str, dict], dados: dict) -> None",
+     "doc": "O recebido de emendas por favorecido pessoa jurídica, por ente e ano (o estado de ``emendas``).",
+     "linha": 48
+    },
+    {
+     "tipo": "funcao",
+     "nome": "de_convenios",
+     "assinatura": "def de_convenios(indice: dict[str, dict], dados: dict) -> None",
+     "doc": "Os convênios por convenente pessoa jurídica (o estado de ``convenios``).",
+     "linha": 63
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_estado",
+     "assinatura": "def _estado(estado: Path, modulo) -> dict | None",
+     "doc": "O estado de ``emendas`` ou ``convenios``, se existe e está na versão conhecida.",
+     "linha": 79
+    },
+    {
+     "tipo": "funcao",
+     "nome": "para_json",
+     "assinatura": "def para_json(registro: dict) -> dict",
+     "doc": "O registro de um CNPJ como vai no arquivo: listas ordenadas, valores em centavos.",
+     "linha": 88
+    },
+    {
+     "tipo": "funcao",
+     "nome": "publicar",
+     "assinatura": "def publicar(estado: Path | str, painel: Painel, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> dict",
+     "doc": "Grava ``pj/<grupo>.json.gz`` com as pessoas jurídicas do grupo e devolve o resumo para o índice.",
+     "linha": 98
+    }
+   ]
+  },
+  {
    "caminho": "packages/painel/lumen_painel/rcl.py",
    "linguagem": "python",
    "linhas": 201,
@@ -9979,7 +10036,7 @@
    "caminho": "packages/painel/lumen_painel/site.py",
    "linguagem": "python",
    "linhas": 69,
-   "doc": "O diretório publicado dos painéis (GitHub Pages, ADR-028).\n\nO site é refeito inteiro a cada publicação, a partir do estado guardado (os dias do PNCP e o extrato de\nentregas por UF): não há o que sincronizar arquivo a arquivo, como no bucket das eleições. Os JSON avulsos vão\nsem compressão (o GitHub Pages comprime na entrega a quem aceita gzip); os conjuntos por grupo vão em ``.json.gz``,\nque o portal descomprime, para o site caber no limite e na implantação do Pages.\n\nDesenho do diretório::\n\n    indice.json                       versão, quando foi gerado, cobertura de cada painel\n    entes.json                        cadastro para a busca: código, nome, UF, tipo, população\n    contratacoes/panorama.json        Brasil: totais, esferas, UFs, meses, modalidades, fornecedores\n    contratacoes/ente/<grupo>.json.gz   os entes do grupo (``comum.grupo_do_ente``): União (1), estado, DF ou\n                                        municípios, comprimido\n    contratacoes/orgao/<grupo>.json.gz  os órgãos do grupo (``comum.grupo_do_orgao``): prefeitura, câmara, autarquia,\n                                        fundação ou empresa pública, comprimido\n    conformidade/panorama.json        Brasil: resultados por UF e por obrigação\n    conformidade/uf/<sigla>.json      entes da UF, com o resumo de cada um\n    conformidade/ente/<código>.json   as obrigações avaliadas de um ente e o grupo de pares (ADR-038)\n    conformidade/pares/<id>.json      um grupo de pares: critérios, distribuição e os entes que o formam",
+   "doc": "O diretório publicado dos painéis (GitHub Pages, ADR-028).\n\nO site é refeito inteiro a cada publicação, a partir do estado guardado (os dias do PNCP e o extrato de\nentregas por UF): não há o que sincronizar arquivo a arquivo, como no bucket das eleições. Os JSON avulsos vão\nsem compressão (o GitHub Pages comprime na entrega a quem aceita gzip); os conjuntos por grupo vão em ``.json.gz``,\nque o portal descomprime, para o site caber no limite e na implantação do Pages.\n\nDesenho do diretório::\n\n    indice.json                       versão, quando foi gerado, cobertura de cada painel\n    entes.json                        cadastro para a busca: código, nome, UF, tipo, população\n    contratacoes/panorama.json        Brasil: totais, esferas, UFs, meses, modalidades, fornecedores\n    contratacoes/ente/<grupo>.json.gz   os entes do grupo (``comum.grupo_do_ente``): União (1), estado, DF ou\n                                        municípios, comprimido\n    contratacoes/orgao/<grupo>.json.gz  os órgãos do grupo (``comum.grupo_do_cnpj``): prefeitura, câmara, autarquia,\n                                        fundação ou empresa pública, comprimido\n    conformidade/panorama.json        Brasil: resultados por UF e por obrigação\n    conformidade/uf/<sigla>.json      entes da UF, com o resumo de cada um\n    conformidade/ente/<código>.json   as obrigações avaliadas de um ente e o grupo de pares (ADR-038)\n    conformidade/pares/<id>.json      um grupo de pares: critérios, distribuição e os entes que o formam",
    "itens": [
     {
      "tipo": "classe",
@@ -12259,7 +12316,7 @@
   {
    "caminho": "packages/portal/src/lib/paineis.ts",
    "linguagem": "typescript",
-   "linhas": 766,
+   "linhas": 769,
    "doc": "Acesso aos dados dos painéis de contratações e de conformidade (ADR-028).\n\nOs arquivos são gerados por `lumen painel publicar` a partir do PNCP e do\nextrato de entregas do SICONFI e publicados no GitHub Pages do repositório.\nA base é `NEXT_PUBLIC_DADOS_PAINEL`, fixada no build; sem ela, o endereço\npúblico do Pages. Os arquivos mudam uma vez por dia: o navegador revalida\n(`no-cache`) e recebe 304 quando nada mudou.",
    "itens": [
     {
@@ -12285,465 +12342,465 @@
     },
     {
      "tipo": "funcao",
-     "nome": "grupoDoOrgao",
-     "assinatura": "export function grupoDoOrgao(cnpj: string): string",
-     "doc": "O arquivo que leva o órgão em `contratacoes/orgao/<grupo>.json.gz`: o 6º, o 7º e o 8º dígitos do CNPJ.",
-     "linha": 44
+     "nome": "grupoDoCnpj",
+     "assinatura": "export function grupoDoCnpj(cnpj: string): string",
+     "doc": "O arquivo que leva um CNPJ nos conjuntos por grupo (`contratacoes/orgao/`, `pj/`): o 6º, o 7º e o 8º dígitos,\ncomo `comum.grupo_do_cnpj` no Python.",
+     "linha": 47
     },
     {
      "tipo": "constante",
      "nome": "urlsPainel",
      "assinatura": "export const urlsPainel =",
      "doc": "Endereço de cada arquivo dos painéis; código, CNPJ e UF passam pela validação antes de virar caminho.",
-     "linha": 50
+     "linha": 53
     },
     {
      "tipo": "tipo",
      "nome": "TipoEnte",
      "assinatura": "export type TipoEnte = \"uniao\" | \"estado\" | \"df\" | \"municipio\";",
      "doc": "Tipo de ente, como o Python grava em `ente.tipo`.",
-     "linha": 72
+     "linha": 75
     },
     {
      "tipo": "interface",
      "nome": "EnteResumo",
      "assinatura": "export interface EnteResumo",
      "doc": "Identificação do ente no topo de cada arquivo: código IBGE, nome, UF, tipo e população.",
-     "linha": 75
+     "linha": 78
     },
     {
      "tipo": "interface",
      "nome": "EnteBusca",
      "assinatura": "export interface EnteBusca",
      "doc": "Linha do cadastro para a busca.",
-     "linha": 84
+     "linha": 87
     },
     {
      "tipo": "interface",
      "nome": "OrgaoBusca",
      "assinatura": "export interface OrgaoBusca",
      "doc": "Linha do `orgaos.json` para a busca: um órgão com publicação no período, com o nome e a UF do ente a que\npertence (do cadastro) e as palavras e a sigla do nome já normalizadas.",
-     "linha": 96
+     "linha": 99
     },
     {
      "tipo": "interface",
      "nome": "Cobertura",
      "assinatura": "export interface Cobertura",
      "doc": "Dias do PNCP somados no painel: o primeiro, o último, quantos e os que faltam entre eles.",
-     "linha": 109
+     "linha": 112
     },
     {
      "tipo": "interface",
      "nome": "TotaisContratacoes",
      "assinatura": "export interface TotaisContratacoes",
      "doc": "Contagens e somas de um recorte: processos, valor estimado, contratos e valor global. `valores_a_conferir`:\nprocessos e contratos contados cujo valor passou do teto de plausibilidade e ficou fora das somas.",
-     "linha": 120
+     "linha": 123
     },
     {
      "tipo": "interface",
      "nome": "ValorAConferir",
      "assinatura": "export interface ValorAConferir",
      "doc": "Processo ou contrato com valor acima do teto de plausibilidade: fora das somas, com o link para conferir.",
-     "linha": 130
+     "linha": 133
     },
     {
      "tipo": "tipo",
      "nome": "MesesLinha",
      "assinatura": "export type MesesLinha = [string, ...number[]][];",
      "doc": "Mês a mês de uma linha de tabela: `[mês, processos, valor estimado, contratos, valor dos contratos]` (órgãos,\nmunicípios, esferas), `[mês, processos, valor estimado]` (modalidades), `[mês, contratos, valor]`\n(fornecedores, pessoas físicas) ou `[mês, processos do estado, processos dos municípios]` (UFs). Ausente nos\narquivos gerados antes de existir o filtro de período.",
-     "linha": 148
+     "linha": 151
     },
     {
      "tipo": "interface",
      "nome": "SecoesContratacoes",
      "assinatura": "export interface SecoesContratacoes",
      "doc": "Seções comuns ao panorama, a um ente e a um órgão (`_secoes` no Python).",
-     "linha": 151
+     "linha": 154
     },
     {
      "tipo": "interface",
      "nome": "ContratacoesEnte",
      "assinatura": "export interface ContratacoesEnte extends SecoesContratacoes",
      "doc": "Arquivo `contratacoes/ente/<código>.json`; o de um estado traz também os municípios da UF.",
-     "linha": 186
+     "linha": 189
     },
     {
      "tipo": "interface",
      "nome": "ContratacoesOrgao",
      "assinatura": "export interface ContratacoesOrgao extends Omit<SecoesContratacoes, \"orgaos\">",
      "doc": "Arquivo `contratacoes/orgao/<CNPJ>.json`: um órgão, com o ente a que pertence (ou null sem esfera).",
-     "linha": 196
+     "linha": 199
     },
     {
      "tipo": "interface",
      "nome": "TotaisContratacoesSimples",
      "assinatura": "export interface TotaisContratacoesSimples",
      "doc": "Totais de um município na tabela da UF.",
-     "linha": 206
+     "linha": 209
     },
     {
      "tipo": "interface",
      "nome": "ContratacoesPanorama",
      "assinatura": "export interface ContratacoesPanorama extends SecoesContratacoes",
      "doc": "Arquivo `contratacoes/panorama.json`: o Brasil, por esfera e por UF.",
-     "linha": 214
+     "linha": 217
     },
     {
      "tipo": "tipo",
      "nome": "Resultado",
      "assinatura": "export type Resultado = \"cumpre\" | \"cumpre_parcialmente\" | \"nao_cumpre\" | \"indeterminado\";",
      "doc": "Resultado de uma obrigação, na nomenclatura de `ResultadoCriterio`.",
-     "linha": 233
+     "linha": 236
     },
     {
      "tipo": "interface",
      "nome": "ResumoConformidade",
      "assinatura": "export interface ResumoConformidade",
      "doc": "Quantas obrigações em cada resultado e a fração entregue no prazo.",
-     "linha": 236
+     "linha": 239
     },
     {
      "tipo": "interface",
      "nome": "Obrigacao",
      "assinatura": "export interface Obrigacao",
      "doc": "Uma obrigação avaliada: rótulo, prazo, data da entrega, resultado, dispositivo e, se indeterminada, o motivo.",
-     "linha": 247
+     "linha": 250
     },
     {
      "tipo": "interface",
      "nome": "ConformidadeEnte",
      "assinatura": "export interface ConformidadeEnte",
      "doc": "Arquivo `conformidade/ente/<código>.json`.",
-     "linha": 262
+     "linha": 265
     },
     {
      "tipo": "interface",
      "nome": "GrupoPares",
      "assinatura": "export interface GrupoPares",
      "doc": "Grupo de pares (ADR-038): descrição, célula, tamanho, ressalva e os critérios gravados.",
-     "linha": 279
+     "linha": 282
     },
     {
      "tipo": "interface",
      "nome": "CriterioRcl",
      "assinatura": "export interface CriterioRcl",
      "doc": "Como a RCL entrou no grupo: a mediana por habitante do exercício e a metade, ou o grupo inteiro (`uso`).",
-     "linha": 294
+     "linha": 297
     },
     {
      "tipo": "interface",
      "nome": "RclEnte",
      "assinatura": "export interface RclEnte",
      "doc": "A RCL do ente: exercício, valor, por habitante e o tipo do RREO de onde veio.",
-     "linha": 303
+     "linha": 306
     },
     {
      "tipo": "funcao",
      "nome": "criterioRcl",
      "assinatura": "export function criterioRcl(grupo: GrupoPares): string",
      "doc": "A frase dos critérios sobre a RCL, para o cartão do grupo de pares.",
-     "linha": 311
+     "linha": 314
     },
     {
      "tipo": "interface",
      "nome": "DistribuicaoNoPrazo",
      "assinatura": "export interface DistribuicaoNoPrazo",
      "doc": "Quartis e mediana da fração entregue no prazo entre os entes do grupo com obrigação avaliável.",
-     "linha": 321
+     "linha": 324
     },
     {
      "tipo": "interface",
      "nome": "LinhaDespesa",
      "assinatura": "export interface LinhaDespesa",
      "doc": "Uma linha da despesa por função (ADR-041): o total ou uma função, do ente e do grupo, em reais por habitante.",
-     "linha": 329
+     "linha": 332
     },
     {
      "tipo": "interface",
      "nome": "DespesaPares",
      "assinatura": "export interface DespesaPares",
      "doc": "A despesa por função do ente na DCA do exercício, ao lado do grupo; `funcoes` vazia sem a DCA lida.",
-     "linha": 341
+     "linha": 344
     },
     {
      "tipo": "interface",
      "nome": "LimitesPessoal",
      "assinatura": "export interface LimitesPessoal",
      "doc": "Os limites da despesa com pessoal que o próprio RGF declara, em % da RCL ajustada (LRF, arts. 20, 22 e 59).",
-     "linha": 351
+     "linha": 354
     },
     {
      "tipo": "interface",
      "nome": "PessoalPares",
      "assinatura": "export interface PessoalPares",
      "doc": "A despesa com pessoal do Executivo no RGF do último período do exercício (ADR-042), ao lado do grupo.",
-     "linha": 358
+     "linha": 361
     },
     {
      "tipo": "tipo",
      "nome": "ParesConformidade",
      "assinatura": "export type ParesConformidade =",
      "doc": "Bloco `pares` do arquivo do ente: o grupo e a distribuição, ou o motivo de o ente não ter grupo.",
-     "linha": 376
+     "linha": 379
     },
     {
      "tipo": "funcao",
      "nome": "faixaDoLimite",
      "assinatura": "export function faixaDoLimite(percentual: number, limites: LimitesPessoal): string | null",
      "doc": "Onde o percentual fica em relação aos limites declarados no mesmo RGF.",
-     "linha": 382
+     "linha": 385
     },
     {
      "tipo": "funcao",
      "nome": "periodoDoRgf",
      "assinatura": "export function periodoDoRgf(periodo: number | null, periodicidade: \"Q\" | \"S\" | null, exercicio: number): string",
      "doc": "\"RGF do 3º quadrimestre de 2025\" ou \"do 2º semestre\".",
-     "linha": 392
+     "linha": 395
     },
     {
      "tipo": "funcao",
      "nome": "urlRgfDoEnte",
      "assinatura": "export function urlRgfDoEnte(codigo: string, exercicio: number, pessoal: NonNullable<PessoalPares[\"ente\"]>): string",
      "doc": "O RGF do Executivo no SICONFI, Anexo 1 (a fonte da despesa com pessoal).",
-     "linha": 398
+     "linha": 401
     },
     {
      "tipo": "funcao",
      "nome": "posicaoNoGrupo",
      "assinatura": "export function posicaoNoGrupo(valor: number, d: DistribuicaoNoPrazo): \"acima\" | \"abaixo\" | \"central\"",
      "doc": "Onde o valor fica no grupo: acima do terceiro quartil, abaixo do primeiro ou na metade central.",
-     "linha": 408
+     "linha": 411
     },
     {
      "tipo": "funcao",
      "nome": "faixaCentralEmReais",
      "assinatura": "export function faixaCentralEmReais(d: DistribuicaoNoPrazo): string",
      "doc": "A metade central em reais: \"entre R$ 5.500,00 e R$ 12.500,00\".",
-     "linha": 415
+     "linha": 418
     },
     {
      "tipo": "constante",
      "nome": "urlDcaDoEnte",
      "assinatura": "export const urlDcaDoEnte = (codigo: string, exercicio: number) =>",
      "doc": "A DCA do ente no SICONFI, Anexo I-E (a fonte da despesa por função).",
-     "linha": 420
+     "linha": 423
     },
     {
      "tipo": "interface",
      "nome": "EntePares",
      "assinatura": "export interface EntePares",
      "doc": "Um ente do grupo de pares, com a sua fração no prazo.",
-     "linha": 424
+     "linha": 427
     },
     {
      "tipo": "interface",
      "nome": "ConformidadePares",
      "assinatura": "export interface ConformidadePares",
      "doc": "Arquivo `conformidade/pares/<id>.json`: o grupo, a distribuição e os entes que o formam, por nome.",
-     "linha": 439
+     "linha": 442
     },
     {
      "tipo": "funcao",
      "nome": "faixaCentral",
      "assinatura": "export function faixaCentral(d: DistribuicaoNoPrazo, fator = 100): string",
      "doc": "A metade central do grupo em palavras: \"entre 80,00% e 100,00%\" (do primeiro ao terceiro quartil). `fator`\nleva o valor a pontos percentuais: 100 para frações (o padrão), 1 para valores que já estão em %.",
-     "linha": 453
+     "linha": 456
     },
     {
      "tipo": "interface",
      "nome": "ConformidadeUf",
      "assinatura": "export interface ConformidadeUf",
      "doc": "Arquivo `conformidade/uf/<sigla>.json`: os entes avaliados da UF, por nome.",
-     "linha": 459
+     "linha": 462
     },
     {
      "tipo": "interface",
      "nome": "ConformidadePanorama",
      "assinatura": "export interface ConformidadePanorama",
      "doc": "Arquivo `conformidade/panorama.json`: o Brasil, por obrigação e por UF.",
-     "linha": 471
+     "linha": 474
     },
     {
      "tipo": "funcao",
      "nome": "conferir",
      "assinatura": "export function conferir<T>(bruto: unknown, tipo: string, url: string): T",
      "doc": "Confere versão e tipo de um arquivo dos painéis; o resto do formato é o que o Python grava e testa.",
-     "linha": 487
+     "linha": 490
     },
     {
      "tipo": "funcao",
      "nome": "ler",
      "assinatura": "async function ler<T>(url: string, tipo: string, sinal?: AbortSignal): Promise<T | null>",
      "doc": "Lê e confere um arquivo dos painéis; `null` quando ele não existe.",
-     "linha": 496
+     "linha": 499
     },
     {
      "tipo": "funcao",
      "nome": "lerDoGrupo",
      "assinatura": "async function lerDoGrupo<T>(url: string, tipoGrupo: string, campo: string, chave: string, tipo: string,",
      "doc": "Lê o arquivo de um grupo (`.json.gz`), confere o tipo dele e devolve o item `chave` da coleção `campo`, conferido\npelo `tipo` do item; `null` quando o grupo ou o item não existem. Enquanto o site não for publicado com os\ngrupos, o arquivo de um item só (`legado`) responde no lugar.",
-     "linha": 506
+     "linha": 509
     },
     {
      "tipo": "constante",
      "nome": "carregarContratacoesPanorama",
      "assinatura": "export const carregarContratacoesPanorama = (sinal?: AbortSignal) =>",
      "doc": "Panorama de contratações do Brasil.",
-     "linha": 516
+     "linha": 519
     },
     {
      "tipo": "constante",
      "nome": "carregarContratacoesEnte",
      "assinatura": "export const carregarContratacoesEnte = (codigo: string, sinal?: AbortSignal) =>",
      "doc": "Contratações de um ente pelo código IBGE; `null` sem publicação no período.",
-     "linha": 519
+     "linha": 522
     },
     {
      "tipo": "constante",
      "nome": "carregarContratacoesOrgao",
      "assinatura": "export const carregarContratacoesOrgao = (cnpj: string, sinal?: AbortSignal) =>",
      "doc": "Contratações de um órgão pelo CNPJ; `null` sem publicação no período.",
-     "linha": 523
+     "linha": 526
     },
     {
      "tipo": "constante",
      "nome": "carregarConformidadePanorama",
      "assinatura": "export const carregarConformidadePanorama = (sinal?: AbortSignal) =>",
      "doc": "Panorama da conformidade no Brasil.",
-     "linha": 527
+     "linha": 530
     },
     {
      "tipo": "constante",
      "nome": "carregarConformidadeUf",
      "assinatura": "export const carregarConformidadeUf = (uf: string, sinal?: AbortSignal) =>",
      "doc": "Conformidade dos entes de uma UF.",
-     "linha": 530
+     "linha": 533
     },
     {
      "tipo": "constante",
      "nome": "carregarConformidadeEnte",
      "assinatura": "export const carregarConformidadeEnte = (codigo: string, sinal?: AbortSignal) =>",
      "doc": "Conformidade de um ente; `null` se ainda não avaliado.",
-     "linha": 533
+     "linha": 536
     },
     {
      "tipo": "constante",
      "nome": "carregarConformidadePares",
      "assinatura": "export const carregarConformidadePares = (id: string, sinal?: AbortSignal) =>",
      "doc": "Um grupo de pares, com os entes que o formam; `null` se o arquivo não existe.",
-     "linha": 536
+     "linha": 539
     },
     {
      "tipo": "funcao",
      "nome": "carregarEntes",
      "assinatura": "export function carregarEntes(): Promise<EnteBusca[]>",
      "doc": "Cadastro de entes para a busca, baixado uma vez por visita; lista vazia se o arquivo não existe.",
-     "linha": 542
+     "linha": 545
     },
     {
      "tipo": "funcao",
      "nome": "lerEntes",
      "assinatura": "export function lerEntes(bruto: unknown): EnteBusca[]",
      "doc": "Converte o `entes.json` (linhas em lista, na ordem de `colunas`) em objetos.",
-     "linha": 553
+     "linha": 556
     },
     {
      "tipo": "funcao",
      "nome": "carregarOrgaos",
      "assinatura": "export function carregarOrgaos(): Promise<OrgaoBusca[]>",
      "doc": "Órgãos para a busca, com o cadastro de entes, baixados uma vez por visita; lista vazia sem o arquivo.",
-     "linha": 576
+     "linha": 579
     },
     {
      "tipo": "funcao",
      "nome": "siglaDoNome",
      "assinatura": "export function siglaDoNome(nome: string): string",
      "doc": "Sigla pelas iniciais das palavras do nome, sem as de ligação: \"Serviço Autônomo de Água e Esgoto\" → \"saae\".",
-     "linha": 592
+     "linha": 595
     },
     {
      "tipo": "funcao",
      "nome": "lerOrgaos",
      "assinatura": "export function lerOrgaos(bruto: unknown, entes: EnteBusca[]): OrgaoBusca[]",
      "doc": "Converte o `orgaos.json` (linhas em lista, na ordem de `colunas`) em objetos prontos para a busca.",
-     "linha": 601
+     "linha": 604
     },
     {
      "tipo": "funcao",
      "nome": "buscarOrgaos",
      "assinatura": "export function buscarOrgaos(termo: string, orgaos: OrgaoBusca[], limite = 8): OrgaoBusca[]",
      "doc": "Até `limite` órgãos que casam com o termo. Cada palavra do termo precisa começar uma palavra do nome do órgão\nou do ente a que ele pertence, ou, com três letras ou mais, aparecer na sigla do nome (\"saae sorocaba\" acha o\nServiço Autônomo de Água e Esgoto de Sorocaba). Termo só de dígitos busca pelo começo do CNPJ. Quem começa com\no termo vem antes; empate por mais publicações e depois pelo nome.",
-     "linha": 637
+     "linha": 640
     },
     {
      "tipo": "funcao",
      "nome": "descreverOrgao",
      "assinatura": "export function descreverOrgao(o: Pick<OrgaoBusca, \"esfera\" | \"ente\" | \"enteNome\" | \"uf\">): string",
      "doc": "Descrição curta do órgão: \"Órgão municipal · Sorocaba (SP)\", \"Órgão federal\" ou só \"Órgão\".",
-     "linha": 665
+     "linha": 668
     },
     {
      "tipo": "funcao",
      "nome": "tipoDoCodigo",
      "assinatura": "export function tipoDoCodigo(codigo: string): TipoEnte | null",
      "doc": "Tipo do ente pelo código: União (1), DF (53), estado (2 dígitos) ou município (7 dígitos).",
-     "linha": 676
+     "linha": 679
     },
     {
      "tipo": "funcao",
      "nome": "buscarEntes",
      "assinatura": "export function buscarEntes(termo: string, entes: EnteBusca[], limite = 12): EnteBusca[]",
      "doc": "Até `limite` entes cujo nome casa com o termo (sem acento e sem caixa), ou a sigla da UF: União e estados\nprimeiro, depois municípios; quem começa com o termo antes de quem só o contém; empate pelo maior.",
-     "linha": 688
+     "linha": 691
     },
     {
      "tipo": "funcao",
      "nome": "descreverEnte",
      "assinatura": "export function descreverEnte(e: { codigo: string; uf: string | null }): string",
      "doc": "Descrição curta do ente: \"União\", \"Estado\", \"Distrito Federal\" ou \"Município · SP\".",
-     "linha": 709
+     "linha": 712
     },
     {
      "tipo": "funcao",
      "nome": "moeda",
      "assinatura": "export function moeda(valor: number | null | undefined): string",
      "doc": "1234.5 → \"R$ 1.234,50\"; ausente → \"—\".",
-     "linha": 723
+     "linha": 726
     },
     {
      "tipo": "funcao",
      "nome": "moedaCompacta",
      "assinatura": "export function moedaCompacta(valor: number | null | undefined): string",
      "doc": "1500000 → \"R$ 1,5 mi\"; ausente → \"—\".",
-     "linha": 728
+     "linha": 731
     },
     {
      "tipo": "funcao",
      "nome": "mesCurto",
      "assinatura": "export function mesCurto(mes: string): string",
      "doc": "\"2026-03\" → \"mar/2026\".",
-     "linha": 734
+     "linha": 737
     },
     {
      "tipo": "funcao",
      "nome": "dataCurta",
      "assinatura": "export function dataCurta(iso: string | null | undefined): string",
      "doc": "\"2026-10-13\" → \"13/10/2026\"; ISO com hora → só a data, no horário de Brasília.",
-     "linha": 742
+     "linha": 745
     },
     {
      "tipo": "funcao",
      "nome": "topoDoEixo",
      "assinatura": "export function topoDoEixo(maximo: number): number",
      "doc": "Topo \"redondo\" do eixo de um gráfico: 1, 2 ou 5 vezes uma potência de 10, no maior valor ou acima.",
-     "linha": 755
+     "linha": 758
     },
     {
      "tipo": "funcao",
      "nome": "cnpj",
      "assinatura": "export function cnpj(texto: string | null | undefined): string",
      "doc": "CNPJ com máscara: 07854402000100 → 07.854.402/0001-00.",
-     "linha": 763
+     "linha": 766
     }
    ]
   },
@@ -12871,6 +12928,105 @@
      "assinatura": "export function temMesAMes(dados: Pick<SecoesContratacoes, \"modalidades\" | \"fornecedores\">): boolean",
      "doc": "O arquivo tem o mês a mês das tabelas? (Os gerados antes do filtro de período não têm.)",
      "linha": 212
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/lib/pessoaJuridica.ts",
+   "linguagem": "typescript",
+   "linhas": 109,
+   "doc": "Visão 360 de uma pessoa jurídica pelo CNPJ (ADR-049): o arquivo `pj/<grupo>.json.gz` traz os contratos no PNCP\npor ente contratante e ano, as emendas parlamentares recebidas e os convênios com a União. A página junta o\ncartão da Receita (`receita.ts`).",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "LinhaContratos",
+     "assinatura": "export type LinhaContratos = [string, string, number, number];",
+     "doc": "Contratos no PNCP com o ente contratante num ano: `[ente, ano, contratos, valor]`.",
+     "linha": 11
+    },
+    {
+     "tipo": "tipo",
+     "nome": "LinhaEmendas",
+     "assinatura": "export type LinhaEmendas = [string, string, number];",
+     "doc": "Emendas recebidas de um ente num ano: `[ente, ano, valor]`.",
+     "linha": 13
+    },
+    {
+     "tipo": "tipo",
+     "nome": "LinhaConvenio",
+     "assinatura": "export type LinhaConvenio = [string, string, string, string, string, number, number, string | null];",
+     "doc": "Um convênio: `[ente, número, situação, objeto, órgão, valor, liberado, início]`.",
+     "linha": 15
+    },
+    {
+     "tipo": "interface",
+     "nome": "PessoaJuridica",
+     "assinatura": "export interface PessoaJuridica",
+     "doc": "O que o Lumen tem do CNPJ.",
+     "linha": 18
+    },
+    {
+     "tipo": "interface",
+     "nome": "GrupoPessoasJuridicas",
+     "assinatura": "interface GrupoPessoasJuridicas",
+     "doc": "Arquivo `pj/<grupo>.json.gz`: as pessoas jurídicas do grupo (`grupoDoCnpj`).",
+     "linha": 30
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarPessoaJuridica",
+     "assinatura": "export async function carregarPessoaJuridica(cnpj: string, sinal?: AbortSignal): Promise<PessoaJuridica | null>",
+     "doc": "O CNPJ no índice; `null` quando ele não aparece em nenhuma fonte ou o arquivo não foi publicado.",
+     "linha": 39
+    },
+    {
+     "tipo": "interface",
+     "nome": "PorEnte",
+     "assinatura": "export interface PorEnte",
+     "doc": "Uma soma por ente: contratos (ou zero, nas emendas), valor e os anos em que aparece.",
+     "linha": 49
+    },
+    {
+     "tipo": "funcao",
+     "nome": "somarPorEnte",
+     "assinatura": "function somarPorEnte(linhas: { ente: string; ano: string; contratos: number; valor: number }[]): PorEnte[]",
+     "doc": "Soma linhas `[ente, ano, …, valor]` por ente, do maior valor ao menor.",
+     "linha": 57
+    },
+    {
+     "tipo": "funcao",
+     "nome": "contratosPorEnte",
+     "assinatura": "export function contratosPorEnte(p: PessoaJuridica): PorEnte[]",
+     "doc": "Os contratos por ente contratante.",
+     "linha": 71
+    },
+    {
+     "tipo": "funcao",
+     "nome": "emendasPorEnte",
+     "assinatura": "export function emendasPorEnte(p: PessoaJuridica): PorEnte[]",
+     "doc": "As emendas recebidas por ente.",
+     "linha": 76
+    },
+    {
+     "tipo": "funcao",
+     "nome": "contratosPorAno",
+     "assinatura": "export function contratosPorAno(p: PessoaJuridica): { ano: string; contratos: number; valor: number }[]",
+     "doc": "Contratos e valor por ano, em ordem.",
+     "linha": 81
+    },
+    {
+     "tipo": "funcao",
+     "nome": "totaisDaPessoa",
+     "assinatura": "export function totaisDaPessoa(p: PessoaJuridica)",
+     "doc": "Os totais do topo da página.",
+     "linha": 93
+    },
+    {
+     "tipo": "funcao",
+     "nome": "cnpjDoTexto",
+     "assinatura": "export function cnpjDoTexto(texto: string): string | null",
+     "doc": "Só os dígitos, se forem 14; aceita o CNPJ com pontos, barra e traço.",
+     "linha": 106
     }
    ]
   },
@@ -14107,6 +14263,28 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/app/pessoa-juridica/page.tsx",
+   "linguagem": "typescript",
+   "linhas": 30,
+   "doc": "Página `/pessoa-juridica/`: tudo o que o Lumen tem de uma empresa ou entidade pelo CNPJ (ADR-049). O trabalho é\ndo `PainelPessoaJuridica`, que roda no navegador e lê os arquivos `pj/` e `cnpj/` publicados com os painéis.",
+   "itens": [
+    {
+     "tipo": "constante",
+     "nome": "metadata",
+     "assinatura": "export const metadata: Metadata =",
+     "doc": "Título e descrição da página, usados pelo navegador e nas prévias de link.",
+     "linha": 11
+    },
+    {
+     "tipo": "componente",
+     "nome": "PessoaJuridica",
+     "assinatura": "export default function PessoaJuridica()",
+     "doc": "Título e o painel, que lê a URL com `useSearchParams` e por isso fica dentro de `Suspense`.",
+     "linha": 19
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/componentes/avisos/PainelAvisos.tsx",
    "linguagem": "typescript",
    "linhas": 263,
@@ -14181,8 +14359,8 @@
   {
    "caminho": "packages/portal/src/componentes/economia/ConveniosMandato.tsx",
    "linguagem": "typescript",
-   "linhas": 115,
-   "doc": "Convênios da União iniciados no mandato aberto em Governos municipais (ADR-045): quantos, quanto foi\nconveniado e liberado, a situação de cada um como o SIAFI a registra e a lista, do maior ao menor, com o link\ndo convenente pessoa jurídica para as contratações dele no município (visão 360).",
+   "linhas": 114,
+   "doc": "Convênios da União iniciados no mandato aberto em Governos municipais (ADR-045): quantos, quanto foi\nconveniado e liberado, a situação de cada um como o SIAFI a registra e a lista, do maior ao menor, com o link\ndo convenente pessoa jurídica para a página dele pelo CNPJ (visão 360, ADR-049).",
    "itens": [
     {
      "tipo": "tipo",
@@ -14194,7 +14372,7 @@
     {
      "tipo": "componente",
      "nome": "ConveniosMandato",
-     "assinatura": "export function ConveniosMandato({ codigo, estado, anos, anosComparado, rotulos, conv, fmt, unidade }:",
+     "assinatura": "export function ConveniosMandato({ estado, anos, anosComparado, rotulos, conv, fmt, unidade }:",
      "doc": "A seção dos convênios iniciados no mandato aberto (e no comparado, se houver).",
      "linha": 23
     }
@@ -14204,7 +14382,7 @@
    "caminho": "packages/portal/src/componentes/economia/EmendasMandato.tsx",
    "linguagem": "typescript",
    "linhas": 150,
-   "doc": "Emendas parlamentares recebidas no mandato aberto em Governos municipais (ADR-044): quanto chegou aos\nfavorecidos do município, por categoria, por autor e por favorecido pessoa jurídica, com o link para as\ncontratações do favorecido no município (visão 360). Na comparação, o total do outro mandato ao lado.",
+   "doc": "Emendas parlamentares recebidas no mandato aberto em Governos municipais (ADR-044): quanto chegou aos\nfavorecidos do município, por categoria, por autor e por favorecido pessoa jurídica, com o link para a página\ndo favorecido pelo CNPJ (visão 360, ADR-049). Na comparação, o total do outro mandato ao lado.",
    "itens": [
     {
      "tipo": "tipo",
@@ -14216,7 +14394,7 @@
     {
      "tipo": "componente",
      "nome": "EmendasMandato",
-     "assinatura": "export function EmendasMandato({ codigo, estado, anos, anosComparado, rotulos, conv, fmt, unidade }:",
+     "assinatura": "export function EmendasMandato({ estado, anos, anosComparado, rotulos, conv, fmt, unidade }:",
      "doc": "A seção das emendas recebidas no mandato aberto (e no comparado, se houver).",
      "linha": 23
     }
@@ -15499,7 +15677,7 @@
   {
    "caminho": "packages/portal/src/componentes/paineis/PainelContratacoes.tsx",
    "linguagem": "typescript",
-   "linhas": 840,
+   "linhas": 842,
    "doc": "Painel de contratações (UC-01 e UC-02, ADR-028): o que cada ente publicou no PNCP.\n\nSem ente na URL, mostra o Brasil; com `?ente=<código IBGE>`, a União (1), um estado, o DF ou um\nmunicípio; com `?orgao=<CNPJ>`, um órgão só (uma prefeitura, uma câmara, uma autarquia como um serviço\nautônomo de água e esgoto, uma fundação ou uma empresa pública). Tudo vem dos arquivos que `lumen painel publicar` gera, uma vez por dia. Nada aqui é indício:\nsão somas e listas do que os órgãos publicaram, com o link de cada publicação no PNCP.",
    "itens": [
     {
@@ -15521,56 +15699,56 @@
      "nome": "SemDados",
      "assinatura": "function SemDados({ ente, orgao, onVoltar }: { ente: string | null; orgao: string | null; onVoltar: () => void })",
      "doc": "O ente não tem arquivo: nenhuma publicação no período coletado (UC-01, exceção 4a).",
-     "linha": 219
+     "linha": 221
     },
     {
      "tipo": "funcao",
      "nome": "somarMes",
      "assinatura": "function somarMes<T extends { mes: string }>(a: T, b: T): T",
      "doc": "Duas linhas do mês a mês somadas campo a campo (para o gráfico por ano).",
-     "linha": 243
+     "linha": 245
     },
     {
      "tipo": "componente",
      "nome": "FiltroDoArquivo",
      "assinatura": "function FiltroDoArquivo(",
      "doc": "Filtro do período (o componente comum), com as opções do mês a mês do arquivo.",
-     "linha": 252
+     "linha": 254
     },
     {
      "tipo": "componente",
      "nome": "Periodo",
      "assinatura": "function Periodo({ cobertura, gerado }: { cobertura: Cobertura; gerado: string })",
      "doc": "Linha da data da coleta e dos dias que faltam no período.",
-     "linha": 288
+     "linha": 290
     },
     {
      "tipo": "componente",
      "nome": "Secoes",
      "assinatura": "function Secoes(",
      "doc": "Os números, os gráficos por mês e as tabelas comuns ao Brasil e a um ente.",
-     "linha": 301
+     "linha": 303
     },
     {
      "tipo": "componente",
      "nome": "Panorama",
      "assinatura": "function Panorama(",
      "doc": "O Brasil: totais, esferas, UFs e as seções comuns.",
-     "linha": 604
+     "linha": 606
     },
     {
      "tipo": "componente",
      "nome": "Ente",
      "assinatura": "function Ente(",
      "doc": "Um ente: o caminho (Brasil › UF), as seções comuns e, no estado, os municípios.",
-     "linha": 698
+     "linha": 700
     },
     {
      "tipo": "componente",
      "nome": "Orgao",
      "assinatura": "function Orgao(",
      "doc": "Um órgão: o ente a que pertence e as seções comuns.",
-     "linha": 799
+     "linha": 801
     }
    ]
   },
@@ -15593,6 +15771,84 @@
      "assinatura": "export function PainelOperacao()",
      "doc": "A página inteira da situação das coletas.",
      "linha": 22
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/paineis/PainelPessoaJuridica.tsx",
+   "linguagem": "typescript",
+   "linhas": 262,
+   "doc": "Visão 360 de uma empresa ou entidade pelo CNPJ (ADR-049): o cadastro na Receita, os contratos publicados no PNCP\ncom cada ente, as emendas parlamentares recebidas e os convênios com a União. São fatos das fontes, como\npublicados; a página não marca nem ordena ninguém por risco.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "Estado",
+     "assinatura": "type Estado = { fase: \"carregando\" } | { fase: \"pronto\"; dados: PessoaJuridica | null } | { fase: \"erro\"; erro: string };",
+     "doc": "Carregando, o registro lido (null quando o CNPJ não aparece em nenhuma fonte) ou o erro.",
+     "linha": 34
+    },
+    {
+     "tipo": "tipo",
+     "nome": "Nomes",
+     "assinatura": "type Nomes = Map<string, { nome: string; uf: string | null }>;",
+     "doc": "Nome e UF de cada ente, do cadastro da busca.",
+     "linha": 37
+    },
+    {
+     "tipo": "funcao",
+     "nome": "dataDoArquivo",
+     "assinatura": "function dataDoArquivo(d: string | null): string",
+     "doc": "\"20261009\" → \"09/10/2026\".",
+     "linha": 40
+    },
+    {
+     "tipo": "componente",
+     "nome": "PainelPessoaJuridica",
+     "assinatura": "export function PainelPessoaJuridica()",
+     "doc": "A página: o campo do CNPJ e, com um CNPJ válido na URL, tudo o que o Lumen tem dele.",
+     "linha": 45
+    },
+    {
+     "tipo": "componente",
+     "nome": "Pessoa",
+     "assinatura": "function Pessoa({ cnpj, estado, nomes }: { cnpj: string; estado: Estado; nomes: Nomes })",
+     "doc": "O que há do CNPJ: o cartão da Receita e as três seções das fontes.",
+     "linha": 95
+    },
+    {
+     "tipo": "funcao",
+     "nome": "nomeDoEnte",
+     "assinatura": "function nomeDoEnte(codigo: string, nomes: Nomes): string",
+     "doc": "\"Porto Alegre (RS)\", \"São Paulo (estado)\", \"Distrito Federal\", \"União\" ou o código.",
+     "linha": 127
+    },
+    {
+     "tipo": "componente",
+     "nome": "Contratos",
+     "assinatura": "function Contratos({ p, nomes }: { p: PessoaJuridica; nomes: Nomes })",
+     "doc": "Contratos no PNCP: os totais, o ano a ano e a tabela por ente contratante.",
+     "linha": 136
+    },
+    {
+     "tipo": "componente",
+     "nome": "Emendas",
+     "assinatura": "function Emendas({ p, nomes }: { p: PessoaJuridica; nomes: Nomes })",
+     "doc": "Emendas parlamentares recebidas como favorecida, por ente.",
+     "linha": 162
+    },
+    {
+     "tipo": "componente",
+     "nome": "TabelaPorEnte",
+     "assinatura": "function TabelaPorEnte({ linhas, nomes, contratos = false, href }:",
+     "doc": "A tabela de somas por ente, com o link de cada um; as primeiras linhas e, a pedido, todas.",
+     "linha": 176
+    },
+    {
+     "tipo": "componente",
+     "nome": "Convenios",
+     "assinatura": "function Convenios({ p, nomes }: { p: PessoaJuridica; nomes: Nomes })",
+     "doc": "Convênios com a União como convenente, do maior valor ao menor.",
+     "linha": 219
     }
    ]
   },
@@ -15956,6 +16212,11 @@
    "testes": 3
   },
   {
+   "caminho": "packages/painel/testes/test_pessoas_juridicas.py",
+   "doc": "Visão 360 da pessoa jurídica pelo CNPJ (ADR-049).",
+   "testes": 2
+  },
+  {
    "caminho": "packages/painel/testes/test_rcl.py",
    "doc": "Testes da coleta da receita corrente líquida (RREO, Anexo 03) para os grupos de pares.",
    "testes": 4
@@ -16064,6 +16325,11 @@
    "caminho": "packages/portal/src/lib/__testes__/periodo.test.ts",
    "doc": "",
    "testes": 7
+  },
+  {
+   "caminho": "packages/portal/src/lib/__testes__/pessoaJuridica.test.ts",
+   "doc": "",
+   "testes": 3
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/precos.test.ts",

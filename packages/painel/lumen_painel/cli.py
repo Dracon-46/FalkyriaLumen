@@ -33,11 +33,23 @@ from pathlib import Path
 
 from . import avisos as av
 from . import cnpj as base_cnpj
-from . import cobertura, convenios, despesa_funcao, emendas, mercado, operacao, pares, pessoal, rcl, transparencia
+from . import (
+    cobertura,
+    convenios,
+    despesa_funcao,
+    emendas,
+    mercado,
+    operacao,
+    pares,
+    pessoal,
+    pessoas_juridicas,
+    rcl,
+    transparencia,
+)
 from . import conformidade as conf
 from . import contratacoes as contr
 from .cadastro import Cadastro
-from .comum import gravar_json, grupo_do_ente, grupo_do_orgao, hoje_brasilia, instante_utc, ler_json, uf_do_ente
+from .comum import gravar_json, grupo_do_cnpj, grupo_do_ente, hoje_brasilia, instante_utc, ler_json, uf_do_ente
 from .dia import coletar_dia, dias_guardados, mascarar_dia
 from .site import Site
 
@@ -322,7 +334,7 @@ def cmd_publicar(args) -> int:
             entes[c] = contr.compactar_meses(arquivo, corte)
         site.gravar(f"contratacoes/ente/{grupo}.json.gz", {
             "versao": 1, "tipo": "contratacoes-entes", "gerado_em": gerado_em, "entes": entes})
-    for grupo, cnpjs in _agrupar(painel.por_orgao, grupo_do_orgao):
+    for grupo, cnpjs in _agrupar(painel.por_orgao, grupo_do_cnpj):
         site.gravar(f"contratacoes/orgao/{grupo}.json.gz", {
             "versao": 1, "tipo": "contratacoes-orgaos", "gerado_em": gerado_em,
             "orgaos": {c: contr.compactar_meses(contr.orgao_para_json(c, painel.por_orgao[c], painel, cadastro,
@@ -366,6 +378,7 @@ def cmd_publicar(args) -> int:
     receita = base_cnpj.publicar(estado, site.gravar, gerado_em=gerado_em)
     recebido_de_emendas = emendas.publicar(estado, site.gravar, gerado_em=gerado_em)
     convenios_dos_entes = convenios.publicar(estado, site.gravar, gerado_em=gerado_em)
+    pj = pessoas_juridicas.publicar(estado, painel, site.gravar, gerado_em=gerado_em)
 
     entes = {c: [c, e.nome, e.uf, e.esfera, e.populacao] for c, e in cadastro.entes.items()}
     for codigo in set(painel.entes) | set(avaliacao.entes):
@@ -377,7 +390,7 @@ def cmd_publicar(args) -> int:
               "cadastro": {"entes": len(cadastro), "gerado_em": cadastro.gerado_em},
               "contratacoes": {**painel.cobertura(), "entes": len(painel.entes), "orgaos": len(painel.por_orgao)},
               "conformidade": {"entes": len(avaliacao.entes), "ufs": avaliacao.coletas, "pares": grupos},
-              "transparencia": pntp, "anp": precos_anp, "cnpj": receita, "emendas": recebido_de_emendas, "convenios": convenios_dos_entes, "operacao": {"alertas": len(situacao["alertas"])},
+              "transparencia": pntp, "anp": precos_anp, "cnpj": receita, "emendas": recebido_de_emendas, "convenios": convenios_dos_entes, "pj": pj, "operacao": {"alertas": len(situacao["alertas"])},
               "avisos": resumo_avisos}
     site.gravar("indice.json", indice)
     site.finalizar()

@@ -40,8 +40,11 @@ export function grupoDoEnte(codigo: string): string {
   return c.length === 7 ? c.slice(2, 5) : c;
 }
 
-/** O arquivo que leva o órgão em `contratacoes/orgao/<grupo>.json.gz`: o 6º, o 7º e o 8º dígitos do CNPJ. */
-export function grupoDoOrgao(cnpj: string): string {
+/**
+ * O arquivo que leva um CNPJ nos conjuntos por grupo (`contratacoes/orgao/`, `pj/`): o 6º, o 7º e o 8º dígitos,
+ * como `comum.grupo_do_cnpj` no Python.
+ */
+export function grupoDoCnpj(cnpj: string): string {
   if (!/^\d{14}$/.test(cnpj)) throw new ErroFeed(`CNPJ inválido: ${cnpj}`);
   return cnpj.slice(5, 8);
 }
@@ -53,7 +56,7 @@ export const urlsPainel = {
   orgaos: () => `${BASE_PAINEL}/orgaos.json`,
   contratacoesPanorama: () => `${BASE_PAINEL}/contratacoes/panorama.json`,
   contratacoesEnte: (codigo: string) => `${BASE_PAINEL}/contratacoes/ente/${grupoDoEnte(codigo)}.json.gz`,
-  contratacoesOrgao: (cnpj: string) => `${BASE_PAINEL}/contratacoes/orgao/${grupoDoOrgao(cnpj)}.json.gz`,
+  contratacoesOrgao: (cnpj: string) => `${BASE_PAINEL}/contratacoes/orgao/${grupoDoCnpj(cnpj)}.json.gz`,
   conformidadePanorama: () => `${BASE_PAINEL}/conformidade/panorama.json`,
   conformidadeUf: (uf: string) => {
     if (!UF.test(uf)) throw new ErroFeed(`UF inválida: ${uf}`);

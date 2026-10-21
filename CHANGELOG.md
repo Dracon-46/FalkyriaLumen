@@ -5,6 +5,18 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Empresa ou entidade pelo CNPJ: a visão 360 (ADR-049)
+
+- Página nova, `/pessoa-juridica/?cnpj=…`: o cadastro na Receita, os
+  contratos no PNCP com cada ente (por ano e do maior valor ao menor, com o
+  link para as Contratações do ente filtradas pelo fornecedor), as emendas
+  parlamentares recebidas e os convênios com a União.
+- O filtro de fornecedor das Contratações ganha o link "em todos os entes";
+  o favorecido das emendas e o convenente dos convênios, em Governos
+  municipais, abrem a página.
+- Novos arquivos dos painéis, `pj/<grupo>.json.gz` (6º a 8º dígitos do
+  CNPJ, comprimidos). `comum.grupo_do_orgao` passa a `grupo_do_cnpj`.
+
 ### Cobertura por ente e UF (ADR-048)
 
 - A "Situação das coletas" ganha a seção "Cobertura por ente e UF": para cada

@@ -152,6 +152,11 @@ Painéis de contratações e de conformidade fiscal, com fatos publicados e sem 
 | `conformidade.py` | Extrato de entregas por UF e avaliação de cada ente na data do dia |
 | `cadastro.py` | Cadastro dos entes do SICONFI: nome, UF, esfera, população, capital |
 | `avisos.py` | Os avisos de cada local (J-01, valor a conferir, LRF, PNTP), com código estável, e as contestações lidas das issues ([ADR-047](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-047.md)) |
+| `pares.py`, `rcl.py`, `despesa_funcao.py`, `pessoal.py` | Grupos de pares e o que se compara neles: RCL, despesa por função (DCA) e despesa com pessoal (RGF) ([ADR-038](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-038.md), [ADR-041](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-041.md) e [ADR-042](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-042.md)) |
+| `operacao.py`, `cobertura.py` | Situação das coletas ([ADR-039](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-039.md)) e cobertura por ente e UF ([ADR-048](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-048.md)) |
+| `cnpj.py`, `emendas.py`, `convenios.py` | Base de CNPJ da Receita dos fornecedores, emendas parlamentares e convênios da União pelos arquivos de dados abertos ([ADR-043](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-043.md), [ADR-044](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-044.md) e [ADR-045](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-045.md)) |
+| `pessoas_juridicas.py` | Índice por CNPJ: contratos, emendas e convênios de cada empresa ou entidade ([ADR-049](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-049.md)) |
+| `mercado.py`, `transparencia.py` | Preços da ANP ([ADR-037](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-037.md)) e avaliação dos portais pelo PNTP ([ADR-035](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-035.md)) |
 | `site.py` | Diretório publicado no GitHub Pages |
 | `comum.py` | JSON em disco, códigos dos entes, modalidades do PNCP, links e valores |
 | `cli.py` | `lumen painel cadastro`, `contratacoes`, `faltando`, `conformidade`, `publicar` |
@@ -163,10 +168,10 @@ Site estático (exportação estática, sem servidor Node em produção). Ver o
 
 | Caminho | O que tem |
 |---|---|
-| `src/app/` | Páginas: início, `/eleicoes/`, `/contratacoes/`, `/conformidade/` e a página de não encontrado |
+| `src/app/` | Páginas: início, `/eleicoes/`, `/contratacoes/`, `/conformidade/`, `/economia/`, `/avisos/`, `/operacao/`, `/pessoa-juridica/` e a página de não encontrado |
 | `src/componentes/eleicoes/` | `PainelEleicoes`, `Mapa`, `ListaCandidatos`, `Panorama`, `GraficoEvolucao`, `TabelaZonas`, `Totais`, `Busca`, `Faixas` |
 | `src/componentes/avisos/` | `PainelAvisos`: panorama do Brasil, avisos do local, filtros de tipo e período, link de contestação |
-| `src/componentes/paineis/` | `PainelContratacoes`, `PainelConformidade` e peças comuns (aviso metodológico, busca, gráfico por mês) |
+| `src/componentes/paineis/` | `PainelContratacoes`, `PainelConformidade`, `PainelOperacao` (com `CoberturaEntes`), `PainelPessoaJuridica` e peças comuns (aviso metodológico, busca, gráfico por mês, cartão da Receita) |
 | `src/lib/tipos.ts`, `validacao.ts` | Tipos do contrato dos feeds e conferência na chegada: versão desconhecida é recusada |
 | `src/lib/feeds.ts`, `paineis.ts` | Acesso aos feeds das eleições e aos dados dos painéis |
 | `src/lib/topojson.ts`, `areas.ts`, `zoom.ts`, `voronoi.ts`, `zonas.ts` | Mapa: TopoJSON para SVG sem biblioteca, ligação área ↔ parte, aproximação, Voronoi das zonas |

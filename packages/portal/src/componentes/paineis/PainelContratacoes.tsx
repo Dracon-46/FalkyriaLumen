@@ -192,6 +192,8 @@ export function PainelContratacoes() {
         <p className="filtro-ativo">
           Filtrado pelo fornecedor <strong>{nomeForn ?? cnpj(forn)}</strong> ({cnpj(forn)}): contratos e valores dele{" "}
           <button type="button" className="botao-link" onClick={() => filtrarFornecedor(null)}>tirar o filtro</button>
+          {" · "}
+          <Link href={`/pessoa-juridica/?cnpj=${forn}`}>em todos os entes, com emendas e convênios</Link>
         </p>
       )}
       {forn && <EmpresaReceitaCartao cnpj={forn} />}

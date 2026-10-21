@@ -132,9 +132,10 @@ def grupo_do_ente(codigo: str) -> str:
     return codigo[2:5] if len(codigo) == 7 else codigo
 
 
-def grupo_do_orgao(cnpj: str) -> str:
-    """O arquivo que leva o órgão nas contratações publicadas por grupo: o 6º, o 7º e o 8º dígitos do CNPJ (1.000
-    grupos, o maior com 48 órgãos em outubro de 2026); os primeiros se concentram em poucos valores."""
+def grupo_do_cnpj(cnpj: str) -> str:
+    """O arquivo que leva um CNPJ nos conjuntos publicados por grupo (órgãos das contratações, pessoas jurídicas):
+    o 6º, o 7º e o 8º dígitos (1.000 grupos; o maior tinha 48 órgãos em outubro de 2026). Os primeiros dígitos se
+    concentram em poucos valores."""
     return cnpj[5:8]
 
 

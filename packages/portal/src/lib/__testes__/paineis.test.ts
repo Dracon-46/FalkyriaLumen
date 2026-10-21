@@ -15,7 +15,7 @@ import {
   faixaCentralEmReais,
   faixaDoLimite,
   grupoDoEnte,
-  grupoDoOrgao,
+  grupoDoCnpj,
   periodoDoRgf,
   urlRgfDoEnte,
   posicaoNoGrupo,
@@ -182,7 +182,7 @@ describe("contratações por grupo de entes e de órgãos", () => {
 
   it("acha o ente e o órgão no arquivo do grupo (3º a 5º dígitos do código, 6º a 8º do CNPJ)", async () => {
     expect([grupoDoEnte("4319604"), grupoDoEnte("43"), grupoDoEnte("1")]).toEqual(["196", "43", "1"]);
-    expect(grupoDoOrgao("97229181000164")).toBe("181");
+    expect(grupoDoCnpj("97229181000164")).toBe("181");
     vi.stubGlobal("fetch", responder);
     expect((await carregarContratacoesEnte("4319604"))?.tipo).toBe("contratacoes-ente");
     expect((await carregarContratacoesOrgao("97229181000164"))?.tipo).toBe("contratacoes-orgao");

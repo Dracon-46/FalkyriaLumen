@@ -12,7 +12,7 @@ Desenho do diretório::
     contratacoes/panorama.json        Brasil: totais, esferas, UFs, meses, modalidades, fornecedores
     contratacoes/ente/<grupo>.json.gz   os entes do grupo (``comum.grupo_do_ente``): União (1), estado, DF ou
                                         municípios, comprimido
-    contratacoes/orgao/<grupo>.json.gz  os órgãos do grupo (``comum.grupo_do_orgao``): prefeitura, câmara, autarquia,
+    contratacoes/orgao/<grupo>.json.gz  os órgãos do grupo (``comum.grupo_do_cnpj``): prefeitura, câmara, autarquia,
                                         fundação ou empresa pública, comprimido
     conformidade/panorama.json        Brasil: resultados por UF e por obrigação
     conformidade/uf/<sigla>.json      entes da UF, com o resumo de cada um

@@ -7,7 +7,7 @@ comprimido, com os entes do grupo; ``comum.grupo_do_ente``) traz:
 - o mês a mês e a divisão por modalidade de contratação;
 - todos os órgãos do ente que publicaram (prefeitura, câmara, secretarias, autarquias, fundações e empresas
   públicas, como um serviço autônomo de água e esgoto), cada um com o próprio arquivo
-  o arquivo do órgão (dentro de ``contratacoes/orgao/<grupo>.json.gz``; ``comum.grupo_do_orgao``), com as mesmas
+  o arquivo do órgão (dentro de ``contratacoes/orgao/<grupo>.json.gz``; ``comum.grupo_do_cnpj``), com as mesmas
   seções;
 - os fornecedores pessoa jurídica com maior valor contratado e, numa linha só, a soma dos contratos com
   pessoa física ou estrangeira, sem nome nem documento (RNF-19 e RNF-20);

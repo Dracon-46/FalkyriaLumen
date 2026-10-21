@@ -216,6 +216,8 @@ def test_publicar_de_ponta_a_ponta(tmp_path, apoio, capsys):
     # Cobertura por ente e UF (ADR-048): São Sepé com o dia do PNCP, a DCA e o RGF do exercício
     linha = {e[0]: e for e in comum.ler_json(site / "cobertura.json")["entes"]}["4319604"]
     assert linha[2] == ["2026"] and linha[4:6] == [True, True]
+    # Visão 360 da pessoa jurídica (ADR-049): o fornecedor dos contratos da amostra, pelo CNPJ
+    assert indice["pj"]["com_contratos"] >= 1 and any(a.startswith("pj/") for a in arquivos)
     # Sem cadastro e sem estado: site vazio, mas válido
     assert cli.main(["publicar", "--estado", str(tmp_path / "vazio"), "--saida", str(tmp_path / "s2")]) == 0
     assert comum.ler_json(tmp_path / "s2" / "contratacoes" / "panorama.json")["totais"]["processos"] == 0

@@ -496,11 +496,11 @@ function DetalheMandato({ codigo, aberto, comparado, opcoes, somaFuncao, naturez
       <ReceitasMandato codigo={codigo} aberto={aberto} comparado={comparado} receitas={receitas} contas={contas}
         conv={conv} fmt={fmt} unidade={unidade} />
 
-      <EmendasMandato codigo={codigo} estado={emendas} anos={anosDo(m)}
+      <EmendasMandato estado={emendas} anos={anosDo(m)}
         anosComparado={comparado ? anosDo(comparado.mandato) : null}
         rotulos={[rotulo(aberto), comparado ? rotulo(comparado) : ""]} conv={conv} fmt={fmt} unidade={unidade} />
 
-      <ConveniosMandato codigo={codigo} estado={convenios} anos={anosDo(m)}
+      <ConveniosMandato estado={convenios} anos={anosDo(m)}
         anosComparado={comparado ? anosDo(comparado.mandato) : null}
         rotulos={[rotulo(aberto), comparado ? rotulo(comparado) : ""]} conv={conv} fmt={fmt} unidade={unidade} />
 
