@@ -12,6 +12,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { BaixarCsv, PrefixoCsv } from "@/componentes/BaixarCsv";
 import { LigacoesDoEnte } from "@/componentes/Ligacoes";
 import { EmpresaReceitaCartao } from "./EmpresaReceita";
 import { TceNoEnte } from "./TceNoEnte";
@@ -150,6 +151,9 @@ export function PainelContratacoes() {
                         [abrir, filtrarFornecedor, forn]);
   const nomeForn = forn && !estado.carregando && estado.dados
     ? (estado.dados.fornecedores.find((f) => f.cnpj === forn)?.nome ?? null) : null;
+  // Os arquivos CSV levam no nome o que a página mostra
+  const prefixoCsv = ["contratacoes", ente ?? (orgao ? `orgao-${orgao}` : "brasil"), forn && `fornecedor-${forn}`,
+                      periodo.de && `de-${periodo.de}`, periodo.ate && `ate-${periodo.ate}`].filter(Boolean).join("-");
 
   // No órgão, o local do cabeçalho passa a ser o ente dele
   useEffect(() => {
@@ -200,6 +204,7 @@ export function PainelContratacoes() {
       )}
       {forn && <EmpresaReceitaCartao cnpj={forn} />}
       <Acoes.Provider value={acoes}>
+      <PrefixoCsv.Provider value={prefixoCsv}>
       {!estado.carregando && estado.dados?.tipo === "contratacoes-panorama" && (
         <Panorama dados={estado.dados} periodo={periodo} onEnte={ir} />
       )}
@@ -209,6 +214,7 @@ export function PainelContratacoes() {
       {!estado.carregando && estado.dados?.tipo === "contratacoes-orgao" && (
         <Orgao dados={estado.dados} periodo={periodo} onEnte={ir} />
       )}
+      </PrefixoCsv.Provider>
       </Acoes.Provider>
       {pub && (
         <ModalContratacao chave={pub} onFechar={fecharModal} onAbrir={abrir}
@@ -400,6 +406,8 @@ function Secoes({
             </tbody>
           </table>
           <Paginacao {...modalidades} rotulo="modalidades" />
+          <BaixarCsv nome="modalidades" colunas={["Modalidade", "Processos", "Valor estimado (R$)"]}
+            linhas={() => dados.modalidades.map((m) => [m.nome, m.processos, m.valor_estimado])} />
         </section>
         <section className="cartao cartao-corpo">
           <h2 className="titulo-secao">Fornecedores com maior valor contratado</h2>
@@ -437,6 +445,14 @@ function Secoes({
           </table>
           {dados.fornecedores.length === 0 && <p className="busca-detalhe">Nenhum contrato com pessoa jurídica.</p>}
           <Paginacao {...fornecedores} rotulo="fornecedores" />
+          <BaixarCsv nome="fornecedores" colunas={["CNPJ", "Fornecedor", "Contratos", "Valor (R$)"]}
+            linhas={() => [
+              ...dados.fornecedores.map((f) => [cnpj(f.cnpj), f.nome, f.contratos, f.valor]),
+              ...(dados.pessoas_fisicas.contratos > 0
+                ? [["", "Pessoas físicas e estrangeiras (somadas, sem identificação)", dados.pessoas_fisicas.contratos,
+                    dados.pessoas_fisicas.valor]]
+                : []),
+            ]} />
         </section>
       </div>
 
@@ -479,6 +495,10 @@ function Secoes({
             </tbody>
           </table>
           <Paginacao {...orgaos} rotulo="órgãos" />
+          <BaixarCsv nome="orgaos"
+            colunas={["CNPJ", "Órgão", "Processos", "Valor estimado (R$)", "Contratos", "Valor dos contratos (R$)"]}
+            linhas={() => (dados.orgaos ?? []).map((o) => [cnpj(o.cnpj), o.nome, o.processos, o.valor_estimado,
+                                                            o.contratos, o.valor_contratos])} />
         </section>
       )}
 
@@ -525,6 +545,12 @@ function Secoes({
             ))}
           </ul>
           <Paginacao {...aConferir} rotulo="valores a conferir" />
+          <BaixarCsv nome="valores-a-conferir"
+            colunas={["Data", "Tipo", "Valor publicado (R$)", "Objeto", "CNPJ do fornecedor", "Fornecedor", "Órgão",
+                      "Chave no PNCP", "Link"]}
+            linhas={() => (dados.a_conferir ?? []).map((x) => [
+              x.data, x.tipo, x.valor, x.objeto, x.fornecedor_cnpj ? cnpj(x.fornecedor_cnpj) : "",
+              x.tipo === "contrato" ? fornecedorCsv(x) : "", x.orgao, x.chave, x.link])} />
         </section>
       )}
 
@@ -561,6 +587,13 @@ function Secoes({
           ))}
         </ul>
         <Paginacao {...recentes} rotulo="processos recentes" />
+        {dados.recentes.length > 0 && (
+          <BaixarCsv nome="processos-recentes"
+            colunas={["Data", "Modalidade", "Valor estimado (R$)", "Valor a conferir", "Objeto", "Órgão", "Chave no PNCP",
+                      "Link"]}
+            linhas={() => dados.recentes.map((p) => [p.data, p.modalidade, p.valor_estimado, p.a_conferir ? "sim" : "",
+                                                      p.objeto, p.orgao, p.chave, p.link])} />
+        )}
       </section>
 
       {dados.contratos_recentes.length > 0 && (
@@ -598,10 +631,21 @@ function Secoes({
             ))}
           </ul>
           <Paginacao {...contratos} rotulo="contratos recentes" />
+          <BaixarCsv nome="contratos-recentes"
+            colunas={["Data", "Instrumento", "Valor (R$)", "Valor a conferir", "Objeto", "CNPJ do fornecedor", "Fornecedor",
+                      "Órgão", "Chave no PNCP", "Link"]}
+            linhas={() => dados.contratos_recentes.map((c) => [
+              c.data, c.instrumento, c.valor, c.a_conferir ? "sim" : "", c.objeto,
+              c.fornecedor_cnpj ? cnpj(c.fornecedor_cnpj) : "", fornecedorCsv(c), c.orgao, c.chave, c.link])} />
         </section>
       )}
     </>
   );
+}
+
+/** O fornecedor no CSV como na tela: pessoa física ou estrangeira, sem nome nem documento. */
+function fornecedorCsv(x: { fornecedor: string | null; fornecedor_cnpj: string | null }): string {
+  return x.fornecedor_cnpj ? (x.fornecedor ?? "") : "Pessoa física ou estrangeira";
 }
 
 /** O Brasil: totais, esferas, UFs e as seções comuns. */
@@ -657,6 +701,8 @@ function Panorama({
           <p className="busca-detalhe">
             &ldquo;Não informada&rdquo;: órgão publicado no PNCP sem a esfera, que fica fora dos painéis por ente.
           </p>
+          <BaixarCsv nome="esferas" colunas={["Esfera", "Processos", "Contratos", "Valor dos contratos (R$)"]}
+            linhas={() => dados.esferas.map((e) => [e.nome, e.processos, e.contratos, e.valor_contratos])} />
         </section>
         <section className="cartao cartao-corpo">
           <h2 className="titulo-secao">Por UF</h2>
@@ -692,6 +738,11 @@ function Panorama({
             Processos publicados pelo governo do estado (ou do DF) e pelos municípios da UF.
             {temRecorte(periodo) && " A coluna dos municípios que publicaram é do período coletado inteiro."}
           </p>
+          <BaixarCsv nome="ufs"
+            colunas={["UF", "Processos do governo do estado", "Processos dos municípios", "Municípios que publicaram",
+                      "Municípios no cadastro"]}
+            linhas={() => dados.ufs.map((u) => [u.uf, u.estado.processos, u.municipios.processos,
+                                                u.municipios_com_publicacao, u.municipios_no_cadastro])} />
         </section>
       </div>
     </>
@@ -793,6 +844,10 @@ function Ente({
             </tbody>
           </table>
           <Paginacao {...paginaMunicipios} rotulo="municípios" />
+          <BaixarCsv nome="municipios"
+            colunas={["Código IBGE", "Município", "Processos", "Valor estimado (R$)", "Contratos", "Valor dos contratos (R$)"]}
+            linhas={() => municipios.map((m) => [m.codigo, m.nome, m.processos, m.valor_estimado, m.contratos,
+                                                 m.valor_contratos])} />
         </section>
       )}
       <LigacoesDoEnte codigo={e.codigo} atual="contratacoes" />

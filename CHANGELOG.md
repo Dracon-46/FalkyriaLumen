@@ -5,6 +5,15 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### As tabelas em CSV (ADR-051)
+
+- "baixar CSV" nas tabelas de Contratações (modalidades, fornecedores, órgãos,
+  municípios, esferas, UFs, valores a conferir, processos e contratos
+  recentes) e da página da empresa ou entidade (contratos no PNCP e no
+  tribunal de contas, emendas e convênios). O arquivo tem todas as linhas, não
+  só a página, com os valores inteiros e o recorte da tela (ente, órgão,
+  fornecedor e período). Abre direto na planilha em português.
+
 ### Tribunais de contas: o TCE-PE (ADR-050, adendo)
 
 - Coleta nova, `lumen painel tce-pe`, no fluxo diário `tce`: os contratos dos

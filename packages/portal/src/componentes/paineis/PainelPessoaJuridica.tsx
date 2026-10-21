@@ -9,6 +9,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
+import { BaixarCsv, PrefixoCsv } from "@/componentes/BaixarCsv";
 import { Escolha } from "@/componentes/Escolha";
 import { numero } from "@/lib/formato";
 import { carregarEntes, cnpj as formatarCnpj, dataCurta, moeda, moedaCompacta, tipoDoCodigo } from "@/lib/paineis";
@@ -177,8 +178,9 @@ function Pessoa({ cnpj, estado, nomes, de, ate, onPeriodo }: {
   const todos = estado.dados;
   const p = todos ? recortarPessoa(todos, de, ate) : null;
   const anos = todos ? anosDaPessoa(todos) : [];
+  const prefixoCsv = ["pj", cnpj, de && `de-${de}`, ate && `ate-${ate}`].filter(Boolean).join("-");
   return (
-    <>
+    <PrefixoCsv.Provider value={prefixoCsv}>
       <h2 className="painel-ente">
         {p?.nome ?? formatarCnpj(cnpj)}
         <span className="busca-detalhe"> · CNPJ {formatarCnpj(cnpj)}</span>
@@ -217,7 +219,7 @@ function Pessoa({ cnpj, estado, nomes, de, ate, onPeriodo }: {
           </p>
         </>
       )}
-    </>
+    </PrefixoCsv.Provider>
   );
 }
 
@@ -249,7 +251,7 @@ function Contratos({ p, nomes, de, ate }: { p: PessoaJuridica; nomes: Nomes; de:
               barras={porAno.map((a) => ({ rotulo: a.ano, valor: a.valor }))} formatar={moeda} formatarEixo={moedaCompacta} />
           )}
           <TabelaPorEnte linhas={contratosPorEnte(p)} nomes={nomes} contratos
-            href={(ente) => urlDasContratacoes(ente, p.cnpj, de, ate)} />
+            href={(ente) => urlDasContratacoes(ente, p.cnpj, de, ate)} csv="contratos-pncp" />
         </>
       )}
     </section>
@@ -271,7 +273,7 @@ function ContratosTce({ p, nomes }: { p: PessoaJuridica; nomes: Nomes }) {
         </a>
         .
       </p>
-      <TabelaPorEnte linhas={tcePorEnte(p)} nomes={nomes} contratos
+      <TabelaPorEnte linhas={tcePorEnte(p)} nomes={nomes} contratos csv="contratos-tribunal-de-contas"
         href={(ente) => (tipoDoCodigo(ente) === "municipio" ? `/economia/municipio/?ente=${ente}` : null)} />
       <p className="busca-detalhe">
         Pelo ano do contrato. A partir de 2021, parte destes contratos é a mesma publicada no PNCP, acima: as duas
@@ -289,15 +291,15 @@ function Emendas({ p, nomes }: { p: PessoaJuridica; nomes: Nomes }) {
     <section className="cartao cartao-corpo" aria-labelledby="titulo-pj-emendas">
       <h2 id="titulo-pj-emendas" className="titulo-secao">Emendas parlamentares recebidas</h2>
       <p>{moeda(t.emendas)} pagos a este CNPJ como favorecido, pelo ano do pagamento.</p>
-      <TabelaPorEnte linhas={emendasPorEnte(p)} nomes={nomes}
+      <TabelaPorEnte linhas={emendasPorEnte(p)} nomes={nomes} csv="emendas"
         href={(ente) => (tipoDoCodigo(ente) === "municipio" ? `/economia/municipio/?ente=${ente}` : null)} />
     </section>
   );
 }
 
-/** A tabela de somas por ente, com o link de cada um; as primeiras linhas e, a pedido, todas. */
-function TabelaPorEnte({ linhas, nomes, contratos = false, href }: {
-  linhas: PorEnte[]; nomes: Nomes; contratos?: boolean; href: (ente: string) => string | null;
+/** A tabela de somas por ente, com o link de cada um; as primeiras linhas e, a pedido, todas; o CSV tem todas. */
+function TabelaPorEnte({ linhas, nomes, contratos = false, href, csv }: {
+  linhas: PorEnte[]; nomes: Nomes; contratos?: boolean; href: (ente: string) => string | null; csv: string;
 }) {
   const [todas, setTodas] = useState(false);
   const mostradas = todas ? linhas : linhas.slice(0, ENTES_INICIAIS);
@@ -334,6 +336,10 @@ function TabelaPorEnte({ linhas, nomes, contratos = false, href }: {
           {todas ? `mostrar só os ${ENTES_INICIAIS} primeiros` : `ver todos os ${numero(linhas.length)} entes`}
         </button>
       )}
+      <BaixarCsv nome={csv}
+        colunas={["Código do ente", "Ente", ...(contratos ? ["Contratos"] : []), "Valor (R$)", "Anos"]}
+        linhas={() => linhas.map((l) => [l.ente, nomeDoEnte(l.ente, nomes), ...(contratos ? [l.contratos] : []), l.valor,
+                                         l.anos.join(", ")])} />
     </>
   );
 }
@@ -380,6 +386,12 @@ function Convenios({ p, nomes }: { p: PessoaJuridica; nomes: Nomes }) {
           </tbody>
         </table>
       </div>
+      <BaixarCsv nome="convenios"
+        colunas={["Código do ente", "Ente", "Convênio", "Situação no SIAFI", "Objeto", "Órgão concedente", "Início",
+                  "Valor (R$)", "Liberado (R$)"]}
+        linhas={() => [...p.convenios].sort((a, b) => b[5] - a[5]).map(
+          ([ente, numeroConvenio, situacao, objeto, orgao, valor, liberado, inicio]) =>
+            [ente, nomeDoEnte(ente, nomes), numeroConvenio, situacao, objeto, orgao, inicio, valor, liberado])} />
     </section>
   );
 }

@@ -1638,6 +1638,13 @@ table.tabela {
   margin-top: 12px;
 }
 
+/* "baixar CSV" das tabelas (ADR-051): pequeno, à direita, embaixo da tabela e da paginação */
+.baixar-csv {
+  margin: 8px 0 0;
+  text-align: right;
+  font-size: 13px;
+}
+
 .paginacao-botoes {
   display: flex;
   flex-wrap: wrap;

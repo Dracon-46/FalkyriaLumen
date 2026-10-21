@@ -176,6 +176,7 @@ Site estático (exportação estática, sem servidor Node em produção). Ver o
 | `src/lib/tipos.ts`, `validacao.ts` | Tipos do contrato dos feeds e conferência na chegada: versão desconhecida é recusada |
 | `src/lib/feeds.ts`, `paineis.ts` | Acesso aos feeds das eleições e aos dados dos painéis |
 | `src/lib/topojson.ts`, `areas.ts`, `zoom.ts`, `voronoi.ts`, `zonas.ts` | Mapa: TopoJSON para SVG sem biblioteca, ligação área ↔ parte, aproximação, Voronoi das zonas |
+| `src/componentes/BaixarCsv.tsx`, `src/lib/csv.ts` | O link "baixar CSV" das tabelas: todas as linhas, valores inteiros, `;` e vírgula decimal ([ADR-051](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-051.md)) |
 | `src/lib/cores.ts`, `formato.ts`, `busca.ts`, `estado-url.ts`, `selecao.ts` | Paleta ([ADR-020](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-020.md)), formato pt-BR, busca, seleção na URL e regras de navegação |
 | `src/lib/__testes__/` | Testes de unidade (vitest), que leem a amostra gerada pelo Python |
 
