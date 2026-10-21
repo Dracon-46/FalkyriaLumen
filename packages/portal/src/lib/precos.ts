@@ -14,6 +14,7 @@
  */
 
 import { normalizar } from "./busca";
+import { mascararCpfs } from "./cpf";
 import { ErroFeed } from "./validacao";
 
 /** O caminho do portal que o Vercel repassa à pesquisa de preços (`vercel.json`). */
@@ -112,7 +113,7 @@ export function lerCompras(bruto: unknown): CompraComparavel[] {
         ?? texto(x.siglaUnidadeMedida),
       capacidade: capacidade && capacidade > 0 ? capacidade : null,
       preco: num(x.precoUnitario),
-      fornecedor: ni && ni.replace(/\D/g, "").length === 14 ? { cnpj: ni.replace(/\D/g, ""), nome: texto(x.nomeFornecedor) } : null,
+      fornecedor: ni && ni.replace(/\D/g, "").length === 14 ? { cnpj: ni.replace(/\D/g, ""), nome: mascararCpfs(texto(x.nomeFornecedor), true) } : null,
     };
   });
 }

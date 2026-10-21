@@ -33,7 +33,7 @@ from . import contratacoes as contr
 from . import despesa_funcao, mercado, operacao, pares, pessoal, rcl, transparencia
 from .cadastro import Cadastro
 from .comum import gravar_json, hoje_brasilia, instante_utc, ler_json, uf_do_ente
-from .dia import coletar_dia, dias_guardados
+from .dia import coletar_dia, dias_guardados, mascarar_dia
 from .site import Site
 
 ARQUIVO_CADASTRO = "cadastro-entes.json.gz"
@@ -230,6 +230,20 @@ def cmd_pessoal(args) -> int:
     return 1 if any(r["problemas"] for r in resultados) else 0
 
 
+def cmd_mascarar(args) -> int:
+    """Reescreve os arquivos do dia gravados antes da máscara de CPF (ADR-043) e lista os que mudaram."""
+    alterados = []
+    for caminho in sorted(Path(args.estado).glob("contratacoes-*.json.gz")):
+        if caminho.stat().st_size == 0:
+            continue
+        dados = ler_json(caminho)
+        if mascarar_dia(dados):
+            gravar_json(caminho, dados, comprimir=True)
+            alterados.append(caminho.name)
+    _imprimir({"alterados": alterados})
+    return 0
+
+
 def cmd_transparencia(args) -> int:
     """Lê o ciclo mais recente do PNTP para ``transparencia-pntp.json.gz``; o código é 1 quando falhou."""
     from lumen_orquestracao import etapas
@@ -354,6 +368,9 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--exercicio", type=int, help="padrão: o anterior")
     c.add_argument("--limite-minutos", type=float, help="não começa lote novo depois deste tempo (todas as UFs)")
 
+    c = sub.add_parser("mascarar", help="mascara o CPF nos textos dos arquivos do dia já gravados (uma vez)")
+    c.add_argument("--estado", required=True)
+
     c = sub.add_parser("transparencia", help="portais de transparência dos entes pelo PNTP")
     c.add_argument("--estado", required=True)
 
@@ -371,6 +388,7 @@ def construir_parser() -> argparse.ArgumentParser:
 
 COMANDOS = {"cadastro": cmd_cadastro, "contratacoes": cmd_contratacoes, "faltando": cmd_faltando,
             "conformidade": cmd_conformidade, "rcl": cmd_rcl, "despesa-funcao": cmd_despesa_funcao, "pessoal": cmd_pessoal,
+            "mascarar": cmd_mascarar,
             "transparencia": cmd_transparencia, "anp": cmd_anp,
             "publicar": cmd_publicar}
 

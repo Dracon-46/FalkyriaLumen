@@ -306,7 +306,7 @@ function cover(codigo, titulo, subtitulo, meta = {}) {
       border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: BLACK, space: 14 } },
     }),
     table(null, [2400, 7200], [
-      ["Projeto", "Lumen (nome de trabalho, sujeito a verificação de disponibilidade)"],
+      ["Projeto", "Lumen"],
       ["Responsável", "Gaspare"],
       ["Versão", meta.versao || "1.0"],
       ["Data", meta.data || "18 de setembro de 2026"],

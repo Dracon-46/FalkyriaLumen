@@ -12,6 +12,7 @@ from lumen_canonico.documentos import (
     documento_publicavel,
     limpar,
     mascarar_cpf,
+    mascarar_cpfs_no_texto,
 )
 
 # CNPJs reais lidos nas fixtures do PNCP e do SICONFI
@@ -108,3 +109,24 @@ def test_documento_publicavel_nunca_expoe_cpf():
     assert documento_publicavel("52998224724", "PF") is None  # CPF inválido não segue
     assert documento_publicavel("AB-123", "PE") == "AB123"
     assert documento_publicavel("", "PE") is None
+
+
+@pytest.mark.parametrize("texto,esperado", [
+    # Nomes reais de MEI publicados no PNCP em outubro de 2026 (o CPF do titular no fim da razão social)
+    ("NYARA OLIVEIRA CAVALCANTE 01987103300", "NYARA OLIVEIRA CAVALCANTE ***.871.033-**"),
+    ("JACKSON GOSSMANN DA SILVA03863498003", "JACKSON GOSSMANN DA SILVA***.634.980-**"),
+    ("JOSÉ HUMBERTO ALVES -61492388653", "JOSÉ HUMBERTO ALVES -***.923.886-**"),
+    ("J SILVA 123.456.789-09", "J SILVA ***.456.789-**"),
+    ("EMPRESA X 12345678000190", "EMPRESA X 12345678000190"),      # CNPJ não é CPF
+    (None, None),
+])
+def test_cpf_no_nome_sempre_mascarado(texto, esperado):
+    assert mascarar_cpfs_no_texto(texto) == esperado
+
+
+def test_cpf_no_objeto_so_com_forma_de_cpf():
+    objeto = "por intermédio de NELSON SARAIVA ALVES 32620487803, emenda 20253666000, CNPJ 12.345.678/0001-90"
+    assert mascarar_cpfs_no_texto(objeto, todos=False) == (
+        "por intermédio de NELSON SARAIVA ALVES ***.204.878-**, emenda 20253666000, CNPJ 12.345.678/0001-90")
+    assert mascarar_cpfs_no_texto("CPF 123.456.789-00.", todos=False) == "CPF ***.456.789-**."
+    assert mascarar_cpfs_no_texto("protocolo 123456789012", todos=False) == "protocolo 123456789012"

@@ -127,6 +127,36 @@ def mascarar_cpf(documento: str | None) -> str | None:
     return f"***.{d[3:6]}.{d[6:9]}-**"
 
 
+# 11 dígitos soltos, com ou sem a pontuação do CPF, que não fazem parte de um número maior (um CNPJ, por exemplo)
+_CPF_NO_TEXTO = re.compile(r"(?<![\w./-])(\d{3})\.?(\d{3})\.?(\d{3})-?(\d{2})(?!\w|[./-]\d)")
+# No nome, também colados a letras ou depois de hífen ("SILVA03863498003", "ALVES -61492388653")
+_CPF_NO_NOME = re.compile(r"(?<![\d.])(\d{3})\.?(\d{3})\.?(\d{3})-?(\d{2})(?![\d]|[./-]\d)")
+
+
+def mascarar_cpfs_no_texto(texto: str | None, *, todos: bool = True) -> str | None:
+    """Mascara, num texto livre, as sequências com forma de CPF: ``NOME 12345678909`` → ``NOME ***.456.789-**``.
+
+    A razão social do MEI leva o CPF do titular ("NYARA OLIVEIRA CAVALCANTE 01987103300", na Receita e no PNCP), e o
+    objeto de um contrato às vezes cita o CPF do contratado.
+
+    - ``todos`` (nomes): toda sequência de 11 dígitos solta, confira ou não o dígito verificador; no nome, ela é o
+      CPF do titular, e um CPF mal digitado continua sendo dado pessoal.
+    - sem ``todos`` (textos como o objeto, cheios de números de processo, emenda e matrícula): só a sequência com o
+      dígito verificador do CPF ou escrita com a pontuação dele (``123.456.789-09``).
+
+    O texto sem nada a mascarar volta igual.
+    """
+    if not texto:
+        return texto
+
+    def trocar(m: re.Match) -> str:
+        digitos = "".join(m.groups())
+        if todos or cpf_valido(digitos) or re.fullmatch(r"\d{3}\.\d{3}\.\d{3}-\d{2}", m[0]):
+            return f"***.{m[2]}.{m[3]}-**"
+        return m[0]
+    return (_CPF_NO_NOME if todos else _CPF_NO_TEXTO).sub(trocar, texto)
+
+
 def classificar(documento: str | None, tipo_pessoa: str | None = None) -> TipoDocumento:
     """Classifica pelo tipo de pessoa declarado e, na falta dele, pelo formato.
 

@@ -10,7 +10,7 @@ normalização do PNCP, IBGE e SICONFI, conformidade da LRF), a aba Eleições d
 resultados oficiais do TSE de 1933 a 2026, e os painéis de Contratações e de Conformidade, com
 fatos publicados e sem indício.
 
-"Lumen" é nome de trabalho, sujeito a verificação de disponibilidade (DOC-01). A versão atual é a
+O nome "Lumen" foi decidido em 21/10/2026 (ADR-043). A versão atual é a
 0.8.0 ([CHANGELOG](https://github.com/Dracon-46/FalkyriaLumen/blob/main/CHANGELOG.md)).
 
 ## Páginas desta Wiki

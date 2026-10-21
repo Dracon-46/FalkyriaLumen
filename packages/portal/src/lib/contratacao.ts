@@ -7,6 +7,7 @@
  * nos painéis.
  */
 
+import { mascararCpfs } from "./cpf";
 import { ErroFeed } from "./validacao";
 import { API_PNCP, lerChave, type PublicacaoPncp } from "./documentos";
 
@@ -105,10 +106,10 @@ const texto = (v: unknown): string | null => (typeof v === "string" && v.trim() 
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 const obj = (v: unknown): Bruto => (v && typeof v === "object" ? (v as Bruto) : {});
 
-/** A parte contratada: pessoa física e estrangeira sem nome nem documento. */
+/** A parte contratada: pessoa física e estrangeira sem nome nem documento; no nome da PJ (MEI), o CPF mascarado. */
 export function parte(tipoPessoa: unknown, ni: unknown, nome: unknown): Parte {
   const pj = tipoPessoa === "PJ";
-  return { pj, cnpj: pj ? texto(ni) : null, nome: pj ? texto(nome) : null };
+  return { pj, cnpj: pj ? texto(ni) : null, nome: pj ? mascararCpfs(texto(nome), true) : null };
 }
 
 /** A unidade compradora. */
@@ -130,7 +131,7 @@ export function lerProcesso(chave: string, b: Bruto): Processo {
   const amparo = obj(b.amparoLegal);
   const orgao = obj(b.orgaoEntidade);
   return {
-    chave, objeto: texto(b.objetoCompra), modalidade: texto(b.modalidadeNome), modoDisputa: texto(b.modoDisputaNome),
+    chave, objeto: mascararCpfs(texto(b.objetoCompra)), modalidade: texto(b.modalidadeNome), modoDisputa: texto(b.modoDisputaNome),
     amparoLegal: texto(amparo.nome) ? { nome: texto(amparo.nome)!, descricao: texto(amparo.descricao) } : null,
     numero: texto(b.numeroCompra), processo: texto(b.processo), situacao: texto(b.situacaoCompraNome),
     srp: typeof b.srp === "boolean" ? b.srp : null, valorEstimado: num(b.valorTotalEstimado),
@@ -146,7 +147,7 @@ export function lerProcesso(chave: string, b: Bruto): Processo {
 export function lerItens(bruto: unknown): ItemProcesso[] {
   if (!Array.isArray(bruto)) return [];
   return bruto.map((x) => obj(x)).map((x) => ({
-    numero: num(x.numeroItem) ?? 0, descricao: texto(x.descricao) ?? "—", tipo: texto(x.materialOuServicoNome),
+    numero: num(x.numeroItem) ?? 0, descricao: mascararCpfs(texto(x.descricao)) ?? "—", tipo: texto(x.materialOuServicoNome),
     material: x.materialOuServico === "M" ? true : x.materialOuServico === "S" ? false : null, catalogo: codigoCatalogo(x),
     quantidade: num(x.quantidade), unidade: texto(x.unidadeMedida), valorUnitario: num(x.valorUnitarioEstimado),
     valorTotal: num(x.valorTotal), situacao: texto(x.situacaoCompraItemNome), temResultado: x.temResultado === true,
@@ -169,7 +170,7 @@ export function lerContrato(chave: string, b: Bruto): Contrato {
   const orgao = obj(b.orgaoEntidade);
   const chaveProcesso = texto(b.numeroControlePncpCompra);
   return {
-    chave, objeto: texto(b.objetoContrato), tipo: texto(obj(b.tipoContrato).nome), categoria: texto(obj(b.categoriaProcesso).nome),
+    chave, objeto: mascararCpfs(texto(b.objetoContrato)), tipo: texto(obj(b.tipoContrato).nome), categoria: texto(obj(b.categoriaProcesso).nome),
     numero: texto(b.numeroContratoEmpenho), processo: texto(b.processo), assinatura: texto(b.dataAssinatura),
     vigenciaInicio: texto(b.dataVigenciaInicio), vigenciaFim: texto(b.dataVigenciaFim),
     valorInicial: num(b.valorInicial), valorGlobal: num(b.valorGlobal), valorAcumulado: num(b.valorAcumulado),
@@ -185,7 +186,7 @@ export function lerTermos(bruto: unknown): Termo[] {
   if (!Array.isArray(bruto)) return [];
   return bruto.map((x) => obj(x)).map((x) => ({
     tipo: texto(x.tipoTermoContratoNome), numero: texto(x.numeroTermoContrato), assinatura: texto(x.dataAssinatura),
-    objeto: texto(x.objetoTermoContrato), valorAcrescido: num(x.valorAcrescido), prazoAditado: num(x.prazoAditadoDias),
+    objeto: mascararCpfs(texto(x.objetoTermoContrato)), valorAcrescido: num(x.valorAcrescido), prazoAditado: num(x.prazoAditadoDias),
   }));
 }
 

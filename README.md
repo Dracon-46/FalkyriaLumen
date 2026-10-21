@@ -434,8 +434,8 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
 
 ### Definições pendentes antes da publicação, conforme DOC-10
 
-- **Nome definitivo** — "Lumen" é nome de trabalho e precisa de verificação de disponibilidade
-  de marca (INPI) e domínio, como foi feito para a marca Falkyria.
+- **Nome** — decidido em 21/10/2026: fica "Lumen" (ADR-043). Falta o domínio próprio, que tem
+  custo.
 - **Natureza institucional** — projeto pessoal, produto da empresa ou iniciativa sem fins
   lucrativos; afeta a percepção de imparcialidade.
 - **Abertura do código** — reforça a credibilidade da metodologia, mas exige disciplina

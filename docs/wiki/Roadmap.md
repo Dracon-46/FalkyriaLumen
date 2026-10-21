@@ -146,12 +146,12 @@ Da seção "Pendente" do README:
 
 | Decisão | Quando | Por que condiciona o desenvolvimento |
 |---|---|---|
-| Nome definitivo | Antes da Fase 0 (pendente) | "Lumen" é nome de trabalho e precisa de verificação de marca (INPI) e domínio |
+| Nome definitivo | Decidido em 21/10/2026 | O nome fica "Lumen" (ADR-043) |
 | Natureza institucional | Antes da Fase 5 | Projeto pessoal, produto da empresa ou iniciativa sem fins lucrativos; afeta a percepção de imparcialidade |
 | Abertura do código | Antes da Fase 6 | Reforça a credibilidade da metodologia, mas exige disciplina de documentação e governança |
 | Apoio jurídico | Antes da Fase 5 | A revisão da política editorial por advogado é critério de saída da Fase 5 |
 
-O domínio próprio do portal e dos feeds depende do nome definitivo.
+O domínio próprio do portal e dos feeds está pendente: o nome está decidido, e falta registrá-lo.
 
 ## Critérios de replanejamento
 

@@ -5,6 +5,19 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### CPF mascarado nos nomes e textos publicados (ADR-043)
+
+- A razão social de MEI leva o CPF do titular, e o painel de contratações a
+  publicava como o PNCP a entrega ("NOME 01987103300"). O CPF passa a sair
+  mascarado (`***.871.033-**`) no nome do fornecedor e, quando tem forma de
+  CPF, no objeto: na montagem do dia, na leitura dos dias já gravados e no
+  portal, no que ele lê do PNCP no navegador.
+- `lumen painel mascarar` reescreve os dias já guardados; o fluxo `paineis` o
+  roda uma vez e marca a versão `painel-estado` com `mascara-cpf-1.txt`.
+- Decisões do autor registradas: o nome fica "Lumen"; a política dos sócios da
+  base de CNPJ (só as empresas fornecedoras; sócio pessoa física com nome,
+  qualificação e data de entrada, sem o CPF parcial).
+
 ### Governos municipais: total gasto, com o que foi gasto e as ligações (ADR-040, adendo)
 
 - A página abre no total gasto em cada mandato e na média por ano, com filtros

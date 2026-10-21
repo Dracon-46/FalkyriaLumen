@@ -85,6 +85,23 @@ jobs:
           mkdir -p estado
           gh release view "$TAG" --json assets --jq '.assets[].name' | grep '^contratacoes-' | while read -r n; do : > "estado/$n"; done
           touch marco
+      # Uma vez só (ADR-043): os dias gravados até 20/10/2026 tinham o CPF de MEI no nome do fornecedor e, às
+      # vezes, no objeto. Reescreve os que mudaram e marca a versão com mascara-cpf-1.txt.
+      - name: CPF mascarado nos dias já guardados (uma vez)
+        continue-on-error: true
+        run: |
+          if gh release view "$TAG" --json assets --jq '.assets[].name' | grep -qx 'mascara-cpf-1.txt'; then
+            echo "já feito"; exit 0
+          fi
+          mkdir -p mascarar
+          gh release download "$TAG" -p 'contratacoes-*.json.gz' -D mascarar --clobber
+          lumen painel mascarar --estado mascarar > mascarar.json
+          python -c "import json; print('\n'.join(json.load(open('mascarar.json'))['alterados']))" > alterados.txt
+          echo "$(wc -l < alterados.txt) arquivo(s) reescrito(s)"
+          sed 's|^|mascarar/|' alterados.txt | xargs -r gh release upload "$TAG" --clobber
+          date -u +%FT%TZ > mascara-cpf-1.txt
+          gh release upload "$TAG" mascara-cpf-1.txt --clobber
+          rm -rf mascarar
       - name: Cadastro de entes (SICONFI)
         continue-on-error: true
         run: |

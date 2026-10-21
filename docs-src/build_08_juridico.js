@@ -159,6 +159,12 @@ body.push(bullet("Finalidade declarada: o tratamento se destina a controle socia
   "finalidade é declarada publicamente."));
 body.push(bullet("Mascaramento na origem: a máscara de documentos é aplicada no estágio de normalização, " +
   "e não na exibição, de modo que o dado sem máscara não circula pelas camadas consultáveis."));
+body.push(bullet("CPF dentro de texto: a razão social do MEI leva o CPF do titular, e o objeto de um contrato às " +
+  "vezes cita o CPF de alguém. No nome, toda sequência de 11 dígitos sai mascarada; no objeto, a que tem forma de " +
+  "CPF (dígito verificador ou pontuação). Vale também para o que o portal lê da fonte no navegador (ADR-043)."));
+body.push(bullet("Quadro societário: só das empresas que aparecem no Lumen; o sócio pessoa física com nome, " +
+  "qualificação e data de entrada, como a Receita publica, sem o CPF parcial, sem faixa etária e sem página, busca " +
+  "ou lista própria (ADR-043)."));
 body.push(bullet("Canal de titular: existe procedimento documentado para receber e responder solicitações " +
   "de titulares de dados, com prazo definido."));
 body.push(bullet("Registro de tratamento: cada categoria de dado tem sua base legal documentada e vinculada."));
@@ -237,4 +243,6 @@ L.buildDoc({
   subtitulo: "Base legal, vocabulário controlado, proteção de dados e direito de resposta",
   body,
   outFile: "../docs/DOC-08_Politica_Juridica_e_Editorial.docx",
+  meta: { versao: "1.1", data: "21 de outubro de 2026",
+          situacao: "Versão 1.1: CPF dentro de nomes e textos e quadro societário da base de CNPJ (seção 5.2; ADR-043)" },
 });

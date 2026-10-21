@@ -10,7 +10,7 @@
   {
    "caminho": "packages/canonico/lumen_canonico/documentos.py",
    "linguagem": "python",
-   "linhas": 167,
+   "linhas": 197,
    "doc": "Documentos de identificação: CNPJ e CPF.\n\nDois cuidados que este módulo centraliza para que nenhum outro precise\nreinventar:\n\n**CNPJ alfanumérico.** A Receita Federal passou a emitir, a partir de julho de\n2026, CNPJ com letras nas doze primeiras posições (raiz e ordem); os dois\ndígitos verificadores continuam numéricos. O cálculo do dígito usa, para cada\ncaractere, o valor do código ASCII menos 48: \"0\" a \"9\" continuam valendo 0 a\n9 e \"A\" passa a valer 17. Com isso o algoritmo antigo é um caso particular do\nnovo, e um único validador serve aos dois formatos. Um sistema que validasse\nsó o formato numérico começaria a mandar para a quarentena, em silêncio, todo\nfornecedor novo — exatamente o tipo de falha que o projeto não percebe porque\no pipeline continua verde.\n\n**CPF nunca circula sem máscara.** Pela política do DOC-08 (seção 5.1) e pelo\nRF-NO-10, o documento de pessoa física é mascarado na normalização, antes de\nqualquer camada consultável. A máscara preserva só os seis dígitos centrais,\nno mesmo formato adotado pelo Portal da Transparência (``***.456.789-**``),\no que permite conferir coincidência com publicações oficiais sem expor o\ndocumento inteiro.",
    "itens": [
     {
@@ -78,17 +78,24 @@
     },
     {
      "tipo": "funcao",
+     "nome": "mascarar_cpfs_no_texto",
+     "assinatura": "def mascarar_cpfs_no_texto(texto: str | None, *, todos: bool=True) -> str | None",
+     "doc": "Mascara, num texto livre, as sequências com forma de CPF: ``NOME 12345678909`` → ``NOME ***.456.789-**``.\n\nA razão social do MEI leva o CPF do titular (\"NYARA OLIVEIRA CAVALCANTE 01987103300\", na Receita e no PNCP), e o\nobjeto de um contrato às vezes cita o CPF do contratado.\n\n- ``todos`` (nomes): toda sequência de 11 dígitos solta, confira ou não o dígito verificador; no nome, ela é o\n  CPF do titular, e um CPF mal digitado continua sendo dado pessoal.\n- sem ``todos`` (textos como o objeto, cheios de números de processo, emenda e matrícula): só a sequência com o\n  dígito verificador do CPF ou escrita com a pontuação dele (``123.456.789-09``).\n\nO texto sem nada a mascarar volta igual.",
+     "linha": 136
+    },
+    {
+     "tipo": "funcao",
      "nome": "classificar",
      "assinatura": "def classificar(documento: str | None, tipo_pessoa: str | None=None) -> TipoDocumento",
      "doc": "Classifica pelo tipo de pessoa declarado e, na falta dele, pelo formato.\n\nO PNCP declara ``tipoPessoa`` (PJ, PF ou PE, pessoa estrangeira). Quando\no tipo é declarado, ele manda: um \"PF\" com 14 dígitos é inconsistência da\nfonte e vira INVALIDO, nunca é reinterpretado como CNPJ.",
-     "linha": 130
+     "linha": 160
     },
     {
      "tipo": "funcao",
      "nome": "documento_publicavel",
      "assinatura": "def documento_publicavel(documento: str | None, tipo_pessoa: str | None=None) -> str | None",
      "doc": "O documento na forma em que pode seguir para camadas consultáveis.\n\nCNPJ segue limpo e inteiro (é dado público de pessoa jurídica); CPF segue\nmascarado; estrangeiro segue como veio, sem pontuação; inválido não segue.",
-     "linha": 152
+     "linha": 182
     }
    ]
   },
@@ -8261,7 +8268,7 @@
   {
    "caminho": "packages/painel/lumen_painel/cli.py",
    "linguagem": "python",
-   "linhas": 389,
+   "linhas": 407,
    "doc": "``lumen painel``: coleta e publicação dos painéis de contratações e de conformidade (ADR-028).\n\nExemplos::\n\n    lumen painel cadastro --estado estado/                          # cadastro de entes do SICONFI\n    lumen painel contratacoes --estado estado/ --ultimos 3          # dias que faltam entre os 3 últimos\n    lumen painel contratacoes --estado estado/ --de 2026-01-01 --ate 2026-01-31 --limite-minutos 300\n    lumen painel faltando --estado estado/ --de 2026-01-01 --partes 6   # divisão para execuções paralelas\n    lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026\n    lumen painel rcl --estado estado/ --ufs SP,MG                  # RCL do exercício anterior, para os pares\n    lumen painel despesa-funcao --estado estado/ --ufs SP,MG --limite-minutos 30   # DCA por função, pares\n    lumen painel pessoal --estado estado/ --ufs SP,MG --limite-minutos 20          # RGF: pessoal em % da RCL\n    lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)\n    lumen painel anp --estado estado/                               # preço de revenda da ANP por semana\n    lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado\n\nO estado é um diretório com ``cadastro-entes.json.gz``, um ``contratacoes-<dia>.json.gz`` por dia coletado e\num ``conformidade-<UF>.json.gz`` por UF. No GitHub Actions, ele fica nos anexos de uma versão do repositório\n(``painel-estado``) entre uma execução e outra.",
    "itens": [
     {
@@ -8357,38 +8364,45 @@
     },
     {
      "tipo": "funcao",
+     "nome": "cmd_mascarar",
+     "assinatura": "def cmd_mascarar(args) -> int",
+     "doc": "Reescreve os arquivos do dia gravados antes da máscara de CPF (ADR-043) e lista os que mudaram.",
+     "linha": 233
+    },
+    {
+     "tipo": "funcao",
      "nome": "cmd_transparencia",
      "assinatura": "def cmd_transparencia(args) -> int",
      "doc": "Lê o ciclo mais recente do PNTP para ``transparencia-pntp.json.gz``; o código é 1 quando falhou.",
-     "linha": 233
+     "linha": 247
     },
     {
      "tipo": "funcao",
      "nome": "cmd_anp",
      "assinatura": "def cmd_anp(args) -> int",
      "doc": "Lê as planilhas semanais da ANP que faltam em ``anp-semanas.json.gz``; o código é 1 quando algo falhou.",
-     "linha": 241
+     "linha": 255
     },
     {
      "tipo": "funcao",
      "nome": "cmd_publicar",
      "assinatura": "def cmd_publicar(args) -> int",
      "doc": "Monta o site inteiro a partir do estado: índice, busca, contratações e conformidade.",
-     "linha": 250
+     "linha": 264
     },
     {
      "tipo": "funcao",
      "nome": "construir_parser",
      "assinatura": "def construir_parser() -> argparse.ArgumentParser",
      "doc": "Os subcomandos e as opções de cada um.",
-     "linha": 312
+     "linha": 326
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada de ``lumen painel``; falta de configuração (contato da coleta) vira código 2.",
-     "linha": 378
+     "linha": 396
     }
    ]
   },
@@ -8868,64 +8882,71 @@
   {
    "caminho": "packages/painel/lumen_painel/dia.py",
    "linguagem": "python",
-   "linhas": 179,
-   "doc": "Um dia do PNCP, reduzido ao que o painel de contratações usa: o estado guardado entre execuções.\n\nA coleta de um dia (todas as modalidades de contratação e os contratos publicados naquela data) passa pelo\ncaminho de sempre — bronze, normalização, silver — num diretório temporário, e sai daqui como um arquivo\ncompacto, ``contratacoes-AAAA-MM-DD.json.gz``, com uma linha por processo e por contrato e só as colunas que\no painel soma ou mostra. O bronze do dia é descartado: a prova de cada número é a própria página do PNCP,\nque o painel liga (``link_pncp``), e a coleta pode ser refeita a qualquer momento.\n\nO arquivo do dia é público (fica nos anexos de uma versão do GitHub, ADR-028). Por isso, contrato com pessoa\nfísica ou estrangeira guarda só o tipo de pessoa, o valor e as datas: nem nome nem documento do fornecedor\n(RNF-19 e RNF-20). Pessoa jurídica guarda CNPJ e razão social, que são públicos.\n\nUm dia só é gravado quando a coleta terminou sem falha nem resposta de erro: um dia incompleto somaria menos\ndo que o ente publicou. Ele fica de fora e é tentado de novo na execução seguinte.",
+   "linhas": 206,
+   "doc": "Um dia do PNCP, reduzido ao que o painel de contratações usa: o estado guardado entre execuções.\n\nA coleta de um dia (todas as modalidades de contratação e os contratos publicados naquela data) passa pelo\ncaminho de sempre — bronze, normalização, silver — num diretório temporário, e sai daqui como um arquivo\ncompacto, ``contratacoes-AAAA-MM-DD.json.gz``, com uma linha por processo e por contrato e só as colunas que\no painel soma ou mostra. O bronze do dia é descartado: a prova de cada número é a própria página do PNCP,\nque o painel liga (``link_pncp``), e a coleta pode ser refeita a qualquer momento.\n\nO arquivo do dia é público (fica nos anexos de uma versão do GitHub, ADR-028). Por isso, contrato com pessoa\nfísica ou estrangeira guarda só o tipo de pessoa, o valor e as datas: nem nome nem documento do fornecedor\n(RNF-19 e RNF-20). Pessoa jurídica guarda CNPJ e razão social, que são públicos, com o CPF mascarado: a razão\nsocial do MEI leva o CPF do titular, e o objeto às vezes cita o CPF de alguém (DOC-08, seção 5; ADR-043). A\nmáscara vale na montagem do dia e, para os arquivos gravados antes dela, na leitura (``mascarar_dia``).\n\nUm dia só é gravado quando a coleta terminou sem falha nem resposta de erro: um dia incompleto somaria menos\ndo que o ente publicou. Ele fica de fora e é tentado de novo na execução seguinte.",
    "itens": [
     {
      "tipo": "funcao",
      "nome": "nome_do_arquivo",
      "assinatura": "def nome_do_arquivo(dia: date) -> str",
      "doc": "``contratacoes-2026-10-13.json.gz``.",
-     "linha": 42
+     "linha": 46
     },
     {
      "tipo": "funcao",
      "nome": "dias_guardados",
      "assinatura": "def dias_guardados(estado: Path | str) -> set[date]",
      "doc": "As datas que já têm arquivo no diretório do estado.",
-     "linha": 47
+     "linha": 51
     },
     {
      "tipo": "funcao",
      "nome": "_texto",
-     "assinatura": "def _texto(bruto, limite: int=LIMITE_OBJETO) -> str | None",
-     "doc": "Texto sem espaços repetidos, cortado em ``limite`` caracteres (com reticências quando cortado).",
-     "linha": 58
+     "assinatura": "def _texto(bruto, limite: int=LIMITE_OBJETO, *, nome: bool=False) -> str | None",
+     "doc": "Texto sem espaços repetidos e com o CPF mascarado, cortado em ``limite`` caracteres (com reticências).\n\n``nome``: a razão social, em que toda sequência de 11 dígitos é o CPF do titular (MEI); no objeto, só o que\ntem forma de CPF de fato (``mascarar_cpfs_no_texto``). A máscara vem antes do corte, para não sobrar meio CPF.",
+     "linha": 62
+    },
+    {
+     "tipo": "funcao",
+     "nome": "mascarar_dia",
+     "assinatura": "def mascarar_dia(dados: dict) -> bool",
+     "doc": "Mascara o CPF nos textos de um arquivo do dia já lido (nome do fornecedor e objetos); diz se mudou algo.",
+     "linha": 74
     },
     {
      "tipo": "funcao",
      "nome": "resumir_dia",
      "assinatura": "def resumir_dia(silver: Path | str, dia: date, *, agora: str | None=None) -> dict",
      "doc": "Processos e contratos publicados em ``dia`` na silver, na forma compacta do estado do painel.\n\nO ente de cada linha é o do órgão que publicou (``Orgao.ente_codigo_ibge``, resolvido pela esfera na\nnormalização); órgão sem esfera informada fica com ente nulo e só entra no panorama nacional. Contrato vale\npelo dia de publicação no PNCP (o mesmo filtro da consulta), no horário de Brasília.",
-     "linha": 66
+     "linha": 89
     },
     {
      "tipo": "funcao",
      "nome": "ler_dia",
      "assinatura": "def ler_dia(caminho: Path | str) -> dict",
-     "doc": "Lê um arquivo do dia e confere a versão; as linhas continuam listas, na ordem de ``colunas``.",
-     "linha": 116
+     "doc": "Lê um arquivo do dia, confere a versão e mascara o CPF nos textos (arquivos gravados antes da máscara).\n\nAs linhas continuam listas, na ordem de ``colunas``.",
+     "linha": 139
     },
     {
      "tipo": "classe",
      "nome": "ResultadoDia",
      "assinatura": "class ResultadoDia",
      "doc": "O que aconteceu na coleta de um dia: gravado ou não, contagens e o motivo de não ter gravado.",
-     "linha": 125
+     "linha": 152
     },
     {
      "tipo": "metodo",
      "nome": "ResultadoDia.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "Resumo do dia para a saída do comando.",
-     "linha": 135
+     "linha": 162
     },
     {
      "tipo": "funcao",
      "nome": "coletar_dia",
      "assinatura": "def coletar_dia(cfg, dia: date, estado: Path | str, *, coletar=None, normalizar=None, modalidades: tuple[int, ...]=MODALIDADES_PNCP, temporario: Path | None=None) -> ResultadoDia",
      "doc": "Coleta, normaliza e reduz um dia do PNCP; grava ``contratacoes-<dia>.json.gz`` em ``estado`` se completo.\n\n``cfg`` é a ``Configuracao`` do pipeline; o bronze e a silver do dia ficam num diretório temporário,\napagado no fim. ``coletar`` e ``normalizar`` são as funções de ``lumen_orquestracao.etapas`` (injetáveis\nnos testes).",
-     "linha": 141
+     "linha": 168
     }
    ]
   },
@@ -9769,7 +9790,7 @@
   {
    "caminho": "packages/portal/src/lib/contratacao.ts",
    "linguagem": "typescript",
-   "linhas": 252,
+   "linhas": 253,
    "doc": "Tudo sobre uma contratação, para o modal das Contratações (ADR-035): o processo (ou o contrato) como o PNCP o\npublica, os itens com o preço unitário e o vencedor, os termos aditivos e os documentos.\n\nOs dados vêm da API pública do PNCP, pedidos pelo navegador quando o modal abre (a API libera a leitura,\nCORS). Nada é copiado para o Lumen. Fornecedor pessoa física aparece sem nome nem documento (RNF-19), como\nnos painéis.",
    "itens": [
     {
@@ -9777,161 +9798,161 @@
      "nome": "API_CONSULTA",
      "assinatura": "export const API_CONSULTA = \"https://pncp.gov.br/api/consulta/v1\";",
      "doc": "A API de consulta do PNCP, que tem o detalhe do processo.",
-     "linha": 14
+     "linha": 15
     },
     {
      "tipo": "interface",
      "nome": "Parte",
      "assinatura": "export interface Parte",
      "doc": "Pessoa jurídica com CNPJ e razão social; pessoa física ou estrangeira, sem identificação.",
-     "linha": 17
+     "linha": 18
     },
     {
      "tipo": "interface",
      "nome": "Processo",
      "assinatura": "export interface Processo",
      "doc": "Um processo de contratação (compra, no PNCP).",
-     "linha": 24
+     "linha": 25
     },
     {
      "tipo": "interface",
      "nome": "ItemProcesso",
      "assinatura": "export interface ItemProcesso",
      "doc": "Um item do processo, com o vencedor quando já há resultado.",
-     "linha": 47
+     "linha": 48
     },
     {
      "tipo": "interface",
      "nome": "ResultadoItem",
      "assinatura": "export interface ResultadoItem",
      "doc": "O resultado (homologação) de um item: o fornecedor e o valor.",
-     "linha": 62
+     "linha": 63
     },
     {
      "tipo": "interface",
      "nome": "Contrato",
      "assinatura": "export interface Contrato",
      "doc": "Um contrato (ou empenho) publicado.",
-     "linha": 72
+     "linha": 73
     },
     {
      "tipo": "interface",
      "nome": "Termo",
      "assinatura": "export interface Termo",
      "doc": "Um termo aditivo (ou de rescisão, apostilamento) do contrato.",
-     "linha": 93
+     "linha": 94
     },
     {
      "tipo": "tipo",
      "nome": "Bruto",
      "assinatura": "type Bruto = Record<string, unknown>;",
      "doc": "Um objeto da resposta da API, ainda sem conferir.",
-     "linha": 103
+     "linha": 104
     },
     {
      "tipo": "funcao",
      "nome": "parte",
      "assinatura": "export function parte(tipoPessoa: unknown, ni: unknown, nome: unknown): Parte",
-     "doc": "A parte contratada: pessoa física e estrangeira sem nome nem documento.",
-     "linha": 109
+     "doc": "A parte contratada: pessoa física e estrangeira sem nome nem documento; no nome da PJ (MEI), o CPF mascarado.",
+     "linha": 110
     },
     {
      "tipo": "funcao",
      "nome": "unidade",
      "assinatura": "function unidade(u: Bruto)",
      "doc": "A unidade compradora.",
-     "linha": 115
+     "linha": 116
     },
     {
      "tipo": "funcao",
      "nome": "codigoCatalogo",
      "assinatura": "function codigoCatalogo(x: Bruto): string | null",
      "doc": "O código do item no catálogo do Compras.gov.br (o único que a pesquisa de preços entende), ou `null`.",
-     "linha": 121
+     "linha": 122
     },
     {
      "tipo": "funcao",
      "nome": "lerProcesso",
      "assinatura": "export function lerProcesso(chave: string, b: Bruto): Processo",
      "doc": "O processo como o Lumen mostra, a partir da resposta da API de consulta.",
-     "linha": 129
+     "linha": 130
     },
     {
      "tipo": "funcao",
      "nome": "lerItens",
      "assinatura": "export function lerItens(bruto: unknown): ItemProcesso[]",
      "doc": "Os itens do processo, a partir da resposta da API.",
-     "linha": 146
+     "linha": 147
     },
     {
      "tipo": "funcao",
      "nome": "lerResultados",
      "assinatura": "export function lerResultados(bruto: unknown): ResultadoItem[]",
      "doc": "Os resultados de um item.",
-     "linha": 157
+     "linha": 158
     },
     {
      "tipo": "funcao",
      "nome": "lerContrato",
      "assinatura": "export function lerContrato(chave: string, b: Bruto): Contrato",
      "doc": "O contrato como o Lumen mostra, a partir da resposta da API.",
-     "linha": 168
+     "linha": 169
     },
     {
      "tipo": "funcao",
      "nome": "lerTermos",
      "assinatura": "export function lerTermos(bruto: unknown): Termo[]",
      "doc": "Os termos do contrato, a partir da resposta da API.",
-     "linha": 184
+     "linha": 185
     },
     {
      "tipo": "funcao",
      "nome": "pedir",
      "assinatura": "async function pedir(url: string, sinal?: AbortSignal): Promise<unknown>",
      "doc": "GET na API do PNCP: JSON, `null` quando não há conteúdo (204 ou 404).",
-     "linha": 193
+     "linha": 194
     },
     {
      "tipo": "funcao",
      "nome": "caminho",
      "assinatura": "function caminho(p: PublicacaoPncp): string",
      "doc": "O trecho do endereço da publicação na API.",
-     "linha": 207
+     "linha": 208
     },
     {
      "tipo": "funcao",
      "nome": "carregarProcesso",
      "assinatura": "export async function carregarProcesso(chave: string, sinal?: AbortSignal): Promise<Processo | null>",
      "doc": "O processo da chave; `null` se o PNCP não o tem.",
-     "linha": 212
+     "linha": 213
     },
     {
      "tipo": "funcao",
      "nome": "carregarItens",
      "assinatura": "export async function carregarItens(chave: string, sinal?: AbortSignal): Promise<ItemProcesso[]>",
      "doc": "Os itens do processo (até 500, em páginas de 50).",
-     "linha": 220
+     "linha": 221
     },
     {
      "tipo": "funcao",
      "nome": "carregarResultados",
      "assinatura": "export async function carregarResultados(chave: string, item: number, sinal?: AbortSignal): Promise<ResultadoItem[]>",
      "doc": "O resultado de um item do processo.",
-     "linha": 233
+     "linha": 234
     },
     {
      "tipo": "funcao",
      "nome": "carregarContrato",
      "assinatura": "export async function carregarContrato(chave: string, sinal?: AbortSignal): Promise<Contrato | null>",
      "doc": "O contrato da chave; `null` se o PNCP não o tem.",
-     "linha": 240
+     "linha": 241
     },
     {
      "tipo": "funcao",
      "nome": "carregarTermos",
      "assinatura": "export async function carregarTermos(chave: string, sinal?: AbortSignal): Promise<Termo[]>",
      "doc": "Os termos aditivos do contrato.",
-     "linha": 248
+     "linha": 249
     }
    ]
   },
@@ -9989,6 +10010,28 @@
      "assinatura": "export function hexClaro(indice: number): string",
      "doc": "Hexadecimal da posição na paleta clara; fora dela, um cinza neutro.",
      "linha": 74
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/lib/cpf.ts",
+   "linguagem": "typescript",
+   "linhas": 32,
+   "doc": "Máscara de CPF em texto livre, para o que o portal lê direto das fontes no navegador (o PNCP no modal da\ncontratação e na comparação de preço). É a mesma regra de `lumen_canonico.documentos.mascarar_cpfs_no_texto`,\nque mascara os textos publicados pelo Lumen (DOC-08, seção 5; ADR-043): a razão social do MEI leva o CPF do\ntitular, e o objeto de um contrato às vezes cita o CPF de alguém.",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "cpfValido",
+     "assinatura": "export function cpfValido(digitos: string): boolean",
+     "doc": "CPF de 11 dígitos com os dois dígitos verificadores corretos (um dígito repetido não vale).",
+     "linha": 14
+    },
+    {
+     "tipo": "funcao",
+     "nome": "mascararCpfs",
+     "assinatura": "export function mascararCpfs(texto: string | null, todos = false): string | null",
+     "doc": "`NOME 12345678909` → `NOME ***.456.789-**`. Com `todos` (nomes), toda sequência de 11 dígitos; sem ele (objeto,\ndescrição), só a que tem o dígito verificador do CPF ou a pontuação dele.",
+     "linha": 28
     }
    ]
   },
@@ -11787,7 +11830,7 @@
   {
    "caminho": "packages/portal/src/lib/precos.ts",
    "linguagem": "typescript",
-   "linhas": 253,
+   "linhas": 254,
    "doc": "Comparação de preço de um item com o que outros órgãos pagaram pelo mesmo item de catálogo (ADR-036; regra\nA-01 do DOC-07, aplicada sob demanda no modal da contratação).\n\nA referência vem da pesquisa de preços do Compras.gov.br (dados abertos), que reúne as compras feitas pelo\nsistema federal, de órgãos federais, estaduais e municipais, com o preço unitário de cada item pelo código do\ncatálogo (CATMAT para material, CATSER para serviço). A API não libera a leitura por outro site (CORS); o\nportal a pede pelo próprio endereço (`/api/precos/...`), que o Vercel repassa à fonte sem guardar nada.\n\nA conta segue o DOC-07: mediana, desvio absoluto mediano (MAD) e o escore robusto\n`0,6745 × (preço − mediana) ÷ MAD`, com o mínimo de 30 compras comparáveis e o disparo em 3,5. Os parâmetros\nsão os iniciais, não calibrados. O resultado diz onde o preço fica entre as compras comparáveis; não é\nconclusão sobre a compra: a especificação, a quantidade, o lugar e o prazo podem justificar a diferença.",
    "itens": [
     {
@@ -11795,133 +11838,133 @@
      "nome": "API_PRECOS",
      "assinatura": "export const API_PRECOS = \"/api/precos\";",
      "doc": "O caminho do portal que o Vercel repassa à pesquisa de preços (`vercel.json`).",
-     "linha": 20
+     "linha": 21
     },
     {
      "tipo": "constante",
      "nome": "FONTE_PRECOS",
      "assinatura": "export const FONTE_PRECOS = \"https://dadosabertos.compras.gov.br/modulo-pesquisa-preco\";",
      "doc": "A fonte, para o link \"ver na fonte\" e para a documentação.",
-     "linha": 23
+     "linha": 24
     },
     {
      "tipo": "constante",
      "nome": "PARAMETROS_PRECO",
      "assinatura": "export const PARAMETROS_PRECO =",
      "doc": "Parâmetros da comparação (DOC-07, A-01): iniciais, não calibrados.",
-     "linha": 26
+     "linha": 27
     },
     {
      "tipo": "interface",
      "nome": "CompraComparavel",
      "assinatura": "export interface CompraComparavel",
      "doc": "Uma compra da pesquisa de preços, já lida. Fornecedor pessoa física fica sem nome nem documento.",
-     "linha": 36
+     "linha": 37
     },
     {
      "tipo": "tipo",
      "nome": "SituacaoPreco",
      "assinatura": "export type SituacaoPreco = \"acima\" | \"abaixo\" | \"dentro\" | \"poucas\" | \"fora_de_escala\" | \"sem_comparaveis\";",
      "doc": "Onde o preço do item fica entre as compras comparáveis.",
-     "linha": 51
+     "linha": 52
     },
     {
      "tipo": "interface",
      "nome": "ComparacaoPreco",
      "assinatura": "export interface ComparacaoPreco",
      "doc": "O resultado da comparação, com a referência inteira para quem quiser conferir.",
-     "linha": 54
+     "linha": 55
     },
     {
      "tipo": "interface",
      "nome": "ItemParaComparar",
      "assinatura": "export interface ItemParaComparar",
      "doc": "O que a comparação precisa saber do item e da compra.",
-     "linha": 77
+     "linha": 78
     },
     {
      "tipo": "tipo",
      "nome": "Bruto",
      "assinatura": "type Bruto = Record<string, unknown>;",
      "doc": "Um objeto da resposta da API, ainda sem conferir.",
-     "linha": 90
+     "linha": 91
     },
     {
      "tipo": "funcao",
      "nome": "lerCompras",
      "assinatura": "export function lerCompras(bruto: unknown): CompraComparavel[]",
      "doc": "As compras da resposta da API (`resultado`), sem conferir mais que o tipo de cada campo.",
-     "linha": 95
+     "linha": 96
     },
     {
      "tipo": "funcao",
      "nome": "unidadeNormal",
      "assinatura": "function unidadeNormal(u: string | null): string",
      "doc": "A unidade normalizada, com as siglas mais comuns por extenso (\"UN\" → \"unidade\").",
-     "linha": 124
+     "linha": 125
     },
     {
      "tipo": "funcao",
      "nome": "mesmaUnidade",
      "assinatura": "export function mesmaUnidade(unidadeItem: string | null, c: Pick<CompraComparavel, \"unidade\" | \"capacidade\">): boolean",
      "doc": "A unidade da compra é a do item? Mesmo nome (ou o nome do item começa por ela) e, se houver, a mesma capacidade.",
-     "linha": 130
+     "linha": 131
     },
     {
      "tipo": "funcao",
      "nome": "daPropriaCompra",
      "assinatura": "function daPropriaCompra(c: CompraComparavel, item: ItemParaComparar): boolean",
      "doc": "A compra é a própria compra do item? Pelo número no sistema federal: UASG, modalidade, número (5 dígitos) e ano.",
-     "linha": 144
+     "linha": 145
     },
     {
      "tipo": "funcao",
      "nome": "quantil",
      "assinatura": "function quantil(ordenados: number[], q: number): number",
      "doc": "Quantil por interpolação linear (o tipo 7, o mesmo das planilhas). `ordenados` em ordem crescente.",
-     "linha": 152
+     "linha": 153
     },
     {
      "tipo": "funcao",
      "nome": "escoreRobusto",
      "assinatura": "export function escoreRobusto(x: number, ordenados: number[]): number | null",
      "doc": "Escore robusto do DOC-07: `0,6745 × (x − mediana) ÷ MAD`. Quando mais da metade dos preços é igual (MAD zero),\nusa o desvio absoluto médio (`(x − mediana) ÷ (1,2533 × média |x − mediana|)`), como é usual nesse caso;\n`null` se todos os preços são iguais.",
-     "linha": 165
+     "linha": 166
     },
     {
      "tipo": "funcao",
      "nome": "compararPreco",
      "assinatura": "export function compararPreco(item: ItemParaComparar, compras: CompraComparavel[], de: string): ComparacaoPreco",
      "doc": "Compara o preço do item com as compras recebidas: filtra as comparáveis e calcula a posição dele.",
-     "linha": 175
+     "linha": 176
     },
     {
      "tipo": "funcao",
      "nome": "diasAntes",
      "assinatura": "function diasAntes(iso: string, dias: number): string",
      "doc": "A data `dias` antes de `iso` (AAAA-MM-DD).",
-     "linha": 215
+     "linha": 216
     },
     {
      "tipo": "funcao",
      "nome": "urlPrecos",
      "assinatura": "export function urlPrecos(item: Pick<ItemParaComparar, \"catalogo\" | \"material\">, de: string, ate: string, pagina: number): string",
      "doc": "O endereço de uma página da pesquisa de preços, pelo caminho do portal.",
-     "linha": 222
+     "linha": 223
     },
     {
      "tipo": "funcao",
      "nome": "pedir",
      "assinatura": "async function pedir(url: string, sinal?: AbortSignal): Promise<Bruto>",
      "doc": "GET na pesquisa de preços.",
-     "linha": 230
+     "linha": 231
     },
     {
      "tipo": "funcao",
      "nome": "carregarComparacao",
      "assinatura": "export async function carregarComparacao(item: ItemParaComparar, sinal?: AbortSignal): Promise<ComparacaoPreco>",
      "doc": "Pede as compras do código nos 12 meses até a data do item (até 4 páginas de 500) e compara.",
-     "linha": 245
+     "linha": 246
     }
    ]
   },
@@ -14228,7 +14271,7 @@
   {
    "caminho": "packages/canonico/testes/test_documentos.py",
    "doc": "Testes de CNPJ e CPF, incluindo o CNPJ alfanumérico de 2026.",
-   "testes": 13
+   "testes": 15
   },
   {
    "caminho": "packages/canonico/testes/test_fato.py",
@@ -14483,7 +14526,7 @@
   {
    "caminho": "packages/painel/testes/test_contratacoes.py",
    "doc": "Painel de contratações: o dia compacto, a coleta de um dia e a soma por ente (ADR-028).",
-   "testes": 12
+   "testes": 14
   },
   {
    "caminho": "packages/painel/testes/test_despesa_funcao.py",
@@ -14539,6 +14582,11 @@
    "caminho": "packages/portal/src/lib/__testes__/contratacao.test.ts",
    "doc": "",
    "testes": 6
+  },
+  {
+   "caminho": "packages/portal/src/lib/__testes__/cpf.test.ts",
+   "doc": "",
+   "testes": 2
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/economia.test.ts",

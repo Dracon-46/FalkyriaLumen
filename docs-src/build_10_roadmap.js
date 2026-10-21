@@ -209,7 +209,7 @@ body.push(p("Quatro definições não são técnicas e não podem ser adiadas in
   "condicionam escolhas das primeiras fases."));
 body.push(table(["Decisão", "Quando", "Por que condiciona o desenvolvimento"], [2400, 1700, 5500], [
   ["Nome definitivo do projeto", "Antes da fase 0",
-    "Lumen é nome de trabalho e precisa passar pela mesma verificação de disponibilidade de marca e domínio já feita para a marca da empresa"],
+    "Decidido em 21/10/2026: o nome fica Lumen (ADR-043). O domínio próprio continua pendente, como decisão de custo"],
   ["Natureza institucional", "Antes da fase 5",
     "Projeto pessoal, produto da empresa ou iniciativa sem fins lucrativos; afeta percepção de imparcialidade e a estratégia de sustentação"],
   ["Abertura do código", "Antes da fase 6",
@@ -291,7 +291,7 @@ body.push(table(["Item", "Situação"], [5200, 4400], [
   ["Carga completa num comando (lumen eleicoes preparar; preparar.cmd no Windows)", "Concluído; retomável. A carga numa máquina leva horas na primeira vez"],
   ["Carga, publicação e portal na nuvem, sem custo (ADR-026)", "Em produção desde 14/10/2026: feeds no Supabase Storage, carga diária e retomável no GitHub Actions, portal na Vercel"],
   ["Portal estático: mapa interativo, candidatos, panorama, evolução, busca, modo TV", "Concluído; mapa e cadastro de municípios vêm com o Lumen"],
-  ["Domínio próprio para o portal e os feeds", "Pendente: depende do nome definitivo (seção 7)"],
+  ["Domínio próprio para o portal e os feeds", "Pendente: o nome está decidido (Lumen, ADR-043); falta registrar o domínio, que tem custo"],
   ["Ensaio em infraestrutura real antes do 2º turno de 2026", "Feito com o 1º turno (16 e 17/10/2026), que achou a parada sem a marca de finalizada do TSE, já corrigida. O 2º turno está agendado no eleicoes-ao-vivo (adendo do ADR-026)"],
   ["Contexto eleitoral nas telas de contratação (família K)", "Fase 2 em diante"],
 ], { size: 17 }));
@@ -301,7 +301,7 @@ body.push(p("Os entregáveis pendentes da Fase 1 (CGU, Receita, grupos de pares 
   "risco técnico: fontes com documentação estável ou arquivos completos. O risco de prazo estava no critério " +
   "de saída, que exige infraestrutura para a carga histórica. A ADR-026 resolve a hospedagem sem custo; o que " +
   "resta é trabalho técnico (levar a coleta de contratações para o GitHub Actions, como a das eleições) e " +
-  "criar as contas. A decisão não técnica que sobra é o domínio, que depende do nome definitivo (seção 7)."));
+  "criar as contas. A decisão não técnica que sobra é o domínio: o nome ficou Lumen (ADR-043), e falta registrá-lo."));
 
 body.push(h2("9.5 Hospedagem sem custo (ADR-026)"));
 body.push(p("Nenhum banco gratuito comporta o Lumen inteiro: só as eleições por município passam de 500 MB em " +
@@ -322,7 +322,7 @@ L.buildDoc({
   codigo: "DOC-10",
   titulo: "Roadmap",
   subtitulo: "Fases, marcos, esforço, custos e critérios de replanejamento",
-  meta: { versao: "2.0", data: "20 de outubro de 2026",
+  meta: { versao: "2.1", data: "21 de outubro de 2026",
     situacao: "Plano aprovado, com a situação de cada fase em outubro de 2026 (seção 9)",
     verificado: "outubro de 2026" },
   body,

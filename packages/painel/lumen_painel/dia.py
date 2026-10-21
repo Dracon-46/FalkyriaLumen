@@ -8,7 +8,9 @@ que o painel liga (``link_pncp``), e a coleta pode ser refeita a qualquer moment
 
 O arquivo do dia é público (fica nos anexos de uma versão do GitHub, ADR-028). Por isso, contrato com pessoa
 física ou estrangeira guarda só o tipo de pessoa, o valor e as datas: nem nome nem documento do fornecedor
-(RNF-19 e RNF-20). Pessoa jurídica guarda CNPJ e razão social, que são públicos.
+(RNF-19 e RNF-20). Pessoa jurídica guarda CNPJ e razão social, que são públicos, com o CPF mascarado: a razão
+social do MEI leva o CPF do titular, e o objeto às vezes cita o CPF de alguém (DOC-08, seção 5; ADR-043). A
+máscara vale na montagem do dia e, para os arquivos gravados antes dela, na leitura (``mascarar_dia``).
 
 Um dia só é gravado quando a coleta terminou sem falha nem resposta de erro: um dia incompleto somaria menos
 do que o ente publicou. Ele fica de fora e é tentado de novo na execução seguinte.
@@ -22,6 +24,7 @@ from dataclasses import dataclass, field, replace
 from datetime import date
 from pathlib import Path
 
+from lumen_canonico.documentos import mascarar_cpfs_no_texto
 from lumen_ingestao.adaptadores.api.pncp import MODALIDADES_PNCP
 from lumen_ingestao.coleta_http import ErroColeta
 from lumen_ingestao.portas import Janela
@@ -55,12 +58,31 @@ def dias_guardados(estado: Path | str) -> set[date]:
     return saida
 
 
-def _texto(bruto, limite: int = LIMITE_OBJETO) -> str | None:
-    """Texto sem espaços repetidos, cortado em ``limite`` caracteres (com reticências quando cortado)."""
+def _texto(bruto, limite: int = LIMITE_OBJETO, *, nome: bool = False) -> str | None:
+    """Texto sem espaços repetidos e com o CPF mascarado, cortado em ``limite`` caracteres (com reticências).
+
+    ``nome``: a razão social, em que toda sequência de 11 dígitos é o CPF do titular (MEI); no objeto, só o que
+    tem forma de CPF de fato (``mascarar_cpfs_no_texto``). A máscara vem antes do corte, para não sobrar meio CPF.
+    """
     if not bruto:
         return None
-    texto = " ".join(str(bruto).split())
+    texto = mascarar_cpfs_no_texto(" ".join(str(bruto).split()), todos=nome)
     return texto if len(texto) <= limite else texto[: limite - 1].rstrip() + "…"
+
+
+def mascarar_dia(dados: dict) -> bool:
+    """Mascara o CPF nos textos de um arquivo do dia já lido (nome do fornecedor e objetos); diz se mudou algo."""
+    mudou = False
+    for tabela, campos in (("processos", {"objeto": False}), ("contratos", {"fornecedor_nome": True, "objeto": False})):
+        colunas = (dados.get("colunas") or {}).get(tabela) or []
+        indices = {colunas.index(c): nome for c, nome in campos.items() if c in colunas}
+        for linha in dados.get(tabela) or []:
+            for i, nome in indices.items():
+                if i < len(linha) and isinstance(linha[i], str):
+                    novo = mascarar_cpfs_no_texto(linha[i], todos=nome)
+                    if novo != linha[i]:
+                        linha[i], mudou = novo, True
+    return mudou
 
 
 def resumir_dia(silver: Path | str, dia: date, *, agora: str | None = None) -> dict:
@@ -96,7 +118,7 @@ def resumir_dia(silver: Path | str, dia: date, *, agora: str | None = None) -> d
             c.get("chave_origem"), c.get("orgao_cnpj"), orgao.get("ente_codigo_ibge"), c.get("uf"),
             c.get("municipio_codigo_ibge"), tipo,
             c.get("fornecedor_documento") if juridica else None,
-            _texto(c.get("fornecedor_nome"), 160) if juridica else None,
+            _texto(c.get("fornecedor_nome"), 160, nome=True) if juridica else None,
             valor(c.get("valor_global")), c.get("data_assinatura"), c.get("processo_chave_origem"),
             c.get("tipo_instrumento"), _texto(c.get("objeto"), 160),
         ])
@@ -114,10 +136,14 @@ def resumir_dia(silver: Path | str, dia: date, *, agora: str | None = None) -> d
 
 
 def ler_dia(caminho: Path | str) -> dict:
-    """Lê um arquivo do dia e confere a versão; as linhas continuam listas, na ordem de ``colunas``."""
+    """Lê um arquivo do dia, confere a versão e mascara o CPF nos textos (arquivos gravados antes da máscara).
+
+    As linhas continuam listas, na ordem de ``colunas``.
+    """
     dados = ler_json(caminho)
     if dados.get("versao") != 1:
         raise ValueError(f"{caminho}: versão {dados.get('versao')!r} do arquivo do dia não suportada")
+    mascarar_dia(dados)
     return dados
 
 

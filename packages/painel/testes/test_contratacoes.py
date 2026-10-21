@@ -84,6 +84,35 @@ def test_pessoa_fisica_sem_nome_nem_documento(tmp_path, apoio):
     assert "FULANO" not in json.dumps(d, ensure_ascii=False) and "123.456" not in json.dumps(d)
 
 
+def test_cpf_mascarado_no_nome_do_mei_e_no_objeto(tmp_path, apoio):
+    silver = apoio.silver_pncp(tmp_path / "silver")
+    arquivo = next((silver / "contrato").rglob("*.jsonl"))
+    linhas = [json.loads(x) for x in arquivo.read_text(encoding="utf-8").splitlines()]
+    linhas[0].update(fornecedor_nome="NYARA OLIVEIRA CAVALCANTE 01987103300",
+                     objeto="Show por intermédio de NELSON SARAIVA ALVES 32620487803, processo 20253666000")
+    arquivo.write_text("\n".join(json.dumps(x, ensure_ascii=False) for x in linhas) + "\n", encoding="utf-8")
+    texto = json.dumps(dia.resumir_dia(silver, DIA), ensure_ascii=False)
+    assert "01987103300" not in texto and "32620487803" not in texto
+    assert "NYARA OLIVEIRA CAVALCANTE ***.871.033-**" in texto and "20253666000" in texto
+
+
+def test_arquivo_gravado_antes_da_mascara_sai_mascarado_na_leitura_e_no_comando(tmp_path, apoio, capsys):
+    from lumen_painel import cli
+    estado = tmp_path / "estado"
+    d = dia.resumir_dia(apoio.silver_pncp(tmp_path / "s"), DIA)
+    i = d["colunas"]["contratos"].index("fornecedor_nome")
+    d["contratos"][0][i] = "FULANA DE TAL 01987103300"           # como os arquivos gravados até 20/10/2026
+    caminho = estado / dia.nome_do_arquivo(DIA)
+    comum.gravar_json(caminho, d, comprimir=True)
+    assert dia.ler_dia(caminho)["contratos"][0][i] == "FULANA DE TAL ***.871.033-**"
+    assert "01987103300" in json.dumps(comum.ler_json(caminho))   # a leitura não reescreve o arquivo
+    assert cli.main(["mascarar", "--estado", str(estado)]) == 0
+    assert json.loads(capsys.readouterr().out) == {"alterados": [dia.nome_do_arquivo(DIA)]}
+    assert "01987103300" not in json.dumps(comum.ler_json(caminho))
+    assert cli.main(["mascarar", "--estado", str(estado)]) == 0
+    assert json.loads(capsys.readouterr().out) == {"alterados": []}
+
+
 def test_ler_dia_e_dias_guardados(tmp_path, apoio):
     estado = tmp_path / "estado"
     comum.gravar_json(estado / dia.nome_do_arquivo(DIA), dia.resumir_dia(apoio.silver_pncp(tmp_path / "s"), DIA),
