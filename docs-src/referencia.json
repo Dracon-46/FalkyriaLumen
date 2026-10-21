@@ -11080,7 +11080,7 @@
   {
    "caminho": "packages/portal/src/lib/gastos.ts",
    "linguagem": "typescript",
-   "linhas": 197,
+   "linhas": 251,
    "doc": "Com o que o município gastou (ADR-040, adendo de 20/10/2026): a despesa liquidada de cada ano, sem as\nintraorçamentárias, aberta de dois jeitos, e as somas de um período (um mandato).\n\n- **Por área**: a DCA, Anexo I-E, com as funções (`10 - Saúde`) e as subfunções (`10.301 - Atenção Básica`,\n  `FU10 - Demais Subfunções`).\n- **Por tipo de gasto**: a DCA, Anexo I-D, com os grupos de natureza (pessoal, juros, outras despesas correntes,\n  investimentos, inversões, amortização) e os elementos (material de consumo, serviços de terceiros, obras…). Só\n  entram as linhas `DO…` (as `DI…` são as intraorçamentárias). As modalidades somam o total do Anexo I-E ao\n  centavo (São Sepé, 2015 e 2024).\n\nAs somas recebem uma conversão por ano (reais de outro ano, por habitante); ano que a conversão não alcança fica\nde fora do período, e a tela diz quantos anos entraram.",
    "itens": [
     {
@@ -11166,13 +11166,34 @@
      "assinatura": "export function variacao(a: number, b: number): number | null",
      "doc": "A variação de `b` para `a` em %, ou `null` sem base.",
      "linha": 195
+    },
+    {
+     "tipo": "interface",
+     "nome": "ReceitasAno",
+     "assinatura": "export interface ReceitasAno extends Abertura",
+     "doc": "As receitas de um ano (DCA, Anexo I-C) em grupos, e as deduções da receita (a retenção para o FUNDEB e outras).",
+     "linha": 200
+    },
+    {
+     "tipo": "constante",
+     "nome": "GRUPOS_RECEITA",
+     "assinatura": "export const GRUPOS_RECEITA: Record<string, string> =",
+     "doc": "Os grupos de receita, na ordem da tela.",
+     "linha": 205
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lerReceitas",
+     "assinatura": "export function lerReceitas(bruto: unknown): ReceitasAno | null",
+     "doc": "As receitas realizadas de um ano em grupos (DCA, Anexo I-C, \"Receitas Brutas Realizadas\"), sem as\nintraorçamentárias; `null` se o ano não foi entregue.\n\nO ementário da receita mudou em 2018, e o formato do código diz qual vale: até 2017, `RO1.7.2.1.00.00.00` é a\ntransferência da União, `1.7.2.2` a do estado e `1.7.2.4` (multigovernamentais) o FUNDEB; de 2018 em diante,\n`RO1.7.1.0.00.0.0`, `1.7.2` e `1.7.5`. Os grupos somam as receitas correntes (1) e de capital (2), ao centavo\n(São Sepé, 2015, 2017, 2018 e 2024). As deduções (a retenção para o FUNDEB e outras) ficam à parte.",
+     "linha": 225
     }
    ]
   },
   {
    "caminho": "packages/portal/src/lib/governos.ts",
    "linguagem": "typescript",
-   "linhas": 353,
+   "linhas": 361,
    "doc": "Governos municipais na Economia (ADR-040): para um município, os mandatos de prefeito pelas eleições que o Lumen\npublica, e o que a população (estimativas do IBGE) e as contas anuais (DCA do SICONFI) registraram em cada um.\n\nTudo é lido sob demanda, no navegador, para o município escolhido:\n- os resultados de prefeito, dos feeds da aba Eleições (`<eleição>/prefeito/mu-<código IBGE>.json`; o eleito do\n  2º turno vem do arquivo do 2º turno);\n- a população, do SIDRA (tabela 6579; o Censo 2022, tabela 4709, nos anos sem estimativa, 2022 e 2023);\n- a despesa por função, da DCA (Anexo I-E, despesa liquidada), pelo endereço do próprio portal, que a Vercel\n  repassa ao SICONFI (a API do Tesouro não aceita pedido de outro site);\n- sob demanda, para o mandato aberto na tela, a despesa por natureza (Anexo I-D), que diz com o que foi gasto\n  (pessoal, custeio, obras…). As aberturas e as somas estão em `lib/gastos.ts`.\n\nOs valores em reais são corrigidos pelo IPCA médio de cada ano, para reais do último ano com o IPCA completo.\nComo na comparação de presidentes, os números mostram o que as fontes registraram; não dizem o que causou a\ndiferença entre um mandato e outro.",
    "itens": [
     {
@@ -11316,123 +11337,137 @@
      "linha": 153
     },
     {
-     "tipo": "constante",
-     "nome": "urlDca",
-     "assinatura": "export const urlDca = (codigo: string, ano: number, anexo: \"I-E\" | \"I-D\" = \"I-E\") =>",
-     "doc": "Consulta da DCA de um ano pelo endereço do portal (a Vercel repassa ao SICONFI): Anexo I-E (por função) ou I-D.",
+     "tipo": "tipo",
+     "nome": "AnexoDca",
+     "assinatura": "export type AnexoDca = \"I-E\" | \"I-D\" | \"I-C\";",
+     "doc": "Os anexos da DCA lidos: I-E (despesa por função), I-D (despesa por natureza) e I-C (receitas).",
      "linha": 162
     },
     {
      "tipo": "constante",
+     "nome": "urlDca",
+     "assinatura": "export const urlDca = (codigo: string, ano: number, anexo: AnexoDca = \"I-E\") =>",
+     "doc": "Consulta da DCA de um ano pelo endereço do portal (a Vercel repassa ao SICONFI).",
+     "linha": 165
+    },
+    {
+     "tipo": "constante",
      "nome": "urlDcaNaFonte",
-     "assinatura": "export const urlDcaNaFonte = (codigo: string, ano: number, anexo: \"I-E\" | \"I-D\" = \"I-E\") =>",
+     "assinatura": "export const urlDcaNaFonte = (codigo: string, ano: number, anexo: AnexoDca = \"I-E\") =>",
      "doc": "A mesma consulta direto no SICONFI, para o link da fonte.",
-     "linha": 166
+     "linha": 169
     },
     {
      "tipo": "funcao",
      "nome": "despesasDe",
      "assinatura": "export function despesasDe(contas: Abertura): Despesas",
      "doc": "As despesas das funções de `FUNCOES` tiradas da abertura por área do ano.",
-     "linha": 171
+     "linha": 174
     },
     {
      "tipo": "funcao",
      "nome": "lerDca",
      "assinatura": "export function lerDca(bruto: unknown): Despesas | null",
      "doc": "As despesas liquidadas das funções de `FUNCOES` numa resposta da DCA; `null` se o ano não foi entregue.",
-     "linha": 181
+     "linha": 184
     },
     {
      "tipo": "constante",
      "nome": "ESPERAS_SICONFI",
      "assinatura": "export const ESPERAS_SICONFI = [1000, 3000];",
      "doc": "Esperas antes de cada nova tentativa de consulta ao SICONFI, em milissegundos.",
-     "linha": 187
+     "linha": 190
     },
     {
      "tipo": "funcao",
      "nome": "obterDoSiconfi",
      "assinatura": "export async function obterDoSiconfi(url: string, sinal?: AbortSignal, esperas = ESPERAS_SICONFI): Promise<unknown>",
      "doc": "Consulta ao SICONFI pelo portal com novas tentativas: a API do Tesouro recusa pedidos demais ao mesmo tempo, e a\npágina faz perto de 20 de uma vez. Só a falha da consulta se repete; o cancelamento, não.",
-     "linha": 193
+     "linha": 196
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarReceitas",
+     "assinatura": "export function carregarReceitas(codigo: string, ano: number, sinal?: AbortSignal): Promise<ReceitasAno | null>",
+     "doc": "As receitas de um ano (Anexo I-C), pelo endereço do portal; `null` se o ano não foi entregue.",
+     "linha": 209
     },
     {
      "tipo": "funcao",
      "nome": "carregarNatureza",
      "assinatura": "export function carregarNatureza(codigo: string, ano: number, sinal?: AbortSignal): Promise<Abertura | null>",
      "doc": "A despesa por natureza de um ano (Anexo I-D), pelo endereço do portal; `null` se o ano não foi entregue.",
-     "linha": 206
+     "linha": 214
     },
     {
      "tipo": "funcao",
      "nome": "ipcaMedioAnual",
      "assinatura": "export function ipcaMedioAnual(ipca: Pick<Indicador, \"serie\">): Map<string, number>",
      "doc": "O IPCA médio de cada ano, como número-índice (o primeiro mês da série vale 1), a partir da série mensal da\nEconomia. Só entram os anos com os 12 meses.",
-     "linha": 216
+     "linha": 224
     },
     {
      "tipo": "funcao",
      "nome": "anoBase",
      "assinatura": "export function anoBase(medias: Map<string, number>): string | null",
      "doc": "O ano-base da correção: o último com o IPCA completo.",
-     "linha": 232
+     "linha": 240
     },
     {
      "tipo": "funcao",
      "nome": "emReaisDe",
      "assinatura": "export function emReaisDe(valor: number, ano: string, base: string, medias: Map<string, number>): number | null",
      "doc": "`valor` do `ano` em reais do `base`, pelo IPCA médio; `null` sem IPCA de um dos dois anos.",
-     "linha": 237
+     "linha": 245
     },
     {
      "tipo": "interface",
      "nome": "AnoMunicipal",
      "assinatura": "export interface AnoMunicipal",
      "doc": "Um ano do município: população usada, despesas da época e corrigidas, e por habitante.",
-     "linha": 246
+     "linha": 254
     },
     {
      "tipo": "interface",
      "nome": "ResumoMandato",
      "assinatura": "export interface ResumoMandato",
      "doc": "O resumo de um mandato: a população no começo e no fim e a média anual de cada despesa, corrigida.",
-     "linha": 255
+     "linha": 263
     },
     {
      "tipo": "funcao",
      "nome": "anosMunicipaisComDespesa",
      "assinatura": "export function anosMunicipaisComDespesa(anos: string[], populacao: Map<string, number>,",
      "doc": "Os anos do município, com a despesa corrigida para reais do `base` e dividida pela população do ano.",
-     "linha": 267
+     "linha": 275
     },
     {
      "tipo": "funcao",
      "nome": "media",
      "assinatura": "function media(anos: AnoMunicipal[], chave: \"reais\" | \"porHabitante\"): Despesas",
      "doc": "A média das despesas dos anos com contas, por função.",
-     "linha": 287
+     "linha": 295
     },
     {
      "tipo": "funcao",
      "nome": "resumirMandatos",
      "assinatura": "export function resumirMandatos(mandatos: Mandato[], estimativas: [string, number][],",
      "doc": "O resumo de cada mandato. A população de início é a do primeiro ano do mandato com estimativa (ou a última antes\ndele) e a de fim, a do último ano com estimativa no mandato; entre uma quebra de método e outra, a variação fica\nsem cálculo, como na comparação de presidentes.",
-     "linha": 301
+     "linha": 309
     },
     {
      "tipo": "interface",
      "nome": "DadosMunicipio",
      "assinatura": "export interface DadosMunicipio",
      "doc": "Tudo o que a página precisa de um município, lido das três fontes.",
-     "linha": 320
+     "linha": 328
     },
     {
      "tipo": "funcao",
      "nome": "carregarMunicipio",
      "assinatura": "export async function carregarMunicipio(codigo: string, uf: string, ultimoAno: number,",
      "doc": "Lê os mandatos, a população e as contas anuais de 2014 até `ultimoAno`; falha de uma fonte vai em `falhas`.",
-     "linha": 331
+     "linha": 339
     }
    ]
   },
@@ -13745,7 +13780,7 @@
   {
    "caminho": "packages/portal/src/componentes/economia/PainelGovernos.tsx",
    "linguagem": "typescript",
-   "linhas": 711,
+   "linhas": 792,
    "doc": "Governos municipais (ADR-040 e adendo de 20/10/2026): para o município de `?ente=`, cada mandato de prefeito com\nquem foi eleito, a população e quanto o município gastou. Ao abrir um mandato, com o que foi gasto, por área\n(função e subfunção) ou por tipo de gasto (natureza e elemento), a comparação com outro mandato e os links do\nmandato nas outras abas.\n\nOs filtros ficam na URL, para o link abrir igual: `ver` (o total gasto, padrão, ou `habitante`), `valores`\n(`reais`, corrigidos pelo IPCA, padrão, ou `epoca`), `mandato` e `comparar` (o ano da eleição) e `abertura`\n(`funcao`, padrão, ou `natureza`). Lido sob demanda das fontes (`lib/governos.ts` e `lib/gastos.ts`); como a\ncomparação de presidentes, mostra o que foi registrado, não o que causou a diferença.",
    "itens": [
     {
@@ -13753,126 +13788,140 @@
      "nome": "Medida",
      "assinatura": "type Medida = \"total\" | \"habitante\";",
      "doc": "O que a tela mostra: o total gasto ou o gasto por habitante.",
-     "linha": 54
+     "linha": 55
     },
     {
      "tipo": "tipo",
      "nome": "Valores",
      "assinatura": "type Valores = \"reais\" | \"epoca\";",
      "doc": "Os valores: corrigidos pelo IPCA (reais do ano-base) ou da época.",
-     "linha": 56
+     "linha": 57
     },
     {
      "tipo": "tipo",
      "nome": "TipoAbertura",
      "assinatura": "type TipoAbertura = \"funcao\" | \"natureza\";",
      "doc": "A abertura de com o que foi gasto: por área (função) ou por tipo de gasto (natureza).",
-     "linha": 58
+     "linha": 59
     },
     {
      "tipo": "interface",
      "nome": "Opcoes",
      "assinatura": "interface Opcoes",
      "doc": "O que a URL pede: medida, valores, mandato aberto, mandato comparado e abertura.",
-     "linha": 61
+     "linha": 62
     },
     {
      "tipo": "funcao",
      "nome": "lerOpcoes",
      "assinatura": "function lerOpcoes(params: { get(chave: string): string | null }): Opcoes",
      "doc": "As opções a partir da URL; valor fora do esperado vira o padrão.",
-     "linha": 70
+     "linha": 71
     },
     {
      "tipo": "tipo",
      "nome": "Estado",
      "assinatura": "type Estado =",
      "doc": "O andamento da leitura do município.",
-     "linha": 88
+     "linha": 89
     },
     {
      "tipo": "componente",
      "nome": "PainelGovernos",
      "assinatura": "export function PainelGovernos()",
      "doc": "A página dos governos municipais, a partir de `?ente=` na URL.",
-     "linha": 95
+     "linha": 96
     },
     {
      "tipo": "funcao",
      "nome": "conversor",
      "assinatura": "function conversor(medida: Medida, valores: Valores, medias: Map<string, number>, base: string | null,",
      "doc": "A conversão de cada ano para o que a tela mostra: reais de `base` (ou da época), no total ou por habitante.",
-     "linha": 168
+     "linha": 169
     },
     {
      "tipo": "tipo",
      "nome": "Natureza",
      "assinatura": "type Natureza = Map<string, Abertura | null | \"erro\">;",
      "doc": "A natureza de cada ano lido: a abertura, `null` (ano não entregue) ou \"erro\".",
-     "linha": 179
+     "linha": 180
+    },
+    {
+     "tipo": "tipo",
+     "nome": "Receitas",
+     "assinatura": "type Receitas = Map<string, ReceitasAno | null | \"erro\">;",
+     "doc": "As receitas de cada ano lido (Anexo I-C): os grupos, `null` (ano não entregue) ou \"erro\".",
+     "linha": 182
     },
     {
      "tipo": "tipo",
      "nome": "PropsMunicipio",
      "assinatura": "type PropsMunicipio = Extract<Estado, { fase: \"pronto\" }> & { opcoes: Opcoes; mudar: (t: Record<string, string | null>) => void };",
      "doc": "O município lido, com as opções da URL e a função que as troca.",
-     "linha": 182
+     "linha": 185
     },
     {
      "tipo": "componente",
      "nome": "Municipio",
      "assinatura": "function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)",
      "doc": "Os filtros, os mandatos e o mandato aberto do município lido.",
-     "linha": 185
+     "linha": 188
     },
     {
      "tipo": "componente",
      "nome": "LinhaMandato",
      "assinatura": "function LinhaMandato({ resumo: r, soma, fmt, aberto, onAbrir }: { resumo: ResumoMandato; soma: SomaGastos;",
      "doc": "Uma linha da tabela de mandatos.",
-     "linha": 360
+     "linha": 381
     },
     {
      "tipo": "componente",
      "nome": "DetalheMandato",
      "assinatura": "function DetalheMandato({ codigo, aberto, comparado, opcoes, somaFuncao, natureza, conv, fmt, unidade,",
      "doc": "O mandato aberto: com o que foi gasto, a comparação com outro mandato e os links nas outras abas.",
-     "linha": 405
+     "linha": 426
     },
     {
      "tipo": "interface",
      "nome": "LinhaDupla",
      "assinatura": "interface LinhaDupla",
      "doc": "Uma linha das duas somas lado a lado (a de um dos mandatos pode faltar).",
-     "linha": 528
+     "linha": 554
     },
     {
      "tipo": "funcao",
      "nome": "juntar",
      "assinatura": "function juntar(as: LinhaGasto[], bs: LinhaGasto[]): LinhaDupla[]",
      "doc": "Junta as linhas das duas somas pelo código, na ordem da primeira e, depois, as que só a segunda tem.",
-     "linha": 537
+     "linha": 563
     },
     {
      "tipo": "componente",
      "nome": "TabelaGastos",
      "assinatura": "function TabelaGastos({ a, b, rotuloA, rotuloB, fmt, coluna }: { a: SomaGastos; b: SomaGastos | null;",
      "doc": "A tabela de com o que foi gasto: uma soma (com os anos) ou duas lado a lado; as linhas abrem os filhos.",
-     "linha": 549
+     "linha": 575
     },
     {
      "tipo": "funcao",
      "nome": "formatarVariacao",
      "assinatura": "function formatarVariacao(v: number | null): string",
      "doc": "\"+12,30%\", \"−4,10%\" ou \"—\".",
-     "linha": 661
+     "linha": 687
     },
     {
      "tipo": "componente",
      "nome": "AnoAAno",
      "assinatura": "function AnoAAno({ contas, conv, fmt, populacao, unidade }: { contas: Map<string, Abertura | null>;",
      "doc": "O ano a ano: a despesa total e quatro áreas, na medida e nos valores escolhidos.",
-     "linha": 667
+     "linha": 693
+    },
+    {
+     "tipo": "componente",
+     "nome": "ReceitasMandato",
+     "assinatura": "function ReceitasMandato({ codigo, aberto, comparado, receitas, contas, conv, fmt, unidade }:",
+     "doc": "A receita do município no mandato aberto (e no comparado): os grupos da DCA, Anexo I-C, e as deduções.",
+     "linha": 741
     }
    ]
   },
@@ -15264,7 +15313,7 @@
   {
    "caminho": "packages/portal/src/lib/__testes__/gastos.test.ts",
    "doc": "",
-   "testes": 7
+   "testes": 9
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/governos.test.ts",

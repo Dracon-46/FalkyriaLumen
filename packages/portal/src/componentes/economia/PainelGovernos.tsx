@@ -24,12 +24,13 @@ import { carregarConvenios } from "@/lib/convenios";
 import { BuscaEnte } from "@/componentes/paineis/Comuns";
 import { numero, percentual } from "@/lib/formato";
 import { carregarEconomia } from "@/lib/economia";
-import { type Abertura, type LinhaGasto, type SomaGastos, somarAberturas, variacao } from "@/lib/gastos";
+import { type Abertura, type LinhaGasto, type ReceitasAno, type SomaGastos, somarAberturas, variacao } from "@/lib/gastos";
 import {
   anoBase,
   anosMunicipaisComDespesa,
   carregarMunicipio,
   carregarNatureza,
+  carregarReceitas,
   type DadosMunicipio,
   emReaisDe,
   ipcaMedioAnual,
@@ -177,6 +178,8 @@ function conversor(medida: Medida, valores: Valores, medias: Map<string, number>
 
 /** A natureza de cada ano lido: a abertura, `null` (ano não entregue) ou "erro". */
 type Natureza = Map<string, Abertura | null | "erro">;
+/** As receitas de cada ano lido (Anexo I-C): os grupos, `null` (ano não entregue) ou "erro". */
+type Receitas = Map<string, ReceitasAno | null | "erro">;
 
 /** O município lido, com as opções da URL e a função que as troca. */
 type PropsMunicipio = Extract<Estado, { fase: "pronto" }> & { opcoes: Opcoes; mudar: (t: Record<string, string | null>) => void };
@@ -243,6 +246,24 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
     }
     return () => c.abort();
   }, [chavePedidos, ente.codigo]);
+
+  // As receitas (Anexo I-C) também vêm sob demanda: os anos dos mandatos abertos que têm contas
+  const [receitas, setReceitas] = useState<Receitas>(new Map());
+  useEffect(() => setReceitas(new Map()), [ente.codigo]);
+  const chaveReceitas = [aberto, comparado].flatMap((r) => (r ? anosDo(r.mandato) : []))
+    .filter((ano) => dados.contas.get(ano) && !receitas.has(ano)).join(",");
+  useEffect(() => {
+    if (!chaveReceitas) return;
+    const c = new AbortController();
+    for (const ano of chaveReceitas.split(",")) {
+      carregarReceitas(ente.codigo, Number(ano), c.signal)
+        .then((a) => setReceitas((m) => new Map(m).set(ano, a)))
+        .catch((e: Error) => {
+          if (e.name !== "AbortError") setReceitas((m) => new Map(m).set(ano, "erro"));
+        });
+    }
+    return () => c.abort();
+  }, [chaveReceitas, ente.codigo]);
 
   const fmt = opcoes.medida === "total" ? moedaCompacta : moeda;
   const unidade = `${opcoes.medida === "habitante" ? "por habitante, " : ""}${valores === "reais" ? `em R$ de ${base}` : "em R$ da época"}`;
@@ -321,7 +342,7 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
         <DetalheMandato codigo={ente.codigo} aberto={aberto} comparado={comparado} opcoes={opcoes}
           somaFuncao={[somas.get(aberto.mandato.eleicao)!, comparado ? somas.get(comparado.mandato.eleicao)! : null]}
           natureza={natureza} conv={conv} fmt={fmt} unidade={unidade} opcoesComparar={comContas} mudar={mudar}
-          emendas={emendas} convenios={convenios} />
+          emendas={emendas} convenios={convenios} receitas={receitas} contas={dados.contas} />
       )}
 
       <AnoAAno contas={dados.contas} conv={conv} fmt={fmt} populacao={populacao} unidade={unidade} />
@@ -403,7 +424,7 @@ function LinhaMandato({ resumo: r, soma, fmt, aberto, onAbrir }: { resumo: Resum
 
 /** O mandato aberto: com o que foi gasto, a comparação com outro mandato e os links nas outras abas. */
 function DetalheMandato({ codigo, aberto, comparado, opcoes, somaFuncao, natureza, conv, fmt, unidade,
-  opcoesComparar, mudar, emendas, convenios }: {
+  opcoesComparar, mudar, emendas, convenios, receitas, contas }: {
   codigo: string;
   aberto: ResumoMandato;
   comparado: ResumoMandato | null;
@@ -417,6 +438,8 @@ function DetalheMandato({ codigo, aberto, comparado, opcoes, somaFuncao, naturez
   mudar: (t: Record<string, string | null>) => void;
   emendas: EstadoEmendas;
   convenios: EstadoConvenios;
+  receitas: Receitas;
+  contas: Map<string, Abertura | null>;
 }) {
   const m = aberto.mandato;
   const porNatureza = opcoes.abertura === "natureza";
@@ -469,6 +492,9 @@ function DetalheMandato({ codigo, aberto, comparado, opcoes, somaFuncao, naturez
           : "Área: funções da despesa (Anexo I-E); clique numa função para ver as subfunções."}
         {b ? " Mandatos com números diferentes de anos com contas se comparam pela média por ano." : ""}
       </p>
+
+      <ReceitasMandato codigo={codigo} aberto={aberto} comparado={comparado} receitas={receitas} contas={contas}
+        conv={conv} fmt={fmt} unidade={unidade} />
 
       <EmendasMandato codigo={codigo} estado={emendas} anos={anosDo(m)}
         anosComparado={comparado ? anosDo(comparado.mandato) : null}
@@ -707,5 +733,60 @@ function AnoAAno({ contas, conv, fmt, populacao, unidade }: { contas: Map<string
       </div>
       <p className="busca-detalhe">Valores {unidade}.</p>
     </details>
+  );
+}
+
+
+/** A receita do município no mandato aberto (e no comparado): os grupos da DCA, Anexo I-C, e as deduções. */
+function ReceitasMandato({ codigo, aberto, comparado, receitas, contas, conv, fmt, unidade }: {
+  codigo: string;
+  aberto: ResumoMandato;
+  comparado: ResumoMandato | null;
+  receitas: Receitas;
+  contas: Map<string, Abertura | null>;
+  conv: (valor: number, ano: string) => number | null;
+  fmt: (v: number | null | undefined) => string;
+  unidade: string;
+}) {
+  const anos = (r: ResumoMandato) => anosDo(r.mandato).filter((ano) => contas.get(ano));
+  const esperados = [aberto, comparado].flatMap((r) => (r ? anos(r) : []));
+  const faltando = esperados.filter((ano) => !receitas.has(ano));
+  const comErro = esperados.filter((ano) => receitas.get(ano) === "erro");
+  const lidas = new Map([...receitas].map(([ano, r]) => [ano, r === "erro" ? undefined : r] as const));
+  const a = somarAberturas(anosDo(aberto.mandato), lidas, conv);
+  const b = comparado ? somarAberturas(anosDo(comparado.mandato), lidas, conv) : null;
+  const deducoes = a.anos.reduce((s, ano) => {
+    const r = receitas.get(ano);
+    const v = r && r !== "erro" ? conv(r.deducoes, ano) : null;
+    return s + (v ?? 0);
+  }, 0);
+  const rotulo = (r: ResumoMandato) => `${r.mandato.de}–${r.mandato.ate}`;
+
+  return (
+    <>
+      <h3 className="modal-subtitulo">Receita do município no mandato</h3>
+      {faltando.length > 0 && <p className="busca-detalhe">Lendo as receitas ({faltando.join(", ")})…</p>}
+      {comErro.length > 0 && <p className="busca-detalhe">Não foi possível ler agora as receitas de {comErro.join(", ")}.</p>}
+      {a.anos.length > 0 && (
+        <TabelaGastos a={a} b={b} rotuloA={rotulo(aberto)} rotuloB={comparado ? rotulo(comparado) : ""} fmt={fmt}
+          coluna="Origem" />
+      )}
+      {a.anos.length > 0 && (
+        <p className="busca-detalhe">
+          Receita realizada nas contas anuais (DCA, Anexo I-C), sem as intraorçamentárias, em valores {unidade}. Desse
+          total, {fmt(deducoes)} foram deduzidos (a retenção para o FUNDEB e outras), e a receita líquida do mandato fica
+          em {fmt(a.total - deducoes)}. O FUNDEB volta ao município na linha própria. Contas anuais no SICONFI:{" "}
+          {a.anos.map((ano, i) => (
+            <Fragment key={ano}>
+              {i > 0 && " · "}
+              <a href={urlDcaNaFonte(codigo, Number(ano), "I-C")} target="_blank" rel="noreferrer">
+                {ano}
+              </a>
+            </Fragment>
+          ))}
+          .
+        </p>
+      )}
+    </>
   );
 }

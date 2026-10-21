@@ -195,3 +195,57 @@ export function somarAberturas(anos: string[], porAno: Map<string, Abertura | nu
 export function variacao(a: number, b: number): number | null {
   return b ? (a / b - 1) * 100 : null;
 }
+
+/** As receitas de um ano (DCA, Anexo I-C) em grupos, e as deduções da receita (a retenção para o FUNDEB e outras). */
+export interface ReceitasAno extends Abertura {
+  deducoes: number;
+}
+
+/** Os grupos de receita, na ordem da tela. */
+export const GRUPOS_RECEITA: Record<string, string> = {
+  impostos: "Impostos, taxas e contribuições de melhoria (próprios)",
+  contribuicoes: "Contribuições (previdência própria, iluminação pública)",
+  uniao: "Transferências da União (FPM, SUS, FNDE…)",
+  estado: "Transferências do estado (ICMS, IPVA…)",
+  fundeb: "FUNDEB",
+  outras_transferencias: "Outras transferências correntes",
+  outras_correntes: "Outras receitas correntes (patrimonial, serviços…)",
+  capital: "Receitas de capital (operações de crédito, transferências de capital…)",
+};
+
+/**
+ * As receitas realizadas de um ano em grupos (DCA, Anexo I-C, "Receitas Brutas Realizadas"), sem as
+ * intraorçamentárias; `null` se o ano não foi entregue.
+ *
+ * O ementário da receita mudou em 2018, e o formato do código diz qual vale: até 2017, `RO1.7.2.1.00.00.00` é a
+ * transferência da União, `1.7.2.2` a do estado e `1.7.2.4` (multigovernamentais) o FUNDEB; de 2018 em diante,
+ * `RO1.7.1.0.00.0.0`, `1.7.2` e `1.7.5`. Os grupos somam as receitas correntes (1) e de capital (2), ao centavo
+ * (São Sepé, 2015, 2017, 2018 e 2024). As deduções (a retenção para o FUNDEB e outras) ficam à parte.
+ */
+export function lerReceitas(bruto: unknown): ReceitasAno | null {
+  const itens = (bruto as { items?: Item[] } | null)?.items;
+  if (!Array.isArray(itens)) throw new ErroFeed("resposta do SICONFI sem items");
+  if (itens.length === 0) return null;
+  const realizadas = itens.filter((i) => i.coluna === "Receitas Brutas Realizadas" && typeof i.valor === "number");
+  const novo = realizadas.some((i) => /^RO\d\.\d\.\d\.\d\.\d\d\.\d\.\d$/.test(i.cod_conta ?? ""));
+  const codigo = (prefixo: string) => {
+    const partes = prefixo.split(".");
+    return `RO${[...partes, ...Array(4 - partes.length).fill("0")].join(".")}.${novo ? "00.0.0" : "00.00.00"}`;
+  };
+  const valor = (prefixo: string) => realizadas.find((i) => i.cod_conta === codigo(prefixo))?.valor ?? 0;
+  const correntes = valor("1");
+  const capital = valor("2");
+  const transferencias = valor("1.7");
+  const uniao = valor(novo ? "1.7.1" : "1.7.2.1");
+  const estado = valor(novo ? "1.7.2" : "1.7.2.2");
+  const fundeb = valor(novo ? "1.7.5" : "1.7.2.4");
+  const impostos = valor("1.1");
+  const contribuicoes = valor("1.2");
+  const valores: Record<string, number> = {
+    impostos, contribuicoes, uniao, estado, fundeb, outras_transferencias: transferencias - uniao - estado - fundeb,
+    outras_correntes: correntes - impostos - contribuicoes - transferencias, capital,
+  };
+  const deducoes = itens.filter((i) => /Dedu/.test(i.coluna ?? "") && typeof i.valor === "number"
+    && (i.cod_conta === codigo("1") || i.cod_conta === codigo("2"))).reduce((s, i) => s + (i.valor as number), 0);
+  return { total: correntes + capital, valores, nomes: { ...GRUPOS_RECEITA }, pai: {}, deducoes };
+}

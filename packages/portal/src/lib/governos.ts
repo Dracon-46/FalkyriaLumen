@@ -20,7 +20,7 @@ import { carregarFeed, carregarIndice, obterJson } from "./feeds";
 import type { Candidato, Feed, Indice } from "./tipos";
 import type { Indicador } from "./economia";
 import { ErroFeed } from "./validacao";
-import { type Abertura, lerPorFuncao, lerPorNatureza } from "./gastos";
+import { type Abertura, lerPorFuncao, lerPorNatureza, lerReceitas, type ReceitasAno } from "./gastos";
 
 /** Endereço do portal que a Vercel repassa ao SICONFI (`vercel.json`). */
 export const API_SICONFI = "/api/siconfi";
@@ -158,12 +158,15 @@ export function populacaoPorAno(estimativas: [string, number][], censo2022: numb
 
 // ------------------------------------------------------------------------------------------ despesas
 
-/** Consulta da DCA de um ano pelo endereço do portal (a Vercel repassa ao SICONFI): Anexo I-E (por função) ou I-D. */
-export const urlDca = (codigo: string, ano: number, anexo: "I-E" | "I-D" = "I-E") =>
+/** Os anexos da DCA lidos: I-E (despesa por função), I-D (despesa por natureza) e I-C (receitas). */
+export type AnexoDca = "I-E" | "I-D" | "I-C";
+
+/** Consulta da DCA de um ano pelo endereço do portal (a Vercel repassa ao SICONFI). */
+export const urlDca = (codigo: string, ano: number, anexo: AnexoDca = "I-E") =>
   `${API_SICONFI}/dca/?an_exercicio=${ano}&no_anexo=${encodeURIComponent(`DCA-Anexo ${anexo}`)}&id_ente=${codigo}`;
 
 /** A mesma consulta direto no SICONFI, para o link da fonte. */
-export const urlDcaNaFonte = (codigo: string, ano: number, anexo: "I-E" | "I-D" = "I-E") =>
+export const urlDcaNaFonte = (codigo: string, ano: number, anexo: AnexoDca = "I-E") =>
   `https://apidatalake.tesouro.gov.br/ords/siconfi/tt${urlDca(codigo, ano, anexo).slice(API_SICONFI.length)}`
     .replace("/dca/?", "/dca?");
 
@@ -200,6 +203,11 @@ export async function obterDoSiconfi(url: string, sinal?: AbortSignal, esperas =
       if (sinal?.aborted) throw new DOMException("cancelada", "AbortError");
     }
   }
+}
+
+/** As receitas de um ano (Anexo I-C), pelo endereço do portal; `null` se o ano não foi entregue. */
+export function carregarReceitas(codigo: string, ano: number, sinal?: AbortSignal): Promise<ReceitasAno | null> {
+  return obterDoSiconfi(urlDca(codigo, ano, "I-C"), sinal).then(lerReceitas);
 }
 
 /** A despesa por natureza de um ano (Anexo I-D), pelo endereço do portal; `null` se o ano não foi entregue. */

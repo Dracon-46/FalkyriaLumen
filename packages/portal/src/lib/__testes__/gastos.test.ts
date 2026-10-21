@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ligacoesDoEnte } from "@/componentes/Ligacoes";
-import { lerPorFuncao, lerPorNatureza, somarAberturas, variacao, type Abertura } from "../gastos";
+import { lerPorFuncao, lerPorNatureza, lerReceitas, somarAberturas, variacao, type Abertura } from "../gastos";
 import { obterDoSiconfi, urlDca, urlDcaNaFonte } from "../governos";
 import { ErroFeed } from "../validacao";
 
@@ -132,5 +132,35 @@ describe("consulta ao SICONFI", () => {
     expect(fetch).toHaveBeenCalledTimes(2);
     await expect(obterDoSiconfi("/api/siconfi/dca/?x=2", undefined, [0])).rejects.toThrow(ErroFeed);
     expect(fetch).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe("receitas do município (DCA, Anexo I-C)", () => {
+  const r = (cod_conta: string, valor: number, coluna = "Receitas Brutas Realizadas") => ({ coluna, cod_conta, conta: cod_conta, valor });
+
+  it("agrupa pelo ementário antigo (até 2017): São Sepé, 2015", () => {
+    const a = lerReceitas({ items: [
+      r("TotalReceitas", 66763667), r("RO1.0.0.0.00.00.00", 59515398), r("RO1.1.0.0.00.00.00", 5432597),
+      r("RO1.2.0.0.00.00.00", 2612530), r("RO1.7.0.0.00.00.00", 46527098), r("RO1.7.2.1.00.00.00", 21978191),
+      r("RO1.7.2.2.00.00.00", 16911955), r("RO1.7.2.4.00.00.00", 7505122), r("RO2.0.0.0.00.00.00", 1078734),
+      r("RO1.0.0.0.00.00.00", 6478639, "Deduções - FUNDEB"), r("RO1.0.0.0.00.00.00", 744094, "Outras Deduções da Receita"),
+    ] })!;
+    expect(a.total).toBe(59515398 + 1078734);                      // sem as intraorçamentárias do "Total Receitas"
+    expect(a.valores).toMatchObject({ uniao: 21978191, estado: 16911955, fundeb: 7505122, impostos: 5432597 });
+    expect(Object.values(a.valores).reduce((s, v) => s + v, 0)).toBe(a.total);
+    expect(a.deducoes).toBe(6478639 + 744094);
+  });
+
+  it("agrupa pelo ementário novo (de 2018): São Sepé, 2024", () => {
+    const a = lerReceitas({ items: [
+      r("ReceitasExcetoIntraOrcamentarias", 151236848), r("RO1.0.0.0.00.0.0", 151108843), r("RO1.1.0.0.00.0.0", 19118926),
+      r("RO1.2.0.0.00.0.0", 10594706), r("RO1.7.0.0.00.0.0", 111242471), r("RO1.7.1.0.00.0.0", 51619307),
+      r("RO1.7.2.0.00.0.0", 40705721), r("RO1.7.5.0.00.0.0", 18872320), r("RO2.0.0.0.00.0.0", 128005),
+    ] })!;
+    expect(a.total).toBe(151236848);
+    expect(a.valores).toMatchObject({ uniao: 51619307, estado: 40705721, fundeb: 18872320, outras_transferencias: 45123,
+                                      outras_correntes: 151108843 - 19118926 - 10594706 - 111242471, capital: 128005 });
+    expect(a.nomes.uniao).toMatch(/^Transferências da União/);
+    expect(lerReceitas({ items: [] })).toBeNull();
   });
 });

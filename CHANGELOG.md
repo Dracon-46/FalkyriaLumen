@@ -5,6 +5,15 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Governos municipais: a receita do município no mandato (ADR-040, adendo)
+
+- O mandato aberto mostra a receita do município por origem (impostos
+  próprios, contribuições, transferências da União e do estado, FUNDEB,
+  outras e receitas de capital), da DCA, Anexo I-C, com as deduções e a
+  receita líquida, e o outro mandato ao lado na comparação.
+- A leitura entende o ementário de antes e de depois de 2018; os grupos somam
+  as receitas correntes e de capital ao centavo.
+
 ### Convênios da União nos governos municipais (ADR-045)
 
 - Coleta nova, `lumen painel convenios`, no fluxo diário dos painéis: o arquivo
