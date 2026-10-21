@@ -21,10 +21,12 @@ const INICIAIS = 10;
 export type EstadoTce = { fase: "carregando" } | { fase: "pronto"; tce: TceEnte | null } | { fase: "erro" };
 
 /** A seção dos contratos no tribunal de contas, no mandato aberto (e no comparado, se houver). */
-export function TceMandato({ estado, anos, anosComparado, rotulos, conv, fmt, unidade }: {
+export function TceMandato({ estado, anos, anosComparado, outroMunicipio = null, rotulos, conv, fmt, unidade }: {
   estado: EstadoTce;
   anos: string[];
   anosComparado: string[] | null;
+  /** O município lado a lado (Governos municipais, `com`), no mesmo mandato, com a conversão dele. */
+  outroMunicipio?: { nome: string; tce: TceEnte; conv: (valor: number, ano: string) => number | null } | null;
   rotulos: [string, string];
   conv: (valor: number, ano: string) => number | null;
   fmt: (v: number | null | undefined) => string;
@@ -37,6 +39,7 @@ export function TceMandato({ estado, anos, anosComparado, rotulos, conv, fmt, un
   if (!t) return null;
   const r = tceNoPeriodo(t, anos, conv);
   const outro = anosComparado ? tceNoPeriodo(t, anosComparado, conv) : null;
+  const vizinho = outroMunicipio ? tceNoPeriodo(outroMunicipio.tce, anos, outroMunicipio.conv) : null;
   const fornecedores = todos ? r.fornecedores : r.fornecedores.slice(0, INICIAIS);
   const detalhe = (x: typeof r) => x.anos.length
     ? `${numero(x.contratos)} contrato(s) de ${x.anos.join(", ")}` : `nenhum contrato registrado nos anos do mandato`;
@@ -47,6 +50,10 @@ export function TceMandato({ estado, anos, anosComparado, rotulos, conv, fmt, un
       <div className="totais">
         <Numero rotulo={`Contratado em ${rotulos[0]}`} valor={fmt(r.valor)} detalhe={detalhe(r)} />
         {outro && <Numero rotulo={`Contratado em ${rotulos[1]}`} valor={fmt(outro.valor)} detalhe={detalhe(outro)} />}
+        {vizinho && outroMunicipio && (
+          <Numero rotulo={`${outroMunicipio.nome}, no mesmo mandato`} valor={fmt(vizinho.valor)}
+            detalhe={`${detalhe(vizinho)} (${outroMunicipio.tce.tribunal})`} />
+        )}
         {r.aditivos > 0 && (
           <Numero rotulo="Aditivos" valor={numero(r.aditivos)} detalhe={`acréscimo líquido de ${fmt(r.aditivosValor)}`} />
         )}

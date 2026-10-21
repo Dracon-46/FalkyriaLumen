@@ -11,6 +11,8 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   órgãos pernambucanos, estaduais e municipais, de 2013 em diante, pela API de
   dados abertos do tribunal, com os aditivos. Aparecem no mandato aberto de
   Governos municipais e na página da empresa, como os do RS e do PR.
+- Governos municipais: no lado a lado com outro município, o mandato aberto
+  mostra também o contratado no tribunal de contas do outro, no mesmo mandato.
 
 ## 0.9.0 — 2026-10-21
 

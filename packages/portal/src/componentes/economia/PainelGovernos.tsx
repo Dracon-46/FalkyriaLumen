@@ -22,7 +22,7 @@ import { carregarEmendas } from "@/lib/emendas";
 import { ConveniosMandato, type EstadoConvenios } from "@/componentes/economia/ConveniosMandato";
 import { carregarConvenios } from "@/lib/convenios";
 import { TceMandato, type EstadoTce } from "@/componentes/economia/TceMandato";
-import { carregarTce } from "@/lib/tce";
+import { carregarTce, type TceEnte } from "@/lib/tce";
 import { BuscaEnte } from "@/componentes/paineis/Comuns";
 import { numero, percentual } from "@/lib/formato";
 import { carregarEconomia } from "@/lib/economia";
@@ -284,6 +284,19 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
     return () => c.abort();
   }, [ente.codigo]);
 
+  // E os do município lado a lado, quando houver (o tribunal pode ser outro, ou nenhum)
+  const codigoOutro = lidoOutro?.ente.codigo ?? null;
+  const [tceOutro, setTceOutro] = useState<TceEnte | null>(null);
+  useEffect(() => {
+    setTceOutro(null);
+    if (!codigoOutro) return;
+    const c = new AbortController();
+    carregarTce(codigoOutro, c.signal)
+      .then(setTceOutro)
+      .catch(() => undefined);
+    return () => c.abort();
+  }, [codigoOutro]);
+
   // A despesa por natureza vem sob demanda: só os anos dos mandatos abertos, quando a abertura é por tipo de gasto
   const [natureza, setNatureza] = useState<Natureza>(new Map());
   useEffect(() => setNatureza(new Map()), [ente.codigo]);
@@ -419,7 +432,8 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
           outro={lidoOutro && somaNoOutro ? { nome: lidoOutro.ente.nome, soma: somaNoOutro } : null}
           somaFuncao={[somas.get(aberto.mandato.eleicao)!, comparado ? somas.get(comparado.mandato.eleicao)! : null]}
           natureza={natureza} conv={conv} fmt={fmt} unidade={unidade} opcoesComparar={comContas} mudar={mudar}
-          emendas={emendas} convenios={convenios} tce={tce} receitas={receitas} contas={dados.contas} />
+          emendas={emendas} convenios={convenios} tce={tce} receitas={receitas} contas={dados.contas}
+          tceOutro={lidoOutro && tceOutro && doOutro ? { nome: lidoOutro.ente.nome, tce: tceOutro, conv: doOutro.conv } : null} />
       )}
 
       <AnoAAno contas={dados.contas} conv={conv} fmt={fmt} populacao={populacao} unidade={unidade} />
@@ -516,7 +530,7 @@ function LinhaMandato({ resumo: r, soma, fmt, aberto, outro, onAbrir }: { resumo
 
 /** O mandato aberto: com o que foi gasto, a comparação com outro mandato e os links nas outras abas. */
 function DetalheMandato({ codigo, nome, aberto, comparado, outro, opcoes, somaFuncao, natureza, conv, fmt, unidade,
-  opcoesComparar, mudar, emendas, convenios, tce, receitas, contas }: {
+  opcoesComparar, mudar, emendas, convenios, tce, tceOutro, receitas, contas }: {
   codigo: string;
   nome: string;
   aberto: ResumoMandato;
@@ -534,6 +548,8 @@ function DetalheMandato({ codigo, nome, aberto, comparado, outro, opcoes, somaFu
   emendas: EstadoEmendas;
   convenios: EstadoConvenios;
   tce: EstadoTce;
+  /** O tribunal de contas do município lado a lado, com a conversão dele (população própria). */
+  tceOutro: { nome: string; tce: TceEnte; conv: (valor: number, ano: string) => number | null } | null;
   receitas: Receitas;
   contas: Map<string, Abertura | null>;
 }) {
@@ -613,6 +629,7 @@ function DetalheMandato({ codigo, nome, aberto, comparado, outro, opcoes, somaFu
         rotulos={[rotulo(aberto), comparado ? rotulo(comparado) : ""]} conv={conv} fmt={fmt} unidade={unidade} />
 
       <TceMandato estado={tce} anos={anosDo(m)} anosComparado={comparado ? anosDo(comparado.mandato) : null}
+        outroMunicipio={comparado ? null : tceOutro}
         rotulos={[rotulo(aberto), comparado ? rotulo(comparado) : ""]} conv={conv} fmt={fmt} unidade={unidade} />
 
       <h3 className="modal-subtitulo">Este mandato nas outras abas</h3>
