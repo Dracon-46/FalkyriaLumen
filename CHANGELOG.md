@@ -5,6 +5,14 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Governos municipais: lado a lado com outro município (ADR-040, adendo)
+
+- Filtro "Lado a lado com" (`?com=<código IBGE>`): a tabela de mandatos ganha
+  o gasto e a média por ano do outro município no mesmo mandato, com quem
+  governou lá.
+- O mandato aberto se compara, por área, com o mesmo mandato no outro
+  município; "Comparar com" ainda escolhe outro mandato do mesmo município.
+
 ### Empresa ou entidade pelo CNPJ: a visão 360 (ADR-049)
 
 - Página nova, `/pessoa-juridica/?cnpj=…`: o cadastro na Receita, os

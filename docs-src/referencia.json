@@ -14348,14 +14348,14 @@
   {
    "caminho": "packages/portal/src/app/page.tsx",
    "linguagem": "typescript",
-   "linhas": 46,
+   "linhas": 53,
    "doc": "Página inicial do portal: apresenta o Lumen e leva às áreas.",
    "itens": [
     {
      "tipo": "componente",
      "nome": "Inicio",
      "assinatura": "export default function Inicio()",
-     "doc": "Apresentação e um cartão por área (Eleições, Contratações, Economia, Conformidade).",
+     "doc": "Apresentação e um cartão por área (Eleições, Contratações, Economia, Conformidade, Empresas e entidades).",
      "linha": 6
     }
    ]
@@ -14679,8 +14679,8 @@
   {
    "caminho": "packages/portal/src/componentes/economia/PainelGovernos.tsx",
    "linguagem": "typescript",
-   "linhas": 792,
-   "doc": "Governos municipais (ADR-040 e adendo de 20/10/2026): para o município de `?ente=`, cada mandato de prefeito com\nquem foi eleito, a população e quanto o município gastou. Ao abrir um mandato, com o que foi gasto, por área\n(função e subfunção) ou por tipo de gasto (natureza e elemento), a comparação com outro mandato e os links do\nmandato nas outras abas.\n\nOs filtros ficam na URL, para o link abrir igual: `ver` (o total gasto, padrão, ou `habitante`), `valores`\n(`reais`, corrigidos pelo IPCA, padrão, ou `epoca`), `mandato` e `comparar` (o ano da eleição) e `abertura`\n(`funcao`, padrão, ou `natureza`). Lido sob demanda das fontes (`lib/governos.ts` e `lib/gastos.ts`); como a\ncomparação de presidentes, mostra o que foi registrado, não o que causou a diferença.",
+   "linhas": 884,
+   "doc": "Governos municipais (ADR-040 e adendo de 20/10/2026): para o município de `?ente=`, cada mandato de prefeito com\nquem foi eleito, a população e quanto o município gastou. Ao abrir um mandato, com o que foi gasto, por área\n(função e subfunção) ou por tipo de gasto (natureza e elemento), a comparação com outro mandato ou com o mesmo\nmandato em outro município e os links do mandato nas outras abas.\n\nOs filtros ficam na URL, para o link abrir igual: `ver` (o total gasto, padrão, ou `habitante`), `valores`\n(`reais`, corrigidos pelo IPCA, padrão, ou `epoca`), `mandato` e `comparar` (o ano da eleição), `com` (o código\nde outro município, lado a lado) e `abertura` (`funcao`, padrão, ou `natureza`). Lido sob demanda das fontes (`lib/governos.ts` e `lib/gastos.ts`); como a\ncomparação de presidentes, mostra o que foi registrado, não o que causou a diferença.",
    "itens": [
     {
      "tipo": "tipo",
@@ -14707,7 +14707,7 @@
      "tipo": "interface",
      "nome": "Opcoes",
      "assinatura": "interface Opcoes",
-     "doc": "O que a URL pede: medida, valores, mandato aberto, mandato comparado e abertura.",
+     "doc": "O que a URL pede: medida, valores, mandato aberto, mandato comparado, outro município e abertura.",
      "linha": 62
     },
     {
@@ -14715,112 +14715,126 @@
      "nome": "lerOpcoes",
      "assinatura": "function lerOpcoes(params: { get(chave: string): string | null }): Opcoes",
      "doc": "As opções a partir da URL; valor fora do esperado vira o padrão.",
-     "linha": 71
+     "linha": 72
     },
     {
      "tipo": "tipo",
      "nome": "Estado",
      "assinatura": "type Estado =",
      "doc": "O andamento da leitura do município.",
-     "linha": 89
+     "linha": 91
     },
     {
      "tipo": "componente",
      "nome": "PainelGovernos",
      "assinatura": "export function PainelGovernos()",
      "doc": "A página dos governos municipais, a partir de `?ente=` na URL.",
-     "linha": 96
+     "linha": 98
     },
     {
      "tipo": "funcao",
      "nome": "conversor",
      "assinatura": "function conversor(medida: Medida, valores: Valores, medias: Map<string, number>, base: string | null,",
      "doc": "A conversão de cada ano para o que a tela mostra: reais de `base` (ou da época), no total ou por habitante.",
-     "linha": 169
+     "linha": 171
+    },
+    {
+     "tipo": "tipo",
+     "nome": "EstadoOutro",
+     "assinatura": "type EstadoOutro = { fase: \"nenhum\" } | { fase: \"carregando\" } | { fase: \"pronto\"; ente: EnteBusca; dados: DadosMunicipio }",
+     "doc": "O outro município da comparação: nenhum, carregando, lido ou com erro.",
+     "linha": 182
+    },
+    {
+     "tipo": "funcao",
+     "nome": "useMandatos",
+     "assinatura": "function useMandatos(dados: DadosMunicipio | null, medida: Medida, valores: Valores, medias: Map<string, number>,",
+     "doc": "O que a tela usa de um município lido: os resumos dos mandatos, a conversão e a soma por área de cada mandato.",
+     "linha": 186
     },
     {
      "tipo": "tipo",
      "nome": "Natureza",
      "assinatura": "type Natureza = Map<string, Abertura | null | \"erro\">;",
      "doc": "A natureza de cada ano lido: a abertura, `null` (ano não entregue) ou \"erro\".",
-     "linha": 180
+     "linha": 201
     },
     {
      "tipo": "tipo",
      "nome": "Receitas",
      "assinatura": "type Receitas = Map<string, ReceitasAno | null | \"erro\">;",
      "doc": "As receitas de cada ano lido (Anexo I-C): os grupos, `null` (ano não entregue) ou \"erro\".",
-     "linha": 182
+     "linha": 203
     },
     {
      "tipo": "tipo",
      "nome": "PropsMunicipio",
      "assinatura": "type PropsMunicipio = Extract<Estado, { fase: \"pronto\" }> & { opcoes: Opcoes; mudar: (t: Record<string, string | null>) => void };",
      "doc": "O município lido, com as opções da URL e a função que as troca.",
-     "linha": 185
+     "linha": 206
     },
     {
      "tipo": "componente",
      "nome": "Municipio",
      "assinatura": "function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)",
      "doc": "Os filtros, os mandatos e o mandato aberto do município lido.",
-     "linha": 188
+     "linha": 209
     },
     {
      "tipo": "componente",
      "nome": "LinhaMandato",
-     "assinatura": "function LinhaMandato({ resumo: r, soma, fmt, aberto, onAbrir }: { resumo: ResumoMandato; soma: SomaGastos;",
+     "assinatura": "function LinhaMandato({ resumo: r, soma, fmt, aberto, outro, onAbrir }: { resumo: ResumoMandato; soma: SomaGastos;",
      "doc": "Uma linha da tabela de mandatos.",
-     "linha": 381
+     "linha": 443
     },
     {
      "tipo": "componente",
      "nome": "DetalheMandato",
-     "assinatura": "function DetalheMandato({ codigo, aberto, comparado, opcoes, somaFuncao, natureza, conv, fmt, unidade,",
+     "assinatura": "function DetalheMandato({ codigo, nome, aberto, comparado, outro, opcoes, somaFuncao, natureza, conv, fmt, unidade,",
      "doc": "O mandato aberto: com o que foi gasto, a comparação com outro mandato e os links nas outras abas.",
-     "linha": 426
+     "linha": 503
     },
     {
      "tipo": "interface",
      "nome": "LinhaDupla",
      "assinatura": "interface LinhaDupla",
      "doc": "Uma linha das duas somas lado a lado (a de um dos mandatos pode faltar).",
-     "linha": 554
+     "linha": 646
     },
     {
      "tipo": "funcao",
      "nome": "juntar",
      "assinatura": "function juntar(as: LinhaGasto[], bs: LinhaGasto[]): LinhaDupla[]",
      "doc": "Junta as linhas das duas somas pelo código, na ordem da primeira e, depois, as que só a segunda tem.",
-     "linha": 563
+     "linha": 655
     },
     {
      "tipo": "componente",
      "nome": "TabelaGastos",
      "assinatura": "function TabelaGastos({ a, b, rotuloA, rotuloB, fmt, coluna }: { a: SomaGastos; b: SomaGastos | null;",
      "doc": "A tabela de com o que foi gasto: uma soma (com os anos) ou duas lado a lado; as linhas abrem os filhos.",
-     "linha": 575
+     "linha": 667
     },
     {
      "tipo": "funcao",
      "nome": "formatarVariacao",
      "assinatura": "function formatarVariacao(v: number | null): string",
      "doc": "\"+12,30%\", \"−4,10%\" ou \"—\".",
-     "linha": 687
+     "linha": 779
     },
     {
      "tipo": "componente",
      "nome": "AnoAAno",
      "assinatura": "function AnoAAno({ contas, conv, fmt, populacao, unidade }: { contas: Map<string, Abertura | null>;",
      "doc": "O ano a ano: a despesa total e quatro áreas, na medida e nos valores escolhidos.",
-     "linha": 693
+     "linha": 785
     },
     {
      "tipo": "componente",
      "nome": "ReceitasMandato",
      "assinatura": "function ReceitasMandato({ codigo, aberto, comparado, receitas, contas, conv, fmt, unidade }:",
      "doc": "A receita do município no mandato aberto (e no comparado): os grupos da DCA, Anexo I-C, e as deduções.",
-     "linha": 741
+     "linha": 833
     }
    ]
   },

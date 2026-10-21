@@ -3,12 +3,12 @@
 /**
  * Governos municipais (ADR-040 e adendo de 20/10/2026): para o município de `?ente=`, cada mandato de prefeito com
  * quem foi eleito, a população e quanto o município gastou. Ao abrir um mandato, com o que foi gasto, por área
- * (função e subfunção) ou por tipo de gasto (natureza e elemento), a comparação com outro mandato e os links do
- * mandato nas outras abas.
+ * (função e subfunção) ou por tipo de gasto (natureza e elemento), a comparação com outro mandato ou com o mesmo
+ * mandato em outro município e os links do mandato nas outras abas.
  *
  * Os filtros ficam na URL, para o link abrir igual: `ver` (o total gasto, padrão, ou `habitante`), `valores`
- * (`reais`, corrigidos pelo IPCA, padrão, ou `epoca`), `mandato` e `comparar` (o ano da eleição) e `abertura`
- * (`funcao`, padrão, ou `natureza`). Lido sob demanda das fontes (`lib/governos.ts` e `lib/gastos.ts`); como a
+ * (`reais`, corrigidos pelo IPCA, padrão, ou `epoca`), `mandato` e `comparar` (o ano da eleição), `com` (o código
+ * de outro município, lado a lado) e `abertura` (`funcao`, padrão, ou `natureza`). Lido sob demanda das fontes (`lib/governos.ts` e `lib/gastos.ts`); como a
  * comparação de presidentes, mostra o que foi registrado, não o que causou a diferença.
  */
 
@@ -58,12 +58,13 @@ type Valores = "reais" | "epoca";
 /** A abertura de com o que foi gasto: por área (função) ou por tipo de gasto (natureza). */
 type TipoAbertura = "funcao" | "natureza";
 
-/** O que a URL pede: medida, valores, mandato aberto, mandato comparado e abertura. */
+/** O que a URL pede: medida, valores, mandato aberto, mandato comparado, outro município e abertura. */
 interface Opcoes {
   medida: Medida;
   valores: Valores;
   mandato: number | null;
   comparar: number | null;
+  com: string | null;
   abertura: TipoAbertura;
 }
 
@@ -78,6 +79,7 @@ function lerOpcoes(params: { get(chave: string): string | null }): Opcoes {
     valores: params.get("valores") === "epoca" ? "epoca" : "reais",
     mandato: ano("mandato"),
     comparar: ano("comparar"),
+    com: /^\d{7}$/.test(params.get("com") ?? "") ? params.get("com") : null,
     abertura: params.get("abertura") === "natureza" ? "natureza" : "funcao",
   };
 }
@@ -176,6 +178,25 @@ function conversor(medida: Medida, valores: Valores, medias: Map<string, number>
   };
 }
 
+/** O outro município da comparação: nenhum, carregando, lido ou com erro. */
+type EstadoOutro = { fase: "nenhum" } | { fase: "carregando" } | { fase: "pronto"; ente: EnteBusca; dados: DadosMunicipio }
+  | { fase: "erro"; mensagem: string };
+
+/** O que a tela usa de um município lido: os resumos dos mandatos, a conversão e a soma por área de cada mandato. */
+function useMandatos(dados: DadosMunicipio | null, medida: Medida, valores: Valores, medias: Map<string, number>,
+  base: string | null) {
+  return useMemo(() => {
+    if (!dados) return null;
+    const populacao = populacaoPorAno(dados.estimativas, dados.censo2022);
+    const anos = anosMunicipaisComDespesa([...dados.despesas.keys()].sort(), populacao, dados.despesas, medias, base);
+    const resumos = resumirMandatos(dados.mandatos, dados.estimativas, anos).reverse();
+    const conv = conversor(medida, valores, medias, base, populacao);
+    const somas = new Map(resumos.map((r) =>
+      [r.mandato.eleicao, somarAberturas(anosDo(r.mandato), dados.contas, conv)] as const));
+    return { populacao, resumos, conv, somas };
+  }, [dados, medida, valores, medias, base]);
+}
+
 /** A natureza de cada ano lido: a abertura, `null` (ano não entregue) ou "erro". */
 type Natureza = Map<string, Abertura | null | "erro">;
 /** As receitas de cada ano lido (Anexo I-C): os grupos, `null` (ano não entregue) ou "erro". */
@@ -187,19 +208,40 @@ type PropsMunicipio = Extract<Estado, { fase: "pronto" }> & { opcoes: Opcoes; mu
 /** Os filtros, os mandatos e o mandato aberto do município lido. */
 function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio) {
   const valores: Valores = base ? opcoes.valores : "epoca";
-  const populacao = useMemo(() => populacaoPorAno(dados.estimativas, dados.censo2022), [dados]);
-  const resumos = useMemo(() => {
-    const anos = anosMunicipaisComDespesa([...dados.despesas.keys()].sort(), populacao, dados.despesas, medias, base);
-    return resumirMandatos(dados.mandatos, dados.estimativas, anos).reverse();
-  }, [dados, populacao, medias, base]);
-  const conv = useMemo(() => conversor(opcoes.medida, valores, medias, base, populacao),
-    [opcoes.medida, valores, medias, base, populacao]);
-  const somas = useMemo(() => new Map(resumos.map((r) =>
-    [r.mandato.eleicao, somarAberturas(anosDo(r.mandato), dados.contas, conv)] as const)), [resumos, dados, conv]);
+  const { populacao, resumos, conv, somas } = useMandatos(dados, opcoes.medida, valores, medias, base)!;
   const comContas = resumos.filter((r) => (somas.get(r.mandato.eleicao)?.anos.length ?? 0) > 0);
   const aberto = resumos.find((r) => r.mandato.eleicao === opcoes.mandato) ?? comContas[0] ?? null;
   const comparado = opcoes.comparar !== null && opcoes.comparar !== aberto?.mandato.eleicao
     ? resumos.find((r) => r.mandato.eleicao === opcoes.comparar) ?? null : null;
+
+  // Outro município lado a lado (`com`): os mesmos mandatos, porque a eleição municipal é a mesma em todo o país
+  const [outro, setOutro] = useState<EstadoOutro>({ fase: "nenhum" });
+  useEffect(() => {
+    const com = opcoes.com;
+    if (!com || com === ente.codigo) {
+      setOutro({ fase: "nenhum" });
+      return;
+    }
+    const c = new AbortController();
+    setOutro({ fase: "carregando" });
+    (async () => {
+      const e = (await carregarEntes()).find((x) => x.codigo === com);
+      if (!e || !e.uf || tipoDoCodigo(com) !== "municipio") throw new Error("município não encontrado no cadastro");
+      const ultimo = base ? Number(base) + 1 : new Date().getFullYear() - 1;
+      setOutro({ fase: "pronto", ente: e, dados: await carregarMunicipio(com, e.uf, ultimo, c.signal) });
+    })().catch((e: Error) => {
+      if (e.name !== "AbortError") setOutro({ fase: "erro", mensagem: e.message });
+    });
+    return () => c.abort();
+  }, [opcoes.com, ente.codigo, base]);
+  const lidoOutro = outro.fase === "pronto" ? outro : null;
+  const doOutro = useMandatos(lidoOutro?.dados ?? null, opcoes.medida, valores, medias, base);
+  /** O mesmo mandato no outro município: o resumo e a soma por área. */
+  const noOutro = (eleicao: number) => {
+    const r = doOutro?.resumos.find((x) => x.mandato.eleicao === eleicao) ?? null;
+    return { resumo: r, soma: r ? doOutro?.somas.get(eleicao) ?? null : null };
+  };
+  const somaNoOutro = aberto ? noOutro(aberto.mandato.eleicao).soma : null;
 
   // As emendas parlamentares recebidas pelo município (ADR-044): um arquivo por ente, lido uma vez
   const [emendas, setEmendas] = useState<EstadoEmendas>({ fase: "carregando" });
@@ -305,7 +347,23 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
             Da época
           </button>
         </span>
+        <span className="filtro-periodo-titulo">Lado a lado com</span>
+        {opcoes.com && outro.fase !== "nenhum" ? (
+          <span className="filtro-periodo-atalhos">
+            <span>
+              {lidoOutro ? `${lidoOutro.ente.nome} (${lidoOutro.ente.uf})` : outro.fase === "erro" ? outro.mensagem : "lendo…"}
+            </span>{" "}
+            <button type="button" className="botao-link" onClick={() => mudar({ com: null })}>tirar</button>
+          </span>
+        ) : (
+          <BuscaEnte rotulo="Outro município" onEscolher={(c) => mudar({ com: c })} />
+        )}
       </section>
+      {lidoOutro && lidoOutro.dados.falhas.length > 0 && (
+        <p className="situacao-painel">
+          Não foi possível ler agora, de {lidoOutro.ente.nome}: {lidoOutro.dados.falhas.join(", ")}.
+        </p>
+      )}
 
       <section className="cartao cartao-corpo" aria-labelledby="titulo-mandatos">
         <h2 id="titulo-mandatos" className="titulo-secao">Mandato a mandato</h2>
@@ -320,6 +378,8 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
                   <th>População</th>
                   <th className="n">Gasto no mandato</th>
                   <th className="n">Média por ano</th>
+                  {lidoOutro && <th className="n">{lidoOutro.ente.nome}: gasto no mandato</th>}
+                  {lidoOutro && <th className="n">{lidoOutro.ente.nome}: média por ano</th>}
                   <th>
                     <span className="so-leitor">Abrir</span>
                   </th>
@@ -329,6 +389,7 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
                 {resumos.map((r) => (
                   <LinhaMandato key={r.mandato.eleicao} resumo={r} soma={somas.get(r.mandato.eleicao)!} fmt={fmt}
                     aberto={r.mandato.eleicao === aberto?.mandato.eleicao}
+                    outro={lidoOutro ? noOutro(r.mandato.eleicao) : undefined}
                     onAbrir={() => mudar({ mandato: String(r.mandato.eleicao) })} />
                 ))}
               </tbody>
@@ -339,7 +400,8 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
       </section>
 
       {aberto && (
-        <DetalheMandato codigo={ente.codigo} aberto={aberto} comparado={comparado} opcoes={opcoes}
+        <DetalheMandato codigo={ente.codigo} nome={ente.nome} aberto={aberto} comparado={comparado} opcoes={opcoes}
+          outro={lidoOutro && somaNoOutro ? { nome: lidoOutro.ente.nome, soma: somaNoOutro } : null}
           somaFuncao={[somas.get(aberto.mandato.eleicao)!, comparado ? somas.get(comparado.mandato.eleicao)! : null]}
           natureza={natureza} conv={conv} fmt={fmt} unidade={unidade} opcoesComparar={comContas} mudar={mudar}
           emendas={emendas} convenios={convenios} receitas={receitas} contas={dados.contas} />
@@ -378,9 +440,12 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
 }
 
 /** Uma linha da tabela de mandatos. */
-function LinhaMandato({ resumo: r, soma, fmt, aberto, onAbrir }: { resumo: ResumoMandato; soma: SomaGastos;
-  fmt: (v: number | null | undefined) => string; aberto: boolean; onAbrir: () => void }) {
+function LinhaMandato({ resumo: r, soma, fmt, aberto, outro, onAbrir }: { resumo: ResumoMandato; soma: SomaGastos;
+  fmt: (v: number | null | undefined) => string; aberto: boolean;
+  outro?: { resumo: ResumoMandato | null; soma: SomaGastos | null }; onAbrir: () => void }) {
   const n = soma.anos.length;
+  const somaOutro = outro?.soma ?? null;
+  const nOutro = somaOutro?.anos.length ?? 0;
   return (
     <tr className={aberto ? "linha-aberta" : undefined}>
       <td>
@@ -411,6 +476,18 @@ function LinhaMandato({ resumo: r, soma, fmt, aberto, onAbrir }: { resumo: Resum
         </div>
       </td>
       <td className="n">{n ? fmt(soma.total / n) : "—"}</td>
+      {outro && (
+        <>
+          <td className="n">
+            {somaOutro && nOutro ? fmt(somaOutro.total) : "—"}
+            <div className="busca-detalhe">
+              {outro.resumo ? quemGovernou(outro.resumo.mandato) : ""}
+              {nOutro ? ` · ${nOutro} ano(s) com contas` : ""}
+            </div>
+          </td>
+          <td className="n">{somaOutro && nOutro ? fmt(somaOutro.total / nOutro) : "—"}</td>
+        </>
+      )}
       <td>
         {n > 0 && (
           <button type="button" className="botao-link" aria-pressed={aberto} onClick={onAbrir}>
@@ -423,11 +500,14 @@ function LinhaMandato({ resumo: r, soma, fmt, aberto, onAbrir }: { resumo: Resum
 }
 
 /** O mandato aberto: com o que foi gasto, a comparação com outro mandato e os links nas outras abas. */
-function DetalheMandato({ codigo, aberto, comparado, opcoes, somaFuncao, natureza, conv, fmt, unidade,
+function DetalheMandato({ codigo, nome, aberto, comparado, outro, opcoes, somaFuncao, natureza, conv, fmt, unidade,
   opcoesComparar, mudar, emendas, convenios, receitas, contas }: {
   codigo: string;
+  nome: string;
   aberto: ResumoMandato;
   comparado: ResumoMandato | null;
+  /** O mesmo mandato no município lado a lado, por área; vale quando não há outro mandato escolhido. */
+  outro: { nome: string; soma: SomaGastos } | null;
   opcoes: Opcoes;
   somaFuncao: [SomaGastos, SomaGastos | null];
   natureza: Natureza;
@@ -447,14 +527,21 @@ function DetalheMandato({ codigo, aberto, comparado, opcoes, somaFuncao, naturez
   const lidos = new Map([...natureza].map(([ano, a]) => [ano, a === "erro" ? undefined : a] as const));
   const faltando = porNatureza ? anosPedidos.filter((ano) => !natureza.has(ano) && somaFuncao.some((s) => s?.anos.includes(ano))) : [];
   const comErro = porNatureza ? anosPedidos.filter((ano) => natureza.get(ano) === "erro") : [];
+  const doOutro = comparado ? null : outro;
   const [a, b] = porNatureza
     ? [somarAberturas(anosDo(m), lidos, conv), comparado ? somarAberturas(anosDo(comparado.mandato), lidos, conv) : null]
-    : somaFuncao;
+    : [somaFuncao[0], doOutro ? doOutro.soma : somaFuncao[1]];
   const rotulo = (r: ResumoMandato) => `${r.mandato.de}–${r.mandato.ate}`;
+  const [rotuloA, rotuloB] = doOutro ? [nome, doOutro.nome] : [rotulo(aberto), comparado ? rotulo(comparado) : ""];
   const eleicao = `${m.eleicao}-${m.turno === 2 ? "2t" : "1t"}-municipal`;
   const opcoesC = [{ valor: "", rotulo: "Nenhum" },
+    ...(outro ? [{ valor: "com", rotulo: `${outro.nome}, no mesmo mandato` }] : []),
     ...opcoesComparar.filter((r) => r.mandato.eleicao !== m.eleicao)
       .map((r) => ({ valor: String(r.mandato.eleicao), rotulo: `${rotulo(r)} · ${quemGovernou(r.mandato)}` }))];
+  const valorComparar = comparado ? String(comparado.mandato.eleicao) : doOutro ? "com" : "";
+  /** "com": o outro município; um ano: o outro mandato; vazio: nenhuma comparação (tira também o município). */
+  const escolherComparacao = (v: string) => mudar(v === "com" ? { comparar: null, mandato: String(m.eleicao) }
+    : v ? { comparar: v, mandato: String(m.eleicao) } : { comparar: null, com: null, mandato: String(m.eleicao) });
 
   return (
     <section className="cartao cartao-corpo" aria-labelledby="titulo-gasto" id="com-o-que-foi-gasto">
@@ -473,24 +560,29 @@ function DetalheMandato({ codigo, aberto, comparado, opcoes, somaFuncao, naturez
           </button>
         </span>
         <span className="filtro-periodo-titulo">Comparar com</span>
-        <Escolha rotulo="Comparar com o mandato" opcoes={opcoesC} valor={comparado ? String(comparado.mandato.eleicao) : ""}
-          onEscolher={(v) => mudar({ comparar: v || null, mandato: String(m.eleicao) })} />
+        <Escolha rotulo="Comparar com o mandato" className="escolha-larga" opcoes={opcoesC} valor={valorComparar}
+          onEscolher={escolherComparacao} />
       </div>
       {faltando.length > 0 && <p className="busca-detalhe">Lendo as contas por tipo de gasto ({faltando.join(", ")})…</p>}
       {comErro.length > 0 && <p className="busca-detalhe">Não foi possível ler agora o tipo de gasto de {comErro.join(", ")}.</p>}
       {a.anos.length === 0 && faltando.length === 0 ? (
         <p className="busca-detalhe">Sem contas deste mandato nesta abertura.</p>
       ) : (
-        <TabelaGastos a={a} b={b} rotuloA={rotulo(aberto)} rotuloB={comparado ? rotulo(comparado) : ""} fmt={fmt}
+        <TabelaGastos a={a} b={b} rotuloA={rotuloA} rotuloB={rotuloB} fmt={fmt}
           coluna={porNatureza ? "Tipo de gasto" : "Área"} />
+      )}
+      {porNatureza && doOutro && (
+        <p className="busca-detalhe">A comparação com {doOutro.nome} é por área: escolha “Área” acima para vê-la.</p>
       )}
       <p className="busca-detalhe">
         Valores {unidade}, somados nos anos do mandato com contas ({a.anos.join(", ") || "nenhum"}
-        {b ? `; no outro mandato, ${b.anos.join(", ") || "nenhum"}` : ""}).{" "}
+        {b ? `; ${doOutro ? `em ${doOutro.nome}` : "no outro mandato"}, ${b.anos.join(", ") || "nenhum"}` : ""}).{" "}
         {porNatureza
           ? "Tipo de gasto: grupos de natureza da despesa (Anexo I-D); clique num grupo para ver os elementos."
           : "Área: funções da despesa (Anexo I-E); clique numa função para ver as subfunções."}
         {b ? " Mandatos com números diferentes de anos com contas se comparam pela média por ano." : ""}
+        {b && doOutro && opcoes.medida === "total"
+          ? " Municípios de tamanhos diferentes se comparam melhor por habitante (filtro “Mostrar”)." : ""}
       </p>
 
       <ReceitasMandato codigo={codigo} aberto={aberto} comparado={comparado} receitas={receitas} contas={contas}
