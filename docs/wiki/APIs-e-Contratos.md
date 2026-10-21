@@ -86,6 +86,16 @@ quase sempre é "MÚLTIPLO" ou "Nacional"), `EmendasParlamentares_PorFavorecido.
 natureza jurídica e o município do favorecido) e `EmendasParlamentares_Convenios.csv`. Sem chave: a API do Portal
 (`chave-api-dados`) não é necessária para emendas, convênios e despesas, que também saem como arquivos (ADR-044).
 
+### CGU — convênios (arquivo de dados abertos)
+
+| Endereço | Uso |
+|---|---|
+| `https://portaldatransparencia.gov.br/download-de-dados/convenios` | A página declara a data do arquivo mais recente (`arquivos.push({... "origem" : "Convenios"})`) |
+| `https://portaldatransparencia.gov.br/download-de-dados/convenios/AAAAMMDD` | Redireciona para `.../saida/convenios/AAAAMMDD_Convenios.zip` (67 MB em 09/10/2026), com `_Convenios.csv` (um convênio por linha) e `_Convenios_OrdensBancarias.csv` (as liberações, fora desta versão) |
+
+O município vem pelo nome e pelo código do SIAFI (não o do IBGE); o Lumen cruza pelo nome, com a tabela de
+apelidos das emendas (ADR-045).
+
 ### Receita Federal — base pública de CNPJ
 
 | Endereço | Uso |

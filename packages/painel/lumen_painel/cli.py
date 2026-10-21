@@ -12,6 +12,7 @@ Exemplos::
     lumen painel pessoal --estado estado/ --ufs SP,MG --limite-minutos 20          # RGF: pessoal em % da RCL
     lumen painel cnpj --estado estado/                              # base de CNPJ da Receita, dos fornecedores
     lumen painel emendas --estado estado/                           # emendas parlamentares (CGU), por ente
+    lumen painel convenios --estado estado/                         # convênios da União (CGU), por ente
     lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)
     lumen painel anp --estado estado/                               # preço de revenda da ANP por semana
     lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado
@@ -33,7 +34,7 @@ from pathlib import Path
 from . import cnpj as base_cnpj
 from . import conformidade as conf
 from . import contratacoes as contr
-from . import despesa_funcao, emendas, mercado, operacao, pares, pessoal, rcl, transparencia
+from . import convenios, despesa_funcao, emendas, mercado, operacao, pares, pessoal, rcl, transparencia
 from .cadastro import Cadastro
 from .comum import gravar_json, hoje_brasilia, instante_utc, ler_json, uf_do_ente
 from .dia import coletar_dia, dias_guardados, mascarar_dia
@@ -252,6 +253,14 @@ def cmd_emendas(args) -> int:
     return 0
 
 
+def cmd_convenios(args) -> int:
+    """Lê o arquivo de convênios da CGU quando sai um novo e grava ``convenios.json.gz`` (ADR-045)."""
+    cfg = _configuracao(args)
+    cadastro = Cadastro.ler(Path(args.estado) / ARQUIVO_CADASTRO)
+    _imprimir(convenios.coletar(Path(args.estado), cadastro, contato=cfg.contato).para_json())
+    return 0
+
+
 def cmd_mascarar(args) -> int:
     """Reescreve os arquivos do dia gravados antes da máscara de CPF (ADR-043) e lista os que mudaram."""
     alterados = []
@@ -328,6 +337,7 @@ def cmd_publicar(args) -> int:
     precos_anp = mercado.publicar(estado, cadastro, site.gravar, gerado_em=gerado_em)
     receita = base_cnpj.publicar(estado, site.gravar, gerado_em=gerado_em)
     recebido_de_emendas = emendas.publicar(estado, site.gravar, gerado_em=gerado_em)
+    convenios_dos_entes = convenios.publicar(estado, site.gravar, gerado_em=gerado_em)
 
     entes = {c: [c, e.nome, e.uf, e.esfera, e.populacao] for c, e in cadastro.entes.items()}
     for codigo in set(painel.entes) | set(avaliacao.entes):
@@ -339,7 +349,7 @@ def cmd_publicar(args) -> int:
               "cadastro": {"entes": len(cadastro), "gerado_em": cadastro.gerado_em},
               "contratacoes": {**painel.cobertura(), "entes": len(painel.entes), "orgaos": len(painel.por_orgao)},
               "conformidade": {"entes": len(avaliacao.entes), "ufs": avaliacao.coletas, "pares": grupos},
-              "transparencia": pntp, "anp": precos_anp, "cnpj": receita, "emendas": recebido_de_emendas, "operacao": {"alertas": len(situacao["alertas"])}}
+              "transparencia": pntp, "anp": precos_anp, "cnpj": receita, "emendas": recebido_de_emendas, "convenios": convenios_dos_entes, "operacao": {"alertas": len(situacao["alertas"])}}
     site.gravar("indice.json", indice)
     site.finalizar()
     _imprimir({"arquivos": site.arquivos, **{k: v for k, v in indice.items() if k != "versao"},
@@ -399,6 +409,9 @@ def construir_parser() -> argparse.ArgumentParser:
     c = sub.add_parser("emendas", help="emendas parlamentares da CGU recebidas por município e UF")
     c.add_argument("--estado", required=True)
 
+    c = sub.add_parser("convenios", help="convênios da União com estados, municípios e entidades (CGU), por ente")
+    c.add_argument("--estado", required=True)
+
     c = sub.add_parser("mascarar", help="mascara o CPF nos textos dos arquivos do dia já gravados (uma vez)")
     c.add_argument("--estado", required=True)
 
@@ -419,7 +432,7 @@ def construir_parser() -> argparse.ArgumentParser:
 
 COMANDOS = {"cadastro": cmd_cadastro, "contratacoes": cmd_contratacoes, "faltando": cmd_faltando,
             "conformidade": cmd_conformidade, "rcl": cmd_rcl, "despesa-funcao": cmd_despesa_funcao, "pessoal": cmd_pessoal,
-            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "emendas": cmd_emendas,
+            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "emendas": cmd_emendas, "convenios": cmd_convenios,
             "transparencia": cmd_transparencia, "anp": cmd_anp,
             "publicar": cmd_publicar}
 

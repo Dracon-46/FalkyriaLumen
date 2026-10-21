@@ -259,7 +259,7 @@ body.push(h2("9.2 Fase 1 — Espinha dorsal nacional: núcleo pronto"));
 body.push(table(["Entregável", "Situação"], [5200, 4400], [
   ["Conector PNCP (contratações, contratos, atas, amparo legal, incremental)", "Concluído, com coleta por publicação e por atualização; itens e resultados com conector e normalizador prontos"],
   ["Conector SICONFI com lista de entes ausentes", "Entes e extrato de entregas concluídos, com a avaliação da LRF; RREO, RGF e DCA com conector e normalização prontos (LinhaDemonstrativo), e a RCL, a despesa por função e a despesa com pessoal de todos os entes coletadas para os grupos de pares (ADR-038, ADR-041 e ADR-042)"],
-  ["Portal da Transparência (CGU), com CEIS, CNEP e CEPIM", "Cadastros de sanções concluídos: coleta diária pelos arquivos de dados abertos, sem chave, e normalização com CPF mascarado (ADR-030); emendas parlamentares pelo arquivo de dados abertos, sem chave (ADR-044); convênios e despesas pendentes, pelo mesmo caminho"],
+  ["Portal da Transparência (CGU), com CEIS, CNEP e CEPIM", "Cadastros de sanções concluídos: coleta diária pelos arquivos de dados abertos, sem chave, e normalização com CPF mascarado (ADR-030); emendas parlamentares e convênios pelos arquivos de dados abertos, sem chave (ADR-044 e ADR-045); transferências e despesas pendentes, pelo mesmo caminho"],
   ["Base pública de CNPJ da Receita Federal", "Concluído para os fornecedores dos contratos (ADR-043): cadastro, Simples e quadro societário, semanal, no fornecedor de Contratações"],
   ["Cadastro de entes do IBGE com população e porte", "Concluído"],
   ["Normalização com qualidade e quarentena", "Concluída para PNCP, SICONFI e IBGE; silver idempotente, reconstruível do bronze"],

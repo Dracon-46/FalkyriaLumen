@@ -19,6 +19,8 @@ import { Escolha } from "@/componentes/Escolha";
 import { LigacoesDoEnte } from "@/componentes/Ligacoes";
 import { EmendasMandato, type EstadoEmendas } from "@/componentes/economia/EmendasMandato";
 import { carregarEmendas } from "@/lib/emendas";
+import { ConveniosMandato, type EstadoConvenios } from "@/componentes/economia/ConveniosMandato";
+import { carregarConvenios } from "@/lib/convenios";
 import { BuscaEnte } from "@/componentes/paineis/Comuns";
 import { numero, percentual } from "@/lib/formato";
 import { carregarEconomia } from "@/lib/economia";
@@ -209,6 +211,19 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
     return () => c.abort();
   }, [ente.codigo]);
 
+  // Os convênios da União com o município (ADR-045): um arquivo por ente, lido uma vez
+  const [convenios, setConvenios] = useState<EstadoConvenios>({ fase: "carregando" });
+  useEffect(() => {
+    const c = new AbortController();
+    setConvenios({ fase: "carregando" });
+    carregarConvenios(ente.codigo, c.signal)
+      .then((x) => setConvenios({ fase: "pronto", convenios: x }))
+      .catch((e: Error) => {
+        if (e.name !== "AbortError") setConvenios({ fase: "erro" });
+      });
+    return () => c.abort();
+  }, [ente.codigo]);
+
   // A despesa por natureza vem sob demanda: só os anos dos mandatos abertos, quando a abertura é por tipo de gasto
   const [natureza, setNatureza] = useState<Natureza>(new Map());
   useEffect(() => setNatureza(new Map()), [ente.codigo]);
@@ -306,7 +321,7 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
         <DetalheMandato codigo={ente.codigo} aberto={aberto} comparado={comparado} opcoes={opcoes}
           somaFuncao={[somas.get(aberto.mandato.eleicao)!, comparado ? somas.get(comparado.mandato.eleicao)! : null]}
           natureza={natureza} conv={conv} fmt={fmt} unidade={unidade} opcoesComparar={comContas} mudar={mudar}
-          emendas={emendas} />
+          emendas={emendas} convenios={convenios} />
       )}
 
       <AnoAAno contas={dados.contas} conv={conv} fmt={fmt} populacao={populacao} unidade={unidade} />
@@ -388,7 +403,7 @@ function LinhaMandato({ resumo: r, soma, fmt, aberto, onAbrir }: { resumo: Resum
 
 /** O mandato aberto: com o que foi gasto, a comparação com outro mandato e os links nas outras abas. */
 function DetalheMandato({ codigo, aberto, comparado, opcoes, somaFuncao, natureza, conv, fmt, unidade,
-  opcoesComparar, mudar, emendas }: {
+  opcoesComparar, mudar, emendas, convenios }: {
   codigo: string;
   aberto: ResumoMandato;
   comparado: ResumoMandato | null;
@@ -401,6 +416,7 @@ function DetalheMandato({ codigo, aberto, comparado, opcoes, somaFuncao, naturez
   opcoesComparar: ResumoMandato[];
   mudar: (t: Record<string, string | null>) => void;
   emendas: EstadoEmendas;
+  convenios: EstadoConvenios;
 }) {
   const m = aberto.mandato;
   const porNatureza = opcoes.abertura === "natureza";
@@ -455,6 +471,10 @@ function DetalheMandato({ codigo, aberto, comparado, opcoes, somaFuncao, naturez
       </p>
 
       <EmendasMandato codigo={codigo} estado={emendas} anos={anosDo(m)}
+        anosComparado={comparado ? anosDo(comparado.mandato) : null}
+        rotulos={[rotulo(aberto), comparado ? rotulo(comparado) : ""]} conv={conv} fmt={fmt} unidade={unidade} />
+
+      <ConveniosMandato codigo={codigo} estado={convenios} anos={anosDo(m)}
         anosComparado={comparado ? anosDo(comparado.mandato) : null}
         rotulos={[rotulo(aberto), comparado ? rotulo(comparado) : ""]} conv={conv} fmt={fmt} unidade={unidade} />
 

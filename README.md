@@ -430,8 +430,9 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
   despesa com pessoal do Executivo em % da RCL e os limites do RGF (ADR-042). O painel
   operacional está no portal, em "Situação das coletas" (ADR-039).
   Os cadastros de sanções da CGU (CEIS, CNEP e CEPIM) já são coletados e normalizados (ADR-030); o
-  cruzamento com as contratações é a regra J-01 da Fase 2. As emendas parlamentares entram pelo arquivo de dados
-  abertos, sem chave (ADR-044); convênios e despesas da CGU seguem pelo mesmo caminho, como próximos passos.
+  cruzamento com as contratações é a regra J-01 da Fase 2. As emendas parlamentares (ADR-044) e os convênios
+  (ADR-045) entram pelos arquivos de dados abertos, sem chave; as transferências da União seguem pelo mesmo
+  caminho, como próximo passo.
 
 ### Definições pendentes antes da publicação, conforme DOC-10
 

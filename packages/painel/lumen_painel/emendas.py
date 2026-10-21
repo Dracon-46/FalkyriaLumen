@@ -59,12 +59,19 @@ _MUNICIPAL = ("municipio", "municipal")
 _ESTADUAL = ("estado ou distrito federal", "estadual")
 _ENTIDADE = ("associacao privada", "fundacao privada", "organizacao religiosa", "servico social", "organizacao social")
 _AGENTE = ("sociedade de economia mista", "empresa publica")
-# Nomes antigos que o Portal ainda usa para o município do favorecido → o nome no cadastro do SICONFI
+# Nomes antigos e grafias que o Portal ainda usa para o município (emendas e convênios) → o nome no cadastro
 APELIDOS = {("SP", "embu"): "embu das artes", ("PA", "santa isabel do para"): "santa izabel do para",
             ("RS", "santana do livramento"): "sant'ana do livramento", ("RN", "presidente juscelino"): "serra caiada",
             ("CE", "itapage"): "itapaje", ("PA", "eldorado dos carajas"): "eldorado do carajas",
             ("PE", "iguaraci"): "iguaracy", ("MT", "poxoreo"): "poxoreu", ("TO", "fortaleza do tabocao"): "tabocao",
-            ("RN", "augusto severo"): "campo grande"}
+            ("RN", "augusto severo"): "campo grande", ("RN", "serra caiada (ex-presidente juscelino)"): "serra caiada",
+            ("RN", "campo grande (ex-augusto severo)"): "campo grande", ("RN", "januario cicco"): "boa saude",
+            ("RJ", "parati"): "paraty", ("RJ", "trajano de morais"): "trajano de moraes",
+            ("MG", "dona eusebia"): "dona euzebia", ("MG", "brasopolis"): "brazopolis",
+            ("MG", "sao thome das letras"): "sao tome das letras", ("TO", "couto de magalhaes"): "couto magalhaes",
+            ("TO", "sao valerio da natividade"): "sao valerio", ("PE", "belem de sao francisco"): "belem do sao francisco",
+            ("PE", "lagoa do itaenga"): "lagoa de itaenga", ("PB", "sao domingos de pombal"): "sao domingos",
+            ("PB", "serido"): "sao vicente do serido"}
 
 
 def categoria(tipo_favorecido: str, natureza: str) -> str | None:

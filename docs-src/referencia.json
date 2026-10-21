@@ -8268,155 +8268,162 @@
   {
    "caminho": "packages/painel/lumen_painel/cli.py",
    "linguagem": "python",
-   "linhas": 438,
-   "doc": "``lumen painel``: coleta e publicação dos painéis de contratações e de conformidade (ADR-028).\n\nExemplos::\n\n    lumen painel cadastro --estado estado/                          # cadastro de entes do SICONFI\n    lumen painel contratacoes --estado estado/ --ultimos 3          # dias que faltam entre os 3 últimos\n    lumen painel contratacoes --estado estado/ --de 2026-01-01 --ate 2026-01-31 --limite-minutos 300\n    lumen painel faltando --estado estado/ --de 2026-01-01 --partes 6   # divisão para execuções paralelas\n    lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026\n    lumen painel rcl --estado estado/ --ufs SP,MG                  # RCL do exercício anterior, para os pares\n    lumen painel despesa-funcao --estado estado/ --ufs SP,MG --limite-minutos 30   # DCA por função, pares\n    lumen painel pessoal --estado estado/ --ufs SP,MG --limite-minutos 20          # RGF: pessoal em % da RCL\n    lumen painel cnpj --estado estado/                              # base de CNPJ da Receita, dos fornecedores\n    lumen painel emendas --estado estado/                           # emendas parlamentares (CGU), por ente\n    lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)\n    lumen painel anp --estado estado/                               # preço de revenda da ANP por semana\n    lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado\n\nO estado é um diretório com ``cadastro-entes.json.gz``, um ``contratacoes-<dia>.json.gz`` por dia coletado e\num ``conformidade-<UF>.json.gz`` por UF. No GitHub Actions, ele fica nos anexos de uma versão do repositório\n(``painel-estado``) entre uma execução e outra.",
+   "linhas": 451,
+   "doc": "``lumen painel``: coleta e publicação dos painéis de contratações e de conformidade (ADR-028).\n\nExemplos::\n\n    lumen painel cadastro --estado estado/                          # cadastro de entes do SICONFI\n    lumen painel contratacoes --estado estado/ --ultimos 3          # dias que faltam entre os 3 últimos\n    lumen painel contratacoes --estado estado/ --de 2026-01-01 --ate 2026-01-31 --limite-minutos 300\n    lumen painel faltando --estado estado/ --de 2026-01-01 --partes 6   # divisão para execuções paralelas\n    lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026\n    lumen painel rcl --estado estado/ --ufs SP,MG                  # RCL do exercício anterior, para os pares\n    lumen painel despesa-funcao --estado estado/ --ufs SP,MG --limite-minutos 30   # DCA por função, pares\n    lumen painel pessoal --estado estado/ --ufs SP,MG --limite-minutos 20          # RGF: pessoal em % da RCL\n    lumen painel cnpj --estado estado/                              # base de CNPJ da Receita, dos fornecedores\n    lumen painel emendas --estado estado/                           # emendas parlamentares (CGU), por ente\n    lumen painel convenios --estado estado/                         # convênios da União (CGU), por ente\n    lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)\n    lumen painel anp --estado estado/                               # preço de revenda da ANP por semana\n    lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado\n\nO estado é um diretório com ``cadastro-entes.json.gz``, um ``contratacoes-<dia>.json.gz`` por dia coletado e\num ``conformidade-<UF>.json.gz`` por UF. No GitHub Actions, ele fica nos anexos de uma versão do repositório\n(``painel-estado``) entre uma execução e outra.",
    "itens": [
     {
      "tipo": "funcao",
      "nome": "_data",
      "assinatura": "def _data(texto: str) -> date",
      "doc": "``AAAA-MM-DD`` → ``date``, como ``type`` do argparse.",
-     "linha": 49
+     "linha": 50
     },
     {
      "tipo": "funcao",
      "nome": "_lista",
      "assinatura": "def _lista(texto: str) -> list[str]",
      "doc": "``SP, mg`` → ``[\"SP\", \"MG\"]``.",
-     "linha": 54
+     "linha": 55
     },
     {
      "tipo": "funcao",
      "nome": "_imprimir",
      "assinatura": "def _imprimir(dados) -> None",
      "doc": "JSON legível na saída padrão.",
-     "linha": 59
+     "linha": 60
     },
     {
      "tipo": "funcao",
      "nome": "_configuracao",
      "assinatura": "def _configuracao(args)",
      "doc": "A configuração do pipeline (contato da coleta e limites de requisições).",
-     "linha": 64
+     "linha": 65
     },
     {
      "tipo": "funcao",
      "nome": "dias_pedidos",
      "assinatura": "def dias_pedidos(estado: Path, *, de: date | None, ate: date | None, ultimos: int | None, hoje: date, refazer: bool=False) -> list[date]",
      "doc": "Os dias a coletar, do mais recente para o mais antigo, sem os que já estão no estado.\n\nSem ``de``, o intervalo é dos ``ultimos`` dias (padrão 3) até ontem; o dia corrente nunca entra, porque\nainda está recebendo publicações.",
-     "linha": 70
+     "linha": 71
     },
     {
      "tipo": "funcao",
      "nome": "partes",
      "assinatura": "def partes(dias: list[date], n: int) -> list[dict]",
      "doc": "Divide os dias (já do mais recente ao mais antigo) em até ``n`` blocos de dias seguidos, para execuções\nparalelas; cada bloco vira ``{\"de\": …, \"ate\": …, \"dias\": …}``.",
-     "linha": 83
+     "linha": 84
     },
     {
      "tipo": "funcao",
      "nome": "cmd_cadastro",
      "assinatura": "def cmd_cadastro(args) -> int",
      "doc": "Coleta o cadastro de entes do SICONFI (uma requisição), normaliza e grava ``cadastro-entes.json.gz``.",
-     "linha": 95
+     "linha": 96
     },
     {
      "tipo": "funcao",
      "nome": "cmd_contratacoes",
      "assinatura": "def cmd_contratacoes(args) -> int",
      "doc": "Coleta os dias pedidos que faltam no estado, do mais recente ao mais antigo, até o prazo.",
-     "linha": 126
+     "linha": 127
     },
     {
      "tipo": "funcao",
      "nome": "cmd_faltando",
      "assinatura": "def cmd_faltando(args) -> int",
      "doc": "Imprime, em JSON, os blocos de dias que faltam no estado (matriz das execuções paralelas).",
-     "linha": 150
+     "linha": 151
     },
     {
      "tipo": "funcao",
      "nome": "cmd_conformidade",
      "assinatura": "def cmd_conformidade(args) -> int",
      "doc": "Coleta o extrato de entregas de cada UF pedida e grava o estado de cada uma.",
-     "linha": 157
+     "linha": 158
     },
     {
      "tipo": "funcao",
      "nome": "cmd_rcl",
      "assinatura": "def cmd_rcl(args) -> int",
      "doc": "Coleta a RCL dos entes pendentes de cada UF pedida (RREO, Anexo 03) e grava o estado de cada uma.\n\nEnte que ainda não publicou não é falha: fica para a próxima tentativa. O código é 1 só quando uma coleta\nfoi interrompida.",
-     "linha": 173
+     "linha": 174
     },
     {
      "tipo": "funcao",
      "nome": "cmd_despesa_funcao",
      "assinatura": "def cmd_despesa_funcao(args) -> int",
      "doc": "Coleta a despesa por função (DCA, Anexo I-E) dos entes pendentes de cada UF pedida e grava o estado.\n\nO ``--limite-minutos`` vale para todas as UFs juntas: passado o tempo, os entes que faltam ficam para a\nexecução seguinte. O código é 1 só quando uma coleta foi interrompida.",
-     "linha": 192
+     "linha": 193
     },
     {
      "tipo": "funcao",
      "nome": "cmd_pessoal",
      "assinatura": "def cmd_pessoal(args) -> int",
      "doc": "Coleta a despesa com pessoal do Executivo (RGF, Anexo 1) dos entes pendentes de cada UF pedida.\n\nComo em ``despesa-funcao``, o ``--limite-minutos`` vale para todas as UFs juntas. O código é 1 só quando uma\ncoleta foi interrompida.",
-     "linha": 214
+     "linha": 215
     },
     {
      "tipo": "funcao",
      "nome": "cmd_cnpj",
      "assinatura": "def cmd_cnpj(args) -> int",
      "doc": "Lê a base pública de CNPJ da Receita para os fornecedores do estado e grava ``cnpj-fornecedores.json.gz``.\n\nPula quando o estado já tem a base do mês para todos os fornecedores (ADR-043).",
-     "linha": 236
+     "linha": 237
     },
     {
      "tipo": "funcao",
      "nome": "cmd_emendas",
      "assinatura": "def cmd_emendas(args) -> int",
      "doc": "Lê o arquivo de emendas parlamentares da CGU quando ele muda e grava ``emendas.json.gz`` (ADR-044).",
-     "linha": 247
+     "linha": 248
+    },
+    {
+     "tipo": "funcao",
+     "nome": "cmd_convenios",
+     "assinatura": "def cmd_convenios(args) -> int",
+     "doc": "Lê o arquivo de convênios da CGU quando sai um novo e grava ``convenios.json.gz`` (ADR-045).",
+     "linha": 256
     },
     {
      "tipo": "funcao",
      "nome": "cmd_mascarar",
      "assinatura": "def cmd_mascarar(args) -> int",
      "doc": "Reescreve os arquivos do dia gravados antes da máscara de CPF (ADR-043) e lista os que mudaram.",
-     "linha": 255
+     "linha": 264
     },
     {
      "tipo": "funcao",
      "nome": "cmd_transparencia",
      "assinatura": "def cmd_transparencia(args) -> int",
      "doc": "Lê o ciclo mais recente do PNTP para ``transparencia-pntp.json.gz``; o código é 1 quando falhou.",
-     "linha": 269
+     "linha": 278
     },
     {
      "tipo": "funcao",
      "nome": "cmd_anp",
      "assinatura": "def cmd_anp(args) -> int",
      "doc": "Lê as planilhas semanais da ANP que faltam em ``anp-semanas.json.gz``; o código é 1 quando algo falhou.",
-     "linha": 277
+     "linha": 286
     },
     {
      "tipo": "funcao",
      "nome": "cmd_publicar",
      "assinatura": "def cmd_publicar(args) -> int",
      "doc": "Monta o site inteiro a partir do estado: índice, busca, contratações e conformidade.",
-     "linha": 286
+     "linha": 295
     },
     {
      "tipo": "funcao",
      "nome": "construir_parser",
      "assinatura": "def construir_parser() -> argparse.ArgumentParser",
      "doc": "Os subcomandos e as opções de cada um.",
-     "linha": 350
+     "linha": 360
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada de ``lumen painel``; falta de configuração (contato da coleta) vira código 2.",
-     "linha": 427
+     "linha": 440
     }
    ]
   },
@@ -8957,6 +8964,84 @@
    ]
   },
   {
+   "caminho": "packages/painel/lumen_painel/convenios.py",
+   "linguagem": "python",
+   "linhas": 205,
+   "doc": "Convênios da União com estados, municípios e entidades, pelo arquivo de dados abertos da CGU (ADR-045).\n\nO Portal da Transparência publica a lista inteira dos convênios todo dia\n(``portaldatransparencia.gov.br/download-de-dados/convenios/AAAAMMDD``, que redireciona para\n``dadosabertos-download.cgu.gov.br/.../AAAAMMDD_Convenios.zip``; 67 MB em outubro de 2026), sem chave. A página\nde download declara a data do arquivo mais recente, como nas sanções (ADR-030). O CSV principal,\n``AAAAMMDD_Convenios.csv``, tem um convênio por linha, de 1990 em diante:\n\n- **onde e com quem:** UF e município (pelo nome; o código é o do SIAFI, não o do IBGE), o tipo do convenente\n  (administração municipal, estadual, entidade sem fins lucrativos, empresa, pessoa física) e o CNPJ e o nome;\n- **o quê:** objeto, órgão superior e órgão concedente;\n- **quanto e quando:** valor do convênio, valor liberado, contrapartida, início e fim da vigência e a última\n  liberação;\n- **situação:** como o SIAFI a registra (em execução, concluído, prestação de contas em análise ou aprovada,\n  inadimplente, inadimplência suspensa, arquivado…).\n\nNo estado (``convenios.json.gz``) entram os convênios com início de vigência de 2001 em diante, por ente:\n\n- **governo municipal, entidade, empresa e o resto** no município da linha; **governo estadual** na UF;\n- **pessoa física** só na soma por ano, sem nome nem documento (ADR-043);\n- o convênio **excluído** ou **anulado** fica de fora (não chegou a valer) e só entra na contagem.\n\nO município pelo nome usa o mesmo cruzamento das emendas (``emendas.indice_de_lugares`` e ``emendas.APELIDOS``).",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "_cabecalhos",
+     "assinatura": "def _cabecalhos(contato: str) -> dict[str, str]",
+     "doc": "User-Agent com o contato do Lumen.",
+     "linha": 65
+    },
+    {
+     "tipo": "funcao",
+     "nome": "data_do_arquivo",
+     "assinatura": "def data_do_arquivo(*, contato: str) -> str",
+     "doc": "A data (``AAAAMMDD``) do arquivo mais recente, declarada na página de download.",
+     "linha": 70
+    },
+    {
+     "tipo": "funcao",
+     "nome": "baixar",
+     "assinatura": "def baixar(data: str, destino: Path, *, contato: str) -> Path",
+     "doc": "Baixa o ZIP do dia ``data`` para ``destino``.",
+     "linha": 78
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_valor",
+     "assinatura": "def _valor(texto: str) -> float",
+     "doc": "``2110457,00`` → 2110457.0; vazio vira zero.",
+     "linha": 86
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_data",
+     "assinatura": "def _data(texto: str) -> str | None",
+     "doc": "``28/02/1996`` → ``1996-02-28``.",
+     "linha": 94
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler",
+     "assinatura": "def ler(arquivo: Path, cadastro: Cadastro) -> dict",
+     "doc": "Os convênios por ente (código IBGE), as somas sem identificação e as contagens do que ficou de fora.",
+     "linha": 100
+    },
+    {
+     "tipo": "classe",
+     "nome": "ResultadoConvenios",
+     "assinatura": "class ResultadoConvenios",
+     "doc": "O que a coleta fez: a data do arquivo, se baixou, quantos entes e convênios.",
+     "linha": 148
+    },
+    {
+     "tipo": "metodo",
+     "nome": "ResultadoConvenios.para_json",
+     "assinatura": "def para_json(self) -> dict",
+     "doc": "Resumo para imprimir na linha de comando.",
+     "linha": 156
+    },
+    {
+     "tipo": "funcao",
+     "nome": "coletar",
+     "assinatura": "def coletar(estado: Path | str, cadastro: Cadastro, *, contato: str, temporario: Path | None=None, data_fn=data_do_arquivo, baixar_fn=baixar) -> ResultadoConvenios",
+     "doc": "Baixa e lê o arquivo do dia mais recente quando a data mudou; grava ``ARQUIVO``.",
+     "linha": 162
+    },
+    {
+     "tipo": "funcao",
+     "nome": "publicar",
+     "assinatura": "def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> dict | None",
+     "doc": "Grava ``convenios/ente/<código IBGE>.json.gz`` (comprimido): os convênios do ente e a soma de pessoa física.",
+     "linha": 187
+    }
+   ]
+  },
+  {
    "caminho": "packages/painel/lumen_painel/despesa_funcao.py",
    "linguagem": "python",
    "linhas": 242,
@@ -9115,7 +9200,7 @@
   {
    "caminho": "packages/painel/lumen_painel/emendas.py",
    "linguagem": "python",
-   "linhas": 237,
+   "linhas": 244,
    "doc": "Emendas parlamentares do Portal da Transparência (CGU), pelo arquivo de dados abertos, sem chave (ADR-044).\n\nO Portal publica um arquivo só, refeito de tempos em tempos\n(``portaldatransparencia.gov.br/download-de-dados/emendas-parlamentares/UNICO``, que redireciona para\n``dadosabertos-download.cgu.gov.br/.../EmendasParlamentares.zip``; 32 MB em outubro de 2026), com três CSVs em\nISO-8859-1 separados por ``;``:\n\n- ``EmendasParlamentares.csv``: uma linha por emenda e ação, com o autor, o tipo, a função, a ação e a\n  localidade indicada. A maior parte do valor pago vem como \"MÚLTIPLO\" ou \"Nacional\", sem município;\n- ``EmendasParlamentares_PorFavorecido.csv``: o que cada favorecido recebeu por mês, com a natureza jurídica e\n  o município dele. É daqui que sai quanto chegou a cada lugar;\n- ``EmendasParlamentares_Convenios.csv``: os convênios das emendas (fora desta versão).\n\nO lugar do favorecido diz o destino quando ele é do próprio lugar, e não quando é um agente financeiro: o banco\nque opera os repasses aparece como sociedade de economia mista em Brasília. Por isso o recebido entra por\ncategoria, pela natureza jurídica do favorecido:\n\n- **governo municipal** (o município, os fundos, órgãos e autarquias municipais) e **governo estadual** (o estado,\n  os fundos, órgãos e autarquias estaduais), no ente do favorecido;\n- **entidade** (associação, fundação privada, organização religiosa, serviço social) e **empresa**, no município\n  do favorecido, com o CNPJ e o nome;\n- **pessoa física**, só a soma, sem nome nem documento (ADR-043);\n- **agente financeiro** (sociedade de economia mista, empresa pública) e o resto ficam fora do lugar e só entram\n  nos totais do arquivo.\n\nO estado (``emendas.json.gz``) leva, por código IBGE do ente, o recebido por ano, emenda, categoria e favorecido,\ne a descrição de cada emenda (autor, tipo, função, ação). A coleta só baixa o arquivo quando a data dele\n(``Last-Modified``) muda.",
    "itens": [
     {
@@ -9123,84 +9208,84 @@
      "nome": "categoria",
      "assinatura": "def categoria(tipo_favorecido: str, natureza: str) -> str | None",
      "doc": "A categoria do favorecido pela natureza jurídica; ``None`` para o que não tem lugar (agente financeiro…).",
-     "linha": 70
+     "linha": 77
     },
     {
      "tipo": "funcao",
      "nome": "_cabecalhos",
      "assinatura": "def _cabecalhos(contato: str) -> dict[str, str]",
      "doc": "User-Agent com o contato do Lumen.",
-     "linha": 90
+     "linha": 97
     },
     {
      "tipo": "funcao",
      "nome": "data_do_arquivo",
      "assinatura": "def data_do_arquivo(*, contato: str) -> str | None",
      "doc": "O ``Last-Modified`` do arquivo, depois do redirecionamento (``HEAD``).",
-     "linha": 95
+     "linha": 102
     },
     {
      "tipo": "funcao",
      "nome": "baixar",
      "assinatura": "def baixar(destino: Path, *, contato: str) -> tuple[Path, str | None]",
      "doc": "Baixa o ZIP para ``destino``; devolve o caminho e o ``Last-Modified``.",
-     "linha": 102
+     "linha": 109
     },
     {
      "tipo": "funcao",
      "nome": "_valor",
      "assinatura": "def _valor(texto: str) -> float",
      "doc": "``1300000,00`` → 1300000.0; vazio vira zero.",
-     "linha": 110
+     "linha": 117
     },
     {
      "tipo": "funcao",
      "nome": "_linhas",
      "assinatura": "def _linhas(z: zipfile.ZipFile, nome: str)",
      "doc": "As linhas do CSV ``nome`` do ZIP como dicionários, pelo cabeçalho.",
-     "linha": 118
+     "linha": 125
     },
     {
      "tipo": "funcao",
      "nome": "indice_de_lugares",
      "assinatura": "def indice_de_lugares(cadastro: Cadastro) -> dict[tuple[str, str], str]",
      "doc": "(UF, nome do município sem acento) → código IBGE, e (UF, \"\") → código da UF, pelo cadastro do SICONFI.",
-     "linha": 124
+     "linha": 131
     },
     {
      "tipo": "funcao",
      "nome": "ler",
      "assinatura": "def ler(arquivo: Path, cadastro: Cadastro) -> dict",
      "doc": "O recebido por ente (código IBGE), a descrição das emendas usadas e os totais do que ficou sem lugar.",
-     "linha": 137
+     "linha": 144
     },
     {
      "tipo": "classe",
      "nome": "ResultadoEmendas",
      "assinatura": "class ResultadoEmendas",
      "doc": "O que a coleta fez: a data do arquivo, se baixou e quantos entes e emendas.",
-     "linha": 179
+     "linha": 186
     },
     {
      "tipo": "metodo",
      "nome": "ResultadoEmendas.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "Resumo para imprimir na linha de comando.",
-     "linha": 187
+     "linha": 194
     },
     {
      "tipo": "funcao",
      "nome": "coletar",
      "assinatura": "def coletar(estado: Path | str, cadastro: Cadastro, *, contato: str, temporario: Path | None=None, data_fn=data_do_arquivo, baixar_fn=baixar) -> ResultadoEmendas",
      "doc": "Baixa e lê o arquivo quando a data dele mudou; grava ``ARQUIVO``.",
-     "linha": 193
+     "linha": 200
     },
     {
      "tipo": "funcao",
      "nome": "publicar",
      "assinatura": "def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> dict | None",
      "doc": "Grava ``emendas/ente/<código IBGE>.json.gz`` (comprimido): o recebido pelo ente e a descrição das emendas dele.",
-     "linha": 218
+     "linha": 225
     }
    ]
   },
@@ -10222,6 +10307,56 @@
      "assinatura": "export async function carregarTermos(chave: string, sinal?: AbortSignal): Promise<Termo[]>",
      "doc": "Os termos aditivos do contrato.",
      "linha": 249
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/lib/convenios.ts",
+   "linguagem": "typescript",
+   "linhas": 94,
+   "doc": "Convênios da União com um ente (ADR-045), do arquivo `convenios/ente/<código IBGE>.json.gz` que os painéis\npublicam a partir do Portal da Transparência (CGU): os convênios com início de vigência de 2001 em diante, com a\nsituação como o SIAFI a registra. Convenente pessoa física entra só na soma por ano.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "Convenio",
+     "assinatura": "export type Convenio = [string, string, string, string, string, string | null, string, number, number, number,",
+     "doc": "Um convênio: número, situação, objeto, órgão, categoria, CNPJ e nome do convenente, valores e datas.",
+     "linha": 11
+    },
+    {
+     "tipo": "interface",
+     "nome": "ConveniosEnte",
+     "assinatura": "export interface ConveniosEnte",
+     "doc": "Arquivo `convenios/ente/<código>.json.gz`.",
+     "linha": 15
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarConvenios",
+     "assinatura": "export async function carregarConvenios(codigo: string, sinal?: AbortSignal): Promise<ConveniosEnte | null>",
+     "doc": "Os convênios do ente; `null` quando o ente não tem convênio ou o arquivo não foi publicado.",
+     "linha": 28
+    },
+    {
+     "tipo": "interface",
+     "nome": "ConvenioNoPeriodo",
+     "assinatura": "export interface ConvenioNoPeriodo",
+     "doc": "Um convênio do período, já com o valor e o liberado convertidos.",
+     "linha": 35
+    },
+    {
+     "tipo": "interface",
+     "nome": "ConveniosNoPeriodo",
+     "assinatura": "export interface ConveniosNoPeriodo",
+     "doc": "Os convênios iniciados nos `anos`, os totais e a contagem por situação.",
+     "linha": 50
+    },
+    {
+     "tipo": "funcao",
+     "nome": "conveniosNoPeriodo",
+     "assinatura": "export function conveniosNoPeriodo(c: ConveniosEnte, anos: string[],",
+     "doc": "Os convênios com início de vigência nos `anos`, do maior valor ao menor, com o valor e o liberado convertidos\npelo ano de início (`converter` devolve `null` para o ano que não alcança: o convênio fica de fora).",
+     "linha": 63
     }
    ]
   },
@@ -13400,6 +13535,28 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/componentes/economia/ConveniosMandato.tsx",
+   "linguagem": "typescript",
+   "linhas": 115,
+   "doc": "Convênios da União iniciados no mandato aberto em Governos municipais (ADR-045): quantos, quanto foi\nconveniado e liberado, a situação de cada um como o SIAFI a registra e a lista, do maior ao menor, com o link\ndo convenente pessoa jurídica para as contratações dele no município (visão 360).",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "EstadoConvenios",
+     "assinatura": "export type EstadoConvenios = { fase: \"carregando\" } | { fase: \"pronto\"; convenios: ConveniosEnte | null } | { fase: \"erro\" };",
+     "doc": "Os convênios do município: carregando, sem arquivo, com erro ou lidos.",
+     "linha": 20
+    },
+    {
+     "tipo": "componente",
+     "nome": "ConveniosMandato",
+     "assinatura": "export function ConveniosMandato({ codigo, estado, anos, anosComparado, rotulos, conv, fmt, unidade }:",
+     "doc": "A seção dos convênios iniciados no mandato aberto (e no comparado, se houver).",
+     "linha": 23
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/componentes/economia/EmendasMandato.tsx",
    "linguagem": "typescript",
    "linhas": 150,
@@ -13588,7 +13745,7 @@
   {
    "caminho": "packages/portal/src/componentes/economia/PainelGovernos.tsx",
    "linguagem": "typescript",
-   "linhas": 691,
+   "linhas": 711,
    "doc": "Governos municipais (ADR-040 e adendo de 20/10/2026): para o município de `?ente=`, cada mandato de prefeito com\nquem foi eleito, a população e quanto o município gastou. Ao abrir um mandato, com o que foi gasto, por área\n(função e subfunção) ou por tipo de gasto (natureza e elemento), a comparação com outro mandato e os links do\nmandato nas outras abas.\n\nOs filtros ficam na URL, para o link abrir igual: `ver` (o total gasto, padrão, ou `habitante`), `valores`\n(`reais`, corrigidos pelo IPCA, padrão, ou `epoca`), `mandato` e `comparar` (o ano da eleição) e `abertura`\n(`funcao`, padrão, ou `natureza`). Lido sob demanda das fontes (`lib/governos.ts` e `lib/gastos.ts`); como a\ncomparação de presidentes, mostra o que foi registrado, não o que causou a diferença.",
    "itens": [
     {
@@ -13596,126 +13753,126 @@
      "nome": "Medida",
      "assinatura": "type Medida = \"total\" | \"habitante\";",
      "doc": "O que a tela mostra: o total gasto ou o gasto por habitante.",
-     "linha": 52
+     "linha": 54
     },
     {
      "tipo": "tipo",
      "nome": "Valores",
      "assinatura": "type Valores = \"reais\" | \"epoca\";",
      "doc": "Os valores: corrigidos pelo IPCA (reais do ano-base) ou da época.",
-     "linha": 54
+     "linha": 56
     },
     {
      "tipo": "tipo",
      "nome": "TipoAbertura",
      "assinatura": "type TipoAbertura = \"funcao\" | \"natureza\";",
      "doc": "A abertura de com o que foi gasto: por área (função) ou por tipo de gasto (natureza).",
-     "linha": 56
+     "linha": 58
     },
     {
      "tipo": "interface",
      "nome": "Opcoes",
      "assinatura": "interface Opcoes",
      "doc": "O que a URL pede: medida, valores, mandato aberto, mandato comparado e abertura.",
-     "linha": 59
+     "linha": 61
     },
     {
      "tipo": "funcao",
      "nome": "lerOpcoes",
      "assinatura": "function lerOpcoes(params: { get(chave: string): string | null }): Opcoes",
      "doc": "As opções a partir da URL; valor fora do esperado vira o padrão.",
-     "linha": 68
+     "linha": 70
     },
     {
      "tipo": "tipo",
      "nome": "Estado",
      "assinatura": "type Estado =",
      "doc": "O andamento da leitura do município.",
-     "linha": 86
+     "linha": 88
     },
     {
      "tipo": "componente",
      "nome": "PainelGovernos",
      "assinatura": "export function PainelGovernos()",
      "doc": "A página dos governos municipais, a partir de `?ente=` na URL.",
-     "linha": 93
+     "linha": 95
     },
     {
      "tipo": "funcao",
      "nome": "conversor",
      "assinatura": "function conversor(medida: Medida, valores: Valores, medias: Map<string, number>, base: string | null,",
      "doc": "A conversão de cada ano para o que a tela mostra: reais de `base` (ou da época), no total ou por habitante.",
-     "linha": 166
+     "linha": 168
     },
     {
      "tipo": "tipo",
      "nome": "Natureza",
      "assinatura": "type Natureza = Map<string, Abertura | null | \"erro\">;",
      "doc": "A natureza de cada ano lido: a abertura, `null` (ano não entregue) ou \"erro\".",
-     "linha": 177
+     "linha": 179
     },
     {
      "tipo": "tipo",
      "nome": "PropsMunicipio",
      "assinatura": "type PropsMunicipio = Extract<Estado, { fase: \"pronto\" }> & { opcoes: Opcoes; mudar: (t: Record<string, string | null>) => void };",
      "doc": "O município lido, com as opções da URL e a função que as troca.",
-     "linha": 180
+     "linha": 182
     },
     {
      "tipo": "componente",
      "nome": "Municipio",
      "assinatura": "function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)",
      "doc": "Os filtros, os mandatos e o mandato aberto do município lido.",
-     "linha": 183
+     "linha": 185
     },
     {
      "tipo": "componente",
      "nome": "LinhaMandato",
      "assinatura": "function LinhaMandato({ resumo: r, soma, fmt, aberto, onAbrir }: { resumo: ResumoMandato; soma: SomaGastos;",
      "doc": "Uma linha da tabela de mandatos.",
-     "linha": 345
+     "linha": 360
     },
     {
      "tipo": "componente",
      "nome": "DetalheMandato",
      "assinatura": "function DetalheMandato({ codigo, aberto, comparado, opcoes, somaFuncao, natureza, conv, fmt, unidade,",
      "doc": "O mandato aberto: com o que foi gasto, a comparação com outro mandato e os links nas outras abas.",
-     "linha": 390
+     "linha": 405
     },
     {
      "tipo": "interface",
      "nome": "LinhaDupla",
      "assinatura": "interface LinhaDupla",
      "doc": "Uma linha das duas somas lado a lado (a de um dos mandatos pode faltar).",
-     "linha": 508
+     "linha": 528
     },
     {
      "tipo": "funcao",
      "nome": "juntar",
      "assinatura": "function juntar(as: LinhaGasto[], bs: LinhaGasto[]): LinhaDupla[]",
      "doc": "Junta as linhas das duas somas pelo código, na ordem da primeira e, depois, as que só a segunda tem.",
-     "linha": 517
+     "linha": 537
     },
     {
      "tipo": "componente",
      "nome": "TabelaGastos",
      "assinatura": "function TabelaGastos({ a, b, rotuloA, rotuloB, fmt, coluna }: { a: SomaGastos; b: SomaGastos | null;",
      "doc": "A tabela de com o que foi gasto: uma soma (com os anos) ou duas lado a lado; as linhas abrem os filhos.",
-     "linha": 529
+     "linha": 549
     },
     {
      "tipo": "funcao",
      "nome": "formatarVariacao",
      "assinatura": "function formatarVariacao(v: number | null): string",
      "doc": "\"+12,30%\", \"−4,10%\" ou \"—\".",
-     "linha": 641
+     "linha": 661
     },
     {
      "tipo": "componente",
      "nome": "AnoAAno",
      "assinatura": "function AnoAAno({ contas, conv, fmt, populacao, unidade }: { contas: Map<string, Abertura | null>;",
      "doc": "O ano a ano: a despesa total e quatro áreas, na medida e nos valores escolhidos.",
-     "linha": 647
+     "linha": 667
     }
    ]
   },
@@ -15010,6 +15167,11 @@
    "testes": 14
   },
   {
+   "caminho": "packages/painel/testes/test_convenios.py",
+   "doc": "Testes dos convênios da União (CGU): por ente, categorias, o que fica de fora e a publicação.",
+   "testes": 2
+  },
+  {
    "caminho": "packages/painel/testes/test_despesa_funcao.py",
    "doc": "Testes da coleta da despesa por função (DCA, Anexo I-E) para a comparação com os pares.",
    "testes": 5
@@ -15068,6 +15230,11 @@
    "caminho": "packages/portal/src/lib/__testes__/contratacao.test.ts",
    "doc": "",
    "testes": 6
+  },
+  {
+   "caminho": "packages/portal/src/lib/__testes__/convenios.test.ts",
+   "doc": "",
+   "testes": 2
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/cpf.test.ts",

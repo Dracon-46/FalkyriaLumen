@@ -132,6 +132,14 @@ jobs:
           lumen painel emendas --estado estado || status=1
           if [ -f estado/emendas.json.gz ]; then gh release upload "$TAG" estado/emendas.json.gz --clobber; fi
           exit $status
+      - name: Convênios da União (CGU, arquivo de dados abertos; só quando sai um novo)
+        continue-on-error: true
+        run: |
+          gh release download "$TAG" -p convenios.json.gz -D estado --clobber || true
+          status=0
+          lumen painel convenios --estado estado || status=1
+          if [ -f estado/convenios.json.gz ]; then gh release upload "$TAG" estado/convenios.json.gz --clobber; fi
+          exit $status
       - name: Transparência (portais avaliados pelo PNTP)
         continue-on-error: true
         run: |

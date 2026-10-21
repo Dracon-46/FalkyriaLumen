@@ -208,6 +208,13 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["publicar", "emendas/ente/<código IBGE>.json.gz", "Comprimido; lido pelo mandato aberto em Governos municipais"],
 ], { monoCols: [0], size: 17 }));
 
+body.push(h2("4.14 convenios.py"));
+body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
+  ["data_do_arquivo, baixar", "A data na página de download e o ZIP dos convênios", "Arquivo de dados abertos, sem chave; só baixa quando sai um novo"],
+  ["ler, coletar (lumen painel convenios)", "Os convênios por ente, pelo tipo do convenente", "Início de 2001 em diante; anulados e excluídos fora; o estado na UF; pessoa física só na soma; município pelo nome, com os apelidos"],
+  ["publicar", "convenios/ente/<código IBGE>.json.gz", "Comprimido; lido pelo mandato aberto em Governos municipais"],
+], { monoCols: [0], size: 17 }));
+
 // ============================================================ 5. Estado
 
 body.push(h1("5. Estado guardado entre execuções"));
@@ -218,6 +225,7 @@ body.push(table(["Arquivo", "Conteúdo", "Colunas"], [2800, 3000, 3800], [
   ["conformidade-UF.json.gz", "Entregas da LRF de cada ente da UF e a situação da coleta por exercício", "instituicao, entregavel, exercicio, periodo, periodicidade, status, entregue_em"],
   ["cadastro-entes.json.gz", "Cadastro do SICONFI", "nome, uf, esfera, populacao, capital"],
   ["rcl-UF.json.gz", "Receita corrente líquida de cada ente da UF no exercício anterior (RREO, Anexo 03), ou a data da última tentativa sem dado", "por ente: rcl, demonstrativo, coletado_em ou tentado_em"],
+  ["convenios.json.gz", "Convênios da União por ente (ADR-045), com a data do arquivo da CGU", "convenios (por código IBGE: número, situação, objeto, órgão, categoria, cnpj, convenente, valor, liberado, contrapartida, início, fim, última liberação), pessoa_fisica, fora"],
   ["emendas.json.gz", "Emendas parlamentares recebidas por ente (ADR-044), com a data do arquivo da CGU", "recebido (por código IBGE: ano, emenda, categoria, cnpj, favorecido, valor), emendas (ano, tipo, autor, número, função, ação), sem_lugar"],
   ["cnpj-fornecedores.json.gz", "Base de CNPJ da Receita dos fornecedores (ADR-043): empresa, estabelecimento, Simples e sócios, com o mês e as tabelas de código usadas", "por CNPJ: empresa, estabelecimento, simples, socios; pedidos (os CNPJs procurados)"],
   ["pessoal-UF.json.gz", "Despesa com pessoal do Executivo de cada ente da UF no último período do exercício anterior (RGF, Anexo 1), ou a data da última tentativa sem dado", "por ente: percentual, dtp, rcl_ajustada, limites (alerta, prudencial, maximo), demonstrativo, periodo, periodicidade, coletado_em ou tentado_em"],
@@ -335,6 +343,7 @@ body.push(table(["Arquivo", "Papel"], [4200, 5400], [
   ["src/componentes/paineis/DespesaPorFuncao.tsx", "Despesa por função do ente: o total gasto e a fatia de cada função (padrão) ou, no filtro, por habitante ao lado da mediana e da metade central do grupo, com as ressalvas e o link da DCA (ADR-041)"],
   ["src/componentes/paineis/EmpresaReceita.tsx, src/lib/receita.ts", "Cartão \"Na Receita Federal\" do fornecedor filtrado em Contratações: cadastro, Simples e quadro societário (ADR-043)"],
   ["src/componentes/economia/EmendasMandato.tsx, src/lib/emendas.ts, src/lib/comprimido.ts", "Emendas parlamentares recebidas no mandato aberto de Governos municipais, por categoria, autor e favorecido, e a leitura dos arquivos .json.gz no navegador (ADR-044)"],
+  ["src/componentes/economia/ConveniosMandato.tsx, src/lib/convenios.ts", "Convênios da União iniciados no mandato aberto de Governos municipais, com a situação no SIAFI e a lista (ADR-045)"],
   ["src/componentes/Ligacoes.tsx", "Faixa \"Este município nas outras abas\": Contratações, Conformidade, Governos municipais e Eleições do mesmo ente (visão 360, ADR-035 e ADR-040)"],
   ["src/app/contratacoes/page.tsx, src/app/conformidade/page.tsx", "Páginas estáticas que envolvem os painéis em Suspense (leem a URL no navegador)"],
   ["src/app/operacao/page.tsx, src/componentes/paineis/PainelOperacao.tsx, src/lib/operacao.ts", "Situação das coletas (/operacao/, link no rodapé): alertas, fluxos, volume diário do PNCP e coleta da conformidade (ADR-039)"],
@@ -408,7 +417,7 @@ L.buildDoc({
   codigo: "DOC-13",
   titulo: "Painéis de Contratações e Conformidade",
   subtitulo: "O que cada ente publicou no PNCP e as entregas da LRF ao Tesouro, com a fonte de cada número",
-  meta: { versao: "1.8", data: "21 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038, o ADR-039, o ADR-041 e o ADR-042",
+  meta: { versao: "1.9", data: "21 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038, o ADR-039, o ADR-041 e o ADR-042",
     verificado: "outubro de 2026" },
   body,
   outFile: path.join(__dirname, "..", "docs", "DOC-13_Paineis.docx"),

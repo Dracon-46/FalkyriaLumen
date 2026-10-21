@@ -5,6 +5,18 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Convênios da União nos governos municipais (ADR-045)
+
+- Coleta nova, `lumen painel convenios`, no fluxo diário dos painéis: o arquivo
+  de convênios do Portal da Transparência, sem chave, só quando sai um novo.
+- Por ente: prefeitura, entidades, empresas e outros no município; o estado na
+  UF; pessoa física só na soma. Convênios de 2001 em diante; anulados e
+  excluídos ficam de fora. A tabela de apelidos de município ganhou os nomes
+  antigos e as grafias dos convênios.
+- Governos municipais: o mandato aberto mostra os convênios iniciados nele,
+  com o conveniado, o liberado, a situação no SIAFI e a lista, e o outro
+  mandato ao lado na comparação.
+
 ### Emendas parlamentares recebidas nos governos municipais (ADR-044)
 
 - Coleta nova, `lumen painel emendas`, no fluxo diário dos painéis: o arquivo

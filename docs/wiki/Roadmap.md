@@ -39,7 +39,7 @@ por um comando. Tudo concluído; ADRs 011 em diante registradas durante a implem
 |---|---|
 | Conector PNCP (contratações, contratos, atas, amparo legal, incremental) | Concluído, com itens e resultados |
 | Conector SICONFI com lista de entes ausentes | Entes e extrato concluídos, com a avaliação da LRF; RREO, RGF e DCA com conector pronto e normalização pendente |
-| Portal da Transparência (CGU), com CEIS, CNEP e CEPIM | Cadastros de sanções (ADR-030) e emendas parlamentares (ADR-044) pelos arquivos de dados abertos, sem chave; convênios e despesas pendentes, pelo mesmo caminho |
+| Portal da Transparência (CGU), com CEIS, CNEP e CEPIM | Cadastros de sanções (ADR-030), emendas parlamentares (ADR-044) e convênios (ADR-045) pelos arquivos de dados abertos, sem chave; transferências e despesas pendentes, pelo mesmo caminho |
 | Base pública de CNPJ da Receita Federal | Concluído para os fornecedores dos contratos (ADR-043): cadastro e quadro societário, semanal |
 | Cadastro de entes do IBGE com população e porte | Concluído |
 | Normalização com qualidade e quarentena | Concluída para PNCP, SICONFI e IBGE |
