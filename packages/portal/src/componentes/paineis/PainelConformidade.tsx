@@ -11,6 +11,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { BaixarCsv, PrefixoCsv } from "@/componentes/BaixarCsv";
 import { FiltroPeriodo } from "@/componentes/FiltroPeriodo";
 import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import { exerciciosDoArquivo, recortarConformidade } from "@/lib/conformidade";
@@ -79,6 +80,8 @@ export function PainelConformidade() {
   const mudarPeriodo = (p: PeriodoMeses) =>
     router.replace(url(ente ? `ente=${ente}` : uf ? `uf=${uf}` : "", p), { scroll: false });
   const dados = !estado.carregando && estado.dados ? recortarConformidade(estado.dados, periodo) : null;
+  const prefixoCsv = ["conformidade", ente ?? uf ?? "brasil", periodo.de && `de-${periodo.de.slice(0, 4)}`,
+                      periodo.ate && `ate-${periodo.ate.slice(0, 4)}`].filter(Boolean).join("-");
 
   return (
     <div className="painel">
@@ -119,9 +122,11 @@ export function PainelConformidade() {
           nota="Contagens e frações refeitas só com as obrigações dos exercícios escolhidos."
         />
       )}
-      {dados?.tipo === "conformidade-panorama" && <Panorama dados={dados} onUf={irUf} />}
-      {dados?.tipo === "conformidade-uf" && <Uf dados={dados} onEnte={irEnte} onBrasil={() => irUf(null)} />}
-      {dados?.tipo === "conformidade-ente" && <Ente dados={dados} onUf={irUf} />}
+      <PrefixoCsv.Provider value={prefixoCsv}>
+        {dados?.tipo === "conformidade-panorama" && <Panorama dados={dados} onUf={irUf} />}
+        {dados?.tipo === "conformidade-uf" && <Uf dados={dados} onEnte={irEnte} onBrasil={() => irUf(null)} />}
+        {dados?.tipo === "conformidade-ente" && <Ente dados={dados} onUf={irUf} />}
+      </PrefixoCsv.Provider>
     </div>
   );
 }
@@ -178,6 +183,8 @@ function Panorama({ dados, onUf }: { dados: ConformidadePanorama; onUf: (uf: str
             </tbody>
           </table>
           <Paginacao {...criterios} rotulo="obrigações" />
+          <BaixarCsv nome="por-obrigacao" colunas={["Obrigação", "No prazo", "Após o prazo", "Não consta", "Indeterminada"]}
+            linhas={() => dados.criterios.map((c) => [c.nome, c.cumpre, c.cumpre_parcialmente, c.nao_cumpre, c.indeterminado])} />
         </section>
         <section className="cartao cartao-corpo">
           <h2 className="titulo-secao">Por UF</h2>
@@ -210,6 +217,10 @@ function Panorama({ dados, onUf }: { dados: ConformidadePanorama; onUf: (uf: str
             </tbody>
           </table>
           <Paginacao {...ufs} rotulo="UFs" />
+          <BaixarCsv nome="por-uf" colunas={["UF", "Entes", "Obrigações avaliáveis", "Entregues no prazo", "Entregues no prazo (%)",
+                                             "Coleta"]}
+            linhas={() => dados.ufs.map((u) => [u.uf, u.entes, u.avaliaveis, u.cumpre,
+                                                 u.avaliaveis ? (u.no_prazo ?? 0) * 100 : null, u.coletado_em])} />
         </section>
       </div>
     </>
@@ -272,6 +283,14 @@ function Uf({ dados, onEnte, onBrasil }: { dados: ConformidadeUf; onEnte: (c: st
           </tbody>
         </table>
         <Paginacao {...pagina} rotulo="entes" />
+        <BaixarCsv nome={`entes-${dados.uf}`}
+          colunas={["Código IBGE", "Ente", "Tipo", "Obrigações avaliáveis", "Entregues no prazo", "Entregues no prazo (%)",
+                    "Após o prazo", "Não constam", "Indeterminadas"]}
+          linhas={() => entes.map((e) => [e.codigo, e.nome,
+                                          e.tipo === "municipio" ? "município" : e.tipo === "df" ? "Distrito Federal" : "estado",
+                                          e.avaliaveis, e.cumpre,
+                                          e.avaliaveis ? (e.no_prazo ?? 0) * 100 : null, e.cumpre_parcialmente, e.nao_cumpre,
+                                          e.indeterminado])} />
       </section>
     </>
   );
@@ -356,6 +375,10 @@ function Exercicio({ ano, obrigacoes }: { ano: number; obrigacoes: Obrigacao[] }
         </tbody>
       </table>
       <Paginacao {...pagina} rotulo={`obrigações de ${ano}`} />
+      <BaixarCsv nome={`obrigacoes-${ano}`}
+        colunas={["Exercício", "Período", "Obrigação", "Dispositivo", "Poder", "Prazo", "Entregue em", "Resultado", "Motivo"]}
+        linhas={() => doAno.map((o) => [o.exercicio, o.periodo, o.rotulo, o.dispositivo, o.poder, o.prazo, o.entregue_em,
+                                        o.rotulo_resultado, o.motivo])} />
     </section>
   );
 }

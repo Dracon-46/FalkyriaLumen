@@ -11,6 +11,7 @@ import { baixarCsv, type Celula, nomeDoArquivo } from "@/lib/csv";
 /** O começo do nome dos arquivos da página: "contratacoes-4314902-de-2025-01", por exemplo. */
 export const PrefixoCsv = createContext<string>("");
 
+/** O link, embaixo da tabela: `nome` diz qual tabela é, `linhas` monta todas as linhas só quando a pessoa clica. */
 export function BaixarCsv({ nome, colunas, linhas }: { nome: string; colunas: string[]; linhas: () => Celula[][] }) {
   const prefixo = useContext(PrefixoCsv);
   return (
