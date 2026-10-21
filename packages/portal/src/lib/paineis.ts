@@ -30,6 +30,15 @@ export function codigoSeguro(codigo: string): string {
   return codigo;
 }
 
+/**
+ * O arquivo que leva o ente nos conjuntos publicados por grupo (emendas, convênios): os 3 primeiros dígitos do
+ * município e o código da UF para ela, como `comum.grupo_do_ente` no Python.
+ */
+export function grupoDoEnte(codigo: string): string {
+  const c = codigoSeguro(codigo);
+  return c.length === 7 ? c.slice(0, 3) : c;
+}
+
 /** Endereço de cada arquivo dos painéis; código, CNPJ e UF passam pela validação antes de virar caminho. */
 export const urlsPainel = {
   indice: () => `${BASE_PAINEL}/indice.json`,

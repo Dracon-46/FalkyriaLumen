@@ -169,6 +169,11 @@ dos contratos guardados e grava `cnpj-fornecedores.json.gz` na mesma versão `pa
 um mês baixa perto de 8 GB, um arquivo de cada vez; quando o estado já tem a base do mês para todos os
 fornecedores, ele não baixa nada.
 
+O site dos painéis tinha perto de 30 mil arquivos em outubro de 2026, e a implantação do GitHub Pages demora
+com o número deles: em 20/10/2026, o `deploy-pages` estourou o prazo padrão de 10 minutos. O `paineis-site` dá
+30 minutos à implantação (60 ao job). Os conjuntos novos vão comprimidos (`.json.gz`) e, quando são por ente, em
+arquivos por grupo de entes (os 3 primeiros dígitos do município).
+
 A situação das coletas fica no portal, em `/operacao/` (link no rodapé; ADR-039): a última execução e
 a última com sucesso de cada fluxo de dados, o volume diário do PNCP contra o usual e a coleta da
 conformidade por UF, com os alertas no topo. O `paineis-site` grava as execuções com `gh run list` antes de

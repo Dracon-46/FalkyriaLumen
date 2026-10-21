@@ -5,6 +5,13 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Implantação do site dos painéis
+
+- O `deploy-pages` estourou o prazo de 10 minutos em 20/10/2026 (o site tem
+  perto de 30 mil arquivos): a implantação passa a ter 30 minutos.
+- Emendas e convênios vão em arquivos por grupo de entes (os 3 primeiros
+  dígitos do município), perto de 560 arquivos em vez de 11 mil.
+
 ### Governos municipais: a receita do município no mandato (ADR-040, adendo)
 
 - O mandato aberto mostra a receita do município por origem (impostos

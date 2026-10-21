@@ -45,7 +45,7 @@ from lumen_canonico.documentos import mascarar_cpfs_no_texto
 from lumen_normalizacao.transformacoes import chave_texto
 
 from .cadastro import Cadastro
-from .comum import gravar_json, instante_utc, ler_json
+from .comum import gravar_json, grupo_do_ente, instante_utc, ler_json
 
 URL = "https://portaldatransparencia.gov.br/download-de-dados/emendas-parlamentares/UNICO"
 FONTE = "Portal da Transparência (CGU), emendas parlamentares, arquivo de dados abertos"
@@ -223,7 +223,8 @@ def coletar(estado: Path | str, cadastro: Cadastro, *, contato: str, temporario:
 
 
 def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> dict | None:
-    """Grava ``emendas/ente/<código IBGE>.json.gz`` (comprimido): o recebido pelo ente e a descrição das emendas dele."""
+    """Grava ``emendas/ente/<grupo>.json.gz`` (comprimido, ``comum.grupo_do_ente``): por ente do grupo, o recebido e a
+    descrição das emendas dele."""
     caminho = Path(estado) / ARQUIVO
     if not caminho.exists():
         return None
@@ -231,13 +232,16 @@ def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em
     if dados.get("versao") != VERSAO_ESTADO:
         raise ValueError(f"{caminho}: versão {dados.get('versao')!r} do estado das emendas não suportada")
     emendas = dados.get("emendas") or {}
+    grupos: dict[str, dict[str, dict]] = {}
     for ente, linhas in (dados.get("recebido") or {}).items():
         codigos = sorted({linha[1] for linha in linhas})
-        gravar(f"emendas/ente/{ente}.json.gz", {
-            "versao": 1, "tipo": "emendas-ente", "gerado_em": gerado_em, "ente": ente,
-            "data_arquivo": dados.get("data_arquivo"), "fonte": dados.get("fonte"), "categorias": CATEGORIAS,
-            "colunas_recebido": dados.get("colunas_recebido"), "recebido": linhas,
-            "colunas_emenda": dados.get("colunas_emenda"), "emendas": {c: emendas.get(c) for c in codigos},
+        grupos.setdefault(grupo_do_ente(ente), {})[ente] = {
+            "recebido": linhas, "emendas": {c: emendas.get(c) for c in codigos}}
+    for grupo, entes in sorted(grupos.items()):
+        gravar(f"emendas/ente/{grupo}.json.gz", {
+            "versao": 1, "tipo": "emendas-entes", "gerado_em": gerado_em, "data_arquivo": dados.get("data_arquivo"),
+            "fonte": dados.get("fonte"), "categorias": CATEGORIAS, "colunas_recebido": dados.get("colunas_recebido"),
+            "colunas_emenda": dados.get("colunas_emenda"), "entes": entes,
         })
     return {"data_arquivo": dados.get("data_arquivo"), "entes": len(dados.get("recebido") or {}),
-            "sem_lugar": dados.get("sem_lugar")}
+            "arquivos": len(grupos), "sem_lugar": dados.get("sem_lugar")}

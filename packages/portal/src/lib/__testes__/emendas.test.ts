@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { type EmendasEnte, recebidoNoPeriodo } from "../emendas";
+import { gzipSync } from "node:zlib";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { carregarEmendas, type EmendasEnte, recebidoNoPeriodo } from "../emendas";
 
 const arquivo: EmendasEnte = {
   versao: 1, tipo: "emendas-ente", gerado_em: "x", ente: "4319604", data_arquivo: null, fonte: null,
@@ -33,5 +34,20 @@ describe("emendas recebidas no mandato", () => {
     expect(r.total).toBe((50 + 30 + 5 + 1000) * 2);
     expect(r.anos).toEqual(["2022", "2025"]);
     expect(r.porAutor[0]).toMatchObject({ rotulo: "Autor não informado", valor: 2000 });
+  });
+});
+
+describe("leitura das emendas por grupo de entes", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("acha o ente no arquivo do grupo", async () => {
+    const { recebido, emendas, ...resto } = arquivo;
+    const grupo = { ...resto, tipo: "emendas-entes", entes: { "4319604": { recebido, emendas } } };
+    vi.stubGlobal("fetch", vi.fn(async (url: string) =>
+      url.endsWith("/emendas/ente/431.json.gz") ? new Response(gzipSync(JSON.stringify(grupo))) : new Response("", { status: 404 })));
+    const e = await carregarEmendas("4319604");
+    expect(e?.tipo).toBe("emendas-ente");
+    expect(e?.recebido).toHaveLength(5);
+    expect(await carregarEmendas("4319999")).toBeNull();
   });
 });

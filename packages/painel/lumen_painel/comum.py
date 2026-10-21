@@ -122,6 +122,13 @@ def ler_json(caminho: Path | str) -> Any:
     return json.loads(dados)
 
 
+def grupo_do_ente(codigo: str) -> str:
+    """O arquivo que leva o ente nos conjuntos publicados por grupo (emendas, convênios): os 3 primeiros dígitos do
+    município (perto de 20 municípios por arquivo) e o código da UF para ela. Menos arquivos deixam a implantação
+    do GitHub Pages dentro do prazo."""
+    return codigo[:3] if len(codigo) == 7 else codigo
+
+
 def gravar_json(caminho: Path | str, conteudo: Any, *, comprimir: bool = False) -> Path:
     """Grava JSON compacto em UTF-8 por troca atômica (temporário no mesmo diretório e ``os.replace``).
 

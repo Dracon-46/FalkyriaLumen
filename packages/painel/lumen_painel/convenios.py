@@ -41,7 +41,7 @@ from lumen_ingestao.adaptadores.api.cgu import data_do_arquivo as data_na_pagina
 from lumen_normalizacao.transformacoes import chave_texto
 
 from .cadastro import Cadastro
-from .comum import gravar_json, instante_utc, ler_json
+from .comum import gravar_json, grupo_do_ente, instante_utc, ler_json
 from .emendas import APELIDOS, indice_de_lugares
 
 PAGINA = "https://portaldatransparencia.gov.br/download-de-dados/convenios"
@@ -185,7 +185,8 @@ def coletar(estado: Path | str, cadastro: Cadastro, *, contato: str, temporario:
 
 
 def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> dict | None:
-    """Grava ``convenios/ente/<código IBGE>.json.gz`` (comprimido): os convênios do ente e a soma de pessoa física."""
+    """Grava ``convenios/ente/<grupo>.json.gz`` (comprimido, ``comum.grupo_do_ente``): por ente do grupo, os
+    convênios e a soma de pessoa física."""
     caminho = Path(estado) / ARQUIVO
     if not caminho.exists():
         return None
@@ -194,11 +195,14 @@ def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em
         raise ValueError(f"{caminho}: versão {dados.get('versao')!r} do estado dos convênios não suportada")
     convenios = dados.get("convenios") or {}
     pf = dados.get("pessoa_fisica") or {}
+    grupos: dict[str, dict[str, dict]] = {}
     for ente in sorted(set(convenios) | set(pf)):
-        gravar(f"convenios/ente/{ente}.json.gz", {
-            "versao": 1, "tipo": "convenios-ente", "gerado_em": gerado_em, "ente": ente,
-            "data_arquivo": dados.get("data_arquivo"), "fonte": dados.get("fonte"), "categorias": CATEGORIAS,
-            "colunas": dados.get("colunas"), "convenios": convenios.get(ente, []), "pessoa_fisica": pf.get(ente, {}),
+        grupos.setdefault(grupo_do_ente(ente), {})[ente] = {"convenios": convenios.get(ente, []),
+                                                            "pessoa_fisica": pf.get(ente, {})}
+    for grupo, entes in sorted(grupos.items()):
+        gravar(f"convenios/ente/{grupo}.json.gz", {
+            "versao": 1, "tipo": "convenios-entes", "gerado_em": gerado_em, "data_arquivo": dados.get("data_arquivo"),
+            "fonte": dados.get("fonte"), "categorias": CATEGORIAS, "colunas": dados.get("colunas"), "entes": entes,
         })
-    return {"data_arquivo": dados.get("data_arquivo"), "entes": len(set(convenios) | set(pf)),
+    return {"data_arquivo": dados.get("data_arquivo"), "entes": len(set(convenios) | set(pf)), "arquivos": len(grupos),
             "convenios": sum(len(v) for v in convenios.values()), "fora": dados.get("fora")}

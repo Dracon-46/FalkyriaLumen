@@ -1,11 +1,11 @@
 /**
- * Convênios da União com um ente (ADR-045), do arquivo `convenios/ente/<código IBGE>.json.gz` que os painéis
+ * Convênios da União com um ente (ADR-045), do arquivo `convenios/ente/<grupo>.json.gz` que os painéis
  * publicam a partir do Portal da Transparência (CGU): os convênios com início de vigência de 2001 em diante, com a
  * situação como o SIAFI a registra. Convenente pessoa física entra só na soma por ano.
  */
 
 import { obterJsonComprimido } from "./comprimido";
-import { BASE_PAINEL, codigoSeguro, conferir } from "./paineis";
+import { BASE_PAINEL, conferir, grupoDoEnte } from "./paineis";
 
 /** Um convênio: número, situação, objeto, órgão, categoria, CNPJ e nome do convenente, valores e datas. */
 export type Convenio = [string, string, string, string, string, string | null, string, number, number, number,
@@ -24,11 +24,20 @@ export interface ConveniosEnte {
   pessoa_fisica: Record<string, number>;
 }
 
+/** Arquivo `convenios/ente/<grupo>.json.gz`: os convênios dos entes do grupo (`grupoDoEnte`). */
+export interface ConveniosGrupo extends Omit<ConveniosEnte, "tipo" | "ente" | "convenios" | "pessoa_fisica"> {
+  tipo: "convenios-entes";
+  entes: Record<string, Pick<ConveniosEnte, "convenios" | "pessoa_fisica">>;
+}
+
 /** Os convênios do ente; `null` quando o ente não tem convênio ou o arquivo não foi publicado. */
 export async function carregarConvenios(codigo: string, sinal?: AbortSignal): Promise<ConveniosEnte | null> {
-  const url = `${BASE_PAINEL}/convenios/ente/${codigoSeguro(codigo)}.json.gz`;
+  const url = `${BASE_PAINEL}/convenios/ente/${grupoDoEnte(codigo)}.json.gz`;
   const bruto = await obterJsonComprimido(url, sinal);
-  return bruto === null ? null : conferir<ConveniosEnte>(bruto, "convenios-ente", url);
+  if (bruto === null) return null;
+  const { entes, ...resto } = conferir<ConveniosGrupo>(bruto, "convenios-entes", url);
+  const c = entes?.[codigo];
+  return c ? { ...resto, tipo: "convenios-ente", ente: codigo, ...c } : null;
 }
 
 /** Um convênio do período, já com o valor e o liberado convertidos. */

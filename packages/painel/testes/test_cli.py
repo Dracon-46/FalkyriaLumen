@@ -201,7 +201,7 @@ def test_publicar_de_ponta_a_ponta(tmp_path, apoio, capsys):
     assert indice["conformidade"]["pares"]["entes_com_pessoal"] == 1
     # Base de CNPJ (ADR-043) e emendas (ADR-044)
     assert indice["cnpj"]["empresas"] == 1 and "cnpj/972.json.gz" in arquivos and "cnpj/tabelas.json" in arquivos
-    assert indice["emendas"]["entes"] == 1 and "emendas/ente/4319604.json.gz" in arquivos
+    assert indice["emendas"]["entes"] == 1 and "emendas/ente/431.json.gz" in arquivos
     # Painel operacional (ADR-039): as execuções gravadas pelo fluxo e o volume do dia coletado
     situacao = comum.ler_json(site / "operacao.json")
     assert next(f for f in situacao["fluxos"] if f["fluxo"] == "paineis")["ultimo_sucesso"] == "2026-10-13T12:30:00Z"

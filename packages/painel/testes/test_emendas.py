@@ -109,9 +109,10 @@ def test_publica_um_arquivo_por_ente(tmp_path):
                     baixar_fn=lambda destino, *, contato: (destino.write_bytes(zip_.read_bytes()) and destino, None))
     gravados = {}
     resumo = emendas.publicar(estado, lambda caminho, dados: gravados.setdefault(caminho, dados), gerado_em="x")
-    assert resumo["entes"] == 3 and set(gravados) == {"emendas/ente/4319604.json.gz", "emendas/ente/43.json.gz",
-                                                      "emendas/ente/3515004.json.gz"}
-    sepe = gravados["emendas/ente/4319604.json.gz"]
-    assert sepe["tipo"] == "emendas-ente" and set(sepe["emendas"]) == {"E1", "E2"}
-    assert sepe["categorias"]["governo_municipal"] == "Governo municipal"
+    assert resumo["entes"] == 3 and set(gravados) == {"emendas/ente/431.json.gz", "emendas/ente/43.json.gz",
+                                                      "emendas/ente/351.json.gz"}
+    grupo = gravados["emendas/ente/431.json.gz"]
+    assert grupo["tipo"] == "emendas-entes" and set(grupo["entes"]) == {"4319604"}
+    assert set(grupo["entes"]["4319604"]["emendas"]) == {"E1", "E2"}
+    assert grupo["categorias"]["governo_municipal"] == "Governo municipal"
     assert emendas.publicar(tmp_path / "vazio", lambda c, d: None, gerado_em="x") is None

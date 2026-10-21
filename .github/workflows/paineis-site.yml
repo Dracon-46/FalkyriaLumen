@@ -32,7 +32,7 @@ concurrency:
 jobs:
   site:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     environment:
       name: github-pages
       url: ${{ steps.publicacao.outputs.page_url }}
@@ -81,5 +81,9 @@ jobs:
       - uses: actions/upload-pages-artifact@v4
         with:
           path: site
+      # A implantação demora com o número de arquivos (perto de 30 mil em outubro de 2026): o padrão de 10
+      # minutos estourou em 20/10/2026.
       - id: publicacao
         uses: actions/deploy-pages@v5
+        with:
+          timeout: 1800000

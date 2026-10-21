@@ -205,14 +205,14 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["categoria", "A categoria do favorecido pela natureza jurídica", "Governo municipal ou estadual, entidade, empresa, pessoa física; o agente financeiro (o banco que opera os repasses) fica sem lugar"],
   ["indice_de_lugares, APELIDOS", "O código IBGE pelo nome do município do favorecido", "Cruzamento sem acento com o cadastro; nomes antigos numa tabela de apelidos"],
   ["ler, coletar (lumen painel emendas)", "O recebido por ente, emenda, categoria e favorecido, e a descrição das emendas", "Pessoa física só na soma; CPF do MEI mascarado; o que não tem lugar fica nos totais por ano"],
-  ["publicar", "emendas/ente/<código IBGE>.json.gz", "Comprimido; lido pelo mandato aberto em Governos municipais"],
+  ["publicar", "emendas/ente/<grupo>.json.gz (3 primeiros dígitos do município, ou a UF)", "Comprimido e em grupos de perto de 20 municípios, para a implantação do Pages caber no prazo; lido pelo mandato aberto em Governos municipais"],
 ], { monoCols: [0], size: 17 }));
 
 body.push(h2("4.14 convenios.py"));
 body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["data_do_arquivo, baixar", "A data na página de download e o ZIP dos convênios", "Arquivo de dados abertos, sem chave; só baixa quando sai um novo"],
   ["ler, coletar (lumen painel convenios)", "Os convênios por ente, pelo tipo do convenente", "Início de 2001 em diante; anulados e excluídos fora; o estado na UF; pessoa física só na soma; município pelo nome, com os apelidos"],
-  ["publicar", "convenios/ente/<código IBGE>.json.gz", "Comprimido; lido pelo mandato aberto em Governos municipais"],
+  ["publicar", "convenios/ente/<grupo>.json.gz (3 primeiros dígitos do município, ou a UF)", "Comprimido e em grupos, como as emendas; lido pelo mandato aberto em Governos municipais"],
 ], { monoCols: [0], size: 17 }));
 
 // ============================================================ 5. Estado

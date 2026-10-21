@@ -1,12 +1,12 @@
 /**
- * Emendas parlamentares recebidas por um ente (ADR-044), do arquivo `emendas/ente/<código IBGE>.json.gz` que os
+ * Emendas parlamentares recebidas por um ente (ADR-044), do arquivo `emendas/ente/<grupo>.json.gz` que os
  * painéis publicam a partir do Portal da Transparência (CGU). O recebido é o que os favorecidos do lugar
  * receberam, por categoria (governo municipal ou estadual, entidade, empresa, pessoa física); o banco que opera
  * os repasses fica de fora, e a pessoa física entra só na soma.
  */
 
 import { obterJsonComprimido } from "./comprimido";
-import { BASE_PAINEL, codigoSeguro, conferir } from "./paineis";
+import { BASE_PAINEL, conferir, grupoDoEnte } from "./paineis";
 
 /** As categorias de favorecido, pela natureza jurídica. */
 export type CategoriaFavorecido = "governo_municipal" | "governo_estadual" | "entidade" | "empresa" | "pessoa_fisica";
@@ -29,11 +29,20 @@ export interface EmendasEnte {
   emendas: Record<string, DescricaoEmenda | null>;
 }
 
+/** Arquivo `emendas/ente/<grupo>.json.gz`: as emendas dos entes do grupo (`grupoDoEnte`). */
+export interface EmendasGrupo extends Omit<EmendasEnte, "tipo" | "ente" | "recebido" | "emendas"> {
+  tipo: "emendas-entes";
+  entes: Record<string, Pick<EmendasEnte, "recebido" | "emendas">>;
+}
+
 /** As emendas recebidas pelo ente; `null` quando o ente não recebeu ou o arquivo não foi publicado. */
 export async function carregarEmendas(codigo: string, sinal?: AbortSignal): Promise<EmendasEnte | null> {
-  const url = `${BASE_PAINEL}/emendas/ente/${codigoSeguro(codigo)}.json.gz`;
+  const url = `${BASE_PAINEL}/emendas/ente/${grupoDoEnte(codigo)}.json.gz`;
   const bruto = await obterJsonComprimido(url, sinal);
-  return bruto === null ? null : conferir<EmendasEnte>(bruto, "emendas-ente", url);
+  if (bruto === null) return null;
+  const { entes, ...resto } = conferir<EmendasGrupo>(bruto, "emendas-entes", url);
+  const e = entes?.[codigo];
+  return e ? { ...resto, tipo: "emendas-ente", ente: codigo, ...e } : null;
 }
 
 /** Uma soma com o rótulo: categoria, autor ou favorecido. */
