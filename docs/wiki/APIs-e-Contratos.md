@@ -339,6 +339,8 @@ Gerados por `lumen painel publicar` e publicados no GitHub Pages
 [`paineis.ts`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/packages/portal/src/lib/paineis.ts).
 Versão do formato: `VERSAO_PAINEL` = 1
 ([`lumen_painel/__init__.py`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/packages/painel/lumen_painel/__init__.py)).
+Os arquivos `.json.gz` vão comprimidos com gzip, e o portal os descomprime no navegador
+([`comprimido.ts`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/packages/portal/src/lib/comprimido.ts)).
 
 | Caminho | Conteúdo |
 |---|---|
@@ -346,8 +348,10 @@ Versão do formato: `VERSAO_PAINEL` = 1
 | `entes.json` | Cadastro para a busca: código, nome, UF, tipo, população |
 | `orgaos.json` | Órgãos com publicação no período (CNPJ, razão social, ente, esfera, processos, contratos), para a busca |
 | `contratacoes/panorama.json` | Brasil: totais, esferas, UFs, meses, modalidades, fornecedores |
-| `contratacoes/ente/<código>.json` | Um ente: União (1), estado (2 dígitos), DF (53) ou município (7 dígitos) |
-| `contratacoes/orgao/<CNPJ>.json` | Um órgão: prefeitura, câmara, autarquia, fundação ou empresa pública |
+| `contratacoes/ente/<grupo>.json.gz` | Os entes do grupo (`entes`, pelo código): União (1), estados, DF e municípios. O grupo é o 3º, o 4º e o 5º dígitos do município, ou o próprio código (`comum.grupo_do_ente`) |
+| `contratacoes/orgao/<grupo>.json.gz` | Os órgãos do grupo (`orgaos`, pelo CNPJ): prefeitura, câmara, autarquia, fundação ou empresa pública. O grupo é o 6º, o 7º e o 8º dígitos do CNPJ (`comum.grupo_do_orgao`) |
+| `emendas/ente/<grupo>.json.gz`, `convenios/ente/<grupo>.json.gz` | Emendas parlamentares e convênios da União recebidos pelos entes do grupo (ADR-044 e ADR-045) |
+| `cnpj/<3 primeiros dígitos>.json.gz`, `cnpj/tabelas.json` | Base de CNPJ da Receita dos fornecedores e as tabelas de códigos (ADR-043) |
 | `conformidade/panorama.json` | Brasil: resultados por UF e por obrigação |
 | `conformidade/uf/<sigla>.json` | Entes da UF, com o resumo de cada um |
 | `conformidade/ente/<código>.json` | Obrigações avaliadas de um ente e o grupo de pares (ADR-038) |

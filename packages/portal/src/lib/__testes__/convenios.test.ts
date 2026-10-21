@@ -36,17 +36,17 @@ describe("convênios no mandato", () => {
 describe("leitura por grupo de entes", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it("acha o ente no arquivo do grupo (3 dígitos do município, o código da UF)", async () => {
-    expect(grupoDoEnte("4319604")).toBe("431");
+  it("acha o ente no arquivo do grupo (3º a 5º dígitos do município, o código da UF)", async () => {
+    expect(grupoDoEnte("4319604")).toBe("196");
     expect(grupoDoEnte("43")).toBe("43");
     const grupo = { versao: 1, tipo: "convenios-entes", gerado_em: "x", data_arquivo: "20261009", fonte: null,
                     categorias: {}, colunas: [], entes: { "4319604": { convenios: arquivo.convenios, pessoa_fisica: {} } } };
     vi.stubGlobal("fetch", vi.fn(async (url: string) =>
-      url.endsWith("/convenios/ente/431.json.gz") ? new Response(gzipSync(JSON.stringify(grupo))) : new Response("", { status: 404 })));
+      url.endsWith("/convenios/ente/196.json.gz") ? new Response(gzipSync(JSON.stringify(grupo))) : new Response("", { status: 404 })));
     const c = await carregarConvenios("4319604");
     expect(c?.ente).toBe("4319604");
     expect(c?.convenios).toHaveLength(3);
     expect(await carregarConvenios("4319999")).toBeNull();          // mesmo grupo, ente que não está nele
-    expect(await carregarConvenios("1100015")).toBeNull();          // grupo que não existe
+    expect(await carregarConvenios("1100205")).toBeNull();          // grupo que não existe
   });
 });

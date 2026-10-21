@@ -205,14 +205,14 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["categoria", "A categoria do favorecido pela natureza jurídica", "Governo municipal ou estadual, entidade, empresa, pessoa física; o agente financeiro (o banco que opera os repasses) fica sem lugar"],
   ["indice_de_lugares, APELIDOS", "O código IBGE pelo nome do município do favorecido", "Cruzamento sem acento com o cadastro; nomes antigos numa tabela de apelidos"],
   ["ler, coletar (lumen painel emendas)", "O recebido por ente, emenda, categoria e favorecido, e a descrição das emendas", "Pessoa física só na soma; CPF do MEI mascarado; o que não tem lugar fica nos totais por ano"],
-  ["publicar", "emendas/ente/<grupo>.json.gz (3 primeiros dígitos do município, ou a UF)", "Comprimido e em grupos de perto de 20 municípios, para a implantação do Pages caber no prazo; lido pelo mandato aberto em Governos municipais"],
+  ["publicar", "emendas/ente/<grupo>.json.gz (3º a 5º dígitos do município, ou a UF)", "Comprimido e em grupos de 1 a 46 municípios, para a implantação do Pages caber no prazo; lido pelo mandato aberto em Governos municipais"],
 ], { monoCols: [0], size: 17 }));
 
 body.push(h2("4.14 convenios.py"));
 body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["data_do_arquivo, baixar", "A data na página de download e o ZIP dos convênios", "Arquivo de dados abertos, sem chave; só baixa quando sai um novo"],
   ["ler, coletar (lumen painel convenios)", "Os convênios por ente, pelo tipo do convenente", "Início de 2001 em diante; anulados e excluídos fora; o estado na UF; pessoa física só na soma; município pelo nome, com os apelidos"],
-  ["publicar", "convenios/ente/<grupo>.json.gz (3 primeiros dígitos do município, ou a UF)", "Comprimido e em grupos, como as emendas; lido pelo mandato aberto em Governos municipais"],
+  ["publicar", "convenios/ente/<grupo>.json.gz (3º a 5º dígitos do município, ou a UF)", "Comprimido e em grupos, como as emendas; lido pelo mandato aberto em Governos municipais"],
 ], { monoCols: [0], size: 17 }));
 
 // ============================================================ 5. Estado
@@ -249,8 +249,8 @@ body.push(table(["Caminho", "tipo", "Conteúdo"], [3200, 2200, 4200], [
   ["entes.json", "—", "Cadastro para a busca: código, nome, UF, esfera, população"],
   ["orgaos.json", "orgaos", "Órgãos para a busca: CNPJ, razão social, ente, esfera, processos, contratos"],
   ["contratacoes/panorama.json", "contratacoes-panorama", "Brasil: totais, esferas, UFs, meses, modalidades, fornecedores, recentes"],
-  ["contratacoes/ente/<código>.json", "contratacoes-ente", "Um ente; o de um estado com os municípios da UF"],
-  ["contratacoes/orgao/<CNPJ>.json", "contratacoes-orgao", "Um órgão, com o ente a que pertence"],
+  ["contratacoes/ente/<grupo>.json.gz", "contratacoes-entes", "Os entes do grupo (3º a 5º dígitos do município, ou o código), cada um como contratacoes-ente; o de um estado com os municípios da UF. Comprimido"],
+  ["contratacoes/orgao/<grupo>.json.gz", "contratacoes-orgaos", "Os órgãos do grupo (6º a 8º dígitos do CNPJ), cada um como contratacoes-orgao, com o ente a que pertence. Comprimido"],
   ["conformidade/panorama.json", "conformidade-panorama", "Brasil, por obrigação e por UF"],
   ["conformidade/uf/<sigla>.json", "conformidade-uf", "Entes da UF com o resumo de cada um"],
   ["conformidade/ente/<código>.json", "conformidade-ente", "Obrigações avaliadas de um ente e o grupo de pares"],
@@ -417,7 +417,7 @@ L.buildDoc({
   codigo: "DOC-13",
   titulo: "Painéis de Contratações e Conformidade",
   subtitulo: "O que cada ente publicou no PNCP e as entregas da LRF ao Tesouro, com a fonte de cada número",
-  meta: { versao: "1.9", data: "21 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038, o ADR-039, o ADR-041 e o ADR-042",
+  meta: { versao: "2.0", data: "21 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038, o ADR-039, o ADR-041 e o ADR-042",
     verificado: "outubro de 2026" },
   body,
   outFile: path.join(__dirname, "..", "docs", "DOC-13_Paineis.docx"),

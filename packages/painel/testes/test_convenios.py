@@ -92,8 +92,8 @@ def test_publica_um_arquivo_comprimido_por_ente(tmp_path):
     gravados = {}
     resumo = convenios.publicar(estado, lambda caminho, dados: gravados.setdefault(caminho, dados), gerado_em="x")
     assert resumo["entes"] == 3 and resumo["convenios"] == 4
-    assert set(gravados) == {"convenios/ente/431.json.gz", "convenios/ente/43.json.gz", "convenios/ente/330.json.gz"}
-    grupo = gravados["convenios/ente/431.json.gz"]
+    assert set(gravados) == {"convenios/ente/196.json.gz", "convenios/ente/43.json.gz", "convenios/ente/038.json.gz"}
+    grupo = gravados["convenios/ente/196.json.gz"]
     assert grupo["tipo"] == "convenios-entes" and grupo["entes"]["4319604"]["pessoa_fisica"] == {"2020": 5000.0}
     assert grupo["categorias"]["entidade"] == "Entidade sem fins lucrativos"
     assert convenios.publicar(tmp_path / "vazio", lambda c, d: None, gerado_em="x") is None

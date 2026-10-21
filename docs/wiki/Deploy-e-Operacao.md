@@ -171,8 +171,10 @@ fornecedores, ele não baixa nada.
 
 O site dos painéis tinha perto de 30 mil arquivos em outubro de 2026, e a implantação do GitHub Pages demora
 com o número deles: em 20/10/2026, o `deploy-pages` estourou o prazo padrão de 10 minutos. O `paineis-site` dá
-30 minutos à implantação (60 ao job). Os conjuntos novos vão comprimidos (`.json.gz`) e, quando são por ente, em
-arquivos por grupo de entes (os 3 primeiros dígitos do município).
+30 minutos à implantação e 120 ao job, que também baixa e soma os dias desde 2021. Os conjuntos por ente
+(contratações, emendas e convênios) e por órgão vão comprimidos (`.json.gz`) em arquivos por grupo: o 3º, o 4º e
+o 5º dígitos do município e o 6º, o 7º e o 8º do CNPJ, perto de mil arquivos por conjunto, em vez de um por ente
+ou órgão.
 
 A situação das coletas fica no portal, em `/operacao/` (link no rodapé; ADR-039): a última execução e
 a última com sucesso de cada fluxo de dados, o volume diário do PNCP contra o usual e a coleta da

@@ -36,7 +36,7 @@ from . import conformidade as conf
 from . import contratacoes as contr
 from . import convenios, despesa_funcao, emendas, mercado, operacao, pares, pessoal, rcl, transparencia
 from .cadastro import Cadastro
-from .comum import gravar_json, hoje_brasilia, instante_utc, ler_json, uf_do_ente
+from .comum import gravar_json, grupo_do_ente, grupo_do_orgao, hoje_brasilia, instante_utc, ler_json, uf_do_ente
 from .dia import coletar_dia, dias_guardados, mascarar_dia
 from .site import Site
 
@@ -292,6 +292,14 @@ def cmd_anp(args) -> int:
     return 1 if resumo.falha or resumo.falhas else 0
 
 
+def _agrupar(chaves, grupo) -> list[tuple[str, list[str]]]:
+    """As chaves em grupos (``grupo(chave)``), na ordem dos grupos: um grupo de cada vez vai para a memória."""
+    grupos: dict[str, list[str]] = {}
+    for chave in chaves:
+        grupos.setdefault(grupo(chave), []).append(chave)
+    return sorted((g, sorted(cs)) for g, cs in grupos.items())
+
+
 def cmd_publicar(args) -> int:
     """Monta o site inteiro a partir do estado: índice, busca, contratações e conformidade."""
     estado = Path(args.estado)
@@ -303,12 +311,17 @@ def cmd_publicar(args) -> int:
 
     painel = contr.somar_dias(estado.glob("contratacoes-*.json.gz"), cadastro)
     corte = contr.corte_mes_a_mes(painel.cobertura()["ate"])
-    for codigo, acumulador in painel.entes.items():
-        site.gravar(f"contratacoes/ente/{codigo}.json", contr.compactar_meses(
-            contr.ente_para_json(codigo, acumulador, painel, cadastro, gerado_em), corte))
-    for cnpj, acumulador in painel.por_orgao.items():
-        site.gravar(f"contratacoes/orgao/{cnpj}.json", contr.compactar_meses(
-            contr.orgao_para_json(cnpj, acumulador, painel, cadastro, gerado_em), corte))
+    # Por grupo de entes e de órgãos, comprimidos: menos arquivos e menos bytes para o GitHub Pages
+    for grupo, codigos in _agrupar(painel.entes, grupo_do_ente):
+        site.gravar(f"contratacoes/ente/{grupo}.json.gz", {
+            "versao": 1, "tipo": "contratacoes-entes", "gerado_em": gerado_em,
+            "entes": {c: contr.compactar_meses(contr.ente_para_json(c, painel.entes[c], painel, cadastro, gerado_em),
+                                               corte) for c in codigos}})
+    for grupo, cnpjs in _agrupar(painel.por_orgao, grupo_do_orgao):
+        site.gravar(f"contratacoes/orgao/{grupo}.json.gz", {
+            "versao": 1, "tipo": "contratacoes-orgaos", "gerado_em": gerado_em,
+            "orgaos": {c: contr.compactar_meses(contr.orgao_para_json(c, painel.por_orgao[c], painel, cadastro,
+                                                                      gerado_em), corte) for c in cnpjs}})
     site.gravar("contratacoes/panorama.json",
                 contr.compactar_meses(contr.panorama_para_json(painel, cadastro, gerado_em), corte))
     site.gravar("orgaos.json", contr.orgaos_para_busca(painel, gerado_em))

@@ -177,8 +177,12 @@ def test_publicar_de_ponta_a_ponta(tmp_path, apoio, capsys):
     assert resumo["contratacoes"]["dias"] == 1 and resumo["conformidade"]["entes"] == 1
     arquivos = {p.relative_to(site).as_posix() for p in site.rglob("*") if p.is_file()}
     assert {"indice.json", "entes.json", "index.html", ".nojekyll", "contratacoes/panorama.json",
-            "contratacoes/ente/4319604.json", "conformidade/panorama.json", "conformidade/uf/RS.json",
-            "conformidade/ente/4319604.json", "contratacoes/orgao/97229181000164.json", "orgaos.json"} <= arquivos
+            "contratacoes/ente/196.json.gz", "conformidade/panorama.json", "conformidade/uf/RS.json",
+            "conformidade/ente/4319604.json", "contratacoes/orgao/181.json.gz", "orgaos.json"} <= arquivos
+    # Contratações por grupo de entes (3º a 5º dígitos do código) e de órgãos (6º a 8º dígitos do CNPJ), comprimidas
+    grupo_ente = comum.ler_json(site / "contratacoes" / "ente" / "196.json.gz")
+    assert grupo_ente["tipo"] == "contratacoes-entes" and grupo_ente["entes"]["4319604"]["tipo"] == "contratacoes-ente"
+    assert "97229181000164" in comum.ler_json(site / "contratacoes" / "orgao" / "181.json.gz")["orgaos"]
     assert "97229181000164" in {linha[0] for linha in comum.ler_json(site / "orgaos.json")["orgaos"]}
     entes = comum.ler_json(site / "entes.json")
     linhas = {e[0]: e for e in entes["entes"]}
@@ -203,7 +207,7 @@ def test_publicar_de_ponta_a_ponta(tmp_path, apoio, capsys):
     assert indice["conformidade"]["pares"]["entes_com_pessoal"] == 1
     # Base de CNPJ (ADR-043) e emendas (ADR-044)
     assert indice["cnpj"]["empresas"] == 1 and "cnpj/972.json.gz" in arquivos and "cnpj/tabelas.json" in arquivos
-    assert indice["emendas"]["entes"] == 1 and "emendas/ente/431.json.gz" in arquivos
+    assert indice["emendas"]["entes"] == 1 and "emendas/ente/196.json.gz" in arquivos
     # Painel operacional (ADR-039): as execuções gravadas pelo fluxo e o volume do dia coletado
     situacao = comum.ler_json(site / "operacao.json")
     assert next(f for f in situacao["fluxos"] if f["fluxo"] == "paineis")["ultimo_sucesso"] == "2026-10-13T12:30:00Z"

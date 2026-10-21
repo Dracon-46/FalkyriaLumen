@@ -1,16 +1,19 @@
 """O diretório publicado dos painéis (GitHub Pages, ADR-028).
 
 O site é refeito inteiro a cada publicação, a partir do estado guardado (os dias do PNCP e o extrato de
-entregas por UF): não há o que sincronizar arquivo a arquivo, como no bucket das eleições. Os JSON vão sem
-compressão; o GitHub Pages comprime na entrega a quem aceita gzip.
+entregas por UF): não há o que sincronizar arquivo a arquivo, como no bucket das eleições. Os JSON avulsos vão
+sem compressão (o GitHub Pages comprime na entrega a quem aceita gzip); os conjuntos por grupo vão em ``.json.gz``,
+que o portal descomprime, para o site caber no limite e na implantação do Pages.
 
 Desenho do diretório::
 
     indice.json                       versão, quando foi gerado, cobertura de cada painel
     entes.json                        cadastro para a busca: código, nome, UF, tipo, população
     contratacoes/panorama.json        Brasil: totais, esferas, UFs, meses, modalidades, fornecedores
-    contratacoes/ente/<código>.json   um ente: União (1), estado (2 dígitos), DF (53) ou município (7 dígitos)
-    contratacoes/orgao/<CNPJ>.json    um órgão: prefeitura, câmara, autarquia, fundação ou empresa pública
+    contratacoes/ente/<grupo>.json.gz   os entes do grupo (``comum.grupo_do_ente``): União (1), estado, DF ou
+                                        municípios, comprimido
+    contratacoes/orgao/<grupo>.json.gz  os órgãos do grupo (``comum.grupo_do_orgao``): prefeitura, câmara, autarquia,
+                                        fundação ou empresa pública, comprimido
     conformidade/panorama.json        Brasil: resultados por UF e por obrigação
     conformidade/uf/<sigla>.json      entes da UF, com o resumo de cada um
     conformidade/ente/<código>.json   as obrigações avaliadas de um ente e o grupo de pares (ADR-038)

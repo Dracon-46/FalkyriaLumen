@@ -123,10 +123,19 @@ def ler_json(caminho: Path | str) -> Any:
 
 
 def grupo_do_ente(codigo: str) -> str:
-    """O arquivo que leva o ente nos conjuntos publicados por grupo (emendas, convênios): os 3 primeiros dígitos do
-    município (perto de 20 municípios por arquivo) e o código da UF para ela. Menos arquivos deixam a implantação
-    do GitHub Pages dentro do prazo."""
-    return codigo[:3] if len(codigo) == 7 else codigo
+    """O arquivo que leva o ente nos conjuntos publicados por grupo (contratações, emendas, convênios).
+
+    Município: o 3º, o 4º e o 5º dígitos do código IBGE, que se espalham entre as UFs (723 grupos, o maior com 46
+    municípios); os primeiros dígitos são os da UF e fariam grupos de até 345. UF, DF e União: o próprio código.
+    Menos arquivos deixam a implantação do GitHub Pages dentro do prazo.
+    """
+    return codigo[2:5] if len(codigo) == 7 else codigo
+
+
+def grupo_do_orgao(cnpj: str) -> str:
+    """O arquivo que leva o órgão nas contratações publicadas por grupo: o 6º, o 7º e o 8º dígitos do CNPJ (1.000
+    grupos, o maior com 48 órgãos em outubro de 2026); os primeiros se concentram em poucos valores."""
+    return cnpj[5:8]
 
 
 def gravar_json(caminho: Path | str, conteudo: Any, *, comprimir: bool = False) -> Path:

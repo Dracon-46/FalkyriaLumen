@@ -44,7 +44,7 @@ describe("leitura das emendas por grupo de entes", () => {
     const { recebido, emendas, ...resto } = arquivo;
     const grupo = { ...resto, tipo: "emendas-entes", entes: { "4319604": { recebido, emendas } } };
     vi.stubGlobal("fetch", vi.fn(async (url: string) =>
-      url.endsWith("/emendas/ente/431.json.gz") ? new Response(gzipSync(JSON.stringify(grupo))) : new Response("", { status: 404 })));
+      url.endsWith("/emendas/ente/196.json.gz") ? new Response(gzipSync(JSON.stringify(grupo))) : new Response("", { status: 404 })));
     const e = await carregarEmendas("4319604");
     expect(e?.tipo).toBe("emendas-ente");
     expect(e?.recebido).toHaveLength(5);

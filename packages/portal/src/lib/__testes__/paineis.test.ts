@@ -1,7 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { gzipSync } from "node:zlib";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buscarEntes,
   buscarOrgaos,
+  carregarContratacoesEnte,
+  carregarContratacoesOrgao,
   cnpj,
   codigoSeguro,
   conferir,
@@ -11,6 +14,8 @@ import {
   faixaCentral,
   faixaCentralEmReais,
   faixaDoLimite,
+  grupoDoEnte,
+  grupoDoOrgao,
   periodoDoRgf,
   urlRgfDoEnte,
   posicaoNoGrupo,
@@ -139,7 +144,10 @@ describe("busca de órgãos", () => {
 
 describe("arquivos dos painéis", () => {
   it("só monta caminhos com código e UF válidos", () => {
-    expect(urlsPainel.contratacoesEnte("3550308")).toMatch(/\/contratacoes\/ente\/3550308\.json$/);
+    expect(urlsPainel.contratacoesEnte("3550308")).toMatch(/\/contratacoes\/ente\/503\.json\.gz$/);
+    expect(urlsPainel.contratacoesEnte("35")).toMatch(/\/contratacoes\/ente\/35\.json\.gz$/);
+    expect(urlsPainel.contratacoesOrgao("97229181000164")).toMatch(/\/contratacoes\/orgao\/181\.json\.gz$/);
+    expect(() => urlsPainel.contratacoesOrgao("9722918100016")).toThrow(ErroFeed);
     expect(urlsPainel.conformidadeUf("SP")).toMatch(/\/conformidade\/uf\/SP\.json$/);
     expect(() => codigoSeguro("../x")).toThrow(ErroFeed);
     expect(() => urlsPainel.conformidadeUf("sp/../")).toThrow(ErroFeed);
@@ -152,6 +160,39 @@ describe("arquivos dos painéis", () => {
     expect(() => conferir({ versao: 2, tipo: "contratacoes-ente" }, "contratacoes-ente", "u")).toThrow(/versão/);
     expect(() => conferir({ versao: 1, tipo: "x" }, "contratacoes-ente", "u")).toThrow(/tipo/);
     expect(() => conferir("x", "contratacoes-ente", "u")).toThrow(/inesperado/);
+  });
+});
+
+describe("contratações por grupo de entes e de órgãos", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const ente = { versao: 1, tipo: "contratacoes-ente", ente: { codigo: "4319604" } };
+  const orgao = { versao: 1, tipo: "contratacoes-orgao", orgao: { cnpj: "97229181000164" } };
+  const arquivos: Record<string, unknown> = {
+    "/contratacoes/ente/196.json.gz": { versao: 1, tipo: "contratacoes-entes", entes: { "4319604": ente } },
+    "/contratacoes/orgao/181.json.gz": { versao: 1, tipo: "contratacoes-orgaos", orgaos: { "97229181000164": orgao } },
+    "/contratacoes/ente/3550308.json": { ...ente, ente: { codigo: "3550308" } },
+  };
+  const responder = vi.fn(async (url: string) => {
+    const chave = Object.keys(arquivos).find((k) => url.endsWith(k));
+    if (!chave) return new Response("", { status: 404 });
+    const corpo = JSON.stringify(arquivos[chave]);
+    return new Response(chave.endsWith(".gz") ? gzipSync(corpo) : corpo, { headers: { "content-type": "application/json" } });
+  });
+
+  it("acha o ente e o órgão no arquivo do grupo (3º a 5º dígitos do código, 6º a 8º do CNPJ)", async () => {
+    expect([grupoDoEnte("4319604"), grupoDoEnte("43"), grupoDoEnte("1")]).toEqual(["196", "43", "1"]);
+    expect(grupoDoOrgao("97229181000164")).toBe("181");
+    vi.stubGlobal("fetch", responder);
+    expect((await carregarContratacoesEnte("4319604"))?.tipo).toBe("contratacoes-ente");
+    expect((await carregarContratacoesOrgao("97229181000164"))?.tipo).toBe("contratacoes-orgao");
+    expect(await carregarContratacoesEnte("4319699")).toBeNull();      // mesmo grupo, ente que não está nele
+  });
+
+  it("lê o arquivo de um ente só enquanto o site não tem o grupo", async () => {
+    vi.stubGlobal("fetch", responder);
+    expect((await carregarContratacoesEnte("3550308"))?.ente.codigo).toBe("3550308");
+    expect(await carregarContratacoesOrgao("46395000000139")).toBeNull();
   });
 });
 

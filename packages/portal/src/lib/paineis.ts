@@ -9,6 +9,7 @@
  */
 
 import { normalizar } from "./busca";
+import { obterJsonComprimido } from "./comprimido";
 import { obterJson } from "./feeds";
 import { numero, percentual } from "./formato";
 import { ErroFeed } from "./validacao";
@@ -31,12 +32,18 @@ export function codigoSeguro(codigo: string): string {
 }
 
 /**
- * O arquivo que leva o ente nos conjuntos publicados por grupo (emendas, convênios): os 3 primeiros dígitos do
- * município e o código da UF para ela, como `comum.grupo_do_ente` no Python.
+ * O arquivo que leva o ente nos conjuntos publicados por grupo (contratações, emendas, convênios): o 3º, o 4º e o
+ * 5º dígitos do município e o próprio código para UF, DF e União, como `comum.grupo_do_ente` no Python.
  */
 export function grupoDoEnte(codigo: string): string {
   const c = codigoSeguro(codigo);
-  return c.length === 7 ? c.slice(0, 3) : c;
+  return c.length === 7 ? c.slice(2, 5) : c;
+}
+
+/** O arquivo que leva o órgão em `contratacoes/orgao/<grupo>.json.gz`: o 6º, o 7º e o 8º dígitos do CNPJ. */
+export function grupoDoOrgao(cnpj: string): string {
+  if (!/^\d{14}$/.test(cnpj)) throw new ErroFeed(`CNPJ inválido: ${cnpj}`);
+  return cnpj.slice(5, 8);
 }
 
 /** Endereço de cada arquivo dos painéis; código, CNPJ e UF passam pela validação antes de virar caminho. */
@@ -45,11 +52,8 @@ export const urlsPainel = {
   entes: () => `${BASE_PAINEL}/entes.json`,
   orgaos: () => `${BASE_PAINEL}/orgaos.json`,
   contratacoesPanorama: () => `${BASE_PAINEL}/contratacoes/panorama.json`,
-  contratacoesEnte: (codigo: string) => `${BASE_PAINEL}/contratacoes/ente/${codigoSeguro(codigo)}.json`,
-  contratacoesOrgao: (cnpj: string) => {
-    if (!/^\d{14}$/.test(cnpj)) throw new ErroFeed(`CNPJ inválido: ${cnpj}`);
-    return `${BASE_PAINEL}/contratacoes/orgao/${cnpj}.json`;
-  },
+  contratacoesEnte: (codigo: string) => `${BASE_PAINEL}/contratacoes/ente/${grupoDoEnte(codigo)}.json.gz`,
+  contratacoesOrgao: (cnpj: string) => `${BASE_PAINEL}/contratacoes/orgao/${grupoDoOrgao(cnpj)}.json.gz`,
   conformidadePanorama: () => `${BASE_PAINEL}/conformidade/panorama.json`,
   conformidadeUf: (uf: string) => {
     if (!UF.test(uf)) throw new ErroFeed(`UF inválida: ${uf}`);
@@ -494,15 +498,31 @@ async function ler<T>(url: string, tipo: string, sinal?: AbortSignal): Promise<T
   return bruto === null ? null : conferir<T>(bruto, tipo, url);
 }
 
+/**
+ * Lê o arquivo de um grupo (`.json.gz`), confere o tipo dele e devolve o item `chave` da coleção `campo`, conferido
+ * pelo `tipo` do item; `null` quando o grupo ou o item não existem. Enquanto o site não for publicado com os
+ * grupos, o arquivo de um item só (`legado`) responde no lugar.
+ */
+async function lerDoGrupo<T>(url: string, tipoGrupo: string, campo: string, chave: string, tipo: string,
+                             legado: string, sinal?: AbortSignal): Promise<T | null> {
+  const bruto = await obterJsonComprimido(url, sinal);
+  if (bruto === null) return ler<T>(legado, tipo, sinal);
+  const grupo = conferir<Record<string, unknown>>(bruto, tipoGrupo, url);
+  const item = (grupo[campo] as Record<string, unknown> | undefined)?.[chave];
+  return item === undefined ? null : conferir<T>(item, tipo, url);
+}
+
 /** Panorama de contratações do Brasil. */
 export const carregarContratacoesPanorama = (sinal?: AbortSignal) =>
   ler<ContratacoesPanorama>(urlsPainel.contratacoesPanorama(), "contratacoes-panorama", sinal);
 /** Contratações de um ente pelo código IBGE; `null` sem publicação no período. */
 export const carregarContratacoesEnte = (codigo: string, sinal?: AbortSignal) =>
-  ler<ContratacoesEnte>(urlsPainel.contratacoesEnte(codigo), "contratacoes-ente", sinal);
+  lerDoGrupo<ContratacoesEnte>(urlsPainel.contratacoesEnte(codigo), "contratacoes-entes", "entes", codigo,
+                               "contratacoes-ente", `${BASE_PAINEL}/contratacoes/ente/${codigo}.json`, sinal);
 /** Contratações de um órgão pelo CNPJ; `null` sem publicação no período. */
 export const carregarContratacoesOrgao = (cnpj: string, sinal?: AbortSignal) =>
-  ler<ContratacoesOrgao>(urlsPainel.contratacoesOrgao(cnpj), "contratacoes-orgao", sinal);
+  lerDoGrupo<ContratacoesOrgao>(urlsPainel.contratacoesOrgao(cnpj), "contratacoes-orgaos", "orgaos", cnpj,
+                                "contratacoes-orgao", `${BASE_PAINEL}/contratacoes/orgao/${cnpj}.json`, sinal);
 /** Panorama da conformidade no Brasil. */
 export const carregarConformidadePanorama = (sinal?: AbortSignal) =>
   ler<ConformidadePanorama>(urlsPainel.conformidadePanorama(), "conformidade-panorama", sinal);

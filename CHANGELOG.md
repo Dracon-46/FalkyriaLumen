@@ -24,8 +24,12 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 - O `deploy-pages` estourou o prazo de 10 minutos em 20/10/2026 (o site tem
   perto de 30 mil arquivos): a implantação passa a ter 30 minutos.
-- Emendas e convênios vão em arquivos por grupo de entes (os 3 primeiros
-  dígitos do município), perto de 560 arquivos em vez de 11 mil.
+- Contratações, emendas e convênios vão comprimidos em arquivos por grupo:
+  o 3º, o 4º e o 5º dígitos do município (o código para UF, DF e União) e,
+  para os órgãos, o 6º, o 7º e o 8º dígitos do CNPJ. São perto de mil arquivos
+  por conjunto, em vez de um por ente ou órgão; as contratações tinham 25 mil.
+- Até o site ser publicado de novo, o portal lê o arquivo antigo de um ente
+  ou órgão das contratações quando o grupo ainda não existe.
 
 ### Governos municipais: a receita do município no mandato (ADR-040, adendo)
 

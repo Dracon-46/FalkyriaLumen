@@ -1,12 +1,14 @@
 """Painel de contratações: soma os dias do PNCP guardados no estado em arquivos por ente (UC-01, UC-02).
 
-Para cada ente com alguma publicação no período, o arquivo ``contratacoes/ente/<código>.json`` traz:
+Para cada ente com alguma publicação no período, o arquivo do ente (dentro de ``contratacoes/ente/<grupo>.json.gz``,
+comprimido, com os entes do grupo; ``comum.grupo_do_ente``) traz:
 
 - os totais (processos publicados e a soma do valor estimado; contratos e a soma do valor global);
 - o mês a mês e a divisão por modalidade de contratação;
 - todos os órgãos do ente que publicaram (prefeitura, câmara, secretarias, autarquias, fundações e empresas
   públicas, como um serviço autônomo de água e esgoto), cada um com o próprio arquivo
-  ``contratacoes/orgao/<CNPJ>.json``, com as mesmas seções;
+  o arquivo do órgão (dentro de ``contratacoes/orgao/<grupo>.json.gz``; ``comum.grupo_do_orgao``), com as mesmas
+  seções;
 - os fornecedores pessoa jurídica com maior valor contratado e, numa linha só, a soma dos contratos com
   pessoa física ou estrangeira, sem nome nem documento (RNF-19 e RNF-20);
 - os processos e contratos publicados mais recentemente, com o link de cada um no PNCP;
@@ -382,7 +384,8 @@ def _secoes(a: Acumulador, painel: Painel, *, fornecedores: int = FORNECEDORES) 
 
 
 def ente_para_json(codigo: str, a: Acumulador, painel: Painel, cadastro: Cadastro, gerado_em: str) -> dict:
-    """O arquivo ``contratacoes/ente/<código>.json`` de um ente; o de um estado traz a tabela dos municípios."""
+    """Um ente no arquivo do grupo dele (``contratacoes/ente/<grupo>.json.gz``); o de um estado traz a tabela dos
+    municípios."""
     ente = cadastro.get(codigo)
     saida = {
         "versao": 1, "tipo": "contratacoes-ente", "gerado_em": gerado_em, "cobertura": painel.cobertura(),
@@ -396,7 +399,8 @@ def ente_para_json(codigo: str, a: Acumulador, painel: Painel, cadastro: Cadastr
 
 
 def orgao_para_json(cnpj: str, a: Acumulador, painel: Painel, cadastro: Cadastro, gerado_em: str) -> dict:
-    """O arquivo ``contratacoes/orgao/<CNPJ>.json`` de um órgão: o mesmo do ente, com o ente a que pertence."""
+    """Um órgão no arquivo do grupo dele (``contratacoes/orgao/<grupo>.json.gz``): o mesmo do ente, com o ente a que
+    pertence."""
     razao, esfera, ente = (painel.orgaos.get(cnpj) or [None, None, None])[:3]
     secoes = _secoes(a, painel, fornecedores=FORNECEDORES_ORGAO)
     secoes.pop("orgaos")
