@@ -14,6 +14,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Escolha } from "@/componentes/Escolha";
 import { LigacoesDoEnte } from "@/componentes/Ligacoes";
+import { EmpresaReceitaCartao } from "./EmpresaReceita";
 import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import { instante } from "@/lib/formato";
 import { numero } from "@/lib/formato";
@@ -192,6 +193,7 @@ export function PainelContratacoes() {
           <button type="button" className="botao-link" onClick={() => filtrarFornecedor(null)}>tirar o filtro</button>
         </p>
       )}
+      {forn && <EmpresaReceitaCartao cnpj={forn} />}
       <Acoes.Provider value={acoes}>
       {!estado.carregando && estado.dados?.tipo === "contratacoes-panorama" && (
         <Panorama dados={estado.dados} periodo={periodo} onEnte={ir} />

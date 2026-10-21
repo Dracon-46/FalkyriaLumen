@@ -124,6 +124,14 @@ jobs:
           lumen economia estatais --estado estado || status=1
           gh release upload "$TAG" estado/economia-cvm.json.gz estado/economia-sest.json.gz --clobber
           exit $status
+      - name: Emendas parlamentares (CGU, arquivo de dados abertos; só quando ele muda)
+        continue-on-error: true
+        run: |
+          gh release download "$TAG" -p emendas.json.gz -D estado --clobber || true
+          status=0
+          lumen painel emendas --estado estado || status=1
+          if [ -f estado/emendas.json.gz ]; then gh release upload "$TAG" estado/emendas.json.gz --clobber; fi
+          exit $status
       - name: Transparência (portais avaliados pelo PNTP)
         continue-on-error: true
         run: |

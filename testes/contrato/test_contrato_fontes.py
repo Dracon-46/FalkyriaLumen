@@ -359,3 +359,20 @@ def test_rreo_da_uniao_mantem_as_receitas():
     from lumen_economia.uniao import ler_receitas, url_rreo_uniao
     valores = ler_receitas(_obter_bytes(url_rreo_uniao(_date.today().year - 1, "01")))
     assert valores["receita_uniao_corrente"] > 1e12 and valores["receita_uniao_impostos"] > 0
+
+
+def test_receita_publica_a_base_de_cnpj_do_mes_no_compartilhamento():
+    """A pasta do mês mais recente da base de CNPJ existe, tem os quatro conjuntos e a tabela de CNAE lê."""
+    import tempfile
+
+    from lumen_painel import cnpj
+    raiz = cnpj.listar("", contato=UA)
+    mes = cnpj.mes_mais_recente(raiz)
+    assert mes and mes >= (date.today() - timedelta(days=75)).strftime("%Y-%m"), f"base mais recente: {mes}"
+    nomes = {nome for nome, _ in cnpj.listar(mes, contato=UA)}
+    for conjunto in ("Empresas0.zip", "Estabelecimentos0.zip", "Socios0.zip", "Simples.zip", "Cnaes.zip"):
+        assert conjunto in nomes, f"{mes} sem {conjunto}"
+    with tempfile.TemporaryDirectory() as pasta:
+        local = cnpj.baixar(f"{mes}/Cnaes.zip", Path(pasta) / "Cnaes.zip", contato=UA)
+        cnaes = cnpj.ler_tabela(cnpj.linhas_do_zip(local))
+    assert len(cnaes) > 1000 and cnaes.get("6422100"), "a tabela de CNAE não tem o formato lido"

@@ -75,6 +75,27 @@ O catálogo, com unidade, definição e limitações de cada série, fica em
 `packages/economia/lumen_economia/catalogo.py`; o portal lê `economia/indicadores.json`, publicado com os
 painéis ([ADR-033](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-033.md)).
 
+### CGU — emendas parlamentares (arquivo de dados abertos)
+
+| Endereço | Uso |
+|---|---|
+| `https://portaldatransparencia.gov.br/download-de-dados/emendas-parlamentares/UNICO` | Redireciona para `dadosabertos-download.cgu.gov.br/PortalDaTransparencia/saida/emendas-parlamentares/EmendasParlamentares.zip` (32 MB em outubro de 2026); `HEAD` dá o `Last-Modified`, e a coleta só baixa quando ele muda |
+
+O ZIP tem três CSVs em ISO-8859-1 separados por `;`: `EmendasParlamentares.csv` (emenda e ação; a localidade
+quase sempre é "MÚLTIPLO" ou "Nacional"), `EmendasParlamentares_PorFavorecido.csv` (quem recebeu, por mês, com a
+natureza jurídica e o município do favorecido) e `EmendasParlamentares_Convenios.csv`. Sem chave: a API do Portal
+(`chave-api-dados`) não é necessária para emendas, convênios e despesas, que também saem como arquivos (ADR-044).
+
+### Receita Federal — base pública de CNPJ
+
+| Endereço | Uso |
+|---|---|
+| `PROPFIND https://arquivos.receitafederal.gov.br/public.php/webdav/` (usuário `YggdBLfdninEJX9`, sem senha) | As pastas de mês (`AAAA-MM`) do compartilhamento; o endereço antigo `/dados/cnpj/dados_abertos_cnpj/` responde 404 |
+| `GET …/public.php/webdav/<AAAA-MM>/<arquivo>.zip` | Empresas0–9, Estabelecimentos0–9, Socios0–9, Simples e as tabelas (Cnaes, Naturezas, Qualificacoes, Motivos, Municipios, Paises); CSV em ISO-8859-1 separado por `;`, com aspas; aceita `Range` |
+
+Lida por `lumen painel cnpj` só para os fornecedores dos contratos (ADR-043). A razão social do MEI traz o CPF do
+titular, mascarado na leitura; o CPF dos sócios pessoa física vem com a máscara da Receita e não é guardado.
+
 ### SICONFI — despesa da União por função (Economia)
 
 | Endereço | Uso |

@@ -11,7 +11,8 @@ import pytest
 from lumen_ingestao.coleta_http import ErroColeta
 from lumen_orquestracao import cli as cli_lumen
 from lumen_orquestracao import etapas
-from lumen_painel import cli, comum, despesa_funcao, pessoal
+from lumen_painel import cli, comum, despesa_funcao, emendas, pessoal
+from lumen_painel import cnpj as base_cnpj
 from lumen_painel import conformidade as conf
 from lumen_painel import dia as m_dia
 from lumen_painel.cadastro import Cadastro, Ente
@@ -153,6 +154,16 @@ def test_publicar_de_ponta_a_ponta(tmp_path, apoio, capsys):
     comum.gravar_json(estado / "despesa-funcao-RS.json.gz", {"versao": 1, "exercicio": 2025, "entes": {
         "4319604": {"total": 1000.0, "funcoes": {"10": 600.0, "12": 400.0}, "coletado_em": "2026-10-14T12:00:00Z"}}},
         comprimir=True)
+    comum.gravar_json(estado / base_cnpj.ARQUIVO, base_cnpj.montar(
+        {"97229181000164"}, {"97229181": {"razao_social": "MUNICIPIO DE SAO SEPE", "natureza": "1244",
+                                          "capital_social": 0.0, "porte": "05"}}, {}, {}, {},
+        {"natureza": {"1244": "Município"}}, "2026-10"), comprimir=True)
+    comum.gravar_json(estado / emendas.ARQUIVO, {
+        "versao": 1, "data_arquivo": "Sat, 10 Oct 2026 02:57:21 GMT", "fonte": "CGU",
+        "colunas_recebido": emendas.COLUNAS_RECEBIDO, "colunas_emenda": emendas.COLUNAS_EMENDA,
+        "recebido": {"4319604": [["2025", "E1", "governo_municipal", "12231796000172", "FUNDO", 10.0]]},
+        "emendas": {"E1": ["2025", "Emenda Individual", "DEPUTADA A", "0001", "Saúde", "ATENCAO BASICA"]},
+        "sem_lugar": {}}, comprimir=True)
     comum.gravar_json(estado / "pessoal-RS.json.gz", {"versao": 1, "exercicio": 2025, "entes": {
         "4319604": {"percentual": 48.33, "dtp": 1.0, "rcl_ajustada": 2.0, "limites": {"maximo": 54.0},
                     "demonstrativo": "RGF Simplificado", "periodo": 2, "periodicidade": "S"}}}, comprimir=True)
@@ -188,6 +199,9 @@ def test_publicar_de_ponta_a_ponta(tmp_path, apoio, capsys):
     # Despesa com pessoal (ADR-042): o percentual do ente, sem a distribuição do grupo de 1
     assert pares["pessoal"]["ente"]["percentual"] == 48.33 and pares["pessoal"]["grupo"] is None
     assert indice["conformidade"]["pares"]["entes_com_pessoal"] == 1
+    # Base de CNPJ (ADR-043) e emendas (ADR-044)
+    assert indice["cnpj"]["empresas"] == 1 and "cnpj/972.json.gz" in arquivos and "cnpj/tabelas.json" in arquivos
+    assert indice["emendas"]["entes"] == 1 and "emendas/ente/4319604.json.gz" in arquivos
     # Painel operacional (ADR-039): as execuções gravadas pelo fluxo e o volume do dia coletado
     situacao = comum.ler_json(site / "operacao.json")
     assert next(f for f in situacao["fluxos"] if f["fluxo"] == "paineis")["ultimo_sucesso"] == "2026-10-13T12:30:00Z"

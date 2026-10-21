@@ -39,8 +39,8 @@ por um comando. Tudo concluído; ADRs 011 em diante registradas durante a implem
 |---|---|
 | Conector PNCP (contratações, contratos, atas, amparo legal, incremental) | Concluído, com itens e resultados |
 | Conector SICONFI com lista de entes ausentes | Entes e extrato concluídos, com a avaliação da LRF; RREO, RGF e DCA com conector pronto e normalização pendente |
-| Portal da Transparência (CGU), com CEIS, CNEP e CEPIM | Cadastros de sanções concluídos, pelos arquivos de dados abertos, sem chave (ADR-030); despesas, convênios e emendas pendentes |
-| Base pública de CNPJ da Receita Federal | Pendente |
+| Portal da Transparência (CGU), com CEIS, CNEP e CEPIM | Cadastros de sanções (ADR-030) e emendas parlamentares (ADR-044) pelos arquivos de dados abertos, sem chave; convênios e despesas pendentes, pelo mesmo caminho |
+| Base pública de CNPJ da Receita Federal | Concluído para os fornecedores dos contratos (ADR-043): cadastro e quadro societário, semanal |
 | Cadastro de entes do IBGE com população e porte | Concluído |
 | Normalização com qualidade e quarentena | Concluída para PNCP, SICONFI e IBGE |
 | Grupos de pares | Concluído (ADR-038): porte, região e RCL por habitante (versão 2), comparação na conformidade de cada ente |
@@ -137,7 +137,7 @@ Da seção "Pendente" do README:
   municipais de capital fechado.
 - **Regra J-01** (ADR-031): sanções da CGU × contratos do painel, em modo silencioso a cada carga;
   calibrar e revisar antes de publicar.
-- **Fase 1 restante:** base de CNPJ da Receita Federal (os grupos de pares têm o cálculo inicial,
+- **Fase 1:** a base de CNPJ da Receita entra para os fornecedores (ADR-043; os grupos de pares têm o cálculo inicial,
   ADR-038, com a despesa por função ao lado, ADR-041, e o painel operacional está no portal, ADR-039). Os
   cadastros de sanções da CGU já entram no pipeline; o cruzamento com as contratações é a regra J-01 da
   Fase 2.

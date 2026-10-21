@@ -87,7 +87,7 @@ export function PainelOperacao() {
                   <tr key={f.fluxo}>
                     <td>
                       {f.descricao}
-                      <div className="busca-detalhe">{f.cadencia_horas ? "todo dia" : "sob demanda"}</div>
+                      <div className="busca-detalhe">{f.cadencia_horas === null ? "sob demanda" : f.cadencia_horas > 24 ? "toda semana" : "todo dia"}</div>
                     </td>
                     <td>
                       {f.ultima ? (

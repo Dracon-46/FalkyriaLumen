@@ -49,6 +49,7 @@ nunca apagadas: uma ADR substituída continua aqui, marcada como tal.
 | [041](ADR-041.md) | Despesa por função dos entes, por habitante, ao lado do grupo de pares | **proposta** |
 | [042](ADR-042.md) | Despesa com pessoal do Executivo em % da RCL, com os limites do próprio RGF, ao lado do grupo | **proposta** |
 | [043](ADR-043.md) | Nome "Lumen", sócios da base de CNPJ e CPF mascarado em nomes e textos | **proposta** |
+| [044](ADR-044.md) | Emendas parlamentares recebidas por município e UF, pelo arquivo de dados abertos da CGU | **proposta** |
 
 As ADRs 011 a 015 foram tomadas durante a implementação da Fase 0, e as 016 a
 033 durante a Fase 1 e a criação da aba Eleições; todas aguardam revisão. Para aceitar, troque a situação para `aceita`. Para rejeitar, marque

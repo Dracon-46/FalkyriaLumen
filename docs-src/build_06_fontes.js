@@ -154,6 +154,10 @@ body.push(h2("2.4 Receita Federal — base pública de CNPJ"));
 body.push(p("Distribuída como arquivos completos para download, e não como API de consulta. Traz quadro " +
   "societário, CNAE, capital social, data de abertura e situação cadastral. É a fonte que transforma um " +
   "CNPJ em contexto analisável e sustenta toda a família D do catálogo de regras."));
+body.push(p("Desde 2026, a base fica num compartilhamento do Nextcloud da Receita, uma pasta por mês, lida pelo " +
+  "WebDAV público (37 arquivos e 7,8 GB compactados em outubro de 2026). O Lumen lê só os fornecedores dos " +
+  "contratos do painel, toda semana, sem o CPF dos sócios, o endereço, o telefone e o e-mail; a razão social do " +
+  "MEI traz o CPF do titular, mascarado na leitura (ADR-043)."));
 body.push(table(["Arquivo", "Conteúdo", "Regra que depende"], [2400, 3600, 3600], [
   ["Empresas", "Razão social, capital social, porte", "D-02 desproporção entre capital e contrato"],
   ["Estabelecimentos", "CNAE, endereço, situação, data de início", "D-01 empresa recém-constituída; D-03 CNAE incompatível"],
@@ -356,8 +360,8 @@ body.push(table(["Fonte", "Situação", "Observação"], [3000, 2400, 4200], [
   ["IBGE — localidades e população", "Integrado", "Cadastro de entes, população aplicada aos municípios"],
   ["IBGE — malhas", "Integrado (aba Eleições)", "Mapa"],
   ["TSE — resultados e dados abertos", "Integrado (aba Eleições)", "DOC-12"],
-  ["Portal da Transparência (CGU)", "CEIS, CNEP e CEPIM em uso", "Pelos arquivos de dados abertos, sem chave (ADR-030); despesas, convênios e emendas pendentes"],
-  ["Receita Federal — CNPJ", "Pendente", "Arquivos completos; base da família D"],
+  ["Portal da Transparência (CGU)", "CEIS, CNEP, CEPIM e emendas parlamentares em uso", "Pelos arquivos de dados abertos, sem chave (ADR-030 e ADR-044); convênios e despesas pendentes, pelo mesmo caminho"],
+  ["Receita Federal — CNPJ", "Em uso para os fornecedores dos contratos (ADR-043)", "Arquivos completos pelo WebDAV do compartilhamento; semanal; base da família D"],
   ["TSE — prestação de contas", "Pendente", "Pré-requisito da K-01; revisão editorial antes de qualquer uso"],
   ["ANP — preços de combustíveis e GLP", "Integrado (regra A-05)", "Série semestral (ca e glp) e planilhas semanais; formato real conferido na primeira execução do fluxo mercado-referencia (9/10/2026), sem linha descartada"],
   ["Mercado Livre — busca", "Conector pronto, a validar", "Formato e acesso conferidos pela primeira coleta real e pelo teste de contrato"],
@@ -384,7 +388,7 @@ L.buildDoc({
   codigo: "DOC-06",
   titulo: "Catálogo de Fontes",
   subtitulo: "Fontes por esfera, estratégia de cobertura nacional e coleta responsável",
-  meta: { versao: "2.2", data: "20 de outubro de 2026",
+  meta: { versao: "2.4", data: "21 de outubro de 2026",
     situacao: "Atualizado com o comportamento real das fontes da Fase 1, as da aba Eleições e as de referência de mercado (seção 2.8)",
     verificado: "outubro de 2026" },
   body,

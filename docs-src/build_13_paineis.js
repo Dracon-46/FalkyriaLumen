@@ -190,6 +190,24 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["ler_pessoal", "O percentual de todas as UFs para a publicação", "Só o exercício mais recente entre os arquivos"],
 ], { monoCols: [0], size: 17 }));
 
+body.push(h2("4.12 cnpj.py"));
+body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
+  ["listar, mes_mais_recente, baixar", "A pasta do mês da base de CNPJ no compartilhamento da Receita e cada ZIP", "WebDAV público (token como usuário); download retomado por Range; quatro tentativas"],
+  ["fornecedores_do_estado", "Os CNPJs de fornecedor dos dias do PNCP guardados", "Só eles entram (minimização, ADR-043)"],
+  ["ler_empresas, ler_estabelecimentos, ler_socios, ler_simples", "As linhas dos fornecedores em cada conjunto", "Filtro pela posição fixa do CNPJ antes do CSV; sem endereço, telefone, e-mail e CPF de sócio; CPF do MEI mascarado"],
+  ["coletar (lumen painel cnpj)", "Grava cnpj-fornecedores.json.gz com as tabelas usadas", "Um ZIP de cada vez, apagado depois; pula quando o estado tem o mês para todos"],
+  ["publicar", "cnpj/<3 dígitos>.json.gz (comprimido, com os códigos) e cnpj/tabelas.json (os nomes)", "Lido pelo cartão do fornecedor em Contratações, que descomprime no navegador; sem compressão a base teria 402 MB no site"],
+], { monoCols: [0], size: 17 }));
+
+body.push(h2("4.13 emendas.py"));
+body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
+  ["data_do_arquivo, baixar", "A data e o ZIP das emendas no Portal da Transparência", "Arquivo de dados abertos, sem chave; só baixa quando o Last-Modified muda"],
+  ["categoria", "A categoria do favorecido pela natureza jurídica", "Governo municipal ou estadual, entidade, empresa, pessoa física; o agente financeiro (o banco que opera os repasses) fica sem lugar"],
+  ["indice_de_lugares, APELIDOS", "O código IBGE pelo nome do município do favorecido", "Cruzamento sem acento com o cadastro; nomes antigos numa tabela de apelidos"],
+  ["ler, coletar (lumen painel emendas)", "O recebido por ente, emenda, categoria e favorecido, e a descrição das emendas", "Pessoa física só na soma; CPF do MEI mascarado; o que não tem lugar fica nos totais por ano"],
+  ["publicar", "emendas/ente/<código IBGE>.json.gz", "Comprimido; lido pelo mandato aberto em Governos municipais"],
+], { monoCols: [0], size: 17 }));
+
 // ============================================================ 5. Estado
 
 body.push(h1("5. Estado guardado entre execuções"));
@@ -200,6 +218,8 @@ body.push(table(["Arquivo", "Conteúdo", "Colunas"], [2800, 3000, 3800], [
   ["conformidade-UF.json.gz", "Entregas da LRF de cada ente da UF e a situação da coleta por exercício", "instituicao, entregavel, exercicio, periodo, periodicidade, status, entregue_em"],
   ["cadastro-entes.json.gz", "Cadastro do SICONFI", "nome, uf, esfera, populacao, capital"],
   ["rcl-UF.json.gz", "Receita corrente líquida de cada ente da UF no exercício anterior (RREO, Anexo 03), ou a data da última tentativa sem dado", "por ente: rcl, demonstrativo, coletado_em ou tentado_em"],
+  ["emendas.json.gz", "Emendas parlamentares recebidas por ente (ADR-044), com a data do arquivo da CGU", "recebido (por código IBGE: ano, emenda, categoria, cnpj, favorecido, valor), emendas (ano, tipo, autor, número, função, ação), sem_lugar"],
+  ["cnpj-fornecedores.json.gz", "Base de CNPJ da Receita dos fornecedores (ADR-043): empresa, estabelecimento, Simples e sócios, com o mês e as tabelas de código usadas", "por CNPJ: empresa, estabelecimento, simples, socios; pedidos (os CNPJs procurados)"],
   ["pessoal-UF.json.gz", "Despesa com pessoal do Executivo de cada ente da UF no último período do exercício anterior (RGF, Anexo 1), ou a data da última tentativa sem dado", "por ente: percentual, dtp, rcl_ajustada, limites (alerta, prudencial, maximo), demonstrativo, periodo, periodicidade, coletado_em ou tentado_em"],
   ["despesa-funcao-UF.json.gz", "Despesa liquidada por função de cada ente da UF no último exercício com DCA (Anexo I-E), ou a data da última tentativa sem dado", "por ente: total, funcoes (código da função → valor), coletado_em ou tentado_em"],
 ], { monoCols: [0], size: 17 }));
@@ -313,6 +333,8 @@ body.push(table(["Arquivo", "Papel"], [4200, 5400], [
   ["src/componentes/paineis/GrupoPares.tsx", "Grupo de pares do ente: descrição, ressalvas, a fração do ente ao lado da mediana e dos quartis do grupo, e a lista dos entes do grupo, sob demanda e por nome"],
   ["src/componentes/paineis/DespesaComPessoal.tsx", "Despesa com pessoal do Executivo em % da RCL ajustada, os limites do RGF e a mediana do grupo, com o link do RGF (ADR-042)"],
   ["src/componentes/paineis/DespesaPorFuncao.tsx", "Despesa por função do ente: o total gasto e a fatia de cada função (padrão) ou, no filtro, por habitante ao lado da mediana e da metade central do grupo, com as ressalvas e o link da DCA (ADR-041)"],
+  ["src/componentes/paineis/EmpresaReceita.tsx, src/lib/receita.ts", "Cartão \"Na Receita Federal\" do fornecedor filtrado em Contratações: cadastro, Simples e quadro societário (ADR-043)"],
+  ["src/componentes/economia/EmendasMandato.tsx, src/lib/emendas.ts, src/lib/comprimido.ts", "Emendas parlamentares recebidas no mandato aberto de Governos municipais, por categoria, autor e favorecido, e a leitura dos arquivos .json.gz no navegador (ADR-044)"],
   ["src/componentes/Ligacoes.tsx", "Faixa \"Este município nas outras abas\": Contratações, Conformidade, Governos municipais e Eleições do mesmo ente (visão 360, ADR-035 e ADR-040)"],
   ["src/app/contratacoes/page.tsx, src/app/conformidade/page.tsx", "Páginas estáticas que envolvem os painéis em Suspense (leem a URL no navegador)"],
   ["src/app/operacao/page.tsx, src/componentes/paineis/PainelOperacao.tsx, src/lib/operacao.ts", "Situação das coletas (/operacao/, link no rodapé): alertas, fluxos, volume diário do PNCP e coleta da conformidade (ADR-039)"],
@@ -386,7 +408,7 @@ L.buildDoc({
   codigo: "DOC-13",
   titulo: "Painéis de Contratações e Conformidade",
   subtitulo: "O que cada ente publicou no PNCP e as entregas da LRF ao Tesouro, com a fonte de cada número",
-  meta: { versao: "1.7", data: "20 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038, o ADR-039, o ADR-041 e o ADR-042",
+  meta: { versao: "1.8", data: "21 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038, o ADR-039, o ADR-041 e o ADR-042",
     verificado: "outubro de 2026" },
   body,
   outFile: path.join(__dirname, "..", "docs", "DOC-13_Paineis.docx"),

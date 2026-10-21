@@ -423,14 +423,15 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
   faltam a leitura dos próprios portais, por fornecedor de sistema, e o nível do PNTP nos painéis.
 - **Regra J-01** (ADR-031): roda em modo silencioso a cada carga; calibrar e revisar antes de
   publicar qualquer coisa.
-- Fase 1 restante: base de CNPJ da Receita Federal (DOC-10). Os grupos de pares têm o cálculo inicial
+- Fase 1: a base de CNPJ da Receita entra para os fornecedores dos contratos, com o cadastro e o quadro
+  societário no fornecedor de Contratações (ADR-043). Os grupos de pares têm o cálculo inicial
   (ADR-038), por porte, região e receita corrente líquida por habitante, do RREO normalizado, e a
   despesa por função de cada ente aparece ao lado da do grupo (ADR-041, DCA do último exercício), com a
   despesa com pessoal do Executivo em % da RCL e os limites do RGF (ADR-042). O painel
   operacional está no portal, em "Situação das coletas" (ADR-039).
   Os cadastros de sanções da CGU (CEIS, CNEP e CEPIM) já são coletados e normalizados (ADR-030); o
-  cruzamento com as contratações é a regra J-01 da Fase 2. Despesas, convênios e emendas da CGU
-  continuam pendentes.
+  cruzamento com as contratações é a regra J-01 da Fase 2. As emendas parlamentares entram pelo arquivo de dados
+  abertos, sem chave (ADR-044); convênios e despesas da CGU seguem pelo mesmo caminho, como próximos passos.
 
 ### Definições pendentes antes da publicação, conforme DOC-10
 

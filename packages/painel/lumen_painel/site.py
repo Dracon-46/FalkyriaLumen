@@ -48,12 +48,16 @@ class Site:
         self.arquivos = 0
 
     def gravar(self, relativo: str, conteudo: Any) -> Path:
-        """Grava ``conteudo`` como JSON em ``raiz/relativo``; o caminho não pode sair da raiz."""
+        """Grava ``conteudo`` como JSON em ``raiz/relativo``; o caminho não pode sair da raiz.
+
+        Caminho terminado em ``.json.gz`` sai comprimido com gzip: são os conjuntos grandes (base de CNPJ e
+        emendas, ADR-043 e ADR-044), que o portal descomprime no navegador para caber no limite do GitHub Pages.
+        """
         destino = (self.raiz / relativo).resolve()
         if self.raiz.resolve() not in destino.parents:
             raise ValueError(f"caminho fora do site: {relativo}")
         self.arquivos += 1
-        return gravar_json(destino, conteudo)
+        return gravar_json(destino, conteudo, comprimir=relativo.endswith(".json.gz"))
 
     def finalizar(self) -> None:
         """Página de apresentação e ``.nojekyll`` (o GitHub Pages serve os arquivos como estão)."""

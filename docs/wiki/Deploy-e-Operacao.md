@@ -164,6 +164,11 @@ Depois, a despesa com pessoal do Executivo (RGF do último período do exercíci
 ainda não a têm (`pessoal-<UF>.json.gz`, ADR-042), no tipo e na periodicidade que o extrato diz, até 25 minutos
 (`--limite-minutos 25`). Com as quatro coletas, o job `conformidade` tem até 200 minutos.
 
+O fluxo `cnpj` (toda segunda-feira e à mão, ADR-043) lê a base pública de CNPJ da Receita para os fornecedores
+dos contratos guardados e grava `cnpj-fornecedores.json.gz` na mesma versão `painel-estado`. A primeira leitura de
+um mês baixa perto de 8 GB, um arquivo de cada vez; quando o estado já tem a base do mês para todos os
+fornecedores, ele não baixa nada.
+
 A situação das coletas fica no portal, em `/operacao/` (link no rodapé; ADR-039): a última execução e
 a última com sucesso de cada fluxo de dados, o volume diário do PNCP contra o usual e a coleta da
 conformidade por UF, com os alertas no topo. O `paineis-site` grava as execuções com `gh run list` antes de

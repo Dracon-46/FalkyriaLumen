@@ -5,6 +5,33 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Emendas parlamentares recebidas nos governos municipais (ADR-044)
+
+- Coleta nova, `lumen painel emendas`, no fluxo diário dos painéis: o arquivo
+  de emendas do Portal da Transparência, sem chave, só quando ele muda.
+- O recebido entra pelo lugar do favorecido, por categoria (governo municipal
+  ou estadual, entidade, empresa, pessoa física só na soma). O banco que opera
+  os repasses fica de fora. Nomes antigos de município ficam numa tabela de
+  apelidos.
+- Governos municipais: o mandato aberto mostra as emendas recebidas, por
+  categoria, por autor e por favorecido, com o link para as contratações dele
+  no município; na comparação, o outro mandato ao lado.
+- A base de CNPJ e as emendas vão para o site comprimidas (`.json.gz`), e o
+  portal descomprime no navegador, para o site caber no limite do GitHub Pages.
+
+### Base de CNPJ da Receita: o fornecedor no cadastro (ADR-043, adendo)
+
+- Coleta nova, `lumen painel cnpj`, e fluxo semanal `cnpj.yml`. Lê a base
+  pública de CNPJ do mês no compartilhamento da Receita (WebDAV, perto de
+  8 GB) só para os fornecedores dos contratos do painel e grava
+  `cnpj-fornecedores.json.gz`.
+- Contratações: o fornecedor filtrado ganha o cartão "Na Receita Federal", com
+  situação cadastral, início da atividade, capital social, porte, Simples ou
+  MEI, situação especial, natureza jurídica, atividades e quadro societário.
+- O CPF dos sócios, o endereço, o telefone e o e-mail ficam de fora.
+- Teste de contrato diário da base da Receita; o painel operacional acompanha
+  o fluxo novo como semanal.
+
 ### CPF mascarado nos nomes e textos publicados (ADR-043)
 
 - A razão social de MEI leva o CPF do titular, e o painel de contratações a

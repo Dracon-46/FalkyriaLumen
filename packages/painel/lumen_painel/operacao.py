@@ -37,6 +37,7 @@ FLUXOS: dict[str, tuple[str, int | None]] = {
     "paineis": ("Painéis: contratações, conformidade, economia e preços", 24),
     "deteccao-sancoes": ("Regra J-01, em modo silencioso", 24),
     "contrato-de-fontes": ("Testes de contrato das fontes", 24),
+    "cnpj": ("Base de CNPJ da Receita, dos fornecedores", 168),
     "eleicoes-ao-vivo": ("Apuração ao vivo", None),
     "paineis-carga": ("Carga das contratações por período", None),
     "mercado-referencia": ("Referência de mercado (A-05), em modo silencioso", None),

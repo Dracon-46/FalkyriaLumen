@@ -1,0 +1,64 @@
+# Base pública de CNPJ da Receita Federal (ADR-043): o cadastro e o quadro
+# societário das empresas que são fornecedoras nos contratos do painel.
+#
+# Toda segunda-feira e à mão. Lê os dias do PNCP guardados na versão
+# "painel-estado" para saber quais CNPJs procurar, baixa da Receita a pasta do
+# mês mais recente (perto de 8 GB em outubro de 2026) um arquivo de cada vez,
+# guarda só as linhas dos fornecedores e grava cnpj-fornecedores.json.gz na
+# mesma versão. Pula quando o estado já tem a base do mês para todos os
+# fornecedores. O site sai na publicação seguinte dos painéis (paineis-site).
+#
+# Usa o segredo LUMEN_CONTATO (User-Agent). Repositório público: os minutos
+# não são cobrados.
+
+name: cnpj
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"      # segunda-feira, 4h em Brasília
+  workflow_dispatch:
+    inputs:
+      mes:
+        description: "Pasta AAAA-MM da Receita (vazio: a mais recente)"
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cnpj
+  cancel-in-progress: false
+
+env:
+  TAG: painel-estado
+
+jobs:
+  cnpj:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    env:
+      LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
+      LUMEN_DADOS: dados
+      GH_TOKEN: ${{ github.token }}
+      MES: ${{ inputs.mes }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      - name: Dias do PNCP e a base anterior
+        run: |
+          mkdir -p estado
+          gh release download "$TAG" -p 'contratacoes-*.json.gz' -D estado --clobber
+          gh release download "$TAG" -p 'cnpj-fornecedores.json.gz' -D estado --clobber || true
+      - name: Base de CNPJ dos fornecedores
+        run: |
+          lumen painel cnpj --estado estado ${MES:+--mes "$MES"} | tee cnpj.json
+          if python -c "import json, sys; sys.exit(0 if json.load(open('cnpj.json'))['pulada'] else 1)"; then
+            echo "nada a gravar"
+          else
+            gh release upload "$TAG" estado/cnpj-fornecedores.json.gz --clobber
+          fi
