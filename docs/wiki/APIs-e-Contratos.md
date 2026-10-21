@@ -358,6 +358,8 @@ Os arquivos `.json.gz` vão comprimidos com gzip, e o portal os descomprime no n
 | `operacao.json` | Situação das coletas: fluxos de dados, volume diário do PNCP e coleta da conformidade (ADR-039) |
 | `conformidade/pares/<id>.json` | Um grupo de pares: critérios, distribuição da fração no prazo e os entes que o formam |
 | `transparencia/uf-<sigla>.json`, `transparencia/uniao.json` | Entidades avaliadas pelo PNTP, agrupadas pelo ente (ADR-035) |
+| `avisos/uf-<sigla>.json`, `avisos/uniao.json` | Avisos do estado e dos municípios da UF (e dos órgãos sem ente identificado que contrataram nela), ou da União: tipo, data, ente, órgão, título, detalhe, o que observar, fonte, chave do PNCP, valor e contestação; em ordem de data (ADR-047) |
+| `avisos/panorama.json` | Totais por tipo e por UF, contestados e os 200 avisos mais recentes do Brasil (ADR-047) |
 | `mercado/anp/uf-<sigla>-<ano>.json` | Preço de revenda da ANP por semana e produto, na UF e em cada município (código IBGE): `[semana, n, mínimo, 1º quartil, mediana, 3º quartil, máximo]` (ADR-037) |
 
 O mês a mês (`meses`) traz o ano corrente e o anterior mês a mês (`"2026-03"`). Antes deles, traz uma linha
@@ -381,7 +383,7 @@ decisão 8). Contrato com pessoa física ou estrangeira só entra numa soma anô
 | Comando | O que faz |
 |---|---|
 | `lumen coletar <fonte> --de AAAA-MM-DD [--ate AAAA-MM-DD]` | Coleta uma fonte para o bronze. Fontes: `ibge_localidades`, `ibge_populacao`, `pncp_atas`, `pncp_atas_atualizacao`, `pncp_contratacoes`, `pncp_contratacoes_atualizacao`, `pncp_contratos`, `pncp_contratos_atualizacao`, `pncp_itens`, `siconfi_entes`, `siconfi_extrato`, `cgu_ceis`, `cgu_cnep`, `cgu_cepim` (estas três sem `--de`: a coleta pega o retrato mais recente), `pntp_avaliacoes` (sem `--de`; `--ciclos 2024,2025`) |
-| `lumen deteccao j01 --estado DIR [--saida ARQ] [--resumo ARQ] [--privado]` | Regra J-01 em modo silencioso: contratos do painel × CEIS e CNEP; imprime só contagens (ADR-031) |
+| `lumen deteccao j01 --estado DIR [--saida ARQ] [--resumo ARQ] [--privado]` | Regra J-01: contratos do painel × CEIS e CNEP (ADR-031). O relatório (`deteccao-j01.json.gz`) vira avisos no `publicar` (ADR-047) |
 | `… --modalidades 6,8` | Só PNCP contratações: códigos de modalidade |
 | `… --entes <IBGE> --exercicio <ano>` | Só SICONFI extrato |
 | `… --objeto "<expressão>" [--sem-resultados] [--so-comparaveis]` | Só PNCP itens: itens dos processos da silver cujo objeto casa com a expressão |

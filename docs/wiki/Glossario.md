@@ -43,9 +43,10 @@ as técnicas, o DOC-04, o DOC-05 e as ADRs.
 | **Família** | Grupo de regras do catálogo, de A a K (ex.: A, preço; B, fracionamento; I, conformidade; K, contexto eleitoral) |
 | **Score e severidade** | Score composto entre 0 e 1; severidade baixa, média ou alta conforme a faixa do score |
 | **Revisão humana** | Severidade média exige um revisor; alta, dois revisores distintos. Severidade baixa nunca é publicada |
-| **Modo silencioso** | A regra roda e grava resultado interno para calibração, sem publicar nada (ex.: A-05) |
+| **Modo silencioso** | A regra roda e grava resultado interno para calibração, sem publicar nada (ex.: A-05; a J-01 saiu dele com o ADR-047) |
+| **Aviso** | Fato observado em dado público que merece um olhar (contrato com empresa sancionada, valor a conferir, relatório fiscal que não consta ou atrasado, portal de transparência com nível baixo), publicado com ressalva, fonte, o que observar e o link de contestação, sem revisão prévia ([ADR-047](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-047.md)) |
 | **Calibração** | Medição da taxa de falso positivo de uma regra sobre dados históricos antes de publicar |
-| **Contestação** | Manifestação formal de ente ou fornecedor sobre um indício publicado; marca o indício como contestado em até 24 horas |
+| **Contestação** | Manifestação formal de ente ou fornecedor sobre um indício ou aviso publicado; marca-o como contestado em até 24 horas. Nos avisos, é uma issue com o rótulo `contestacao`, aberta pelo link do aviso |
 | **Errata** | Correção publicada com o mesmo destaque da publicação original (princípio P4) |
 | **Trilha de evidência** | Regra, parâmetros, dados de entrada e documentos que sustentam um indício |
 | **Trilha de auditoria** | Registro somente-anexação de toda decisão humana, com autor, data e justificativa |

@@ -18,7 +18,7 @@ export interface Local {
 }
 
 /** As áreas do portal que o local filtra. */
-export type Area = "eleicoes" | "contratacoes" | "conformidade" | "economia" | "estatais";
+export type Area = "eleicoes" | "contratacoes" | "conformidade" | "economia" | "estatais" | "avisos";
 
 const CHAVE_MEMORIA = "lumen.local";
 const CODIGO = /^(1|\d{2}|\d{7})$/;
@@ -39,7 +39,7 @@ export function codigoDaUf(sigla: string): string | null {
  */
 export function hrefDaArea(area: Area, local: Local | null, atual?: URLSearchParams): string {
   const base = { eleicoes: "/eleicoes/", contratacoes: "/contratacoes/", conformidade: "/conformidade/",
-                 economia: "/economia/", estatais: "/economia/estatais/" }[area];
+                 economia: "/economia/", estatais: "/economia/estatais/", avisos: "/avisos/" }[area];
   if (!local || !CODIGO.test(local.codigo)) return base;
   const tipo = tipoDoCodigo(local.codigo);
   if (area === "eleicoes") {
@@ -60,12 +60,12 @@ export function hrefDaArea(area: Area, local: Local | null, atual?: URLSearchPar
 
 /**
  * O local que a URL da aba aberta indica, ou `null` se ela está no Brasil ou não é de uma área com local:
- * `?ente=` em Contratações, Conformidade e Estatais; `?uf=` em Conformidade; `?a=mu-…` ou `?a=uf-…` em Eleições.
+ * `?ente=` em Contratações, Conformidade, Estatais e Avisos; `?uf=` em Conformidade; `?a=mu-…` ou `?a=uf-…` em Eleições.
  * Só o código: o nome vem do cadastro.
  */
 export function codigoNaUrl(caminho: string, params: URLSearchParams): string | null {
   const ente = params.get("ente");
-  if (/^\/(contratacoes|conformidade|economia\/estatais|economia\/municipio)\/?$/.test(caminho) && ente &&
+  if (/^\/(contratacoes|conformidade|economia\/estatais|economia\/municipio|avisos)\/?$/.test(caminho) && ente &&
       CODIGO.test(ente)) return ente;
   if (/^\/conformidade\/?$/.test(caminho)) {
     const uf = params.get("uf");

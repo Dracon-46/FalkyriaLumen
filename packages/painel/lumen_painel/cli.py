@@ -31,6 +31,7 @@ import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from . import avisos as av
 from . import cnpj as base_cnpj
 from . import conformidade as conf
 from . import contratacoes as contr
@@ -312,11 +313,15 @@ def cmd_publicar(args) -> int:
     painel = contr.somar_dias(estado.glob("contratacoes-*.json.gz"), cadastro)
     corte = contr.corte_mes_a_mes(painel.cobertura()["ate"])
     # Por grupo de entes e de órgãos, comprimidos: menos arquivos e menos bytes para o GitHub Pages
+    avisos = av.Avisos()
     for grupo, codigos in _agrupar(painel.entes, grupo_do_ente):
+        entes = {}
+        for c in codigos:
+            arquivo = contr.ente_para_json(c, painel.entes[c], painel, cadastro, gerado_em)
+            avisos.juntar(av.de_valores_a_conferir(c, arquivo.get("a_conferir") or []))
+            entes[c] = contr.compactar_meses(arquivo, corte)
         site.gravar(f"contratacoes/ente/{grupo}.json.gz", {
-            "versao": 1, "tipo": "contratacoes-entes", "gerado_em": gerado_em,
-            "entes": {c: contr.compactar_meses(contr.ente_para_json(c, painel.entes[c], painel, cadastro, gerado_em),
-                                               corte) for c in codigos}})
+            "versao": 1, "tipo": "contratacoes-entes", "gerado_em": gerado_em, "entes": entes})
     for grupo, cnpjs in _agrupar(painel.por_orgao, grupo_do_orgao):
         site.gravar(f"contratacoes/orgao/{grupo}.json.gz", {
             "versao": 1, "tipo": "contratacoes-orgaos", "gerado_em": gerado_em,
@@ -336,6 +341,7 @@ def cmd_publicar(args) -> int:
                                exercicio_pessoal=exercicio_pessoal)
     for codigo, arquivo in avaliacao.entes.items():
         site.gravar(f"conformidade/ente/{codigo}.json", arquivo)
+        avisos.juntar(av.de_conformidade(codigo, arquivo["obrigacoes"]))
     for uf in sorted({a["ente"]["uf"] for a in avaliacao.entes.values() if a["ente"]["uf"]}):
         site.gravar(f"conformidade/uf/{uf}.json", conf.uf_para_json(uf, avaliacao, gerado_em))
     site.gravar("conformidade/panorama.json", conf.panorama_para_json(avaliacao, gerado_em))
@@ -349,6 +355,9 @@ def cmd_publicar(args) -> int:
     site.gravar("operacao.json", situacao)
 
     pntp = transparencia.publicar(estado, site.gravar, gerado_em=gerado_em)
+    avisos.juntar(av.de_transparencia(transparencia.montar(transparencia.ler_estado(estado), gerado_em=gerado_em).arquivos))
+    avisos.juntar(av.de_j01(av.ler_j01(estado), painel.orgaos))
+    resumo_avisos = av.publicar(estado, avisos, cadastro, site.gravar, gerado_em=gerado_em)
     precos_anp = mercado.publicar(estado, cadastro, site.gravar, gerado_em=gerado_em)
     receita = base_cnpj.publicar(estado, site.gravar, gerado_em=gerado_em)
     recebido_de_emendas = emendas.publicar(estado, site.gravar, gerado_em=gerado_em)
@@ -364,7 +373,8 @@ def cmd_publicar(args) -> int:
               "cadastro": {"entes": len(cadastro), "gerado_em": cadastro.gerado_em},
               "contratacoes": {**painel.cobertura(), "entes": len(painel.entes), "orgaos": len(painel.por_orgao)},
               "conformidade": {"entes": len(avaliacao.entes), "ufs": avaliacao.coletas, "pares": grupos},
-              "transparencia": pntp, "anp": precos_anp, "cnpj": receita, "emendas": recebido_de_emendas, "convenios": convenios_dos_entes, "operacao": {"alertas": len(situacao["alertas"])}}
+              "transparencia": pntp, "anp": precos_anp, "cnpj": receita, "emendas": recebido_de_emendas, "convenios": convenios_dos_entes, "operacao": {"alertas": len(situacao["alertas"])},
+              "avisos": resumo_avisos}
     site.gravar("indice.json", indice)
     site.finalizar()
     _imprimir({"arquivos": site.arquivos, **{k: v for k, v in indice.items() if k != "versao"},

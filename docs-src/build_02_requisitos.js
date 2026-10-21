@@ -93,7 +93,7 @@ body.push(table(["Cód.", "Requisito", "Prio."], [1100, 7600, 900], [
   ["RF-DE-14", "O sistema deve detectar concentração atípica de empenhos no encerramento do exercício.", "S"],
   ["RF-DE-15", "O sistema deve detectar aditivos que elevem o valor do contrato acima dos percentuais previstos em lei.", "M"],
   ["RF-DE-16", "O sistema deve calcular um score composto e uma severidade para cada indício.", "M"],
-  ["RF-DE-17", "Indícios com severidade acima do limiar configurado devem entrar obrigatoriamente em fila de revisão humana antes de qualquer publicação.", "M"],
+  ["RF-DE-17", "Indícios do motor de regras com severidade acima do limiar configurado devem entrar obrigatoriamente em fila de revisão humana antes de qualquer publicação. Os avisos do portal (ADR-047) ficam fora: vão a público com ressalva e a revisão vem com a contestação.", "M"],
   ["RF-DE-18", "O sistema deve permitir simular uma regra sobre dados históricos sem publicar resultado, para calibração.", "M"],
   ["RF-DE-19", "O sistema deve registrar indícios descartados com o motivo, para realimentar a calibração das regras.", "M"],
   ["RF-DE-20", "O sistema não deve produzir, em nenhum campo, texto que afirme ou sugira a ocorrência de ilícito.", "M"],

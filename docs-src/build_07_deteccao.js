@@ -489,11 +489,16 @@ body.push(...regra({
   metodo: "Interseção temporal entre a vigência da sanção e a data de assinatura do contrato, considerando " +
     "a abrangência da sanção e o ente contratante.",
   parametros: "Sanção vigente na data do ato, com abrangência aplicável ao ente",
-  dados: "CEIS, CNEP e CEPIM com datas de vigência; contratos com data de assinatura",
+  dados: "CEIS e CNEP com datas de vigência; contratos com data de assinatura. O CEPIM fica de fora: impede " +
+    "entidade sem fins lucrativos de receber transferência, e não de ser contratada",
   severidade: "Alta",
   fp: "Sanção com abrangência restrita a outro ente ou esfera, o que é determinante e precisa ser " +
     "verificado; sanção suspensa por decisão judicial; inclusão retroativa no cadastro após a contratação",
 }));
+
+body.push(p("A J-01 é a primeira regra publicada: desde o ADR-047, por decisão do autor, cada coincidência vira " +
+  "um aviso no portal, com o alcance da sanção, a ressalva e o link de contestação, sem revisão prévia. Antes, " +
+  "rodava em modo silencioso (ADR-031)."));
 
 body.push(h1("12. Família K — Contexto factual, sem publicação autônoma"));
 body.push(p("Regras desta família nunca geram indício publicável. Elas apenas anexam contexto verificável " +
@@ -546,6 +551,12 @@ body.push(p("A materialidade merece destaque porque implementa diretamente a pre
   "cinco mil habitantes pode representar parcela relevante do orçamento e receber materialidade alta, " +
   "enquanto o mesmo valor absoluto em uma capital receberia materialidade baixa. Sem essa relativização, " +
   "o sistema reproduziria exatamente o viés de atenção que ele existe para corrigir."));
+
+body.push(callout("Avisos: fora deste fluxo (ADR-047)", [
+  "Os avisos do portal não passam pela fila de revisão desta tabela. Eles reúnem fatos observados (a J-01, os " +
+  "valores a conferir, a LRF e o PNTP), sem score, e vão a público com ressalva e contestação aberta. A fila e " +
+  "os limiares continuam valendo para o motor de regras da Fase 2.",
+], "amber"));
 
 body.push(h1("14. Calibração e controle de qualidade"));
 body.push(numbered("Toda regra nova entra em modo silencioso: executa e registra, mas não publica."));

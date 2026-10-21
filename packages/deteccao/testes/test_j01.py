@@ -1,4 +1,4 @@
-"""Regra J-01 em modo silencioso: contratos do painel cruzados com as sanções da CGU."""
+"""Regra J-01: contratos do painel cruzados com as sanções da CGU (avisos, ADR-047)."""
 
 import gzip
 import json
@@ -168,7 +168,7 @@ def test_resumo_so_tem_contagens_e_json_tem_o_detalhe():
     assert "EMPRESA" not in resumo and "LAJEADO" not in resumo.upper() and CNPJ not in resumo
     assert "Coincidências para análise: 1, de 1 fornecedores" in resumo
     completo = r.para_json(gerado_em="2026-10-16T12:00:00+00:00")
-    assert completo["regra"] == "J-01" and completo["modo"] == "silencioso"
+    assert completo["regra"] == "J-01" and completo["modo"] == "publicado"
     assert completo["dias_de_contratos"] == {"quantidade": 1, "de": "2026-03-11", "ate": "2026-03-11"}
     assert completo["fornecedores_distintos"] == 1 and completo["coincidencias"][0]["fornecedor"]["cnpj"] == CNPJ
 

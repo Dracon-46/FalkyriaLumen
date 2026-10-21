@@ -151,6 +151,7 @@ Painéis de contratações e de conformidade fiscal, com fatos publicados e sem 
 | `contratacoes.py` | Soma os dias por ente, órgão, esfera e UF; teto de plausibilidade dos valores; pessoa física só em soma anônima |
 | `conformidade.py` | Extrato de entregas por UF e avaliação de cada ente na data do dia |
 | `cadastro.py` | Cadastro dos entes do SICONFI: nome, UF, esfera, população, capital |
+| `avisos.py` | Os avisos de cada local (J-01, valor a conferir, LRF, PNTP), com código estável, e as contestações lidas das issues ([ADR-047](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-047.md)) |
 | `site.py` | Diretório publicado no GitHub Pages |
 | `comum.py` | JSON em disco, códigos dos entes, modalidades do PNCP, links e valores |
 | `cli.py` | `lumen painel cadastro`, `contratacoes`, `faltando`, `conformidade`, `publicar` |
@@ -164,6 +165,7 @@ Site estático (exportação estática, sem servidor Node em produção). Ver o
 |---|---|
 | `src/app/` | Páginas: início, `/eleicoes/`, `/contratacoes/`, `/conformidade/` e a página de não encontrado |
 | `src/componentes/eleicoes/` | `PainelEleicoes`, `Mapa`, `ListaCandidatos`, `Panorama`, `GraficoEvolucao`, `TabelaZonas`, `Totais`, `Busca`, `Faixas` |
+| `src/componentes/avisos/` | `PainelAvisos`: panorama do Brasil, avisos do local, filtros de tipo e período, link de contestação |
 | `src/componentes/paineis/` | `PainelContratacoes`, `PainelConformidade` e peças comuns (aviso metodológico, busca, gráfico por mês) |
 | `src/lib/tipos.ts`, `validacao.ts` | Tipos do contrato dos feeds e conferência na chegada: versão desconhecida é recusada |
 | `src/lib/feeds.ts`, `paineis.ts` | Acesso aos feeds das eleições e aos dados dos painéis |

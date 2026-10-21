@@ -49,6 +49,9 @@ body.push(callout("O que estas áreas não fazem", [
   "Não publicam indício, não atribuem conduta e não ordenam entes por nenhum critério de risco (PUB-07). São fatos " +
   "publicados pela própria administração, somados e listados, com a fonte de cada um. As regras de sinalização do " +
   "DOC-07 seguem em calibração e revisão (ADR-022, ADR-027) e, quando entrarem, passam pelo fluxo de revisão do DOC-08.",
+  "Os fatos que merecem um olhar (valor a conferir, relatório que não consta ou atrasado, portal de transparência com " +
+  "nível baixo e contrato com empresa sancionada) são reunidos na página de avisos, com ressalva e contestação, sem " +
+  "revisão prévia, por decisão do autor (ADR-047).",
 ], "red"));
 
 // ============================================================ 2. Fontes

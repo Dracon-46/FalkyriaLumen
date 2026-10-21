@@ -139,8 +139,10 @@ Da seção "Pendente" do README:
   rubrica) e as com ações na bolsa pelas demonstrações da CVM, com o controle conferido no FRE. Próximos:
   o Orçamento de Investimento (por ação e UF), as demonstrações trimestrais (ITR) e as estaduais e
   municipais de capital fechado.
-- **Regra J-01** (ADR-031): sanções da CGU × contratos do painel, em modo silencioso a cada carga;
-  calibrar e revisar antes de publicar.
+- **Regra J-01** (ADR-031): sanções da CGU × contratos do painel, a cada carga; publicada como aviso desde
+  21/10/2026 (ADR-047). Calibrar continua pendente.
+- **Avisos** (ADR-047): no ar. O que aconteceu em cada local e o que observar, com ressalva e contestação pública
+  pelas issues, sem revisão prévia, por decisão do autor.
 - **Fase 1:** a base de CNPJ da Receita entra para os fornecedores (ADR-043; os grupos de pares têm o cálculo inicial,
   ADR-038, com a despesa por função ao lado, ADR-041, e o painel operacional está no portal, ADR-039). Os
   cadastros de sanções da CGU já entram no pipeline; o cruzamento com as contratações é a regra J-01 da

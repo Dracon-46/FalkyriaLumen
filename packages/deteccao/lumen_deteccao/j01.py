@@ -1,9 +1,10 @@
-"""Regra J-01 em modo silencioso: contrato assinado com fornecedor que constava num cadastro de sanções.
+"""Regra J-01: contrato assinado com fornecedor que constava num cadastro de sanções.
 
 A pergunta do DOC-07 é se, na data da assinatura, o fornecedor estava num cadastro da CGU que o impedia
 de contratar. Este módulo cruza os contratos do painel (um arquivo por dia do PNCP, ADR-028) com as sanções
-da silver (CEIS e CNEP, ADR-030) e devolve as coincidências **para análise**. Nada daqui é publicado: o
-relatório vai para o armazenamento privado, e o resumo público só tem contagens (ADR-031).
+da silver (CEIS e CNEP, ADR-030) e devolve as coincidências **para análise**. Desde 21/10/2026 elas são
+publicadas como avisos (ADR-047, que substitui o modo silencioso do ADR-031): cada uma com o alcance da
+sanção e a ressalva de que não é conclusão.
 
 Como a coincidência é decidida:
 
@@ -217,7 +218,7 @@ class Relatorio:
     def para_json(self, gerado_em: str | None = None) -> dict:
         """O relatório completo, com as coincidências: só para o armazenamento privado."""
         return {
-            "versao": VERSAO_RELATORIO, "regra": "J-01", "modo": "silencioso",
+            "versao": VERSAO_RELATORIO, "regra": "J-01", "modo": "publicado",
             "gerado_em": gerado_em or datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "retratos_das_sancoes": self.retratos, "sancoes_que_impedem_contratar": self.sancoes_no_indice,
             "dias_de_contratos": {"quantidade": len(self.dias), "de": min(self.dias, default=None),
@@ -232,7 +233,7 @@ class Relatorio:
     def resumo_markdown(self) -> str:
         """Resumo só com contagens, sem nome de fornecedor nem de órgão: é o que pode aparecer em público."""
         linhas = [
-            "### Regra J-01 em modo silencioso (sanções da CGU × contratos do PNCP)",
+            "### Regra J-01 (sanções da CGU × contratos do PNCP)",
             "",
             f"- Retratos das sanções: {', '.join(f'{k} de {v}' for k, v in sorted(self.retratos.items())) or 'nenhum'}",
             f"- Dias de contratos: {len(self.dias)} ({min(self.dias, default='-')} a {max(self.dias, default='-')})",
@@ -245,7 +246,7 @@ class Relatorio:
             *[f"| {a.replace('_', ' ')} | {n} |" for a, n in self.por_alcance().items()],
             f"| fora do alcance (não listadas) | {self.fora_do_alcance} |",
             "",
-            "O detalhe fica no armazenamento privado: nada disto é publicado (ADR-031).",
+            "O detalhe vira avisos no portal, com o alcance de cada sanção e a ressalva (ADR-047).",
         ]
         return "\n".join(linhas) + "\n"
 

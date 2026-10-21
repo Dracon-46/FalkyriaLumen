@@ -712,7 +712,7 @@
    "caminho": "packages/deteccao/lumen_deteccao/cli.py",
    "linguagem": "python",
    "linhas": 89,
-   "doc": "Linha de comando das regras de detecção em modo silencioso.\n\n    lumen deteccao j01 --estado DIR [--silver DIR] [--saida ARQ] [--resumo ARQ] [--privado]\n\n``j01`` cruza os contratos do painel (``contratacoes-AAAA-MM-DD.json.gz`` em ``--estado``) com as sanções da\nsilver (``lumen coletar cgu_ceis`` e ``cgu_cnep``, depois ``lumen normalizar``). Imprime só as contagens.\nO relatório completo, com as coincidências, vai para ``--saida`` (um arquivo local) e, com ``--privado``,\npara o bucket privado da publicação (``deteccao/j01/ultimo.json.gz``, trocado a cada execução, com a data\ndentro): nunca para um lugar público (ADR-031). Guardar só o último mantém o bucket privado pequeno (o\nrelatório tem perto de 600 KB comprimido); qualquer dia pode ser refeito a partir dos dados. ``--resumo`` acrescenta o resumo sem nomes a um arquivo Markdown (o resumo da execução no GitHub).",
+   "doc": "Linha de comando das regras de detecção.\n\n    lumen deteccao j01 --estado DIR [--silver DIR] [--saida ARQ] [--resumo ARQ] [--privado]\n\n``j01`` cruza os contratos do painel (``contratacoes-AAAA-MM-DD.json.gz`` em ``--estado``) com as sanções da\nsilver (``lumen coletar cgu_ceis`` e ``cgu_cnep``, depois ``lumen normalizar``). Imprime só as contagens.\nO relatório completo, com as coincidências, vai para ``--saida``: no fluxo ``deteccao-sancoes``, o\n``deteccao-j01.json.gz`` do estado dos painéis, de onde saem os avisos do portal (ADR-047). Com ``--privado``,\nvai também para o bucket privado da publicação (``deteccao/j01/ultimo.json.gz``, trocado a cada execução).\n``--resumo`` acrescenta o resumo, só com contagens, a um arquivo Markdown (o resumo da execução no GitHub).",
    "itens": [
     {
      "tipo": "funcao",
@@ -747,141 +747,141 @@
   {
    "caminho": "packages/deteccao/lumen_deteccao/j01.py",
    "linguagem": "python",
-   "linhas": 314,
-   "doc": "Regra J-01 em modo silencioso: contrato assinado com fornecedor que constava num cadastro de sanções.\n\nA pergunta do DOC-07 é se, na data da assinatura, o fornecedor estava num cadastro da CGU que o impedia\nde contratar. Este módulo cruza os contratos do painel (um arquivo por dia do PNCP, ADR-028) com as sanções\nda silver (CEIS e CNEP, ADR-030) e devolve as coincidências **para análise**. Nada daqui é publicado: o\nrelatório vai para o armazenamento privado, e o resumo público só tem contagens (ADR-031).\n\nComo a coincidência é decidida:\n\n1. **Mesmo CNPJ.** Só pessoa jurídica: o arquivo do dia do painel não guarda documento de pessoa física\n   (RNF-19 e RNF-20), e o CPF da sanção é mascarado.\n2. **Sanção que impede contratar.** Impedimento ou proibição de contratar, suspensão e declaração de\n   inidoneidade. Multa, publicação extraordinária, demissão e interdição de atividades não entram. O CEPIM\n   também não: ele impede transferências voluntárias (convênios), não contratos.\n3. **Vigente na assinatura.** Início da sanção até a data da assinatura; fim depois dela, ou sem fim.\n4. **Alcance**, pela abrangência que o órgão sancionador publicou, comparada com a esfera e a UF de quem\n   contratou. A CGU não publica o município do órgão sancionador, e o nome do órgão não casa com\n   segurança com o do PNCP: esses casos ficam \"a conferir\", e não descartados.\n\nLimites conhecidos (os falsos positivos do DOC-07): o cadastro é o retrato de hoje, então uma sanção já\nexcluída não aparece (falso negativo) e uma sanção suspensa por decisão judicial pode aparecer; a inclusão\nretroativa no cadastro faz parecer que a sanção já constava na assinatura.",
+   "linhas": 315,
+   "doc": "Regra J-01: contrato assinado com fornecedor que constava num cadastro de sanções.\n\nA pergunta do DOC-07 é se, na data da assinatura, o fornecedor estava num cadastro da CGU que o impedia\nde contratar. Este módulo cruza os contratos do painel (um arquivo por dia do PNCP, ADR-028) com as sanções\nda silver (CEIS e CNEP, ADR-030) e devolve as coincidências **para análise**. Desde 21/10/2026 elas são\npublicadas como avisos (ADR-047, que substitui o modo silencioso do ADR-031): cada uma com o alcance da\nsanção e a ressalva de que não é conclusão.\n\nComo a coincidência é decidida:\n\n1. **Mesmo CNPJ.** Só pessoa jurídica: o arquivo do dia do painel não guarda documento de pessoa física\n   (RNF-19 e RNF-20), e o CPF da sanção é mascarado.\n2. **Sanção que impede contratar.** Impedimento ou proibição de contratar, suspensão e declaração de\n   inidoneidade. Multa, publicação extraordinária, demissão e interdição de atividades não entram. O CEPIM\n   também não: ele impede transferências voluntárias (convênios), não contratos.\n3. **Vigente na assinatura.** Início da sanção até a data da assinatura; fim depois dela, ou sem fim.\n4. **Alcance**, pela abrangência que o órgão sancionador publicou, comparada com a esfera e a UF de quem\n   contratou. A CGU não publica o município do órgão sancionador, e o nome do órgão não casa com\n   segurança com o do PNCP: esses casos ficam \"a conferir\", e não descartados.\n\nLimites conhecidos (os falsos positivos do DOC-07): o cadastro é o retrato de hoje, então uma sanção já\nexcluída não aparece (falso negativo) e uma sanção suspensa por decisão judicial pode aparecer; a inclusão\nretroativa no cadastro faz parecer que a sanção já constava na assinatura.",
    "itens": [
     {
      "tipo": "funcao",
      "nome": "impede_contratar",
      "assinatura": "def impede_contratar(categoria: str | None) -> bool",
      "doc": "A categoria da sanção impede o sancionado de contratar com a administração?",
-     "linha": 56
+     "linha": 57
     },
     {
      "tipo": "funcao",
      "nome": "_data",
      "assinatura": "def _data(texto: str | None) -> date | None",
      "doc": "Data ISO (``AAAA-MM-DD``) do registro; vazio ou ilegível vira None.",
-     "linha": 64
+     "linha": 65
     },
     {
      "tipo": "funcao",
      "nome": "vigente",
      "assinatura": "def vigente(sancao: dict, dia: date) -> bool",
      "doc": "A sanção valia em ``dia``: começou nele ou antes, e não terminou antes dele.",
-     "linha": 72
+     "linha": 73
     },
     {
      "tipo": "funcao",
      "nome": "_palavras",
      "assinatura": "def _palavras(texto: str | None) -> str",
      "doc": "Texto sem acento, em minúsculas, com pontuação trocada por espaço e cercado de espaços.\n\nÉ a forma em que o nome de um município é procurado no nome do órgão sancionador, palavra por palavra:\n`` lajeado `` casa com \"PREFEITURA MUNICIPAL DE LAJEADO - RS\", e não com \"Lajeado Novo\".",
-     "linha": 78
+     "linha": 79
     },
     {
      "tipo": "classe",
      "nome": "Municipios",
      "assinatura": "class Municipios",
      "doc": "Nomes dos municípios por UF, para achar o município citado no nome do órgão sancionador.\n\nA CGU publica a UF do órgão sancionador, mas não o município; quase sempre ele está no nome\n(\"Prefeitura Municipal de Lajeado - RS\").",
-     "linha": 87
+     "linha": 88
     },
     {
      "tipo": "metodo",
      "nome": "Municipios.__init__",
      "assinatura": "def __init__(self, registros: Iterable[tuple[str, str, str]])",
      "doc": "Recebe (código IBGE, sigla da UF, nome) de cada município.",
-     "linha": 94
+     "linha": 95
     },
     {
      "tipo": "metodo",
      "nome": "Municipios.do_cadastro",
      "assinatura": "def do_cadastro(cls) -> 'Municipios'",
      "doc": "Os 5.570 municípios do cadastro que acompanha o Lumen (o mesmo da aba Eleições).",
-     "linha": 101
+     "linha": 102
     },
     {
      "tipo": "metodo",
      "nome": "Municipios.citados",
      "assinatura": "def citados(self, texto: str | None, uf: str | None) -> set[str]",
      "doc": "Códigos IBGE dos municípios da ``uf`` cujo nome aparece inteiro no ``texto``.",
-     "linha": 107
+     "linha": 108
     },
     {
      "tipo": "funcao",
      "nome": "alcance",
      "assinatura": "def alcance(sancao: dict, esfera_contratante: str | None, uf_contratante: str | None, *, municipio_contratante: str | None=None, orgao_contratante: str | None=None, municipios: Municipios | None=None) -> str",
      "doc": "Se a sanção alcança quem contratou, pela abrangência publicada, pela esfera, pela UF e pelo município.\n\n\"Todas as esferas\" alcança qualquer um. \"Na esfera do órgão sancionador\" alcança a mesma esfera: na\nestadual e na distrital, também a mesma UF; na municipal, o mesmo município, quando o nome do órgão\nsancionador o cita (cita outro: fora do alcance; não cita nenhum: a conferir). \"No órgão sancionador\"\npassa pelas mesmas condições e, no fim, depende do órgão: com o mesmo nome, ``mesmo_orgao``; com nome\ndiferente (o PNCP e a CGU escrevem o mesmo órgão de jeitos diferentes), a conferir. Sem abrangência\npublicada, ``abrangencia_nao_informada``.",
-     "linha": 113
+     "linha": 114
     },
     {
      "tipo": "funcao",
      "nome": "retrato_mais_recente",
      "assinatura": "def retrato_mais_recente(sancoes: Iterable[dict]) -> list[dict]",
      "doc": "Só as sanções do retrato mais recente de cada cadastro: a que saiu do cadastro não conta mais.",
-     "linha": 158
+     "linha": 159
     },
     {
      "tipo": "funcao",
      "nome": "indice_por_cnpj",
      "assinatura": "def indice_por_cnpj(sancoes: Iterable[dict]) -> dict[str, list[dict]]",
      "doc": "Sanções que impedem contratar, do CEIS e do CNEP, por CNPJ do sancionado.",
-     "linha": 169
+     "linha": 170
     },
     {
      "tipo": "funcao",
      "nome": "ler_dias",
      "assinatura": "def ler_dias(estado: Path | str) -> Iterator[dict]",
      "doc": "Os arquivos do dia do painel (``contratacoes-AAAA-MM-DD.json.gz``) do diretório, em ordem de data.",
-     "linha": 180
+     "linha": 181
     },
     {
      "tipo": "funcao",
      "nome": "_curto",
      "assinatura": "def _curto(texto: str | None) -> str | None",
      "doc": "Texto cortado em ``LIMITE_TEXTO`` caracteres, para o relatório não carregar fundamentações inteiras.",
-     "linha": 192
+     "linha": 193
     },
     {
      "tipo": "classe",
      "nome": "Relatorio",
      "assinatura": "class Relatorio",
      "doc": "O que o cruzamento encontrou: as coincidências para análise e as contagens que o resumo mostra.",
-     "linha": 200
+     "linha": 201
     },
     {
      "tipo": "metodo",
      "nome": "Relatorio.por_alcance",
      "assinatura": "def por_alcance(self) -> dict[str, int]",
      "doc": "Coincidências por alcance, na ordem de ``ALCANCES``, com zero onde não houve nenhuma.",
-     "linha": 212
+     "linha": 213
     },
     {
      "tipo": "metodo",
      "nome": "Relatorio.para_json",
      "assinatura": "def para_json(self, gerado_em: str | None=None) -> dict",
      "doc": "O relatório completo, com as coincidências: só para o armazenamento privado.",
-     "linha": 217
+     "linha": 218
     },
     {
      "tipo": "metodo",
      "nome": "Relatorio.resumo_markdown",
      "assinatura": "def resumo_markdown(self) -> str",
      "doc": "Resumo só com contagens, sem nome de fornecedor nem de órgão: é o que pode aparecer em público.",
-     "linha": 232
+     "linha": 233
     },
     {
      "tipo": "funcao",
      "nome": "cruzar",
      "assinatura": "def cruzar(dias: Iterable[dict], sancoes: Iterable[dict], municipios: Municipios | None=None) -> Relatorio",
      "doc": "Cruza os contratos dos ``dias`` do painel com as ``sancoes`` da silver e devolve o relatório.\n\nSem ``municipios``, as sanções municipais de abrangência restrita ficam todas a conferir.",
-     "linha": 253
+     "linha": 254
     },
     {
      "tipo": "funcao",
      "nome": "_coincidencia",
      "assinatura": "def _coincidencia(c: dict, orgao_nome: str | None, esfera: str | None, s: dict, a: str) -> dict",
      "doc": "Uma coincidência no formato do relatório: o contrato, o fornecedor, a sanção e o alcance.",
-     "linha": 297
+     "linha": 298
     }
    ]
   },
@@ -8174,6 +8174,140 @@
    "itens": []
   },
   {
+   "caminho": "packages/painel/lumen_painel/avisos.py",
+   "linguagem": "python",
+   "linhas": 320,
+   "doc": "Avisos: o que aconteceu em cada ente e merece um olhar, reunido numa página só (ADR-047).\n\nSem os avisos, quem acompanha um município precisa abrir cada painel e cada contratação. Aqui o Lumen junta,\npor ente, os sinais que ele já calcula a partir de dados públicos, cada um com o que aconteceu, o que\nobservar e a fonte:\n\n- **fornecedor sancionado** (regra J-01, ADR-031): contrato assinado com empresa que, na data da assinatura,\n  constava no CEIS ou no CNEP numa sanção que impede contratar, com o alcance da sanção;\n- **valor a conferir** (ADR-028): processo ou contrato publicado com valor acima do teto de plausibilidade,\n  fora das somas dos painéis;\n- **LRF: não consta no extrato**: relatório com prazo vencido que não aparece no extrato do Tesouro;\n- **LRF: entregas após o prazo**: no exercício, ``ATRASOS_MINIMOS`` ou mais relatórios entregues depois do\n  prazo legal (um atraso isolado é comum e não vira aviso);\n- **portal de transparência**: entidade do ente com nível \"Inexistente\" ou \"Inicial\" no PNTP.\n\nNenhum aviso é conclusão sobre a conduta de alguém: é o fato observado nos dados, com a referência usada. Todo\naviso tem um código estável (``id``) e pode ser contestado por quem é citado (``contestacoes``, das issues\ncom o rótulo ``contestacao``): a marca aparece na publicação seguinte, sem análise prévia (DOC-08, seção 6);\ncontestação fechada com o rótulo ``removido`` tira o aviso, com ``retificado`` mantém com a nota. A ordem é\nsempre pela data, nunca por ente (PUB-07). Fornecedor pessoa física não aparece em aviso nenhum (RNF-19).",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "codigo_do_aviso",
+     "assinatura": "def codigo_do_aviso(*partes: object) -> str",
+     "doc": "Código estável do aviso (12 caracteres), a partir do tipo e do que o identifica.",
+     "linha": 62
+    },
+    {
+     "tipo": "classe",
+     "nome": "Aviso",
+     "assinatura": "class Aviso",
+     "doc": "Um aviso, na forma do arquivo publicado.",
+     "linha": 68
+    },
+    {
+     "tipo": "metodo",
+     "nome": "Aviso.lugar",
+     "assinatura": "def lugar(self) -> str | None",
+     "doc": "Em que arquivo o aviso entra: ``\"1\"`` (a União), a sigla da UF, ou None se não há como saber.",
+     "linha": 85
+    },
+    {
+     "tipo": "metodo",
+     "nome": "Aviso.para_json",
+     "assinatura": "def para_json(self, cadastro: Cadastro) -> dict",
+     "doc": "O aviso com o nome do ente, como o portal lê.",
+     "linha": 93
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_moeda",
+     "assinatura": "def _moeda(v: float | None) -> str",
+     "doc": "\"R$ 1.234.567,89\".",
+     "linha": 103
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_data",
+     "assinatura": "def _data(iso: str | None) -> str",
+     "doc": "\"2026-10-13\" → \"13/10/2026\".",
+     "linha": 110
+    },
+    {
+     "tipo": "funcao",
+     "nome": "de_j01",
+     "assinatura": "def de_j01(relatorio: dict, orgaos: dict[str, list]) -> list[Aviso]",
+     "doc": "Os avisos das coincidências da J-01. O ente é o do órgão contratante (``orgaos``: CNPJ → [nome, esfera, ente]).",
+     "linha": 119
+    },
+    {
+     "tipo": "funcao",
+     "nome": "de_valores_a_conferir",
+     "assinatura": "def de_valores_a_conferir(ente: str, lista: Iterable[dict]) -> list[Aviso]",
+     "doc": "Os avisos dos valores acima do teto de plausibilidade do ente (a lista ``a_conferir`` do arquivo dele).",
+     "linha": 148
+    },
+    {
+     "tipo": "funcao",
+     "nome": "de_conformidade",
+     "assinatura": "def de_conformidade(ente: str, obrigacoes: Iterable[dict]) -> list[Aviso]",
+     "doc": "Os avisos da LRF de um ente: cada relatório que não consta, e os atrasos somados por exercício.",
+     "linha": 168
+    },
+    {
+     "tipo": "funcao",
+     "nome": "de_transparencia",
+     "assinatura": "def de_transparencia(publicacao: dict[str, dict]) -> list[Aviso]",
+     "doc": "Os avisos do PNTP: entidade com nível \"Inexistente\" ou \"Inicial\" (os arquivos ``transparencia/*.json``).",
+     "linha": 199
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_contestacoes",
+     "assinatura": "def ler_contestacoes(issues: Iterable[dict]) -> dict[str, dict]",
+     "doc": "Código do aviso → a contestação (issue com o rótulo ``contestacao``): situação, link e data.\n\nAberta: \"em análise\". Fechada com ``removido``: o aviso sai; com ``retificado``: fica com a nota; fechada sem\nesses rótulos: \"mantido\", com a contestação ao lado (DOC-08, 6.2).",
+     "linha": 229
+    },
+    {
+     "tipo": "classe",
+     "nome": "Avisos",
+     "assinatura": "class Avisos",
+     "doc": "Os avisos reunidos na publicação, por ente.",
+     "linha": 253
+    },
+    {
+     "tipo": "metodo",
+     "nome": "Avisos.juntar",
+     "assinatura": "def juntar(self, avisos: Iterable[Aviso]) -> None",
+     "doc": "Acrescenta avisos (o mesmo código entra uma vez só).",
+     "linha": 258
+    },
+    {
+     "tipo": "metodo",
+     "nome": "Avisos.aplicar_contestacoes",
+     "assinatura": "def aplicar_contestacoes(self, contestacoes: dict[str, dict]) -> None",
+     "doc": "Marca os avisos contestados e tira os que a contestação mostrou serem erro do dado de origem.",
+     "linha": 266
+    },
+    {
+     "tipo": "funcao",
+     "nome": "arquivo_do_lugar",
+     "assinatura": "def arquivo_do_lugar(lugar: str) -> str",
+     "doc": "``avisos/uniao.json`` para a União (``\"1\"``); senão, o arquivo da UF (``avisos/uf-sp.json``).",
+     "linha": 273
+    },
+    {
+     "tipo": "funcao",
+     "nome": "montar",
+     "assinatura": "def montar(avisos: Avisos, cadastro: Cadastro, *, gerado_em: str) -> dict[str, dict]",
+     "doc": "Os arquivos: um por UF (e o da União), com os avisos do estado e dos municípios, e o panorama.",
+     "linha": 278
+    },
+    {
+     "tipo": "funcao",
+     "nome": "publicar",
+     "assinatura": "def publicar(estado: Path | str, avisos: Avisos, cadastro: Cadastro, gravar: Callable[[str, dict], None], *, gerado_em: str) -> dict",
+     "doc": "Lê a J-01 e as contestações do estado, junta aos avisos já reunidos, grava e devolve o resumo.",
+     "linha": 301
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_j01",
+     "assinatura": "def ler_j01(estado: Path | str) -> dict",
+     "doc": "O relatório da J-01 guardado no estado (``deteccao-j01.json.gz``), ou vazio.",
+     "linha": 316
+    }
+   ]
+  },
+  {
    "caminho": "packages/painel/lumen_painel/cadastro.py",
    "linguagem": "python",
    "linhas": 110,
@@ -8268,7 +8402,7 @@
   {
    "caminho": "packages/painel/lumen_painel/cli.py",
    "linguagem": "python",
-   "linhas": 468,
+   "linhas": 478,
    "doc": "``lumen painel``: coleta e publicação dos painéis de contratações e de conformidade (ADR-028).\n\nExemplos::\n\n    lumen painel cadastro --estado estado/                          # cadastro de entes do SICONFI\n    lumen painel contratacoes --estado estado/ --ultimos 3          # dias que faltam entre os 3 últimos\n    lumen painel contratacoes --estado estado/ --de 2026-01-01 --ate 2026-01-31 --limite-minutos 300\n    lumen painel faltando --estado estado/ --de 2026-01-01 --partes 6   # divisão para execuções paralelas\n    lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026\n    lumen painel rcl --estado estado/ --ufs SP,MG                  # RCL do exercício anterior, para os pares\n    lumen painel despesa-funcao --estado estado/ --ufs SP,MG --limite-minutos 30   # DCA por função, pares\n    lumen painel pessoal --estado estado/ --ufs SP,MG --limite-minutos 20          # RGF: pessoal em % da RCL\n    lumen painel cnpj --estado estado/                              # base de CNPJ da Receita, dos fornecedores\n    lumen painel emendas --estado estado/                           # emendas parlamentares (CGU), por ente\n    lumen painel convenios --estado estado/                         # convênios da União (CGU), por ente\n    lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)\n    lumen painel anp --estado estado/                               # preço de revenda da ANP por semana\n    lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado\n\nO estado é um diretório com ``cadastro-entes.json.gz``, um ``contratacoes-<dia>.json.gz`` por dia coletado e\num ``conformidade-<UF>.json.gz`` por UF. No GitHub Actions, ele fica nos anexos de uma versão do repositório\n(``painel-estado``) entre uma execução e outra.",
    "itens": [
     {
@@ -8276,161 +8410,161 @@
      "nome": "_data",
      "assinatura": "def _data(texto: str) -> date",
      "doc": "``AAAA-MM-DD`` → ``date``, como ``type`` do argparse.",
-     "linha": 51
+     "linha": 52
     },
     {
      "tipo": "funcao",
      "nome": "_lista",
      "assinatura": "def _lista(texto: str) -> list[str]",
      "doc": "``SP, mg`` → ``[\"SP\", \"MG\"]``.",
-     "linha": 56
+     "linha": 57
     },
     {
      "tipo": "funcao",
      "nome": "_imprimir",
      "assinatura": "def _imprimir(dados) -> None",
      "doc": "JSON legível na saída padrão.",
-     "linha": 61
+     "linha": 62
     },
     {
      "tipo": "funcao",
      "nome": "_configuracao",
      "assinatura": "def _configuracao(args)",
      "doc": "A configuração do pipeline (contato da coleta e limites de requisições).",
-     "linha": 66
+     "linha": 67
     },
     {
      "tipo": "funcao",
      "nome": "dias_pedidos",
      "assinatura": "def dias_pedidos(estado: Path, *, de: date | None, ate: date | None, ultimos: int | None, hoje: date, refazer: bool=False) -> list[date]",
      "doc": "Os dias a coletar, do mais recente para o mais antigo, sem os que já estão no estado.\n\nSem ``de``, o intervalo é dos ``ultimos`` dias (padrão 3) até ontem; o dia corrente nunca entra, porque\nainda está recebendo publicações.",
-     "linha": 72
+     "linha": 73
     },
     {
      "tipo": "funcao",
      "nome": "partes",
      "assinatura": "def partes(dias: list[date], n: int) -> list[dict]",
      "doc": "Divide os dias (já do mais recente ao mais antigo) em até ``n`` blocos de dias seguidos, para execuções\nparalelas; cada bloco vira ``{\"de\": …, \"ate\": …, \"dias\": …}``.",
-     "linha": 85
+     "linha": 86
     },
     {
      "tipo": "funcao",
      "nome": "cmd_cadastro",
      "assinatura": "def cmd_cadastro(args) -> int",
      "doc": "Coleta o cadastro de entes do SICONFI (uma requisição), normaliza e grava ``cadastro-entes.json.gz``.",
-     "linha": 97
+     "linha": 98
     },
     {
      "tipo": "funcao",
      "nome": "cmd_contratacoes",
      "assinatura": "def cmd_contratacoes(args) -> int",
      "doc": "Coleta os dias pedidos que faltam no estado, do mais recente ao mais antigo, até o prazo.",
-     "linha": 128
+     "linha": 129
     },
     {
      "tipo": "funcao",
      "nome": "cmd_faltando",
      "assinatura": "def cmd_faltando(args) -> int",
      "doc": "Imprime, em JSON, os blocos de dias que faltam no estado (matriz das execuções paralelas).",
-     "linha": 152
+     "linha": 153
     },
     {
      "tipo": "funcao",
      "nome": "cmd_conformidade",
      "assinatura": "def cmd_conformidade(args) -> int",
      "doc": "Coleta o extrato de entregas de cada UF pedida e grava o estado de cada uma.",
-     "linha": 159
+     "linha": 160
     },
     {
      "tipo": "funcao",
      "nome": "cmd_rcl",
      "assinatura": "def cmd_rcl(args) -> int",
      "doc": "Coleta a RCL dos entes pendentes de cada UF pedida (RREO, Anexo 03) e grava o estado de cada uma.\n\nEnte que ainda não publicou não é falha: fica para a próxima tentativa. O código é 1 só quando uma coleta\nfoi interrompida.",
-     "linha": 174
+     "linha": 175
     },
     {
      "tipo": "funcao",
      "nome": "cmd_despesa_funcao",
      "assinatura": "def cmd_despesa_funcao(args) -> int",
      "doc": "Coleta a despesa por função (DCA, Anexo I-E) dos entes pendentes de cada UF pedida e grava o estado.\n\nO ``--limite-minutos`` vale para todas as UFs juntas: passado o tempo, os entes que faltam ficam para a\nexecução seguinte. O código é 1 só quando uma coleta foi interrompida.",
-     "linha": 193
+     "linha": 194
     },
     {
      "tipo": "funcao",
      "nome": "cmd_pessoal",
      "assinatura": "def cmd_pessoal(args) -> int",
      "doc": "Coleta a despesa com pessoal do Executivo (RGF, Anexo 1) dos entes pendentes de cada UF pedida.\n\nComo em ``despesa-funcao``, o ``--limite-minutos`` vale para todas as UFs juntas. O código é 1 só quando uma\ncoleta foi interrompida.",
-     "linha": 215
+     "linha": 216
     },
     {
      "tipo": "funcao",
      "nome": "cmd_cnpj",
      "assinatura": "def cmd_cnpj(args) -> int",
      "doc": "Lê a base pública de CNPJ da Receita para os fornecedores do estado e grava ``cnpj-fornecedores.json.gz``.\n\nPula quando o estado já tem a base do mês para todos os fornecedores (ADR-043).",
-     "linha": 237
+     "linha": 238
     },
     {
      "tipo": "funcao",
      "nome": "cmd_emendas",
      "assinatura": "def cmd_emendas(args) -> int",
      "doc": "Lê o arquivo de emendas parlamentares da CGU quando ele muda e grava ``emendas.json.gz`` (ADR-044).",
-     "linha": 248
+     "linha": 249
     },
     {
      "tipo": "funcao",
      "nome": "cmd_convenios",
      "assinatura": "def cmd_convenios(args) -> int",
      "doc": "Lê o arquivo de convênios da CGU quando sai um novo e grava ``convenios.json.gz`` (ADR-045).",
-     "linha": 256
+     "linha": 257
     },
     {
      "tipo": "funcao",
      "nome": "cmd_mascarar",
      "assinatura": "def cmd_mascarar(args) -> int",
      "doc": "Reescreve os arquivos do dia gravados antes da máscara de CPF (ADR-043) e lista os que mudaram.",
-     "linha": 264
+     "linha": 265
     },
     {
      "tipo": "funcao",
      "nome": "cmd_transparencia",
      "assinatura": "def cmd_transparencia(args) -> int",
      "doc": "Lê o ciclo mais recente do PNTP para ``transparencia-pntp.json.gz``; o código é 1 quando falhou.",
-     "linha": 278
+     "linha": 279
     },
     {
      "tipo": "funcao",
      "nome": "cmd_anp",
      "assinatura": "def cmd_anp(args) -> int",
      "doc": "Lê as planilhas semanais da ANP que faltam em ``anp-semanas.json.gz``; o código é 1 quando algo falhou.",
-     "linha": 286
+     "linha": 287
     },
     {
      "tipo": "funcao",
      "nome": "_agrupar",
      "assinatura": "def _agrupar(chaves, grupo) -> list[tuple[str, list[str]]]",
      "doc": "As chaves em grupos (``grupo(chave)``), na ordem dos grupos: um grupo de cada vez vai para a memória.",
-     "linha": 295
+     "linha": 296
     },
     {
      "tipo": "funcao",
      "nome": "cmd_publicar",
      "assinatura": "def cmd_publicar(args) -> int",
      "doc": "Monta o site inteiro a partir do estado: índice, busca, contratações e conformidade.",
-     "linha": 303
+     "linha": 304
     },
     {
      "tipo": "funcao",
      "nome": "construir_parser",
      "assinatura": "def construir_parser() -> argparse.ArgumentParser",
      "doc": "Os subcomandos e as opções de cada um.",
-     "linha": 375
+     "linha": 385
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada de ``lumen painel``; falta de configuração (contato da coleta) vira código 2.",
-     "linha": 457
+     "linha": 467
     }
    ]
   },
@@ -10154,6 +10288,98 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/lib/avisos.ts",
+   "linguagem": "typescript",
+   "linhas": 118,
+   "doc": "Avisos (ADR-047): o que aconteceu em cada ente e merece um olhar, reunido pelos painéis a partir de dados\npúblicos (fornecedor sancionado com contrato, valor a conferir, relatórios fiscais que não constam ou em\natraso, portal de transparência com nível baixo). Cada aviso traz o que aconteceu, o que observar e a fonte;\nnenhum é conclusão sobre a conduta de alguém, e quem é citado pode contestar.\n\nArquivos: `avisos/panorama.json` (contagens e os mais recentes do Brasil) e `avisos/uf-<sigla>.json` (todos\nos do estado e dos municípios da UF) ou `avisos/uniao.json`.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "TipoAviso",
+     "assinatura": "export type TipoAviso = \"fornecedor_sancionado\" | \"valor_a_conferir\" | \"lrf_nao_consta\" | \"lrf_atrasos\" | \"transparencia_baixa\";",
+     "doc": "Os tipos de aviso.",
+     "linha": 16
+    },
+    {
+     "tipo": "interface",
+     "nome": "Contestacao",
+     "assinatura": "export interface Contestacao",
+     "doc": "A contestação de um aviso (issue com o rótulo `contestacao`).",
+     "linha": 19
+    },
+    {
+     "tipo": "interface",
+     "nome": "Aviso",
+     "assinatura": "export interface Aviso",
+     "doc": "Um aviso.",
+     "linha": 26
+    },
+    {
+     "tipo": "interface",
+     "nome": "ArquivoAvisos",
+     "assinatura": "export interface ArquivoAvisos",
+     "doc": "`avisos/uf-<sigla>.json` ou `avisos/uniao.json`.",
+     "linha": 43
+    },
+    {
+     "tipo": "interface",
+     "nome": "PanoramaAvisos",
+     "assinatura": "export interface PanoramaAvisos",
+     "doc": "`avisos/panorama.json`.",
+     "linha": 52
+    },
+    {
+     "tipo": "constante",
+     "nome": "TIPOS_AVISO",
+     "assinatura": "export const TIPOS_AVISO: { tipo: TipoAviso; rotulo: string }[] = [",
+     "doc": "Os tipos, na ordem em que aparecem nos filtros.",
+     "linha": 65
+    },
+    {
+     "tipo": "funcao",
+     "nome": "arquivoDeAvisos",
+     "assinatura": "export function arquivoDeAvisos(codigo: string): string | null",
+     "doc": "O arquivo de avisos do local: o da União, ou o da UF do estado ou do município; `null` se o código não serve.",
+     "linha": 74
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarPanoramaAvisos",
+     "assinatura": "export async function carregarPanoramaAvisos(sinal?: AbortSignal): Promise<PanoramaAvisos | null>",
+     "doc": "O panorama do Brasil; `null` antes da primeira publicação.",
+     "linha": 81
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarAvisosDoLocal",
+     "assinatura": "export async function carregarAvisosDoLocal(codigo: string, comMunicipios: boolean, sinal?: AbortSignal): Promise<Aviso[] | null>",
+     "doc": "Os avisos do local. Município: os dele. Estado ou DF: os do governo e, com `comMunicipios`, também os dos\nmunicípios da UF (e dos órgãos sem ente identificado que contrataram nela). União: os da União.",
+     "linha": 91
+    },
+    {
+     "tipo": "funcao",
+     "nome": "urlContestar",
+     "assinatura": "export function urlContestar(a: Pick<Aviso, \"id\" | \"titulo\">): string",
+     "doc": "Endereço para contestar o aviso: o formulário de contestação das issues, já com o código.",
+     "linha": 103
+    },
+    {
+     "tipo": "funcao",
+     "nome": "urlDaContratacao",
+     "assinatura": "export function urlDaContratacao(a: Pick<Aviso, \"chave\">): string | null",
+     "doc": "O endereço do modal da contratação do aviso no painel, quando ele tem a chave do PNCP.",
+     "linha": 109
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lerTipos",
+     "assinatura": "export function lerTipos(bruto: string | null): TipoAviso[]",
+     "doc": "Os tipos escolhidos na URL (`?tipo=a,b`); vazio é todos.",
+     "linha": 115
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/lib/busca.ts",
    "linguagem": "typescript",
    "linhas": 77,
@@ -11614,7 +11840,7 @@
     {
      "tipo": "tipo",
      "nome": "Area",
-     "assinatura": "export type Area = \"eleicoes\" | \"contratacoes\" | \"conformidade\" | \"economia\" | \"estatais\";",
+     "assinatura": "export type Area = \"eleicoes\" | \"contratacoes\" | \"conformidade\" | \"economia\" | \"estatais\" | \"avisos\";",
      "doc": "As áreas do portal que o local filtra.",
      "linha": 21
     },
@@ -11643,7 +11869,7 @@
      "tipo": "funcao",
      "nome": "codigoNaUrl",
      "assinatura": "export function codigoNaUrl(caminho: string, params: URLSearchParams): string | null",
-     "doc": "O local que a URL da aba aberta indica, ou `null` se ela está no Brasil ou não é de uma área com local:\n`?ente=` em Contratações, Conformidade e Estatais; `?uf=` em Conformidade; `?a=mu-…` ou `?a=uf-…` em Eleições.\nSó o código: o nome vem do cadastro.",
+     "doc": "O local que a URL da aba aberta indica, ou `null` se ela está no Brasil ou não é de uma área com local:\n`?ente=` em Contratações, Conformidade, Estatais e Avisos; `?uf=` em Conformidade; `?a=mu-…` ou `?a=uf-…` em Eleições.\nSó o código: o nome vem do cadastro.",
      "linha": 66
     },
     {
@@ -13490,6 +13716,28 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/app/avisos/page.tsx",
+   "linguagem": "typescript",
+   "linhas": 26,
+   "doc": "Página `/avisos/`: o que aconteceu em cada local e merece um olhar (ADR-047). O trabalho é do `PainelAvisos`,\nque roda no navegador e lê os arquivos `avisos/` publicados com os painéis.",
+   "itens": [
+    {
+     "tipo": "constante",
+     "nome": "metadata",
+     "assinatura": "export const metadata: Metadata =",
+     "doc": "Título e descrição da página, usados pelo navegador e nas prévias de link.",
+     "linha": 11
+    },
+    {
+     "tipo": "componente",
+     "nome": "Avisos",
+     "assinatura": "export default function Avisos()",
+     "doc": "Envolve o painel em `Suspense`: ele lê a URL com `useSearchParams`, que só existe no navegador.",
+     "linha": 20
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/app/conformidade/page.tsx",
    "linguagem": "typescript",
    "linhas": 26,
@@ -13705,7 +13953,7 @@
   {
    "caminho": "packages/portal/src/componentes/Cabecalho.tsx",
    "linguagem": "typescript",
-   "linhas": 142,
+   "linhas": 143,
    "doc": "Cabeçalho do portal, presente em todas as páginas: a marca, as abas e o filtro de local.\n\nO local (União, estado, DF ou município) filtra todas as abas (ADR-035): escolhido aqui, ou ao entrar num\nmunicípio ou estado em qualquer aba, ele vai no endereço de cada aba (Eleições abre no mapa dele,\nContratações e Conformidade no ente, as estatais nas que ele controla) e fica guardado no navegador. É\ncomponente de cliente porque lê o caminho e a URL, que no site estático só o navegador conhece.",
    "itens": [
     {
@@ -13713,21 +13961,174 @@
      "nome": "Cabecalho",
      "assinatura": "export function Cabecalho()",
      "doc": "Cabeçalho do Lumen. A parte que lê a URL fica num `Suspense`, como o site estático exige.",
-     "linha": 27
+     "linha": 28
     },
     {
      "tipo": "componente",
      "nome": "ComLocal",
      "assinatura": "function ComLocal()",
      "doc": "Lê o local da URL (ou da memória), mantém-no em dia e monta as abas filtradas por ele.",
-     "linha": 38
+     "linha": 39
     },
     {
      "tipo": "componente",
      "nome": "Moldura",
      "assinatura": "function Moldura({ local, caminho = \"/\", params, onEscolher }:",
      "doc": "A marca, as abas (com o local no endereço) e o filtro de local.",
-     "linha": 89
+     "linha": 90
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/Escolha.tsx",
+   "linguagem": "typescript",
+   "linhas": 137,
+   "doc": "Caixa de escolha com busca, no lugar dos `<select>` do portal: mostra a opção escolhida; ao clicar (ou\nfocar e apertar seta para baixo) abre a lista inteira; ao escrever, a lista fica só com o que casa. Setas\npara mover, Enter para escolher, Esc para fechar sem mudar. Segue o padrão ARIA de combobox com listbox.",
+   "itens": [
+    {
+     "tipo": "componente",
+     "nome": "Escolha",
+     "assinatura": "export function Escolha(",
+     "doc": "Caixa de escolha com busca; `onEscolher` recebe o `valor` da opção.",
+     "linha": 13
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/FiltroPeriodo.tsx",
+   "linguagem": "typescript",
+   "linhas": 102,
+   "doc": "Filtro de período das abas (Contratações, Economia, Conformidade): do primeiro ao último mês, com atalhos.\nFica na URL (`?de=AAAA-MM&ate=AAAA-MM`, `lerPeriodo`), para compartilhar a consulta.\n\nAs opções vêm do que a aba tem: meses (`AAAA-MM`) ou anos (`AAAA`). Um ano entra como o ano inteiro\n(janeiro no primeiro, dezembro no último): é o caso dos anos antigos das Contratações, publicados ano a ano,\ne das abas que só têm ano (os exercícios da Conformidade, as séries longas da Economia).",
+   "itens": [
+    {
+     "tipo": "interface",
+     "nome": "AtalhoPeriodo",
+     "assinatura": "export interface AtalhoPeriodo",
+     "doc": "Um atalho: o rótulo do botão e o período que ele escolhe.",
+     "linha": 18
+    },
+    {
+     "tipo": "funcao",
+     "nome": "atalhosPadrao",
+     "assinatura": "export function atalhosPadrao(opcoes: string[], anos = true): AtalhoPeriodo[]",
+     "doc": "Os atalhos de sempre: tudo, o último mês e os últimos 3 (se houver mês a mês) e cada ano.",
+     "linha": 29
+    },
+    {
+     "tipo": "componente",
+     "nome": "FiltroPeriodo",
+     "assinatura": "export function FiltroPeriodo(",
+     "doc": "O filtro: primeiro e último período, os atalhos e, com recorte, a nota de como o recorte é feito.",
+     "linha": 46
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/Ligacoes.tsx",
+   "linguagem": "typescript",
+   "linhas": 50,
+   "doc": "O mesmo ente nas outras abas (visão 360, ADR-035): de Contratações, Conformidade e Governos municipais, um link\npara cada uma das outras e para o resultado das eleições do lugar. A aba aberta fica de fora.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "AbaDoEnte",
+     "assinatura": "export type AbaDoEnte = \"contratacoes\" | \"conformidade\" | \"governos\";",
+     "doc": "As abas que mostram um ente.",
+     "linha": 11
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ligacoesDoEnte",
+     "assinatura": "export function ligacoesDoEnte(codigo: string, atual: AbaDoEnte): { href: string; rotulo: string }[]",
+     "doc": "Os links do ente nas outras abas, na ordem da tela.",
+     "linha": 14
+    },
+    {
+     "tipo": "componente",
+     "nome": "LigacoesDoEnte",
+     "assinatura": "export function LigacoesDoEnte({ codigo, atual }: { codigo: string; atual: AbaDoEnte })",
+     "doc": "A faixa \"Este ente nas outras abas\".",
+     "linha": 34
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/Paginacao.tsx",
+   "linguagem": "typescript",
+   "linhas": 72,
+   "doc": "Paginação das listas e tabelas do portal: toda lista com mais de 20 itens mostra 20 por vez, com a\nnavegação embaixo (\"anterior\", os números e \"próxima\") e quantos itens há. A página volta à primeira\nquando a lista muda (outro filtro, outro ente).",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "usePaginacao",
+     "assinatura": "export function usePaginacao<T>(itens: readonly T[], porPagina = POR_PAGINA)",
+     "doc": "A página atual de `itens` e o que a navegação precisa; volta à primeira quando `itens` muda.",
+     "linha": 14
+    },
+    {
+     "tipo": "componente",
+     "nome": "Paginacao",
+     "assinatura": "export function Paginacao(",
+     "doc": "A navegação entre as páginas; não aparece quando tudo cabe numa página.",
+     "linha": 22
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/Rodape.tsx",
+   "linguagem": "typescript",
+   "linhas": 26,
+   "doc": "Rodapé de todas as páginas: de onde vêm os números, o compromisso editorial do projeto e o link da situação das\ncoletas (ADR-039).",
+   "itens": [
+    {
+     "tipo": "componente",
+     "nome": "Rodape",
+     "assinatura": "export function Rodape()",
+     "doc": "Rodapé: de onde vêm os números e o compromisso editorial do projeto.",
+     "linha": 9
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/avisos/PainelAvisos.tsx",
+   "linguagem": "typescript",
+   "linhas": 263,
+   "doc": "Avisos (ADR-047): o que aconteceu e o que observar, por local, sem precisar abrir cada painel.\n\nSem local, o Brasil: quantos avisos de cada tipo por UF e os mais recentes. Com `?ente=` (o local do\ncabeçalho), os do ente; num estado, também os dos municípios (`?municipios=1`). Filtros na URL: o tipo\n(`?tipo=a,b`) e, num local, o período (`?de=&ate=`, pela data do aviso). A ordem é sempre pela data, nunca por ente\n(PUB-07). Cada aviso diz a fonte, o que observar e como contestar.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "Estado",
+     "assinatura": "type Estado =",
+     "doc": "Carregando, ou os dados (o panorama, ou a lista do local) e o erro.",
+     "linha": 37
+    },
+    {
+     "tipo": "componente",
+     "nome": "PainelAvisos",
+     "assinatura": "export function PainelAvisos()",
+     "doc": "Página inteira da área.",
+     "linha": 42
+    },
+    {
+     "tipo": "componente",
+     "nome": "Panorama",
+     "assinatura": "function Panorama({ p, onLugar }: { p: PanoramaAvisos; onLugar: (lugar: string) => void })",
+     "doc": "O Brasil: totais por tipo e por UF (em ordem de UF, PUB-07).",
+     "linha": 171
+    },
+    {
+     "tipo": "componente",
+     "nome": "Lista",
+     "assinatura": "function Lista({ avisos, titulo }: { avisos: Aviso[]; titulo: string })",
+     "doc": "A lista de avisos, 20 por página.",
+     "linha": 212
+    },
+    {
+     "tipo": "componente",
+     "nome": "CartaoAviso",
+     "assinatura": "function CartaoAviso({ a }: { a: Aviso })",
+     "doc": "Um aviso: o tipo, a data, o local, o que aconteceu, o detalhe, o que observar, a fonte e a contestação.",
+     "linha": 227
     }
    ]
   },
@@ -14454,101 +14855,6 @@
    ]
   },
   {
-   "caminho": "packages/portal/src/componentes/Escolha.tsx",
-   "linguagem": "typescript",
-   "linhas": 137,
-   "doc": "Caixa de escolha com busca, no lugar dos `<select>` do portal: mostra a opção escolhida; ao clicar (ou\nfocar e apertar seta para baixo) abre a lista inteira; ao escrever, a lista fica só com o que casa. Setas\npara mover, Enter para escolher, Esc para fechar sem mudar. Segue o padrão ARIA de combobox com listbox.",
-   "itens": [
-    {
-     "tipo": "componente",
-     "nome": "Escolha",
-     "assinatura": "export function Escolha(",
-     "doc": "Caixa de escolha com busca; `onEscolher` recebe o `valor` da opção.",
-     "linha": 13
-    }
-   ]
-  },
-  {
-   "caminho": "packages/portal/src/componentes/FiltroPeriodo.tsx",
-   "linguagem": "typescript",
-   "linhas": 102,
-   "doc": "Filtro de período das abas (Contratações, Economia, Conformidade): do primeiro ao último mês, com atalhos.\nFica na URL (`?de=AAAA-MM&ate=AAAA-MM`, `lerPeriodo`), para compartilhar a consulta.\n\nAs opções vêm do que a aba tem: meses (`AAAA-MM`) ou anos (`AAAA`). Um ano entra como o ano inteiro\n(janeiro no primeiro, dezembro no último): é o caso dos anos antigos das Contratações, publicados ano a ano,\ne das abas que só têm ano (os exercícios da Conformidade, as séries longas da Economia).",
-   "itens": [
-    {
-     "tipo": "interface",
-     "nome": "AtalhoPeriodo",
-     "assinatura": "export interface AtalhoPeriodo",
-     "doc": "Um atalho: o rótulo do botão e o período que ele escolhe.",
-     "linha": 18
-    },
-    {
-     "tipo": "funcao",
-     "nome": "atalhosPadrao",
-     "assinatura": "export function atalhosPadrao(opcoes: string[], anos = true): AtalhoPeriodo[]",
-     "doc": "Os atalhos de sempre: tudo, o último mês e os últimos 3 (se houver mês a mês) e cada ano.",
-     "linha": 29
-    },
-    {
-     "tipo": "componente",
-     "nome": "FiltroPeriodo",
-     "assinatura": "export function FiltroPeriodo(",
-     "doc": "O filtro: primeiro e último período, os atalhos e, com recorte, a nota de como o recorte é feito.",
-     "linha": 46
-    }
-   ]
-  },
-  {
-   "caminho": "packages/portal/src/componentes/Ligacoes.tsx",
-   "linguagem": "typescript",
-   "linhas": 50,
-   "doc": "O mesmo ente nas outras abas (visão 360, ADR-035): de Contratações, Conformidade e Governos municipais, um link\npara cada uma das outras e para o resultado das eleições do lugar. A aba aberta fica de fora.",
-   "itens": [
-    {
-     "tipo": "tipo",
-     "nome": "AbaDoEnte",
-     "assinatura": "export type AbaDoEnte = \"contratacoes\" | \"conformidade\" | \"governos\";",
-     "doc": "As abas que mostram um ente.",
-     "linha": 11
-    },
-    {
-     "tipo": "funcao",
-     "nome": "ligacoesDoEnte",
-     "assinatura": "export function ligacoesDoEnte(codigo: string, atual: AbaDoEnte): { href: string; rotulo: string }[]",
-     "doc": "Os links do ente nas outras abas, na ordem da tela.",
-     "linha": 14
-    },
-    {
-     "tipo": "componente",
-     "nome": "LigacoesDoEnte",
-     "assinatura": "export function LigacoesDoEnte({ codigo, atual }: { codigo: string; atual: AbaDoEnte })",
-     "doc": "A faixa \"Este ente nas outras abas\".",
-     "linha": 34
-    }
-   ]
-  },
-  {
-   "caminho": "packages/portal/src/componentes/Paginacao.tsx",
-   "linguagem": "typescript",
-   "linhas": 72,
-   "doc": "Paginação das listas e tabelas do portal: toda lista com mais de 20 itens mostra 20 por vez, com a\nnavegação embaixo (\"anterior\", os números e \"próxima\") e quantos itens há. A página volta à primeira\nquando a lista muda (outro filtro, outro ente).",
-   "itens": [
-    {
-     "tipo": "funcao",
-     "nome": "usePaginacao",
-     "assinatura": "export function usePaginacao<T>(itens: readonly T[], porPagina = POR_PAGINA)",
-     "doc": "A página atual de `itens` e o que a navegação precisa; volta à primeira quando `itens` muda.",
-     "linha": 14
-    },
-    {
-     "tipo": "componente",
-     "nome": "Paginacao",
-     "assinatura": "export function Paginacao(",
-     "doc": "A navegação entre as páginas; não aparece quando tudo cabe numa página.",
-     "linha": 22
-    }
-   ]
-  },
-  {
    "caminho": "packages/portal/src/componentes/paineis/ComparacaoMercado.tsx",
    "linguagem": "typescript",
    "linhas": 104,
@@ -15134,21 +15440,6 @@
      "linha": 20
     }
    ]
-  },
-  {
-   "caminho": "packages/portal/src/componentes/Rodape.tsx",
-   "linguagem": "typescript",
-   "linhas": 26,
-   "doc": "Rodapé de todas as páginas: de onde vêm os números, o compromisso editorial do projeto e o link da situação das\ncoletas (ADR-039).",
-   "itens": [
-    {
-     "tipo": "componente",
-     "nome": "Rodape",
-     "assinatura": "export function Rodape()",
-     "doc": "Rodapé: de onde vêm os números e o compromisso editorial do projeto.",
-     "linha": 9
-    }
-   ]
   }
  ],
  "testes": [
@@ -15189,7 +15480,7 @@
   },
   {
    "caminho": "packages/deteccao/testes/test_j01.py",
-   "doc": "Regra J-01 em modo silencioso: contratos do painel cruzados com as sanções da CGU.",
+   "doc": "Regra J-01: contratos do painel cruzados com as sanções da CGU (avisos, ADR-047).",
    "testes": 14
   },
   {
@@ -15408,6 +15699,11 @@
    "testes": 3
   },
   {
+   "caminho": "packages/painel/testes/test_avisos.py",
+   "doc": "Avisos (ADR-047): cada sinal vira aviso com fonte e código estável; contestação marca ou tira; arquivos por UF.",
+   "testes": 4
+  },
+  {
    "caminho": "packages/painel/testes/test_cli.py",
    "doc": "``lumen painel``: dias a coletar, divisão em blocos e os comandos de ponta a ponta (ADR-028).",
    "testes": 10
@@ -15486,6 +15782,11 @@
    "caminho": "packages/portal/src/lib/__testes__/areas.test.ts",
    "doc": "Áreas da malha ↔ partes do feed, inclusive as UFs das eleições anteriores a 1994.",
    "testes": 3
+  },
+  {
+   "caminho": "packages/portal/src/lib/__testes__/avisos.test.ts",
+   "doc": "",
+   "testes": 4
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/contratacao.test.ts",

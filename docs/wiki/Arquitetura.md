@@ -202,6 +202,7 @@ Pages, de onde o portal lê
 | Referência de mercado de fora do governo: A-05 em modo silencioso | [ADR-027](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-027.md) |
 | Painéis de contratações e conformidade: fatos publicados, sem indício | [ADR-028](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-028.md) |
 | Zonas eleitorais no mapa do município, com contorno aproximado | [ADR-029](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-029.md) |
+| Avisos públicos sem revisão humana prévia, com ressalva e contestação | [ADR-047](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-047.md) |
 
 As ADRs 011 a 029 estão como propostas e aguardam revisão.
 
