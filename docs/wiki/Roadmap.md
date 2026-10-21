@@ -122,6 +122,9 @@ Da seção "Pendente" do README:
   outras abas), e a despesa por função e a despesa com pessoal de cada ente
   ao lado do grupo de pares (ADR-041 e ADR-042). Também a receita da União. Próximo: as séries fiscais do próprio ente ano a ano (regra H-02, Fase 2).
   Paginação (20 por página) e filtro de período nas Contratações já no ar.
+- **Histórico desde 2021** (ADR-046): as Contratações vão até agosto de 2021, quando o PNCP começou, e a
+  Conformidade até o exercício de 2021, com filtro de período em todas as abas. A carga do histórico é manual
+  (`paineis-carga`) e leva umas quatro execuções.
 - **Visão 360 pelo filtro de local** (ADR-035): no ar. O local escolhido no cabeçalho filtra todas as abas,
   e a contratação abre num modal com itens, vencedores, aditivos e os documentos do PNCP para baixar. Também
   no ar: o portal de transparência avaliado pelo PNTP na Conformidade. Próximos: o resultado por zona de

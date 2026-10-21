@@ -12,9 +12,9 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { Escolha } from "@/componentes/Escolha";
 import { LigacoesDoEnte } from "@/componentes/Ligacoes";
 import { EmpresaReceitaCartao } from "./EmpresaReceita";
+import { FiltroPeriodo } from "@/componentes/FiltroPeriodo";
 import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import { instante } from "@/lib/formato";
 import { numero } from "@/lib/formato";
@@ -37,6 +37,7 @@ import {
 import {
   lerPeriodo,
   mesesDoArquivo,
+  porAno,
   recortarMunicipios,
   recortarPanorama,
   recortarSecoes,
@@ -185,7 +186,7 @@ export function PainelContratacoes() {
         <SemDados ente={ente} orgao={orgao} onVoltar={() => ir(null)} />
       )}
       {!estado.carregando && estado.dados && (
-        <FiltroPeriodo dados={estado.dados} periodo={periodo} onMudar={mudarPeriodo} />
+        <FiltroDoArquivo dados={estado.dados} periodo={periodo} onMudar={mudarPeriodo} />
       )}
       {forn && (
         <p className="filtro-ativo">
@@ -238,8 +239,17 @@ function SemDados({ ente, orgao, onVoltar }: { ente: string | null; orgao: strin
   );
 }
 
-/** Filtro do período: de um mês a outro, com atalhos; fica na URL (`?de=AAAA-MM&ate=AAAA-MM`). */
-function FiltroPeriodo({
+/** Duas linhas do mês a mês somadas campo a campo (para o gráfico por ano). */
+function somarMes<T extends { mes: string }>(a: T, b: T): T {
+  const saida = { ...a } as Record<string, unknown>;
+  for (const [k, v] of Object.entries(b)) {
+    if (k !== "mes" && typeof v === "number") saida[k] = Number(saida[k] ?? 0) + v;
+  }
+  return saida as T;
+}
+
+/** Filtro do período (o componente comum), com as opções do mês a mês do arquivo. */
+function FiltroDoArquivo({
   dados,
   periodo,
   onMudar,
@@ -257,55 +267,20 @@ function FiltroPeriodo({
       </p>
     );
   }
-  const opcoes = [...meses].reverse().map((m) => ({ valor: m, rotulo: mesCurto(m), detalhe: m.slice(0, 4) }));
-  const ultimo = meses[meses.length - 1]!;
-  const atras = (n: number) => meses[Math.max(0, meses.length - n)]!;
-  const anos = Array.from(new Set(meses.map((m) => m.slice(0, 4))));
-  const atalhos: { rotulo: string; p: PeriodoMeses }[] = [
-    { rotulo: "Tudo", p: { de: null, ate: null } },
-    { rotulo: "Último mês", p: { de: ultimo, ate: ultimo } },
-    { rotulo: "Últimos 3 meses", p: { de: atras(3), ate: ultimo } },
-    ...anos.map((a) => ({ rotulo: a, p: { de: `${a}-01`, ate: `${a}-12` } })),
-  ];
-  const igual = (a: PeriodoMeses, b: PeriodoMeses) =>
-    (a.de ?? meses[0]) === (b.de ?? meses[0]) && (a.ate ?? ultimo) === (b.ate ?? ultimo);
   return (
-    <section className="cartao cartao-corpo filtro-periodo" aria-label="Período">
-      <span className="filtro-periodo-titulo">Período</span>
-      <Escolha
-        rotulo="Primeiro mês"
-        opcoes={opcoes}
-        valor={periodo.de ?? meses[0]!}
-        onEscolher={(de) => onMudar({ de, ate: periodo.ate && periodo.ate < de ? de : periodo.ate })}
-      />
-      <span aria-hidden="true">a</span>
-      <Escolha
-        rotulo="Último mês"
-        opcoes={opcoes}
-        valor={periodo.ate ?? ultimo}
-        onEscolher={(ate) => onMudar({ de: periodo.de && periodo.de > ate ? ate : periodo.de, ate })}
-      />
-      <span className="filtro-periodo-atalhos">
-        {atalhos.map((a) => (
-          <button
-            key={a.rotulo}
-            type="button"
-            className="botao"
-            aria-pressed={igual(periodo, a.p)}
-            onClick={() => onMudar(a.p)}
-          >
-            {a.rotulo}
-          </button>
-        ))}
-      </span>
-      {temRecorte(periodo) && (
-        <p className="busca-detalhe filtro-periodo-nota">
-          Totais, gráficos e tabelas refeitos só com os meses escolhidos. Os fornecedores são os de maior valor no
-          período coletado inteiro, reordenados no período escolhido; as listas de publicações recentes mostram as que
-          caem nele.
-        </p>
-      )}
-    </section>
+    <FiltroPeriodo
+      opcoes={meses}
+      periodo={periodo}
+      onMudar={onMudar}
+      nota={
+        <>
+          Totais, gráficos e tabelas refeitos só com o período escolhido
+          {meses.some((m) => m.length === 4) ? " (os anos mais antigos, publicados ano a ano, entram inteiros)" : ""}. Os
+          fornecedores são os de maior valor no período coletado inteiro, reordenados no período escolhido; as listas de
+          publicações recentes mostram as que caem nele.
+        </>
+      }
+    />
   );
 }
 
@@ -336,6 +311,10 @@ function Secoes({
   orgaoUnico?: boolean;
 }) {
   const acoes = useContext(Acoes);
+  // Com anos publicados ano a ano no período, o gráfico é por ano: barras de ano e de mês juntas enganariam
+  const temAno = dados.meses.some((m) => m.mes.length === 4);
+  const grafico = temAno ? porAno(dados.meses, somarMes) : dados.meses;
+  const unidadeGrafico = temAno ? "ano" : "mês";
   dados = useMemo(() => doFornecedor(dados, acoes.forn), [dados, acoes.forn]);
   const t = dados.totais;
   const modalidades = usePaginacao(dados.modalidades);
@@ -375,19 +354,19 @@ function Secoes({
       {dados.meses.length > 0 && (
         <div className="grade-2">
           <section className="cartao cartao-corpo">
-            <h2 className="titulo-secao">Processos por mês</h2>
+            <h2 className="titulo-secao">Processos por {unidadeGrafico}</h2>
             <GraficoBarras
-              titulo="Processos de contratação publicados por mês"
-              barras={dados.meses.map((m) => ({ rotulo: mesCurto(m.mes), valor: m.processos }))}
+              titulo={`Processos de contratação publicados por ${unidadeGrafico}`}
+              barras={grafico.map((m) => ({ rotulo: mesCurto(m.mes), valor: m.processos }))}
               formatar={(n) => `${numero(n)} processo(s)`}
               formatarEixo={(n) => numero(n)}
             />
           </section>
           <section className="cartao cartao-corpo">
-            <h2 className="titulo-secao">Valor dos contratos por mês</h2>
+            <h2 className="titulo-secao">Valor dos contratos por {unidadeGrafico}</h2>
             <GraficoBarras
-              titulo="Valor global dos contratos publicados por mês"
-              barras={dados.meses.map((m) => ({ rotulo: mesCurto(m.mes), valor: m.valor_contratos }))}
+              titulo={`Valor global dos contratos publicados por ${unidadeGrafico}`}
+              barras={grafico.map((m) => ({ rotulo: mesCurto(m.mes), valor: m.valor_contratos }))}
               formatar={moeda}
               formatarEixo={moedaCompacta}
             />

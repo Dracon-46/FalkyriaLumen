@@ -3,9 +3,10 @@
 # 1. contratacoes: confere os últimos dias do PNCP (todas as modalidades de
 #    contratação e os contratos, pela data de publicação) e coleta os que
 #    ainda não estão no estado. Cada dia vira um arquivo compacto,
-#    contratacoes-AAAA-MM-DD.json.gz, guardado nos anexos da versão
-#    "painel-estado" do repositório; um dia com falha na coleta não é gravado
-#    e volta na execução seguinte. Atualiza também o cadastro de entes do
+#    contratacoes-AAAA-MM-DD.json.gz, guardado nos anexos da versão do ano,
+#    "painel-dias-AAAA" (ferramentas/painel/dias.sh; os de 2026 coletados antes
+#    de 21/10/2026 ficaram na versão "painel-estado", com o resto do estado);
+#    um dia com falha na coleta não é gravado e volta na execução seguinte. Atualiza também o cadastro de entes do
 #    SICONFI (uma requisição) e as séries de Economia e Contas Públicas do
 #    SGS do Banco Central (uma requisição por série, ADR-033; o Ipeadata
 #    quando o firewall do BC recusa), as estatais (CVM e SEST, ADR-034) e os
@@ -14,7 +15,9 @@
 #    40 por execução).
 # 2. conformidade (todo dia, desde 19/10/2026): o extrato de entregas do
 #    SICONFI de todos os entes, em cinco grupos de UFs em paralelo, para o
-#    exercício anterior e o corrente; um arquivo por UF no mesmo lugar. Depois,
+#    exercício anterior e o corrente e, a cada dia, um exercício encerrado que
+#    ainda falte desde 2021 (os já coletados são mantidos); um arquivo por UF
+#    no mesmo lugar. Depois,
 #    a receita corrente líquida do exercício anterior (RREO, Anexo 03) dos
 #    entes que ainda não a têm, no tipo de RREO que o extrato diz que cada um
 #    entregou, para os grupos de pares (ADR-038, versão 2): rcl-<UF>.json.gz.
@@ -83,7 +86,7 @@ jobs:
         run: |
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --prerelease --title "Estado dos painéis" --notes "$NOTAS"
           mkdir -p estado
-          gh release view "$TAG" --json assets --jq '.assets[].name' | grep '^contratacoes-' | while read -r n; do : > "estado/$n"; done
+          ferramentas/painel/dias.sh marcar estado
           touch marco
       # Uma vez só (ADR-043): os dias gravados até 20/10/2026 tinham o CPF de MEI no nome do fornecedor e, às
       # vezes, no objeto. Reescreve os que mudaram e marca a versão com mascara-cpf-1.txt.
@@ -160,7 +163,7 @@ jobs:
         run: lumen painel contratacoes --estado estado --ultimos "$ULTIMOS" --limite-minutos 240
       - name: Guardar os dias novos
         if: always()
-        run: find estado -name 'contratacoes-*.json.gz' -newer marco -size +0 -print0 | xargs -0 -r gh release upload "$TAG" --clobber
+        run: find estado -name 'contratacoes-*.json.gz' -newer marco -size +0 -print0 | xargs -0 -r ferramentas/painel/dias.sh guardar
 
   conformidade:
     if: always() && (inputs.conformidade || github.event_name == 'schedule')
@@ -189,6 +192,8 @@ jobs:
         run: |
           mkdir -p estado
           gh release download "$TAG" -p cadastro-entes.json.gz -D estado --clobber || lumen painel cadastro --estado estado
+      - name: Estado anterior das UFs (exercícios encerrados já coletados)
+        run: for uf in ${UFS//,/ }; do gh release download "$TAG" -p "conformidade-$uf.json.gz" -D estado --clobber || true; done
       - name: Extrato de entregas das UFs
         run: lumen painel conformidade --estado estado --ufs "$UFS"
       - name: Guardar as UFs

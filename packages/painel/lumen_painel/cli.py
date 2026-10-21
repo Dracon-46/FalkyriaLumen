@@ -43,7 +43,8 @@ from .site import Site
 ARQUIVO_CADASTRO = "cadastro-entes.json.gz"
 # Execuções dos fluxos de dados, gravadas pelo paineis-site com gh run list (painel operacional, ADR-039)
 ARQUIVO_EXECUCOES = "execucoes.json"
-INICIO_PADRAO = date(2026, 1, 1)
+# O PNCP começou a receber publicações em agosto de 2021 (as primeiras dispensas, de 1º a 10/8/2021)
+INICIO_PADRAO = date(2021, 8, 1)
 relogio = time.monotonic          # o prazo de --limite-minutos (substituível nos testes)
 
 
@@ -159,15 +160,14 @@ def cmd_conformidade(args) -> int:
     """Coleta o extrato de entregas de cada UF pedida e grava o estado de cada uma."""
     cfg = _configuracao(args)
     cadastro = Cadastro.ler(Path(args.estado) / ARQUIVO_CADASTRO)
-    hoje = hoje_brasilia()
-    exercicios = [int(x) for x in _lista(args.exercicios)] if args.exercicios else [hoje.year - 1, hoje.year]
+    exercicios = [int(x) for x in _lista(args.exercicios)] if args.exercicios else None
     resultados = []
     for uf in _lista(args.ufs):
-        r = conf.coletar_uf(cfg, uf, cadastro, exercicios, Path(args.estado))
+        r = conf.coletar_uf(cfg, uf, cadastro, exercicios, Path(args.estado), maximo_anteriores=args.maximo_anteriores)
         resultados.append(r.para_json())
         print(f"{uf}: {r.consultas_ok} de {r.consultas} consulta(s) completas"
               + (f"; {'; '.join(r.problemas)}" if r.problemas else ""), file=sys.stderr, flush=True)
-    _imprimir({"exercicios": exercicios, "ufs": resultados})
+    _imprimir({"ufs": resultados})
     return 1 if any(not r["gravado"] for r in resultados) else 0
 
 
@@ -302,13 +302,15 @@ def cmd_publicar(args) -> int:
     site = Site(args.saida)
 
     painel = contr.somar_dias(estado.glob("contratacoes-*.json.gz"), cadastro)
+    corte = contr.corte_mes_a_mes(painel.cobertura()["ate"])
     for codigo, acumulador in painel.entes.items():
-        site.gravar(f"contratacoes/ente/{codigo}.json",
-                    contr.ente_para_json(codigo, acumulador, painel, cadastro, gerado_em))
+        site.gravar(f"contratacoes/ente/{codigo}.json", contr.compactar_meses(
+            contr.ente_para_json(codigo, acumulador, painel, cadastro, gerado_em), corte))
     for cnpj, acumulador in painel.por_orgao.items():
-        site.gravar(f"contratacoes/orgao/{cnpj}.json",
-                    contr.orgao_para_json(cnpj, acumulador, painel, cadastro, gerado_em))
-    site.gravar("contratacoes/panorama.json", contr.panorama_para_json(painel, cadastro, gerado_em))
+        site.gravar(f"contratacoes/orgao/{cnpj}.json", contr.compactar_meses(
+            contr.orgao_para_json(cnpj, acumulador, painel, cadastro, gerado_em), corte))
+    site.gravar("contratacoes/panorama.json",
+                contr.compactar_meses(contr.panorama_para_json(painel, cadastro, gerado_em), corte))
     site.gravar("orgaos.json", contr.orgaos_para_busca(painel, gerado_em))
 
     avaliacao = conf.avaliar(estado.glob("conformidade-*.json.gz"), cadastro, hoje=hoje, gerado_em=gerado_em)
@@ -383,7 +385,9 @@ def construir_parser() -> argparse.ArgumentParser:
     c = sub.add_parser("conformidade", help="coleta o extrato de entregas do SICONFI por UF")
     c.add_argument("--estado", required=True)
     c.add_argument("--ufs", required=True, help="siglas separadas por vírgula")
-    c.add_argument("--exercicios", help="padrão: o anterior e o corrente")
+    c.add_argument("--exercicios", help="só estes; padrão: o anterior, o corrente e os encerrados que faltam desde 2021")
+    c.add_argument("--maximo-anteriores", type=int, default=conf.MAXIMO_ANTERIORES,
+                   help="exercícios encerrados coletados por execução, além do anterior e do corrente")
 
     c = sub.add_parser("rcl", help="receita corrente líquida dos entes por UF (RREO, Anexo 03), para os pares")
     c.add_argument("--estado", required=True)

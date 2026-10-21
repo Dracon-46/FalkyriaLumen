@@ -163,3 +163,69 @@ def test_coletar_uf_com_coleta_de_mentira(tmp_path, apoio, cfg):
     vazio = conf.coletar_uf(cfg, "AP", _cadastro(), [2025], tmp_path / "estado", coletar=coletar,
                             normalizar=normalizar)
     assert not vazio.gravado and vazio.problemas == ["nenhum ente da UF no cadastro"]
+
+
+def test_exercicios_a_coletar_mantem_os_encerrados_completos_e_busca_um_que_falta_por_vez():
+    hoje = date(2026, 10, 21)
+    assert conf.exercicios_a_coletar(None, hoje) == ([2024, 2025, 2026], [])
+    assert conf.exercicios_a_coletar(None, hoje, maximo_anteriores=0) == ([2025, 2026], [])
+    anterior = {"exercicios": [2023, 2024, 2025, 2026],
+                "entes": {"1": {"coleta": {"2023": True, "2024": True, "2025": True, "2026": True}},
+                          "2": {"coleta": {"2023": False, "2024": True, "2025": True, "2026": True}}}}
+    # 2024 completo fica; 2023 teve falha e volta à fila; a fila vai do mais recente ao mais antigo
+    assert conf.exercicios_a_coletar(anterior, hoje) == ([2023, 2025, 2026], [2024])
+    assert conf.exercicios_a_coletar(anterior, hoje, maximo_anteriores=3) == ([2021, 2022, 2023, 2025, 2026], [2024])
+    tudo = {"exercicios": list(range(2021, 2027)),
+            "entes": {"1": {"coleta": {str(a): True for a in range(2021, 2027)}}}}
+    assert conf.exercicios_a_coletar(tudo, hoje) == ([2025, 2026], [2021, 2022, 2023, 2024])
+
+
+def test_juntar_estados_traz_os_exercicios_mantidos_do_estado_anterior():
+    linha = lambda ano: ["Prefeitura", "RREO", ano, 1, "B", "HO", "2024-03-01T10:00:00"]  # noqa: E731
+    novo = {"exercicios": [2025, 2026], "entes": {"1": {"coleta": {"2025": True, "2026": True},
+                                                         "entregas": [linha(2025)]}}}
+    anterior = {"exercicios": [2024, 2025], "entes": {"1": {"coleta": {"2024": True, "2025": False},
+                                                             "entregas": [linha(2024), linha(2025)]}}}
+    junto = conf.juntar_estados(novo, anterior, [2024])
+    assert junto["exercicios"] == [2024, 2025, 2026]
+    assert junto["entes"]["1"]["coleta"] == {"2024": True, "2025": True, "2026": True}
+    assert [e[2] for e in junto["entes"]["1"]["entregas"]] == [2024, 2025]   # a de 2025 é a coleta nova
+    assert conf.juntar_estados(novo, None, [2024]) is novo
+
+
+def test_coleta_da_uf_reaproveita_o_exercicio_encerrado(tmp_path, apoio, monkeypatch):
+    monkeypatch.setattr(conf, "hoje_brasilia", lambda: date(2026, 10, 21))
+    estado = tmp_path / "estado"
+    pedidos = []
+
+    def coletar(cfg, fonte, janela, *, entes, exercicio):
+        pedidos.append(exercicio)
+
+    anterior = {"versao": 1, "uf": "RS", "exercicios": [2024],
+                "entes": {SAO_SEPE: {"coleta": {"2024": True}, "entregas": [["P", "RREO", 2024, 1, "B", "HO", None]]},
+                          "43": {"coleta": {"2024": True}, "entregas": []}}}
+    comum.gravar_json(estado / conf.nome_do_arquivo("RS"), anterior, comprimir=True)
+    cfg = type("Cfg", (), {})()
+    monkeypatch.setattr(conf, "replace", lambda c, **kw: type("C", (), {"bronze": tmp_path / "b", "silver": tmp_path / "s"})())
+    monkeypatch.setattr(conf, "estado_da_uf", lambda uf, entes, anos, silver, coletas: {
+        "versao": 1, "uf": uf, "exercicios": anos, "entes": {c: {"coleta": {str(a): True for a in anos}, "entregas": []}
+                                                             for c in entes}})
+    monkeypatch.setattr(conf, "coletas_por_ente", lambda registros: {})
+    import lumen_ingestao.bronze as bronze
+    monkeypatch.setattr(bronze, "ArmazemBronzeLocal", lambda raiz: type("A", (), {"listar_registros": lambda s, f: []})())
+    r = conf.coletar_uf(cfg, "RS", _cadastro(), None, estado, coletar=coletar, normalizar=lambda c, f: None)
+    assert r.gravado and r.exercicios == [2023, 2025, 2026] and pedidos == [2023, 2025, 2026]
+    gravado = comum.ler_json(estado / conf.nome_do_arquivo("RS"))
+    assert gravado["exercicios"] == [2023, 2024, 2025, 2026]
+    assert gravado["entes"][SAO_SEPE]["entregas"] == [["P", "RREO", 2024, 1, "B", "HO", None]]
+
+
+def test_resumo_por_exercicio_no_ente_na_uf_e_no_panorama(tmp_path, apoio):
+    av = _avaliar(tmp_path, apoio, date(2026, 10, 14))
+    ente = av.entes[SAO_SEPE]
+    assert set(ente["por_exercicio"]) == {"2025"}
+    assert ente["por_exercicio"]["2025"]["avaliaveis"] + ente["por_exercicio"]["2025"]["indeterminado"] == len(ente["obrigacoes"])
+    assert set(conf.uf_para_json("RS", av, "G")["entes"][-1]["por_exercicio"]) == {"2025"}
+    p = conf.panorama_para_json(av, "G")
+    assert p["brasil_por_exercicio"]["2025"] == p["brasil"]
+    assert all("por_exercicio" in c for c in p["criterios"]) and all("por_exercicio" in u for u in p["ufs"])

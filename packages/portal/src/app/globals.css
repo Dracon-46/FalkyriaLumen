@@ -2053,3 +2053,21 @@ table.tabela {
   padding: 0;
   list-style: none;
 }
+
+/* No celular, tabela fora de .tabela-rolavel e os campos de mês da comparação não podem alargar a página */
+@media (max-width: 640px) {
+  .cartao-corpo {
+    overflow-x: auto;
+  }
+
+  .economia-meses {
+    display: flex;
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+
+  .economia-meses .seletor {
+    min-width: 0;
+    flex: 1 1 8em;
+  }
+}

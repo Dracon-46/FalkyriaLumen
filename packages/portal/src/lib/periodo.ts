@@ -38,11 +38,37 @@ export function temRecorte(p: PeriodoMeses): boolean {
   return p.de !== null || p.ate !== null;
 }
 
-/** O mês (ou a data `AAAA-MM-DD`) cai no período? */
+/**
+ * O mês (ou a data `AAAA-MM-DD`, ou o ano `AAAA`) cai no período? O ano, linha dos anos antigos publicados ano a
+ * ano, só entra inteiro: de janeiro a dezembro dentro do período (o filtro só oferece ano inteiro para eles).
+ */
 export function noPeriodo(dataOuMes: string | null | undefined, p: PeriodoMeses): boolean {
   if (!dataOuMes) return !temRecorte(p);
+  if (dataOuMes.length === 4) {
+    return (p.de === null || `${dataOuMes}-01` >= p.de) && (p.ate === null || `${dataOuMes}-12` <= p.ate);
+  }
   const mes = dataOuMes.slice(0, 7);
   return (p.de === null || mes >= p.de) && (p.ate === null || mes <= p.ate);
+}
+
+/** O ano do exercício (ou da linha) está dentro do período? Basta tocar o período (o ano 2025 em 2025-06..2026-03). */
+export function anoNoPeriodo(ano: number | string, p: PeriodoMeses): boolean {
+  const a = String(ano);
+  return (p.de === null || a >= p.de.slice(0, 4)) && (p.ate === null || a <= p.ate.slice(0, 4));
+}
+
+/**
+ * As linhas mensais somadas por ano (as já anuais ficam como estão), para o gráfico quando o período tem
+ * anos publicados ano a ano: barras de ano e de mês lado a lado enganariam a escala.
+ */
+export function porAno<T extends { mes: string }>(meses: T[], somar: (a: T, b: T) => T): T[] {
+  const anos = new Map<string, T>();
+  for (const m of meses) {
+    const ano = m.mes.slice(0, 4);
+    const antes = anos.get(ano);
+    anos.set(ano, antes ? somar(antes, { ...m, mes: ano }) : { ...m, mes: ano });
+  }
+  return [...anos.values()].sort((a, b) => a.mes.localeCompare(b.mes));
 }
 
 /** Linha mensal dos arquivos: `[mês, n1, n2, ...]`. */

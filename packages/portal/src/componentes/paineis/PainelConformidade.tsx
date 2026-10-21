@@ -4,13 +4,17 @@
  * Painel de conformidade fiscal (UC-07, ADR-028): se os relatórios da Lei de Responsabilidade Fiscal constam
  * do extrato de entregas do Tesouro (SICONFI) e em que data, contra o prazo legal.
  *
- * Três telas pela URL: o Brasil (sem parâmetro), uma UF (`?uf=SP`) e um ente (`?ente=<código IBGE>`). A ordem
- * é sempre por UF e por nome, nunca por resultado (PUB-07).
+ * Três telas pela URL: o Brasil (sem parâmetro), uma UF (`?uf=SP`) e um ente (`?ente=<código IBGE>`), com o
+ * período em `?de=AAAA-01&ate=AAAA-12` (os exercícios escolhidos; `recortarConformidade`). A ordem é sempre por
+ * UF e por nome, nunca por resultado (PUB-07).
  */
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { FiltroPeriodo } from "@/componentes/FiltroPeriodo";
 import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
+import { exerciciosDoArquivo, recortarConformidade } from "@/lib/conformidade";
+import { lerPeriodo, type PeriodoMeses } from "@/lib/periodo";
 import { instante, numero, percentual } from "@/lib/formato";
 import {
   type Obrigacao,
@@ -63,8 +67,18 @@ export function PainelConformidade() {
     return () => c.abort();
   }, [ente, uf]);
 
-  const irEnte = (codigo: string) => router.push(`/conformidade/?ente=${codigo}`);
-  const irUf = (sigla: string | null) => router.push(sigla ? `/conformidade/?uf=${sigla}` : "/conformidade/");
+  const periodo = lerPeriodo(params);
+  // O período vai junto quando a pessoa navega entre o Brasil, a UF e o ente
+  const sufixo = (p: PeriodoMeses) => `${p.de ? `&de=${p.de}` : ""}${p.ate ? `&ate=${p.ate}` : ""}`;
+  const url = (base: string, p = periodo) => {
+    const q = `${base}${sufixo(p)}`.replace(/^&/, "");
+    return `/conformidade/${q ? `?${q}` : ""}`;
+  };
+  const irEnte = (codigo: string) => router.push(url(`ente=${codigo}`));
+  const irUf = (sigla: string | null) => router.push(url(sigla ? `uf=${sigla}` : ""));
+  const mudarPeriodo = (p: PeriodoMeses) =>
+    router.replace(url(ente ? `ente=${ente}` : uf ? `uf=${uf}` : "", p), { scroll: false });
+  const dados = !estado.carregando && estado.dados ? recortarConformidade(estado.dados, periodo) : null;
 
   return (
     <div className="painel">
@@ -86,7 +100,7 @@ export function PainelConformidade() {
         <section className="cartao cartao-corpo">
           <p>
             {ente || uf
-              ? "Este ente ainda não foi avaliado: o extrato de entregas dele entra na próxima coleta semanal."
+              ? "Este ente ainda não foi avaliado: o extrato de entregas dele entra na próxima coleta diária."
               : "Os dados do painel ainda não foram publicados."}
           </p>
           {(ente || uf) && (
@@ -96,15 +110,18 @@ export function PainelConformidade() {
           )}
         </section>
       )}
-      {!estado.carregando && estado.dados?.tipo === "conformidade-panorama" && (
-        <Panorama dados={estado.dados} onUf={irUf} />
+      {!estado.carregando && estado.dados && (
+        <FiltroPeriodo
+          titulo="Exercícios"
+          opcoes={exerciciosDoArquivo(estado.dados)}
+          periodo={periodo}
+          onMudar={mudarPeriodo}
+          nota="Contagens e frações refeitas só com as obrigações dos exercícios escolhidos."
+        />
       )}
-      {!estado.carregando && estado.dados?.tipo === "conformidade-uf" && (
-        <Uf dados={estado.dados} onEnte={irEnte} onBrasil={() => irUf(null)} />
-      )}
-      {!estado.carregando && estado.dados?.tipo === "conformidade-ente" && (
-        <Ente dados={estado.dados} onUf={irUf} />
-      )}
+      {dados?.tipo === "conformidade-panorama" && <Panorama dados={dados} onUf={irUf} />}
+      {dados?.tipo === "conformidade-uf" && <Uf dados={dados} onEnte={irEnte} onBrasil={() => irUf(null)} />}
+      {dados?.tipo === "conformidade-ente" && <Ente dados={dados} onUf={irUf} />}
     </div>
   );
 }

@@ -4,8 +4,9 @@
  * Economia e Contas Públicas (ADR-033): os indicadores de inflação, juros, dívida, resultado fiscal e
  * atividade, com a fonte e a data de cada um, a série histórica e a comparação entre dois períodos.
  *
- * O estado fica na URL, para compartilhar a consulta: `?ind=` (o indicador do gráfico), `?a=` e `?b=` (os
- * períodos comparados, `AAAA-MM..AAAA-MM`). A comparação mostra o que as séries oficiais registraram em
+ * O estado fica na URL, para compartilhar a consulta: `?ind=` (o indicador do gráfico), `?de=` e `?ate=` (o
+ * período mostrado no gráfico e na tabela da série, `AAAA-MM`), `?a=` e `?b=` (os períodos comparados,
+ * `AAAA-MM..AAAA-MM`). A comparação mostra o que as séries oficiais registraram em
  * cada período; ela não atribui o resultado a quem governava.
  */
 
@@ -20,12 +21,15 @@ import {
   mesValido,
   type Periodo,
   periodoCurto,
+  recortar,
   type Resumo,
   resumir,
   valorNaUnidade,
   variacaoTexto,
 } from "@/lib/economia";
 import { Escolha } from "@/componentes/Escolha";
+import { type AtalhoPeriodo, FiltroPeriodo } from "@/componentes/FiltroPeriodo";
+import { lerPeriodo, type PeriodoMeses, temRecorte } from "@/lib/periodo";
 import { instante } from "@/lib/formato";
 import { lerMemoria } from "@/lib/local";
 import { dataCurta, tipoDoCodigo } from "@/lib/paineis";
@@ -85,6 +89,15 @@ export function PainelEconomia() {
     else novo.delete(chave);
     router.replace(`?${novo.toString()}`, { scroll: false });
   };
+  const periodo = lerPeriodo(params);
+  const mudarPeriodo = (p: PeriodoMeses) => {
+    const novo = new URLSearchParams(params.toString());
+    for (const [k, v] of [["de", p.de], ["ate", p.ate]] as const) {
+      if (v) novo.set(k, v);
+      else novo.delete(k);
+    }
+    router.replace(`?${novo.toString()}`, { scroll: false });
+  };
 
   if (estado.carregando) return <p className="situacao-painel">Carregando os indicadores…</p>;
   if (estado.erro) return <p className="situacao-painel">Não foi possível ler os indicadores: {estado.erro}</p>;
@@ -128,7 +141,7 @@ export function PainelEconomia() {
       </aside>
       <Destaques dados={dados} escolhido={escolhido} escolher={(id) => mudar("ind", id)} />
       <Detalhe ind={dados.indicadores[escolhido]!} id={escolhido} a={a} b={b} dados={dados}
-               escolher={(id) => mudar("ind", id)} />
+               escolher={(id) => mudar("ind", id)} periodo={periodo} mudarPeriodo={mudarPeriodo} />
       <Comparacao dados={dados} a={a} b={b} mudar={mudar} />
     </div>
   );
@@ -162,9 +175,47 @@ function Destaques({ dados, escolhido, escolher }: { dados: FeedEconomia; escolh
   );
 }
 
+/** Os atalhos da série: tudo e os últimos 12 meses, 5, 10 e 20 anos (um botão por ano seriam mais de 60). */
+function atalhosDaSerie(ultimo: string): AtalhoPeriodo[] {
+  const fim = ultimo.length === 4 ? `${ultimo}-12` : ultimo;
+  const [ano, mes] = fim.split("-").map(Number) as [number, number];
+  const voltar = (meses: number) => {
+    const t = ano * 12 + (mes - 1) - (meses - 1);
+    return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, "0")}`;
+  };
+  return [
+    { rotulo: "Tudo", p: { de: null, ate: null } },
+    { rotulo: "Últimos 12 meses", p: { de: voltar(12), ate: fim } },
+    { rotulo: "Últimos 5 anos", p: { de: voltar(60), ate: fim } },
+    { rotulo: "Últimos 10 anos", p: { de: voltar(120), ate: fim } },
+    { rotulo: "Últimos 20 anos", p: { de: voltar(240), ate: fim } },
+  ];
+}
+
+/** O filtro de período da série: os anos que ela tem, com os atalhos. */
+function FiltroSerie({ ind, periodo, onMudar }: { ind: Indicador; periodo: PeriodoMeses; onMudar: (p: PeriodoMeses) => void }) {
+  if (ind.serie.length < 2) return null;
+  // Mensal: os meses da série (o seletor aceita digitar); anual: os anos
+  const opcoes = ind.serie.map(([k]) => k);
+  return (
+    <FiltroPeriodo
+      opcoes={opcoes}
+      periodo={periodo}
+      onMudar={onMudar}
+      atalhos={atalhosDaSerie(ind.serie[ind.serie.length - 1]![0])}
+      nota="O gráfico e a tabela mostram só os pontos do período escolhido; o período vale para todos os indicadores. A comparação abaixo continua com os períodos A e B."
+    />
+  );
+}
+
 /** O indicador escolhido: gráfico, definição, como ler, limitações e fonte. */
-function Detalhe({ ind, id, a, b, dados, escolher }: { ind: Indicador; id: string; a: Periodo; b: Periodo;
-                                                       dados: FeedEconomia; escolher: (id: string) => void }) {
+function Detalhe({ ind, id, a, b, dados, escolher, periodo, mudarPeriodo }: {
+  ind: Indicador; id: string; a: Periodo; b: Periodo; dados: FeedEconomia; escolher: (id: string) => void;
+  periodo: PeriodoMeses; mudarPeriodo: (p: PeriodoMeses) => void;
+}) {
+  const serie = temRecorte(periodo)
+    ? recortar(ind, { de: periodo.de ?? "0000-01", ate: periodo.ate ?? "9999-12" })
+    : ind.serie;
   return (
     <section className="cartao cartao-corpo" aria-labelledby="titulo-detalhe">
       <div className="controles">
@@ -179,9 +230,10 @@ function Detalhe({ ind, id, a, b, dados, escolher }: { ind: Indicador; id: strin
           vazio="Nenhum indicador com esse nome."
         />
       </div>
+      <FiltroSerie ind={ind} periodo={periodo} onMudar={mudarPeriodo} />
       <GraficoLinha
-        titulo={`${ind.nome}, ${ind.unidade}, série histórica`}
-        serie={ind.serie}
+        titulo={`${ind.nome}, ${ind.unidade}, ${temRecorte(periodo) ? "no período escolhido" : "série histórica"}`}
+        serie={serie}
         unidade={ind.unidade}
         faixas={[{ ...a, classe: "faixa-periodo-a" }, { ...b, classe: "faixa-periodo-b" }]}
       />
