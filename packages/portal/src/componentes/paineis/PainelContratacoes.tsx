@@ -50,6 +50,7 @@ import { AvisoMetodologico, BuscaEnte, GraficoBarras, Numero, Situacao } from ".
 import { Documentos } from "./Documentos";
 import { ModalContratacao } from "./ModalContratacao";
 import { EVENTO_LOCAL } from "@/lib/local";
+import { urlDaPessoa } from "@/lib/pessoaJuridica";
 
 const CODIGO_UF: Record<string, string> = {
   RO: "11", AC: "12", AM: "13", RR: "14", PA: "15", AP: "16", TO: "17", MA: "21", PI: "22", CE: "23", RN: "24",
@@ -194,7 +195,7 @@ export function PainelContratacoes() {
           Filtrado pelo fornecedor <strong>{nomeForn ?? cnpj(forn)}</strong> ({cnpj(forn)}): contratos e valores dele{" "}
           <button type="button" className="botao-link" onClick={() => filtrarFornecedor(null)}>tirar o filtro</button>
           {" · "}
-          <Link href={`/pessoa-juridica/?cnpj=${forn}`}>em todos os entes, com emendas e convênios</Link>
+          <Link href={urlDaPessoa(forn, periodo)}>em todos os entes, com emendas e convênios</Link>
         </p>
       )}
       {forn && <EmpresaReceitaCartao cnpj={forn} />}

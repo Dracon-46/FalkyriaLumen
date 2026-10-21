@@ -18,7 +18,10 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   os anos antes de 2024, quando nem tudo passava pelo PNCP.
 - Empresa ou entidade: filtro de período (primeiro e último ano), que recorta
   contratos, emendas, convênios e o tribunal de contas, e fica no endereço
-  (`?de=AAAA&ate=AAAA`).
+  (`?de=AAAA&ate=AAAA`). O período segue nos links entre a página da empresa e
+  as Contratações, nos dois sentidos.
+- Contratações: no modal da contratação, o fornecedor (do contrato ou vencedor
+  do item) leva também à página da empresa, em todos os entes.
 
 ## 0.9.0 — 2026-10-21
 

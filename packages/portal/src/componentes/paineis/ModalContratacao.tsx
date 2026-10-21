@@ -8,6 +8,7 @@
  * página por trás fica filtrada pelo órgão (e, no contrato, pelo fornecedor); fechar o modal mantém o filtro.
  */
 
+import Link from "next/link";
 import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import {
@@ -27,6 +28,7 @@ import { lerChave } from "@/lib/documentos";
 import { reconhecerAnp } from "@/lib/mercado";
 import { numero } from "@/lib/formato";
 import { cnpj, dataCurta, moeda } from "@/lib/paineis";
+import { urlDaPessoa } from "@/lib/pessoaJuridica";
 import { ComparacaoMercado } from "./ComparacaoMercado";
 import { BotoesComparar, ComparacaoPreco, type TipoComparacao } from "./ComparacaoPreco";
 import { Documentos } from "./Documentos";
@@ -110,13 +112,15 @@ function Campo({ rotulo, children }: { rotulo: string; children: ReactNode }) {
   );
 }
 
-/** Fornecedor: pessoa jurídica com CNPJ e o botão de filtrar; pessoa física sem identificação. */
+/** Fornecedor: pessoa jurídica com CNPJ, o botão de filtrar e a página da empresa; pessoa física sem identificação. */
 function Fornecedor({ f, onFornecedor }: { f: Parte; onFornecedor: (cnpj: string) => void }) {
   if (!f.pj || !f.cnpj) return <>Pessoa física ou estrangeira (sem identificação)</>;
   return (
     <>
       {f.nome ?? "—"} <span className="busca-detalhe num">{cnpj(f.cnpj)}</span>{" "}
       <button type="button" className="botao-link" onClick={() => onFornecedor(f.cnpj!)}>filtrar a página por ele</button>
+      {" · "}
+      <Link href={urlDaPessoa(f.cnpj.replace(/\D/g, ""))}>em todos os entes</Link>
     </>
   );
 }

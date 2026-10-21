@@ -26,6 +26,7 @@ import {
   recortarPessoa,
   tcePorEnte,
   totaisDaPessoa,
+  urlDasContratacoes,
 } from "@/lib/pessoaJuridica";
 import { GraficoBarras, Situacao } from "./Comuns";
 import { EmpresaReceitaCartao } from "./EmpresaReceita";
@@ -203,7 +204,7 @@ function Pessoa({ cnpj, estado, nomes, de, ate, onPeriodo }: {
               )}
             </section>
           )}
-          <Contratos p={p} nomes={nomes} />
+          <Contratos p={p} nomes={nomes} de={de} ate={ate} />
           <ContratosTce p={p} nomes={nomes} />
           <Emendas p={p} nomes={nomes} />
           <Convenios p={p} nomes={nomes} />
@@ -229,15 +230,15 @@ function nomeDoEnte(codigo: string, nomes: Nomes): string {
   return tipo === "estado" ? `${e.nome} (estado)` : e.nome;
 }
 
-/** Contratos no PNCP: os totais, o ano a ano e a tabela por ente contratante. */
-function Contratos({ p, nomes }: { p: PessoaJuridica; nomes: Nomes }) {
+/** Contratos no PNCP: os totais, o ano a ano e a tabela por ente contratante (que abre as Contratações no mesmo período). */
+function Contratos({ p, nomes, de, ate }: { p: PessoaJuridica; nomes: Nomes; de: string | null; ate: string | null }) {
   const t = totaisDaPessoa(p);
   const porAno = contratosPorAno(p);
   return (
     <section className="cartao cartao-corpo" aria-labelledby="titulo-pj-contratos">
       <h2 id="titulo-pj-contratos" className="titulo-secao">Contratos publicados no PNCP</h2>
       {t.contratos === 0 ? (
-        <p className="busca-detalhe">Nenhum contrato no PNCP com este CNPJ como fornecedor no período coberto.</p>
+        <p className="busca-detalhe">Nenhum contrato no PNCP com este CNPJ como fornecedor {de || ate ? "no período escolhido" : "no período coberto"}.</p>
       ) : (
         <>
           <p>
@@ -248,7 +249,7 @@ function Contratos({ p, nomes }: { p: PessoaJuridica; nomes: Nomes }) {
               barras={porAno.map((a) => ({ rotulo: a.ano, valor: a.valor }))} formatar={moeda} formatarEixo={moedaCompacta} />
           )}
           <TabelaPorEnte linhas={contratosPorEnte(p)} nomes={nomes} contratos
-            href={(ente) => `/contratacoes/?ente=${ente}&forn=${p.cnpj}`} />
+            href={(ente) => urlDasContratacoes(ente, p.cnpj, de, ate)} />
         </>
       )}
     </section>

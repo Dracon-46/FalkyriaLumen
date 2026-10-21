@@ -227,3 +227,19 @@ export function recortarPessoa(p: PessoaJuridica, de: string | null, ate: string
     convenios: p.convenios.filter((c) => dentro(c[7]?.slice(0, 4))),
   };
 }
+
+/** A página do CNPJ; o período das Contratações (`AAAA-MM`) vira os anos que o tocam. */
+export function urlDaPessoa(cnpj: string, periodo?: { de: string | null; ate: string | null }): string {
+  const q = new URLSearchParams({ cnpj });
+  if (periodo?.de) q.set("de", periodo.de.slice(0, 4));
+  if (periodo?.ate) q.set("ate", periodo.ate.slice(0, 4));
+  return `/pessoa-juridica/?${q.toString()}`;
+}
+
+/** As Contratações do ente filtradas pelo fornecedor, nos anos escolhidos na página do CNPJ (de janeiro a dezembro). */
+export function urlDasContratacoes(ente: string, cnpj: string, de: string | null, ate: string | null): string {
+  const q = new URLSearchParams({ ente, forn: cnpj });
+  if (de) q.set("de", `${de}-01`);
+  if (ate) q.set("ate", `${ate}-12`);
+  return `/contratacoes/?${q.toString()}`;
+}

@@ -14,6 +14,8 @@ import {
   prefixoDaPalavra,
   recortarPessoa,
   totaisDaPessoa,
+  urlDaPessoa,
+  urlDasContratacoes,
 } from "../pessoaJuridica";
 
 const pessoa: PessoaJuridica = {
@@ -74,6 +76,16 @@ describe("período na página do CNPJ", () => {
     expect(r.convenios.map((c) => c[1])).toEqual(["9"]);      // início em 2021
     expect(recortarPessoa(comTce, null, null)).toBe(comTce);
     expect(recortarPessoa(comTce, "2026", null).contratos.map((l) => l[1])).toEqual(["2026", "2026"]);
+  });
+
+  it("leva o período de uma página à outra: meses das Contratações em anos, e anos em janeiro a dezembro", () => {
+    expect(urlDaPessoa("09537392000105")).toBe("/pessoa-juridica/?cnpj=09537392000105");
+    expect(urlDaPessoa("09537392000105", { de: "2023-06", ate: null })).toBe("/pessoa-juridica/?cnpj=09537392000105&de=2023");
+    expect(urlDaPessoa("09537392000105", { de: "2023-06", ate: "2025-02" }))
+      .toBe("/pessoa-juridica/?cnpj=09537392000105&de=2023&ate=2025");
+    expect(urlDasContratacoes("4319604", "09537392000105", null, null)).toBe("/contratacoes/?ente=4319604&forn=09537392000105");
+    expect(urlDasContratacoes("4319604", "09537392000105", "2021", "2024"))
+      .toBe("/contratacoes/?ente=4319604&forn=09537392000105&de=2021-01&ate=2024-12");
   });
 });
 
