@@ -11,6 +11,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { BaixarCsv } from "@/componentes/BaixarCsv";
 import { Escolha } from "@/componentes/Escolha";
 import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import {
@@ -259,6 +260,14 @@ function Federais({ federais, params, mudar }: { federais: NonNullable<FeedEstat
       </div>
       {lista.length === 0 && <p className="busca-detalhe">Nenhuma empresa com esse nome neste filtro.</p>}
       <Paginacao {...pagina} rotulo="empresas federais" />
+      {lista.length > 0 && (
+        <BaixarCsv nome={`estatais-federais-${ano}-${filtro}`}
+          colunas={["Sigla", "Empresa", "CNPJ", "Grupo", "Dependente do Tesouro", "Situação", "Exercício",
+                    ...COLUNAS_SEST.map((c) => `${c.rotulo}: realizado (R$)`)]}
+          linhas={() => lista.map((e) => [e.sigla, e.nome, e.cnpj ? cnpj(e.cnpj.replace(/\D/g, "")) : "", e.grupo,
+                                          e.dependente ? "sim" : "não", e.situacao, ano,
+                                          ...COLUNAS_SEST.map((c) => realizado(e, ano, c.id))])} />
+      )}
       <p className="busca-detalhe">
         Fonte:{" "}
         <a href={federais.urls.pagina} target="_blank" rel="noreferrer">dados abertos da SEST/MGI</a> (identificação e
@@ -436,6 +445,14 @@ function Listadas({ dados, params, mudar }: { dados: FeedEstatais } & Props) {
       </div>
       {lista.length === 0 && <p className="busca-detalhe">Nenhuma companhia com esse nome neste filtro.</p>}
       <Paginacao {...pagina} rotulo="companhias" />
+      {lista.length > 0 && (
+        <BaixarCsv nome={`estatais-cvm-${ano}-${filtro}`}
+          colunas={["CNPJ", "Companhia", "Controle", "Esfera", "Controlada por", "Exercício",
+                    ...COLUNAS_CVM.map((c) => `${c.rotulo} (R$)`)]}
+          linhas={() => lista.map((c) => [cnpj(c.cnpj.replace(/\D/g, "")), c.nome, ROTULO_CONTROLE[c.controle.classe],
+                                          c.controle.esfera, c.controle.controlada_por_nome, ano,
+                                          ...COLUNAS_CVM.map((col) => comoGasto(valorCvm(c, ano, col.id), col.saida))])} />
+      )}
       <p className="busca-detalhe">
         Fonte: <a href="https://dados.cvm.gov.br/" target="_blank" rel="noreferrer">dados abertos da CVM</a> (cadastro,
         FRE e DFP), coletados em {instante(dados.coletado_em.cadastro)}. Gastos publicados como negativos (custos,

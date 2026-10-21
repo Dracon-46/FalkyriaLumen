@@ -12,7 +12,8 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   recentes), da página da empresa ou entidade (contratos no PNCP e no
   tribunal de contas, emendas e convênios) e de Governos municipais (mandatos,
   ano a ano e, no mandato aberto, emendas, convênios e tribunal de contas) e
-  da Conformidade (por obrigação, por UF, entes da UF e obrigações do ente). O
+  da Conformidade (por obrigação, por UF, entes da UF e obrigações do ente), e
+  as listas das Estatais (federais e com ações na bolsa). O
   arquivo tem todas as linhas, não só a página, com os valores inteiros e o
   recorte da tela (ente, órgão, fornecedor, período e medida). Abre direto na
   planilha em português.
