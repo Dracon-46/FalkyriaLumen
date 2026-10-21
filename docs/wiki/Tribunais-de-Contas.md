@@ -45,6 +45,21 @@ downloads testados de fato. A ordem de integração está na
 | TCM-RJ | 1 (a capital) | Nada aberto sobre a prefeitura | — | — | — |
 | TCE-BA, TCE-GO, TCE-PA, TCDF | 0 | Os municípios ficam com o TCM do estado (o DF não tem municípios) | — | — | — |
 
+## TCE-SP: o que falta decidir antes de integrar
+
+Examinado em 21/10/2026 com o semestre 2022-1 (`ajustes-2022-1o-semestre_0.zip`, 19 MB comprimido, um CSV de 225 MB
+em UTF-8 separado por `;`):
+- **Linhas:** 464 mil. São 418 mil notas de empenho e 47 mil linhas de contrato, de 22 mil contratos distintos (um
+  contrato chega a 694 linhas, uma por item). Os outros tribunais integrados contam contratos; as compras só por nota
+  de empenho precisam de decisão à parte.
+- **Esfera:** o CSV não diz se a entidade é estadual ou municipal. Os órgãos do estado aparecem com o município onde
+  ficam: "São Paulo" para secretarias, USP, Sabesp e Metrô (a Prefeitura da capital é do TCM-SP), e também em outras
+  cidades, como hospitais estaduais. É preciso uma lista de entidades por esfera, da API do tribunal ou pelo CNPJ.
+- **Ano:** os arquivos são por semestre de registro (anuais até 2020) e trazem contratos de anos anteriores (2021 no
+  semestre 2022-1). Os repetidos entre arquivos saem pelo código do ajuste.
+- **Valores:** há erros de digitação grandes (R$ 89,9 bilhões num contrato de Franca); o teto de plausibilidade os
+  tira da soma, como nos outros.
+
 ## O que eles têm além do PNCP
 
 - **2021 a 2023 completos**, quando o PNCP ainda era parcial, e séries mais antigas: CE desde 2003, PR desde 2013,
