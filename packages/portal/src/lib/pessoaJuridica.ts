@@ -202,3 +202,28 @@ export function cnpjDoTexto(texto: string): string | null {
   const d = texto.replace(/\D/g, "");
   return d.length === 14 ? d : null;
 }
+
+// ------------------------------------------------------------------------------------------ período
+
+/** Os anos que aparecem em alguma fonte do CNPJ (contratos, emendas, tribunal e início dos convênios), em ordem. */
+export function anosDaPessoa(p: PessoaJuridica): string[] {
+  const anos = new Set<string>();
+  for (const l of p.contratos) anos.add(l[1]);
+  for (const l of p.emendas) anos.add(l[1]);
+  for (const l of p.tce ?? []) anos.add(l[1]);
+  for (const c of p.convenios) if (c[7]) anos.add(c[7].slice(0, 4));
+  return [...anos].sort();
+}
+
+/** O CNPJ só com os anos de `de` a `ate` (inclusive; `null` deixa a ponta aberta); convênio pelo ano de início. */
+export function recortarPessoa(p: PessoaJuridica, de: string | null, ate: string | null): PessoaJuridica {
+  if (!de && !ate) return p;
+  const dentro = (ano: string | null | undefined) => !!ano && (!de || ano >= de) && (!ate || ano <= ate);
+  return {
+    ...p,
+    contratos: p.contratos.filter((l) => dentro(l[1])),
+    emendas: p.emendas.filter((l) => dentro(l[1])),
+    tce: p.tce?.filter((l) => dentro(l[1])),
+    convenios: p.convenios.filter((c) => dentro(c[7]?.slice(0, 4))),
+  };
+}

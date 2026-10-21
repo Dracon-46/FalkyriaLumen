@@ -1,6 +1,7 @@
 import { gzipSync } from "node:zlib";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  anosDaPessoa,
   buscarPessoasJuridicas,
   carregarPessoaJuridica,
   casaComONome,
@@ -11,6 +12,7 @@ import {
   palavrasDaBusca,
   type PessoaJuridica,
   prefixoDaPalavra,
+  recortarPessoa,
   totaisDaPessoa,
 } from "../pessoaJuridica";
 
@@ -58,6 +60,20 @@ describe("leitura por grupo de CNPJ", () => {
     expect(p?.fontes.emendas).toBe("20261010");
     expect(await carregarPessoaJuridica("11537392000105")).toBeNull();     // mesmo grupo, CNPJ que não está nele
     expect(await carregarPessoaJuridica("11111111000191")).toBeNull();     // grupo que não existe
+  });
+});
+
+describe("período na página do CNPJ", () => {
+  it("lista os anos de todas as fontes e recorta pelas pontas", () => {
+    const comTce = { ...pessoa, tce: [["4319604", "2019", 3, 900], ["4319604", "2020", 1, 50]] as [string, string, number, number][] };
+    expect(anosDaPessoa(comTce)).toEqual(["2019", "2020", "2021", "2022", "2023", "2025", "2026"]);
+    const r = recortarPessoa(comTce, "2020", "2023");
+    expect(r.contratos).toEqual([]);                          // os contratos são de 2025 e 2026
+    expect(r.emendas.map((l) => l[1])).toEqual(["2023", "2022", "2023"]);
+    expect(r.tce?.map((l) => l[1])).toEqual(["2020"]);
+    expect(r.convenios.map((c) => c[1])).toEqual(["9"]);      // início em 2021
+    expect(recortarPessoa(comTce, null, null)).toBe(comTce);
+    expect(recortarPessoa(comTce, "2026", null).contratos.map((l) => l[1])).toEqual(["2026", "2026"]);
   });
 });
 

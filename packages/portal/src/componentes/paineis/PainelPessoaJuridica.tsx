@@ -9,10 +9,12 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
+import { Escolha } from "@/componentes/Escolha";
 import { numero } from "@/lib/formato";
 import { carregarEntes, cnpj as formatarCnpj, dataCurta, moeda, moedaCompacta, tipoDoCodigo } from "@/lib/paineis";
 import {
   type AchadoPj,
+  anosDaPessoa,
   buscarPessoasJuridicas,
   carregarPessoaJuridica,
   cnpjDoTexto,
@@ -21,6 +23,7 @@ import {
   emendasPorEnte,
   type PessoaJuridica,
   type PorEnte,
+  recortarPessoa,
   tcePorEnte,
   totaisDaPessoa,
 } from "@/lib/pessoaJuridica";
@@ -59,6 +62,17 @@ export function PainelPessoaJuridica() {
   const router = useRouter();
   const cnpj = cnpjDoTexto(params.get("cnpj") ?? "");
   const termo = cnpj ? "" : (params.get("busca") ?? "").trim();
+  const ano = (chave: string) => (/^\d{4}$/.test(params.get(chave) ?? "") ? params.get(chave) : null);
+  const [de, ate] = [ano("de"), ano("ate")];
+  /** Troca o período na URL (`de` e `ate`, anos), sem rolar a página. */
+  const mudarPeriodo = (novoDe: string | null, novoAte: string | null) => {
+    const q = new URLSearchParams(params.toString());
+    for (const [k, v] of [["de", novoDe], ["ate", novoAte]] as const) {
+      if (v) q.set(k, v);
+      else q.delete(k);
+    }
+    router.replace(`/pessoa-juridica/?${q.toString()}`, { scroll: false });
+  };
   const [texto, setTexto] = useState(cnpj ? formatarCnpj(cnpj) : termo);
   const [estado, setEstado] = useState<Estado>({ fase: "carregando" });
   const [nomes, setNomes] = useState<Nomes>(new Map());
@@ -97,7 +111,7 @@ export function PainelPessoaJuridica() {
         <button type="submit" className="botao" disabled={!texto.trim()}>Ver</button>
       </form>
       {cnpj ? (
-        <Pessoa cnpj={cnpj} estado={estado} nomes={nomes} />
+        <Pessoa cnpj={cnpj} estado={estado} nomes={nomes} de={de} ate={ate} onPeriodo={mudarPeriodo} />
       ) : termo ? (
         <Achados termo={termo} />
       ) : (
@@ -153,10 +167,15 @@ function Achados({ termo }: { termo: string }) {
 }
 
 /** O que há do CNPJ: o cartão da Receita e as três seções das fontes. */
-function Pessoa({ cnpj, estado, nomes }: { cnpj: string; estado: Estado; nomes: Nomes }) {
+function Pessoa({ cnpj, estado, nomes, de, ate, onPeriodo }: {
+  cnpj: string; estado: Estado; nomes: Nomes; de: string | null; ate: string | null;
+  onPeriodo: (de: string | null, ate: string | null) => void;
+}) {
   if (estado.fase === "carregando") return <Situacao>Carregando…</Situacao>;
   if (estado.fase === "erro") return <Situacao>Não foi possível ler agora ({estado.erro}).</Situacao>;
-  const p = estado.dados;
+  const todos = estado.dados;
+  const p = todos ? recortarPessoa(todos, de, ate) : null;
+  const anos = todos ? anosDaPessoa(todos) : [];
   return (
     <>
       <h2 className="painel-ente">
@@ -171,6 +190,19 @@ function Pessoa({ cnpj, estado, nomes }: { cnpj: string; estado: Estado; nomes: 
         </Situacao>
       ) : (
         <>
+          {anos.length > 1 && (
+            <section className="cartao cartao-corpo filtro-periodo" aria-label="Período">
+              <span className="filtro-periodo-titulo">Período</span>
+              <Escolha rotulo="Primeiro ano" valor={de ?? ""} onEscolher={(v) => onPeriodo(v || null, ate)}
+                opcoes={[{ valor: "", rotulo: `desde ${anos[0]}` }, ...anos.map((a) => ({ valor: a, rotulo: a }))]} />
+              <span>a</span>
+              <Escolha rotulo="Último ano" valor={ate ?? ""} onEscolher={(v) => onPeriodo(de, v || null)}
+                opcoes={[{ valor: "", rotulo: `até ${anos[anos.length - 1]}` }, ...anos.map((a) => ({ valor: a, rotulo: a }))]} />
+              {(de || ate) && (
+                <button type="button" className="botao-link" onClick={() => onPeriodo(null, null)}>todos os anos</button>
+              )}
+            </section>
+          )}
           <Contratos p={p} nomes={nomes} />
           <ContratosTce p={p} nomes={nomes} />
           <Emendas p={p} nomes={nomes} />

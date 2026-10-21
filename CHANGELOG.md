@@ -16,6 +16,9 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 - Contratações: na página de um ente cujo tribunal já está no Lumen, os
   contratos ano a ano no PNCP ao lado dos registrados no tribunal, que mostram
   os anos antes de 2024, quando nem tudo passava pelo PNCP.
+- Empresa ou entidade: filtro de período (primeiro e último ano), que recorta
+  contratos, emendas, convênios e o tribunal de contas, e fica no endereço
+  (`?de=AAAA&ate=AAAA`).
 
 ## 0.9.0 — 2026-10-21
 
