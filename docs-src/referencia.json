@@ -9907,57 +9907,78 @@
   {
    "caminho": "packages/painel/lumen_painel/pessoas_juridicas.py",
    "linguagem": "python",
-   "linhas": 125,
-   "doc": "Tudo o que o Lumen tem de uma pessoa jurídica, pelo CNPJ: a visão 360 da empresa ou entidade (ADR-049).\n\nAs contratações, as emendas e os convênios são publicados por ente (quem contrata ou recebe). Aqui, o mesmo dado\né virado para o CNPJ, em ``pj/<grupo>.json.gz`` (comprimido; o grupo é ``comum.grupo_do_cnpj``):\n\n- **contratos:** os contratos publicados no PNCP com ela como fornecedora, por ente contratante e ano\n  (``[ente, ano, contratos, valor]``), da mesma soma do painel de contratações;\n- **emendas:** o recebido de emendas parlamentares como favorecida, por ente e ano (``[ente, ano, valor]``,\n  ADR-044);\n- **convenios:** os convênios com a União como convenente (ADR-045), com o objeto cortado em ``OBJETO``\n  caracteres.\n\nO nome é o mais recente das contratações e, sem elas, o dos convênios ou das emendas; as fontes já chegam com o\nCPF do MEI mascarado (ADR-043). A página do portal junta o cartão da Receita (``cnpj/``). Pessoa física não\nentra: o índice é por CNPJ.",
+   "linhas": 175,
+   "doc": "Tudo o que o Lumen tem de uma pessoa jurídica, pelo CNPJ: a visão 360 da empresa ou entidade (ADR-049).\n\nAs contratações, as emendas e os convênios são publicados por ente (quem contrata ou recebe). Aqui, o mesmo dado\né virado para o CNPJ, em ``pj/<grupo>.json.gz`` (comprimido; o grupo é ``comum.grupo_do_cnpj``):\n\n- **contratos:** os contratos publicados no PNCP com ela como fornecedora, por ente contratante e ano\n  (``[ente, ano, contratos, valor]``), da mesma soma do painel de contratações;\n- **emendas:** o recebido de emendas parlamentares como favorecida, por ente e ano (``[ente, ano, valor]``,\n  ADR-044);\n- **convenios:** os convênios com a União como convenente (ADR-045), com o objeto cortado em ``OBJETO``\n  caracteres.\n\nO nome é o mais recente das contratações e, sem elas, o dos convênios ou das emendas; as fontes já chegam com o\nCPF do MEI mascarado (ADR-043). A página do portal junta o cartão da Receita (``cnpj/``). Pessoa física não\nentra: o índice é por CNPJ.\n\nA busca pelo nome lê ``pj/busca/<prefixo>.json.gz``: cada palavra do nome com três letras ou mais (fora as de\n``PALAVRAS_FORA``) põe o CNPJ no arquivo das duas primeiras letras dela, com o nome e o peso (a soma dos contratos,\ndas emendas e dos convênios), do maior peso ao menor. O arquivo de duas letras com mais de ``LIMITE_BUSCA`` nomes\n(\"co\", de comércio e construções) se divide pelas três primeiras. ``pj/busca/indice.json`` diz quais se dividiram\ne quantos nomes tem cada arquivo, para o portal ler o menor entre as palavras procuradas. A normalização é a mesma\ndo portal (``busca.ts``).",
    "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "normalizar",
+     "assinatura": "def normalizar(texto: str) -> str",
+     "doc": "Sem acento, minúsculas, só letras, dígitos e espaço único, como ``normalizar`` do portal.",
+     "linha": 43
+    },
+    {
+     "tipo": "funcao",
+     "nome": "palavras_da_busca",
+     "assinatura": "def palavras_da_busca(nome: str | None) -> list[str]",
+     "doc": "As palavras do nome que a busca usa: três letras ou mais, fora as de ``PALAVRAS_FORA``.",
+     "linha": 49
+    },
     {
      "tipo": "funcao",
      "nome": "_registro",
      "assinatura": "def _registro(indice: dict[str, dict], cnpj: str) -> dict",
      "doc": "O registro do CNPJ no índice, criado vazio na primeira vez.",
-     "linha": 31
+     "linha": 54
     },
     {
      "tipo": "funcao",
      "nome": "de_contratacoes",
      "assinatura": "def de_contratacoes(indice: dict[str, dict], painel: Painel) -> None",
      "doc": "Os contratos de cada fornecedor pessoa jurídica, por ente contratante e ano.",
-     "linha": 36
+     "linha": 59
     },
     {
      "tipo": "funcao",
      "nome": "de_emendas",
      "assinatura": "def de_emendas(indice: dict[str, dict], dados: dict) -> None",
      "doc": "O recebido de emendas por favorecido pessoa jurídica, por ente e ano (o estado de ``emendas``).",
-     "linha": 48
+     "linha": 71
     },
     {
      "tipo": "funcao",
      "nome": "de_convenios",
      "assinatura": "def de_convenios(indice: dict[str, dict], dados: dict) -> None",
      "doc": "Os convênios por convenente pessoa jurídica (o estado de ``convenios``).",
-     "linha": 63
+     "linha": 86
+    },
+    {
+     "tipo": "funcao",
+     "nome": "montar_busca",
+     "assinatura": "def montar_busca(indice: dict[str, dict]) -> tuple[dict[str, list], list[str]]",
+     "doc": "Os arquivos da busca pelo nome (``{prefixo: [[CNPJ, nome, peso], ...]}``, do maior peso ao menor) e os\nprefixos de duas letras divididos pelas três primeiras, por passarem de ``LIMITE_BUSCA`` nomes.",
+     "linha": 102
     },
     {
      "tipo": "funcao",
      "nome": "_estado",
      "assinatura": "def _estado(estado: Path, modulo) -> dict | None",
      "doc": "O estado de ``emendas`` ou ``convenios``, se existe e está na versão conhecida.",
-     "linha": 79
+     "linha": 121
     },
     {
      "tipo": "funcao",
      "nome": "para_json",
      "assinatura": "def para_json(registro: dict) -> dict",
      "doc": "O registro de um CNPJ como vai no arquivo: listas ordenadas, valores em centavos.",
-     "linha": 88
+     "linha": 130
     },
     {
      "tipo": "funcao",
      "nome": "publicar",
      "assinatura": "def publicar(estado: Path | str, painel: Painel, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> dict",
      "doc": "Grava ``pj/<grupo>.json.gz`` com as pessoas jurídicas do grupo e devolve o resumo para o índice.",
-     "linha": 98
+     "linha": 140
     }
    ]
   },
@@ -12955,99 +12976,155 @@
   {
    "caminho": "packages/portal/src/lib/pessoaJuridica.ts",
    "linguagem": "typescript",
-   "linhas": 109,
-   "doc": "Visão 360 de uma pessoa jurídica pelo CNPJ (ADR-049): o arquivo `pj/<grupo>.json.gz` traz os contratos no PNCP\npor ente contratante e ano, as emendas parlamentares recebidas e os convênios com a União. A página junta o\ncartão da Receita (`receita.ts`).",
+   "linhas": 193,
+   "doc": "Visão 360 de uma pessoa jurídica pelo CNPJ (ADR-049): o arquivo `pj/<grupo>.json.gz` traz os contratos no PNCP\npor ente contratante e ano, as emendas parlamentares recebidas e os convênios com a União. A página junta o\ncartão da Receita (`receita.ts`). A busca pelo nome lê `pj/busca/`, um arquivo por prefixo de palavra.",
    "itens": [
     {
      "tipo": "tipo",
      "nome": "LinhaContratos",
      "assinatura": "export type LinhaContratos = [string, string, number, number];",
      "doc": "Contratos no PNCP com o ente contratante num ano: `[ente, ano, contratos, valor]`.",
-     "linha": 11
+     "linha": 13
     },
     {
      "tipo": "tipo",
      "nome": "LinhaEmendas",
      "assinatura": "export type LinhaEmendas = [string, string, number];",
      "doc": "Emendas recebidas de um ente num ano: `[ente, ano, valor]`.",
-     "linha": 13
+     "linha": 15
     },
     {
      "tipo": "tipo",
      "nome": "LinhaConvenio",
      "assinatura": "export type LinhaConvenio = [string, string, string, string, string, number, number, string | null];",
      "doc": "Um convênio: `[ente, número, situação, objeto, órgão, valor, liberado, início]`.",
-     "linha": 15
+     "linha": 17
     },
     {
      "tipo": "interface",
      "nome": "PessoaJuridica",
      "assinatura": "export interface PessoaJuridica",
      "doc": "O que o Lumen tem do CNPJ.",
-     "linha": 18
+     "linha": 20
     },
     {
      "tipo": "interface",
      "nome": "GrupoPessoasJuridicas",
      "assinatura": "interface GrupoPessoasJuridicas",
      "doc": "Arquivo `pj/<grupo>.json.gz`: as pessoas jurídicas do grupo (`grupoDoCnpj`).",
-     "linha": 30
+     "linha": 32
     },
     {
      "tipo": "funcao",
      "nome": "carregarPessoaJuridica",
      "assinatura": "export async function carregarPessoaJuridica(cnpj: string, sinal?: AbortSignal): Promise<PessoaJuridica | null>",
      "doc": "O CNPJ no índice; `null` quando ele não aparece em nenhuma fonte ou o arquivo não foi publicado.",
-     "linha": 39
+     "linha": 41
     },
     {
      "tipo": "interface",
      "nome": "PorEnte",
      "assinatura": "export interface PorEnte",
      "doc": "Uma soma por ente: contratos (ou zero, nas emendas), valor e os anos em que aparece.",
-     "linha": 49
+     "linha": 51
     },
     {
      "tipo": "funcao",
      "nome": "somarPorEnte",
      "assinatura": "function somarPorEnte(linhas: { ente: string; ano: string; contratos: number; valor: number }[]): PorEnte[]",
      "doc": "Soma linhas `[ente, ano, …, valor]` por ente, do maior valor ao menor.",
-     "linha": 57
+     "linha": 59
     },
     {
      "tipo": "funcao",
      "nome": "contratosPorEnte",
      "assinatura": "export function contratosPorEnte(p: PessoaJuridica): PorEnte[]",
      "doc": "Os contratos por ente contratante.",
-     "linha": 71
+     "linha": 73
     },
     {
      "tipo": "funcao",
      "nome": "emendasPorEnte",
      "assinatura": "export function emendasPorEnte(p: PessoaJuridica): PorEnte[]",
      "doc": "As emendas recebidas por ente.",
-     "linha": 76
+     "linha": 78
     },
     {
      "tipo": "funcao",
      "nome": "contratosPorAno",
      "assinatura": "export function contratosPorAno(p: PessoaJuridica): { ano: string; contratos: number; valor: number }[]",
      "doc": "Contratos e valor por ano, em ordem.",
-     "linha": 81
+     "linha": 83
     },
     {
      "tipo": "funcao",
      "nome": "totaisDaPessoa",
      "assinatura": "export function totaisDaPessoa(p: PessoaJuridica)",
      "doc": "Os totais do topo da página.",
-     "linha": 93
+     "linha": 95
+    },
+    {
+     "tipo": "interface",
+     "nome": "AchadoPj",
+     "assinatura": "export interface AchadoPj",
+     "doc": "Um nome achado: o CNPJ, o nome e o peso (contratos, emendas e convênios somados).",
+     "linha": 113
+    },
+    {
+     "tipo": "interface",
+     "nome": "IndiceBusca",
+     "assinatura": "interface IndiceBusca",
+     "doc": "`pj/busca/indice.json`: os prefixos de duas letras divididos em três e quantos nomes tem cada arquivo.",
+     "linha": 120
+    },
+    {
+     "tipo": "funcao",
+     "nome": "palavrasDaBusca",
+     "assinatura": "export function palavrasDaBusca(texto: string): string[]",
+     "doc": "As palavras que a busca usa: três letras ou mais, normalizadas, fora as comuns demais.",
+     "linha": 128
+    },
+    {
+     "tipo": "funcao",
+     "nome": "prefixoDaPalavra",
+     "assinatura": "export function prefixoDaPalavra(palavra: string, divididos: readonly string[]): string",
+     "doc": "O arquivo de uma palavra: as duas primeiras letras, ou as três quando o de duas foi dividido.",
+     "linha": 133
+    },
+    {
+     "tipo": "funcao",
+     "nome": "casaComONome",
+     "assinatura": "export function casaComONome(nome: string | null, procuradas: string[]): boolean",
+     "doc": "Se cada palavra procurada começa alguma palavra do nome.",
+     "linha": 138
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lerIndiceBusca",
+     "assinatura": "function lerIndiceBusca(): Promise<IndiceBusca | null>",
+     "doc": "O índice da busca, lido uma vez por visita; `null` quando ainda não foi publicado.",
+     "linha": 147
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lerArquivoBusca",
+     "assinatura": "function lerArquivoBusca(prefixo: string): Promise<[string, string | null, number][]>",
+     "doc": "Os nomes de um prefixo (`[CNPJ, nome, peso]`), lidos uma vez por visita; lista vazia sem o arquivo.",
+     "linha": 157
+    },
+    {
+     "tipo": "funcao",
+     "nome": "buscarPessoasJuridicas",
+     "assinatura": "export async function buscarPessoasJuridicas(termo: string, limite = 20): Promise<AchadoPj[] | null>",
+     "doc": "Os nomes com todas as palavras procuradas (pelo começo de cada palavra), do maior peso ao menor. Lê só o\narquivo da palavra com menos nomes; `null` quando a busca ainda não foi publicada.",
+     "linha": 173
     },
     {
      "tipo": "funcao",
      "nome": "cnpjDoTexto",
      "assinatura": "export function cnpjDoTexto(texto: string): string | null",
      "doc": "Só os dígitos, se forem 14; aceita o CNPJ com pontos, barra e traço.",
-     "linha": 106
+     "linha": 190
     }
    ]
   },
@@ -15805,78 +15882,92 @@
   {
    "caminho": "packages/portal/src/componentes/paineis/PainelPessoaJuridica.tsx",
    "linguagem": "typescript",
-   "linhas": 268,
-   "doc": "Visão 360 de uma empresa ou entidade pelo CNPJ (ADR-049): o cadastro na Receita, os contratos publicados no PNCP\ncom cada ente, as emendas parlamentares recebidas e os convênios com a União. São fatos das fontes, como\npublicados; a página não marca nem ordena ninguém por risco.",
+   "linhas": 322,
+   "doc": "Visão 360 de uma empresa ou entidade pelo CNPJ (ADR-049): o cadastro na Receita, os contratos publicados no PNCP\ncom cada ente, as emendas parlamentares recebidas e os convênios com a União. São fatos das fontes, como\npublicados; a página não marca nem ordena ninguém por risco. Sem CNPJ, a busca pelo nome (`?busca=`).",
    "itens": [
     {
      "tipo": "tipo",
      "nome": "Estado",
      "assinatura": "type Estado = { fase: \"carregando\" } | { fase: \"pronto\"; dados: PessoaJuridica | null } | { fase: \"erro\"; erro: string };",
      "doc": "Carregando, o registro lido (null quando o CNPJ não aparece em nenhuma fonte) ou o erro.",
-     "linha": 34
+     "linha": 36
     },
     {
      "tipo": "tipo",
      "nome": "Nomes",
      "assinatura": "type Nomes = Map<string, { nome: string; uf: string | null }>;",
      "doc": "Nome e UF de cada ente, do cadastro da busca.",
-     "linha": 37
+     "linha": 39
     },
     {
      "tipo": "funcao",
      "nome": "dataDoArquivo",
      "assinatura": "function dataDoArquivo(d: string | null): string",
      "doc": "A data do arquivo da CGU: \"20261009\" (convênios, a data na página de download) ou o `Last-Modified` do servidor\n(emendas) → \"09/10/2026\".",
-     "linha": 43
+     "linha": 45
+    },
+    {
+     "tipo": "tipo",
+     "nome": "EstadoBusca",
+     "assinatura": "type EstadoBusca = { fase: \"procurando\" } | { fase: \"pronta\"; achados: AchadoPj[] | null } | { fase: \"erro\" };",
+     "doc": "A busca pelo nome: procurando, os achados (null quando a busca ainda não foi publicada) ou o erro.",
+     "linha": 53
     },
     {
      "tipo": "componente",
      "nome": "PainelPessoaJuridica",
      "assinatura": "export function PainelPessoaJuridica()",
-     "doc": "A página: o campo do CNPJ e, com um CNPJ válido na URL, tudo o que o Lumen tem dele.",
-     "linha": 51
+     "doc": "A página: o campo do CNPJ ou do nome; com um CNPJ na URL, tudo o que o Lumen tem dele; com um nome, os achados.",
+     "linha": 56
+    },
+    {
+     "tipo": "componente",
+     "nome": "Achados",
+     "assinatura": "function Achados({ termo }: { termo: string })",
+     "doc": "Os nomes achados pela busca, cada um com o link para a página do CNPJ.",
+     "linha": 112
     },
     {
      "tipo": "componente",
      "nome": "Pessoa",
      "assinatura": "function Pessoa({ cnpj, estado, nomes }: { cnpj: string; estado: Estado; nomes: Nomes })",
      "doc": "O que há do CNPJ: o cartão da Receita e as três seções das fontes.",
-     "linha": 101
+     "linha": 155
     },
     {
      "tipo": "funcao",
      "nome": "nomeDoEnte",
      "assinatura": "function nomeDoEnte(codigo: string, nomes: Nomes): string",
      "doc": "\"Porto Alegre (RS)\", \"São Paulo (estado)\", \"Distrito Federal\", \"União\" ou o código.",
-     "linha": 133
+     "linha": 187
     },
     {
      "tipo": "componente",
      "nome": "Contratos",
      "assinatura": "function Contratos({ p, nomes }: { p: PessoaJuridica; nomes: Nomes })",
      "doc": "Contratos no PNCP: os totais, o ano a ano e a tabela por ente contratante.",
-     "linha": 142
+     "linha": 196
     },
     {
      "tipo": "componente",
      "nome": "Emendas",
      "assinatura": "function Emendas({ p, nomes }: { p: PessoaJuridica; nomes: Nomes })",
      "doc": "Emendas parlamentares recebidas como favorecida, por ente.",
-     "linha": 168
+     "linha": 222
     },
     {
      "tipo": "componente",
      "nome": "TabelaPorEnte",
      "assinatura": "function TabelaPorEnte({ linhas, nomes, contratos = false, href }:",
      "doc": "A tabela de somas por ente, com o link de cada um; as primeiras linhas e, a pedido, todas.",
-     "linha": 182
+     "linha": 236
     },
     {
      "tipo": "componente",
      "nome": "Convenios",
      "assinatura": "function Convenios({ p, nomes }: { p: PessoaJuridica; nomes: Nomes })",
      "doc": "Convênios com a União como convenente, do maior valor ao menor.",
-     "linha": 225
+     "linha": 279
     }
    ]
   },
@@ -16242,7 +16333,7 @@
   {
    "caminho": "packages/painel/testes/test_pessoas_juridicas.py",
    "doc": "Visão 360 da pessoa jurídica pelo CNPJ (ADR-049).",
-   "testes": 2
+   "testes": 4
   },
   {
    "caminho": "packages/painel/testes/test_rcl.py",
@@ -16357,7 +16448,7 @@
   {
    "caminho": "packages/portal/src/lib/__testes__/pessoaJuridica.test.ts",
    "doc": "",
-   "testes": 3
+   "testes": 5
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/precos.test.ts",

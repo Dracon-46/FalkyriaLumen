@@ -1,12 +1,16 @@
 import { gzipSync } from "node:zlib";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  buscarPessoasJuridicas,
   carregarPessoaJuridica,
+  casaComONome,
   cnpjDoTexto,
   contratosPorAno,
   contratosPorEnte,
   emendasPorEnte,
+  palavrasDaBusca,
   type PessoaJuridica,
+  prefixoDaPalavra,
   totaisDaPessoa,
 } from "../pessoaJuridica";
 
@@ -51,5 +55,35 @@ describe("leitura por grupo de CNPJ", () => {
     expect(p?.fontes.emendas).toBe("20261010");
     expect(await carregarPessoaJuridica("11537392000105")).toBeNull();     // mesmo grupo, CNPJ que não está nele
     expect(await carregarPessoaJuridica("11111111000191")).toBeNull();     // grupo que não existe
+  });
+});
+
+describe("busca pelo nome", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("usa as palavras de três letras ou mais, pelo começo, com o prefixo dividido quando preciso", () => {
+    expect(palavrasDaBusca("Ação Social São José Ltda. - ME")).toEqual(["acao", "social", "sao", "jose"]);
+    expect(prefixoDaPalavra("comercio", ["co"])).toBe("com");
+    expect(prefixoDaPalavra("saude", ["co"])).toBe("sa");
+    expect(casaComONome("GENTE SEGURADORA SA", ["segur", "gen"])).toBe(true);
+    expect(casaComONome("GENTE SEGURADORA SA", ["seguro"])).toBe(false);
+  });
+
+  it("lê só o arquivo da palavra com menos nomes e devolve os que têm todas as palavras", async () => {
+    const indice = { versao: 1, tipo: "pj-busca-indice", divididos: ["co"], arquivos: { com: 3, ge: 1 } };
+    const ge = { versao: 1, tipo: "pj-busca", prefixo: "ge",
+                 pessoas: [["90180605000102", "GENTE SEGURADORA SA", 42], ["11111111000191", "GERAL COMERCIO", 9]] };
+    const pedidos: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      pedidos.push(url);
+      if (url.endsWith("/pj/busca/indice.json")) return new Response(JSON.stringify(indice), { headers: { "content-type": "application/json" } });
+      if (url.endsWith("/pj/busca/ge.json.gz")) return new Response(gzipSync(JSON.stringify(ge)));
+      return new Response("", { status: 404 });
+    }));
+    expect(await buscarPessoasJuridicas("comercio gente")).toEqual([]);           // "gente" e "comercio" juntos: nenhum
+    expect(await buscarPessoasJuridicas("seguradora gente")).toEqual([]);         // "se" não tem arquivo
+    expect((await buscarPessoasJuridicas("gente"))?.map((a) => a.cnpj)).toEqual(["90180605000102"]);
+    expect(pedidos.some((u) => u.endsWith("/com.json.gz"))).toBe(false);          // o de "ge" tem menos nomes
+    expect(await buscarPessoasJuridicas("sa")).toEqual([]);                        // palavra curta demais
   });
 });

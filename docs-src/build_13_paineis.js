@@ -232,6 +232,7 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["de_contratacoes", "Os contratos de cada fornecedor pessoa jurídica por ente contratante e ano", "Da mesma soma do painel; o valor a conferir conta e não soma"],
   ["de_convenios, de_emendas", "Os convênios como convenente e o recebido de emendas como favorecido", "Dos estados das coletas da CGU (ADR-044 e ADR-045); objeto cortado em 160 caracteres"],
   ["publicar", "pj/<grupo>.json.gz (6º a 8º dígitos do CNPJ)", "Visão 360 da empresa ou entidade (ADR-049); mil arquivos de tamanho parecido"],
+  ["normalizar, palavras_da_busca, montar_busca", "A busca pelo nome: pj/busca/<prefixo>.json.gz e o índice", "Prefixo de duas letras de cada palavra (três quando passa de 10 mil nomes); normalização igual à do portal"],
 ], { monoCols: [0], size: 17 }));
 
 // ============================================================ 5. Estado

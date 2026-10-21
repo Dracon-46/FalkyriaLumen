@@ -1,10 +1,12 @@
 /**
  * Visão 360 de uma pessoa jurídica pelo CNPJ (ADR-049): o arquivo `pj/<grupo>.json.gz` traz os contratos no PNCP
  * por ente contratante e ano, as emendas parlamentares recebidas e os convênios com a União. A página junta o
- * cartão da Receita (`receita.ts`).
+ * cartão da Receita (`receita.ts`). A busca pelo nome lê `pj/busca/`, um arquivo por prefixo de palavra.
  */
 
+import { normalizar } from "./busca";
 import { obterJsonComprimido } from "./comprimido";
+import { obterJson } from "./feeds";
 import { BASE_PAINEL, conferir, grupoDoCnpj } from "./paineis";
 
 /** Contratos no PNCP com o ente contratante num ano: `[ente, ano, contratos, valor]`. */
@@ -100,6 +102,88 @@ export function totaisDaPessoa(p: PessoaJuridica) {
     valorConvenios: p.convenios.reduce((s, l) => s + l[5], 0),
     liberado: p.convenios.reduce((s, l) => s + l[6], 0),
   };
+}
+
+// ------------------------------------------------------------------------------------------ busca pelo nome
+
+/** Palavras comuns demais para separar uma empresa da outra, como `PALAVRAS_FORA` no Python. */
+const PALAVRAS_FORA = new Set(["ltda", "eireli", "epp", "cia", "dos", "das", "del", "para", "com"]);
+
+/** Um nome achado: o CNPJ, o nome e o peso (contratos, emendas e convênios somados). */
+export interface AchadoPj {
+  cnpj: string;
+  nome: string | null;
+  peso: number;
+}
+
+/** `pj/busca/indice.json`: os prefixos de duas letras divididos em três e quantos nomes tem cada arquivo. */
+interface IndiceBusca {
+  versao: 1;
+  tipo: "pj-busca-indice";
+  divididos: string[];
+  arquivos: Record<string, number>;
+}
+
+/** As palavras que a busca usa: três letras ou mais, normalizadas, fora as comuns demais. */
+export function palavrasDaBusca(texto: string): string[] {
+  return normalizar(texto).split(" ").filter((p) => p.length >= 3 && !PALAVRAS_FORA.has(p));
+}
+
+/** O arquivo de uma palavra: as duas primeiras letras, ou as três quando o de duas foi dividido. */
+export function prefixoDaPalavra(palavra: string, divididos: readonly string[]): string {
+  return divididos.includes(palavra.slice(0, 2)) ? palavra.slice(0, 3) : palavra.slice(0, 2);
+}
+
+/** Se cada palavra procurada começa alguma palavra do nome. */
+export function casaComONome(nome: string | null, procuradas: string[]): boolean {
+  const doNome = palavrasDaBusca(nome ?? "");
+  return procuradas.every((p) => doNome.some((n) => n.startsWith(p)));
+}
+
+let indiceBusca: Promise<IndiceBusca | null> | null = null;
+const arquivosBusca = new Map<string, Promise<[string, string | null, number][]>>();
+
+/** O índice da busca, lido uma vez por visita; `null` quando ainda não foi publicado. */
+function lerIndiceBusca(): Promise<IndiceBusca | null> {
+  if (!indiceBusca) {
+    const url = `${BASE_PAINEL}/pj/busca/indice.json`;
+    indiceBusca = obterJson(url).then((b) => (b === null ? null : conferir<IndiceBusca>(b, "pj-busca-indice", url)));
+    indiceBusca.catch(() => (indiceBusca = null));
+  }
+  return indiceBusca;
+}
+
+/** Os nomes de um prefixo (`[CNPJ, nome, peso]`), lidos uma vez por visita; lista vazia sem o arquivo. */
+function lerArquivoBusca(prefixo: string): Promise<[string, string | null, number][]> {
+  let arquivo = arquivosBusca.get(prefixo);
+  if (!arquivo) {
+    const url = `${BASE_PAINEL}/pj/busca/${prefixo}.json.gz`;
+    arquivo = obterJsonComprimido(url).then((b) =>
+      b === null ? [] : conferir<{ pessoas: [string, string | null, number][] }>(b, "pj-busca", url).pessoas);
+    arquivo.catch(() => arquivosBusca.delete(prefixo));
+    arquivosBusca.set(prefixo, arquivo);
+  }
+  return arquivo;
+}
+
+/**
+ * Os nomes com todas as palavras procuradas (pelo começo de cada palavra), do maior peso ao menor. Lê só o
+ * arquivo da palavra com menos nomes; `null` quando a busca ainda não foi publicada.
+ */
+export async function buscarPessoasJuridicas(termo: string, limite = 20): Promise<AchadoPj[] | null> {
+  const procuradas = palavrasDaBusca(termo);
+  if (procuradas.length === 0) return [];
+  const indice = await lerIndiceBusca();
+  if (!indice) return null;
+  const prefixos = procuradas.map((p) => prefixoDaPalavra(p, indice.divididos));
+  const menor = prefixos.reduce((a, b) => ((indice.arquivos[a] ?? 0) <= (indice.arquivos[b] ?? 0) ? a : b));
+  if (!indice.arquivos[menor]) return [];
+  const achados: AchadoPj[] = [];
+  for (const [cnpj, nome, peso] of await lerArquivoBusca(menor)) {
+    if (casaComONome(nome, procuradas)) achados.push({ cnpj, nome, peso });
+    if (achados.length >= limite) break;
+  }
+  return achados;
 }
 
 /** Só os dígitos, se forem 14; aceita o CNPJ com pontos, barra e traço. */

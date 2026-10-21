@@ -14,8 +14,11 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 - O filtro de fornecedor das Contratações ganha o link "em todos os entes";
   o favorecido das emendas e o convenente dos convênios, em Governos
   municipais, abrem a página.
+- Busca pelo nome na mesma página: cada palavra procurada tem de começar
+  uma palavra do nome; os achados vêm do maior valor somado ao menor.
 - Novos arquivos dos painéis, `pj/<grupo>.json.gz` (6º a 8º dígitos do
-  CNPJ, comprimidos). `comum.grupo_do_orgao` passa a `grupo_do_cnpj`.
+  CNPJ, comprimidos) e `pj/busca/` (um arquivo por prefixo de palavra e o
+  índice). `comum.grupo_do_orgao` passa a `grupo_do_cnpj`.
 
 ### Cobertura por ente e UF (ADR-048)
 

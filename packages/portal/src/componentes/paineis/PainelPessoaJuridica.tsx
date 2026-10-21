@@ -3,7 +3,7 @@
 /**
  * Visão 360 de uma empresa ou entidade pelo CNPJ (ADR-049): o cadastro na Receita, os contratos publicados no PNCP
  * com cada ente, as emendas parlamentares recebidas e os convênios com a União. São fatos das fontes, como
- * publicados; a página não marca nem ordena ninguém por risco.
+ * publicados; a página não marca nem ordena ninguém por risco. Sem CNPJ, a busca pelo nome (`?busca=`).
  */
 
 import Link from "next/link";
@@ -12,6 +12,8 @@ import { type FormEvent, useEffect, useState } from "react";
 import { numero } from "@/lib/formato";
 import { carregarEntes, cnpj as formatarCnpj, dataCurta, moeda, moedaCompacta, tipoDoCodigo } from "@/lib/paineis";
 import {
+  type AchadoPj,
+  buscarPessoasJuridicas,
   carregarPessoaJuridica,
   cnpjDoTexto,
   contratosPorAno,
@@ -47,12 +49,16 @@ function dataDoArquivo(d: string | null): string {
     ? data.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "data não informada";
 }
 
-/** A página: o campo do CNPJ e, com um CNPJ válido na URL, tudo o que o Lumen tem dele. */
+/** A busca pelo nome: procurando, os achados (null quando a busca ainda não foi publicada) ou o erro. */
+type EstadoBusca = { fase: "procurando" } | { fase: "pronta"; achados: AchadoPj[] | null } | { fase: "erro" };
+
+/** A página: o campo do CNPJ ou do nome; com um CNPJ na URL, tudo o que o Lumen tem dele; com um nome, os achados. */
 export function PainelPessoaJuridica() {
   const params = useSearchParams();
   const router = useRouter();
   const cnpj = cnpjDoTexto(params.get("cnpj") ?? "");
-  const [texto, setTexto] = useState(cnpj ? formatarCnpj(cnpj) : "");
+  const termo = cnpj ? "" : (params.get("busca") ?? "").trim();
+  const [texto, setTexto] = useState(cnpj ? formatarCnpj(cnpj) : termo);
   const [estado, setEstado] = useState<Estado>({ fase: "carregando" });
   const [nomes, setNomes] = useState<Nomes>(new Map());
 
@@ -77,23 +83,71 @@ export function PainelPessoaJuridica() {
   const buscar = (e: FormEvent) => {
     e.preventDefault();
     const c = cnpjDoTexto(texto);
-    if (c) router.replace(`/pessoa-juridica/?cnpj=${c}`);
+    if (c) router.push(`/pessoa-juridica/?cnpj=${c}`);
+    else if (texto.trim()) router.push(`/pessoa-juridica/?busca=${encodeURIComponent(texto.trim())}`);
   };
 
   return (
     <>
-      <form className="cartao cartao-corpo filtro-periodo" onSubmit={buscar} aria-label="Buscar pelo CNPJ">
-        <label className="filtro-periodo-titulo" htmlFor="campo-cnpj">CNPJ</label>
-        <input id="campo-cnpj" className="seletor" inputMode="numeric" placeholder="00.000.000/0000-00" value={texto}
-          onChange={(e) => setTexto(e.target.value)} />
-        <button type="submit" className="botao" disabled={!cnpjDoTexto(texto)}>Ver</button>
+      <form className="cartao cartao-corpo filtro-periodo" onSubmit={buscar} aria-label="Buscar pelo CNPJ ou pelo nome">
+        <label className="filtro-periodo-titulo" htmlFor="campo-cnpj">CNPJ ou nome</label>
+        <input id="campo-cnpj" className="seletor campo-pj" placeholder="00.000.000/0000-00 ou parte do nome"
+          value={texto} onChange={(e) => setTexto(e.target.value)} />
+        <button type="submit" className="botao" disabled={!texto.trim()}>Ver</button>
       </form>
-      {!cnpj ? (
-        <Situacao>Escreva o CNPJ de uma empresa ou entidade, ou chegue aqui pelo nome dela nas outras abas.</Situacao>
-      ) : (
+      {cnpj ? (
         <Pessoa cnpj={cnpj} estado={estado} nomes={nomes} />
+      ) : termo ? (
+        <Achados termo={termo} />
+      ) : (
+        <Situacao>
+          Escreva o CNPJ ou parte do nome de uma empresa ou entidade, ou chegue aqui pelo nome dela nas outras abas.
+        </Situacao>
       )}
     </>
+  );
+}
+
+/** Os nomes achados pela busca, cada um com o link para a página do CNPJ. */
+function Achados({ termo }: { termo: string }) {
+  const [estado, setEstado] = useState<EstadoBusca>({ fase: "procurando" });
+  useEffect(() => {
+    let vale = true;
+    setEstado({ fase: "procurando" });
+    buscarPessoasJuridicas(termo)
+      .then((achados) => vale && setEstado({ fase: "pronta", achados }))
+      .catch(() => vale && setEstado({ fase: "erro" }));
+    return () => {
+      vale = false;
+    };
+  }, [termo]);
+
+  if (estado.fase === "procurando") return <Situacao>Procurando…</Situacao>;
+  if (estado.fase === "erro") return <Situacao>Não foi possível procurar agora.</Situacao>;
+  if (estado.achados === null) return <Situacao>A busca pelo nome ainda não foi publicada; use o CNPJ.</Situacao>;
+  if (estado.achados.length === 0) {
+    return (
+      <Situacao>
+        Nenhum nome com todas essas palavras. A busca procura pelo começo das palavras, com três letras ou mais.
+      </Situacao>
+    );
+  }
+  return (
+    <section className="cartao cartao-corpo" aria-labelledby="titulo-achados">
+      <h2 id="titulo-achados" className="titulo-secao">Nomes com “{termo}”</h2>
+      <ul className="lista-simples">
+        {estado.achados.map((a) => (
+          <li key={a.cnpj}>
+            <Link href={`/pessoa-juridica/?cnpj=${a.cnpj}`}>{a.nome ?? formatarCnpj(a.cnpj)}</Link>
+            <span className="busca-detalhe"> · {formatarCnpj(a.cnpj)} · {moedaCompacta(a.peso)} em contratos, emendas e convênios</span>
+          </li>
+        ))}
+      </ul>
+      <p className="busca-detalhe">
+        Do maior valor ao menor, até {estado.achados.length >= 20 ? "os 20 primeiros" : "o fim da lista"}. Para
+        estreitar, acrescente outra palavra do nome.
+      </p>
+    </section>
   );
 }
 

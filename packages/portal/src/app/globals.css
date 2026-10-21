@@ -1689,6 +1689,12 @@ table.tabela {
   max-width: 100%;
 }
 
+/* O campo do CNPJ ou do nome, na página da empresa ou entidade */
+.filtro-periodo .campo-pj {
+  width: 320px;
+  max-width: 100%;
+}
+
 .filtro-periodo-titulo {
   font-weight: 600;
 }

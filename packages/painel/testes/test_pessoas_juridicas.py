@@ -45,7 +45,8 @@ def test_indice_por_cnpj_com_contratos_emendas_e_convenios(tmp_path):
     gravados = {}
     resumo = pj.publicar(tmp_path, _painel(), lambda caminho, dados: gravados.__setitem__(caminho, dados),
                          gerado_em="x")
-    assert resumo == {"pessoas": 2, "arquivos": 2, "com_contratos": 1, "com_emendas": 2, "com_convenios": 1}
+    assert resumo == {"pessoas": 2, "arquivos": 2, "arquivos_busca": 2, "com_contratos": 1, "com_emendas": 2,
+                      "com_convenios": 1}
     grupo = gravados[f"pj/{comum.grupo_do_cnpj(EMPRESA)}.json.gz"]
     assert grupo["tipo"] == "pessoas-juridicas" and grupo["fontes"] == {"emendas": "20261010", "convenios": "20261009"}
     empresa = grupo["pessoas"][EMPRESA]
@@ -59,9 +60,33 @@ def test_indice_por_cnpj_com_contratos_emendas_e_convenios(tmp_path):
     assert fundo["convenios"][0][:3] == ["4319604", "9", "CONCLUÍDO"] and len(fundo["convenios"][0][3]) == pj.OBJETO
 
 
+def test_busca_pelo_nome_por_prefixo_de_palavra(tmp_path):
+    _estados(tmp_path)
+    gravados = {}
+    pj.publicar(tmp_path, _painel(), lambda caminho, dados: gravados.__setitem__(caminho, dados), gerado_em="x")
+    # EMPRESA X LTDA → "empresa" (X e LTDA ficam fora); FUNDO → "fundo"; as palavras são normalizadas como no portal
+    assert sorted(c for c in gravados if c.startswith("pj/busca/")) == ["pj/busca/em.json.gz", "pj/busca/fu.json.gz",
+                                                                   "pj/busca/indice.json"]
+    em = gravados["pj/busca/em.json.gz"]
+    assert em["tipo"] == "pj-busca" and em["pessoas"] == [[EMPRESA, "EMPRESA X LTDA", 1180.0]]
+    assert gravados["pj/busca/indice.json"]["arquivos"] == {"em": 1, "fu": 1}
+    assert pj.palavras_da_busca("Ação Social São José Ltda. - ME") == ["acao", "social", "sao", "jose"]
+    assert pj.normalizar("  CONSTRUÇÕES   & Cia ") == "construcoes cia"
+
+
+def test_prefixo_com_nomes_demais_se_divide_em_tres_letras(monkeypatch):
+    monkeypatch.setattr(pj, "LIMITE_BUSCA", 2)
+    vazio = {"contratos": {}, "emendas": {}, "convenios": []}
+    indice = {"1": {**vazio, "nome": "COMERCIO A"}, "2": {**vazio, "nome": "CONSTRUTORA B"},
+              "3": {**vazio, "nome": "COMERCIAL COMPUTADORES"}, "4": {**vazio, "nome": "SAUDE"}}
+    busca, divididos = pj.montar_busca(indice)
+    assert divididos == ["co"] and sorted(busca) == ["com", "con", "sa"]
+    assert [p[0] for p in busca["com"]] == ["1", "3"] and [p[0] for p in busca["con"]] == ["2"]
+
+
 def test_sem_estado_de_emendas_e_convenios_so_os_contratos(tmp_path):
     gravados = {}
     resumo = pj.publicar(tmp_path, _painel(), lambda caminho, dados: gravados.__setitem__(caminho, dados),
                          gerado_em="x")
     assert resumo["pessoas"] == 1 and resumo["com_emendas"] == 0
-    assert list(gravados.values())[0]["fontes"] == {"emendas": None, "convenios": None}
+    assert gravados[f"pj/{comum.grupo_do_cnpj(EMPRESA)}.json.gz"]["fontes"] == {"emendas": None, "convenios": None}

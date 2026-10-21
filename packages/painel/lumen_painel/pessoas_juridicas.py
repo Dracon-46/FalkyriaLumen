@@ -13,10 +13,19 @@ As contratações, as emendas e os convênios são publicados por ente (quem con
 O nome é o mais recente das contratações e, sem elas, o dos convênios ou das emendas; as fontes já chegam com o
 CPF do MEI mascarado (ADR-043). A página do portal junta o cartão da Receita (``cnpj/``). Pessoa física não
 entra: o índice é por CNPJ.
+
+A busca pelo nome lê ``pj/busca/<prefixo>.json.gz``: cada palavra do nome com três letras ou mais (fora as de
+``PALAVRAS_FORA``) põe o CNPJ no arquivo das duas primeiras letras dela, com o nome e o peso (a soma dos contratos,
+das emendas e dos convênios), do maior peso ao menor. O arquivo de duas letras com mais de ``LIMITE_BUSCA`` nomes
+("co", de comércio e construções) se divide pelas três primeiras. ``pj/busca/indice.json`` diz quais se dividiram
+e quantos nomes tem cada arquivo, para o portal ler o menor entre as palavras procuradas. A normalização é a mesma
+do portal (``busca.ts``).
 """
 
 from __future__ import annotations
 
+import re
+import unicodedata
 from pathlib import Path
 from typing import Any, Callable
 
@@ -26,6 +35,20 @@ from .contratacoes import Painel
 
 OBJETO = 160
 COLUNAS_CONVENIO = ["ente", "numero", "situacao", "objeto", "orgao", "valor", "liberado", "inicio"]
+# Palavras comuns demais nos nomes para separar uma empresa da outra (a busca as ignora)
+PALAVRAS_FORA = frozenset({"ltda", "eireli", "epp", "cia", "dos", "das", "del", "para", "com"})
+LIMITE_BUSCA = 10_000
+
+
+def normalizar(texto: str) -> str:
+    """Sem acento, minúsculas, só letras, dígitos e espaço único, como ``normalizar`` do portal."""
+    sem_marca = "".join(c for c in unicodedata.normalize("NFD", texto) if not unicodedata.combining(c))
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9 ]+", " ", sem_marca.lower())).strip()
+
+
+def palavras_da_busca(nome: str | None) -> list[str]:
+    """As palavras do nome que a busca usa: três letras ou mais, fora as de ``PALAVRAS_FORA``."""
+    return [p for p in normalizar(nome or "").split(" ") if len(p) >= 3 and p not in PALAVRAS_FORA]
 
 
 def _registro(indice: dict[str, dict], cnpj: str) -> dict:
@@ -76,6 +99,25 @@ def de_convenios(indice: dict[str, dict], dados: dict) -> None:
                                    linha[i["orgao"]], linha[i["valor"]], linha[i["liberado"]], linha[i["inicio"]]])
 
 
+def montar_busca(indice: dict[str, dict]) -> tuple[dict[str, list], list[str]]:
+    """Os arquivos da busca pelo nome (``{prefixo: [[CNPJ, nome, peso], ...]}``, do maior peso ao menor) e os
+    prefixos de duas letras divididos pelas três primeiras, por passarem de ``LIMITE_BUSCA`` nomes."""
+    busca: dict[str, list] = {}
+    for cnpj, registro in indice.items():
+        peso = round(sum(v for _, v in registro["contratos"].values()) + sum(registro["emendas"].values())
+                     + sum(c[5] for c in registro["convenios"]), 2)
+        palavras = palavras_da_busca(registro["nome"])
+        for prefixo in sorted({p[:2] for p in palavras}):
+            busca.setdefault(prefixo, []).append((cnpj, registro["nome"], peso, palavras))
+    divididos = sorted(p for p, pessoas in busca.items() if len(pessoas) > LIMITE_BUSCA)
+    for curto in divididos:
+        for pessoa in busca.pop(curto):
+            for prefixo in sorted({p[:3] for p in pessoa[3] if p.startswith(curto)}):
+                busca.setdefault(prefixo, []).append(pessoa)
+    return ({prefixo: [list(p[:3]) for p in sorted(pessoas, key=lambda x: (-x[2], x[0]))]
+             for prefixo, pessoas in busca.items()}, divididos)
+
+
 def _estado(estado: Path, modulo) -> dict | None:
     """O estado de ``emendas`` ou ``convenios``, se existe e está na versão conhecida."""
     caminho = estado / modulo.ARQUIVO
@@ -109,6 +151,14 @@ def publicar(estado: Path | str, painel: Painel, gravar: Callable[[str, Any], An
     grupos: dict[str, dict[str, dict]] = {}
     for cnpj, registro in indice.items():
         grupos.setdefault(grupo_do_cnpj(cnpj), {})[cnpj] = para_json(registro)
+    busca, divididos = montar_busca(indice)
+    for prefixo, pessoas in sorted(busca.items()):
+        gravar(f"pj/busca/{prefixo}.json.gz", {
+            "versao": 1, "tipo": "pj-busca", "gerado_em": gerado_em, "prefixo": prefixo,
+            "colunas": ["cnpj", "nome", "peso"], "pessoas": pessoas,
+        })
+    gravar("pj/busca/indice.json", {"versao": 1, "tipo": "pj-busca-indice", "gerado_em": gerado_em,
+                                    "divididos": divididos, "arquivos": {p: len(v) for p, v in sorted(busca.items())}})
     for grupo, pessoas in sorted(grupos.items()):
         gravar(f"pj/{grupo}.json.gz", {
             "versao": 1, "tipo": "pessoas-juridicas", "gerado_em": gerado_em,
@@ -118,7 +168,7 @@ def publicar(estado: Path | str, painel: Painel, gravar: Callable[[str, Any], An
                        "convenios": (dados_convenios or {}).get("data_arquivo")},
             "pessoas": dict(sorted(pessoas.items())),
         })
-    return {"pessoas": len(indice), "arquivos": len(grupos),
+    return {"pessoas": len(indice), "arquivos": len(grupos), "arquivos_busca": len(busca),
             "com_contratos": sum(1 for r in indice.values() if r["contratos"]),
             "com_emendas": sum(1 for r in indice.values() if r["emendas"]),
             "com_convenios": sum(1 for r in indice.values() if r["convenios"])}

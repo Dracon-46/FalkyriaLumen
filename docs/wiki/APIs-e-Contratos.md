@@ -357,6 +357,7 @@ Os arquivos `.json.gz` vão comprimidos com gzip, e o portal os descomprime no n
 | `conformidade/ente/<código>.json` | Obrigações avaliadas de um ente e o grupo de pares (ADR-038) |
 | `operacao.json` | Situação das coletas: fluxos de dados, volume diário do PNCP e coleta da conformidade (ADR-039) |
 | `pj/<grupo>.json.gz` | Visão 360 por CNPJ (ADR-049): contratos no PNCP por ente e ano, emendas recebidas por ente e ano e convênios com a União; o grupo é o 6º, o 7º e o 8º dígitos (`comum.grupo_do_cnpj`) |
+| `pj/busca/<prefixo>.json.gz`, `pj/busca/indice.json` | Busca pelo nome (ADR-049): `[CNPJ, nome, peso]` de quem tem palavra do nome começando pelo prefixo (duas letras, ou três quando o de duas passa de 10 mil nomes), do maior peso ao menor; o índice diz os prefixos divididos e quantos nomes tem cada arquivo |
 | `cobertura.json` | Cobertura por ente e UF (ADR-048): por ente, os anos com publicação no PNCP, os exercícios do extrato coletados, a DCA, o RGF e a RCL e se é município com até 20 mil habitantes; somas por UF e do Brasil |
 | `conformidade/pares/<id>.json` | Um grupo de pares: critérios, distribuição da fração no prazo e os entes que o formam |
 | `transparencia/uf-<sigla>.json`, `transparencia/uniao.json` | Entidades avaliadas pelo PNTP, agrupadas pelo ente (ADR-035) |
