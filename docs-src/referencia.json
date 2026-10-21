@@ -10890,6 +10890,21 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/lib/changelog.ts",
+   "linguagem": "typescript",
+   "linhas": 25,
+   "doc": "O `CHANGELOG.md` do repositório, lido na geração do site estático. Só para componente de servidor (usa `fs`):\no layout passa à aba os identificadores das mudanças, e a página de novidades mostra tudo.",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "novidadesDoRepositorio",
+     "assinatura": "export function novidadesDoRepositorio(): VersaoNovidades[]",
+     "doc": "As versões do CHANGELOG (o portal fica em `packages/portal`, dois níveis abaixo da raiz); vazio se não achar.",
+     "linha": 13
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/lib/cobertura.ts",
    "linguagem": "typescript",
    "linhas": 166,
@@ -12620,6 +12635,98 @@
      "assinatura": "function desloca(iso: string, dias: number): string",
      "doc": "A data `dias` depois de `iso` (negativo para antes).",
      "linha": 244
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/lib/novidades.ts",
+   "linguagem": "typescript",
+   "linhas": 126,
+   "doc": "Novidades: as mudanças e as versões do Lumen, lidas do `CHANGELOG.md` do repositório na hora de gerar o site\n(a página não busca nada depois). Cada versão (`## 0.9.0 — 2026-10-21`, ou `## Não lançado` para o que já está no\nar sem número) tem as mudanças (`### Título`), cada uma com os itens e os subitens da lista.\n\nO aviso da aba conta as mudanças que entraram desde a última visita: o navegador guarda o identificador da\nmais nova que a pessoa já viu (`CHAVE_VISTA`).",
+   "itens": [
+    {
+     "tipo": "interface",
+     "nome": "ItemNovidade",
+     "assinatura": "export interface ItemNovidade",
+     "doc": "Um item da lista de uma mudança, com os subitens.",
+     "linha": 11
+    },
+    {
+     "tipo": "interface",
+     "nome": "Novidade",
+     "assinatura": "export interface Novidade",
+     "doc": "Uma mudança: o título (`###`) e a lista; texto solto entra como item sem subitens.",
+     "linha": 17
+    },
+    {
+     "tipo": "interface",
+     "nome": "VersaoNovidades",
+     "assinatura": "export interface VersaoNovidades",
+     "doc": "Uma versão: o número e a data (os dois `null` no que ainda não tem número) e as mudanças, da mais nova à mais velha.",
+     "linha": 24
+    },
+    {
+     "tipo": "constante",
+     "nome": "CHAVE_VISTA",
+     "assinatura": "export const CHAVE_VISTA = \"lumen.novidades.vista\";",
+     "doc": "Onde o navegador guarda a mudança mais nova já vista.",
+     "linha": 31
+    },
+    {
+     "tipo": "constante",
+     "nome": "EVENTO_VISTAS",
+     "assinatura": "export const EVENTO_VISTAS = \"lumen:novidades-vistas\";",
+     "doc": "Evento que a página de novidades dispara ao marcar tudo como visto, para a aba apagar o aviso.",
+     "linha": 33
+    },
+    {
+     "tipo": "funcao",
+     "nome": "slug",
+     "assinatura": "function slug(texto: string): string",
+     "doc": "\"Tribunais de contas: o TCE-PR (ADR-050)\" → \"tribunais-de-contas-o-tce-pr-adr-050\".",
+     "linha": 36
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lerChangelog",
+     "assinatura": "export function lerChangelog(texto: string): VersaoNovidades[]",
+     "doc": "As versões do CHANGELOG, na ordem do arquivo (a mais nova primeiro); versão sem mudança fica de fora.",
+     "linha": 41
+    },
+    {
+     "tipo": "funcao",
+     "nome": "idsDasNovidades",
+     "assinatura": "export function idsDasNovidades(versoes: VersaoNovidades[]): string[]",
+     "doc": "Os identificadores das mudanças, da mais nova à mais velha, para o aviso da aba.",
+     "linha": 91
+    },
+    {
+     "tipo": "funcao",
+     "nome": "naoVistas",
+     "assinatura": "export function naoVistas(ids: string[], vista: string | null): number",
+     "doc": "Quantas mudanças entraram desde a vista: as que vêm antes dela na lista. Sem nada guardado (primeira visita),\nnenhuma; com a vista fora da lista (de uma versão já antiga), todas as da lista.",
+     "linha": 99
+    },
+    {
+     "tipo": "tipo",
+     "nome": "Trecho",
+     "assinatura": "export type Trecho = { tipo: \"texto\" | \"codigo\" | \"forte\"; valor: string };",
+     "doc": "Um pedaço de texto de um item: comum, código (`` `x` ``) ou destaque (`**x**`).",
+     "linha": 106
+    },
+    {
+     "tipo": "funcao",
+     "nome": "trechos",
+     "assinatura": "export function trechos(texto: string): Trecho[]",
+     "doc": "O texto de um item em pedaços, para a página mostrar o código e o destaque sem interpretar HTML.",
+     "linha": 109
+    },
+    {
+     "tipo": "funcao",
+     "nome": "dataDaVersao",
+     "assinatura": "export function dataDaVersao(iso: string): string",
+     "doc": "\"2026-10-21\" → \"21/10/2026\".",
+     "linha": 123
     }
    ]
   },
@@ -14671,7 +14778,7 @@
   {
    "caminho": "packages/portal/src/app/layout.tsx",
    "linguagem": "typescript",
-   "linhas": 51,
+   "linhas": 53,
    "doc": "Layout raiz do portal: a moldura comum a todas as páginas (cabeçalho, área\nprincipal e rodapé), os metadados padrão e o estilo global.",
    "itens": [
     {
@@ -14679,21 +14786,21 @@
      "nome": "metadata",
      "assinatura": "export const metadata: Metadata =",
      "doc": "Metadados padrão. Cada página define só o `title`, que entra no modelo \"%s · Lumen\".",
-     "linha": 13
+     "linha": 15
     },
     {
      "tipo": "constante",
      "nome": "viewport",
      "assinatura": "export const viewport: Viewport =",
      "doc": "Largura do dispositivo no celular e cor da barra do navegador conforme o tema claro ou escuro do sistema.",
-     "linha": 22
+     "linha": 24
     },
     {
      "tipo": "componente",
      "nome": "Raiz",
      "assinatura": "export default function Raiz({ children }: { children: ReactNode })",
      "doc": "Moldura de todas as páginas. O primeiro elemento é o link \"Ir para o\nconteúdo\", fora da tela, para quem navega por teclado ou leitor de tela\npular direto ao `<main>`.",
-     "linha": 36
+     "linha": 38
     }
    ]
   },
@@ -14709,6 +14816,49 @@
      "assinatura": "export default function NaoEncontrada()",
      "doc": "Aviso de página não encontrada e link para a página inicial.",
      "linha": 6
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/app/novidades/page.tsx",
+   "linguagem": "typescript",
+   "linhas": 107,
+   "doc": "Página `/novidades/`: as mudanças e as versões do Lumen, da mais nova à mais antiga, lidas do `CHANGELOG.md` na\ngeração do site. As duas versões mais recentes vêm abertas; as anteriores, recolhidas.",
+   "itens": [
+    {
+     "tipo": "constante",
+     "nome": "metadata",
+     "assinatura": "export const metadata: Metadata =",
+     "doc": "Título e descrição da página, usados pelo navegador e nas prévias de link.",
+     "linha": 17
+    },
+    {
+     "tipo": "componente",
+     "nome": "Texto",
+     "assinatura": "function Texto({ texto }: { texto: string })",
+     "doc": "O texto de um item, com o código e o destaque marcados.",
+     "linha": 23
+    },
+    {
+     "tipo": "componente",
+     "nome": "Mudanca",
+     "assinatura": "function Mudanca({ n }: { n: Novidade })",
+     "doc": "Uma mudança: o título e a lista, com os subitens.",
+     "linha": 36
+    },
+    {
+     "tipo": "funcao",
+     "nome": "tituloDaVersao",
+     "assinatura": "function tituloDaVersao(v: VersaoNovidades): string",
+     "doc": "O título de uma versão.",
+     "linha": 61
+    },
+    {
+     "tipo": "componente",
+     "nome": "Novidades",
+     "assinatura": "export default function Novidades()",
+     "doc": "A página: o aviso das mudanças novas e as versões.",
+     "linha": 66
     }
    ]
   },
@@ -14817,29 +14967,36 @@
   {
    "caminho": "packages/portal/src/componentes/Cabecalho.tsx",
    "linguagem": "typescript",
-   "linhas": 143,
-   "doc": "Cabeçalho do portal, presente em todas as páginas: a marca, as abas e o filtro de local.\n\nO local (União, estado, DF ou município) filtra todas as abas (ADR-035): escolhido aqui, ou ao entrar num\nmunicípio ou estado em qualquer aba, ele vai no endereço de cada aba (Eleições abre no mapa dele,\nContratações e Conformidade no ente, as estatais nas que ele controla) e fica guardado no navegador. É\ncomponente de cliente porque lê o caminho e a URL, que no site estático só o navegador conhece.",
+   "linhas": 176,
+   "doc": "Cabeçalho do portal, presente em todas as páginas: a marca, as abas e o filtro de local.\n\nO local (União, estado, DF ou município) filtra todas as abas (ADR-035): escolhido aqui, ou ao entrar num\nmunicípio ou estado em qualquer aba, ele vai no endereço de cada aba (Eleições abre no mapa dele,\nContratações e Conformidade no ente, as estatais nas que ele controla) e fica guardado no navegador. É\ncomponente de cliente porque lê o caminho e a URL, que no site estático só o navegador conhece.\n\nA aba Novidades mostra quantas mudanças do Lumen entraram desde a última visita (`lib/novidades.ts`): o layout\npassa os identificadores, lidos do CHANGELOG na geração do site.",
    "itens": [
     {
      "tipo": "componente",
      "nome": "Cabecalho",
-     "assinatura": "export function Cabecalho()",
+     "assinatura": "export function Cabecalho({ novidades = [] }: { novidades?: string[] })",
      "doc": "Cabeçalho do Lumen. A parte que lê a URL fica num `Suspense`, como o site estático exige.",
-     "linha": 28
+     "linha": 32
+    },
+    {
+     "tipo": "funcao",
+     "nome": "useNovidadesNaoVistas",
+     "assinatura": "function useNovidadesNaoVistas(ids: string[]): number",
+     "doc": "Quantas mudanças entraram desde a última visita à página de novidades. Na primeira visita ao Lumen, guarda a mais\nnova como ponto de partida, para avisar só do que vier depois.",
+     "linha": 46
     },
     {
      "tipo": "componente",
      "nome": "ComLocal",
-     "assinatura": "function ComLocal()",
+     "assinatura": "function ComLocal({ novidades }: { novidades: string[] })",
      "doc": "Lê o local da URL (ou da memória), mantém-no em dia e monta as abas filtradas por ele.",
-     "linha": 39
+     "linha": 66
     },
     {
      "tipo": "componente",
      "nome": "Moldura",
-     "assinatura": "function Moldura({ local, caminho = \"/\", params, onEscolher }:",
-     "doc": "A marca, as abas (com o local no endereço) e o filtro de local.",
-     "linha": 90
+     "assinatura": "function Moldura({ local, caminho = \"/\", params, onEscolher, novidades }:",
+     "doc": "A marca, as abas (com o local no endereço), a aba de novidades e o filtro de local.",
+     "linha": 117
     }
    ]
   },
@@ -15671,6 +15828,21 @@
      "assinatura": "export function LigacoesDoEnte({ codigo, atual }: { codigo: string; atual: AbaDoEnte })",
      "doc": "A faixa \"Este ente nas outras abas\".",
      "linha": 34
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/MarcarNovidades.tsx",
+   "linguagem": "typescript",
+   "linhas": 31,
+   "doc": "Na página de novidades: diz quantas mudanças entraram desde a última visita e marca todas como vistas, o que\napaga o aviso da aba no cabeçalho.",
+   "itens": [
+    {
+     "tipo": "componente",
+     "nome": "MarcarNovidades",
+     "assinatura": "export function MarcarNovidades({ ids }: { ids: string[] })",
+     "doc": "A frase das novidades desde a última visita; some quando não há nenhuma.",
+     "linha": 12
     }
    ]
   },
@@ -16871,6 +17043,11 @@
    "caminho": "packages/portal/src/lib/__testes__/mercado.test.ts",
    "doc": "Um arquivo da ANP de SP com duas semanas, no formato que os painéis publicam.",
    "testes": 4
+  },
+  {
+   "caminho": "packages/portal/src/lib/__testes__/novidades.test.ts",
+   "doc": "",
+   "testes": 3
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/operacao.test.ts",

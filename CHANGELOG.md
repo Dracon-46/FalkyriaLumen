@@ -5,6 +5,18 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+## 0.9.0 — 2026-10-21
+
+### Novidades: as mudanças e as versões no portal
+
+- Aba nova, **Novidades** (`/novidades/`): as mudanças do Lumen e as versões,
+  da mais nova à mais antiga, lidas deste CHANGELOG na geração do site. As
+  duas versões mais recentes vêm abertas.
+- A aba mostra quantas mudanças entraram desde a sua última visita (guardado
+  no navegador); a página diz quantas são e apaga o aviso.
+- O portal passa a ser publicado também quando só o CHANGELOG muda.
+- Versão 0.9.0: tudo o que entrou de 15 a 21/10/2026, abaixo.
+
 ### Tribunais de contas: o levantamento e o TCE-RS (ADR-050)
 
 - Levantamento dos 32 tribunais de contas que fiscalizam municípios: o que cada

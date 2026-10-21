@@ -160,7 +160,9 @@ Cada versão tem uma seção no
 `## X.Y.Z — AAAA-MM-DD`, com o que mudou para quem usa e para quem desenvolve e as ADRs citadas. O
 fluxo [`release.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/release.yml)
 cria a release a cada tag `vX.Y.Z`: confere que a tag bate com as três versões e usa a seção do
-CHANGELOG como notas.
+CHANGELOG como notas. O portal mostra o CHANGELOG na aba Novidades (`/novidades/`), lido na geração do site;
+mudança só no CHANGELOG também publica o portal (`vercel.json` e `portal-pages.yml`). As mudanças que já estão
+no ar e ainda não têm versão ficam em `## Não lançado`, no alto.
 
 Versões de contrato são independentes da versão do sistema: `VERSAO_ESQUEMA_FEED` (feeds das
 eleições), `VERSAO_ZONAS` (mapa das zonas), `VERSAO_PAINEL` (dados dos painéis) e a versão de cada

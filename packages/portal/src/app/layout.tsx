@@ -7,6 +7,8 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { Cabecalho } from "@/componentes/Cabecalho";
 import { Rodape } from "@/componentes/Rodape";
+import { novidadesDoRepositorio } from "@/lib/changelog";
+import { idsDasNovidades } from "@/lib/novidades";
 import "./globals.css";
 
 /** Metadados padrão. Cada página define só o `title`, que entra no modelo "%s · Lumen". */
@@ -40,7 +42,7 @@ export default function Raiz({ children }: { children: ReactNode }) {
         <a className="so-leitor" href="#conteudo">
           Ir para o conteúdo
         </a>
-        <Cabecalho />
+        <Cabecalho novidades={idsDasNovidades(novidadesDoRepositorio())} />
         <main id="conteudo" className="pagina">
           {children}
         </main>

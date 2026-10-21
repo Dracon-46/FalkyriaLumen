@@ -169,7 +169,7 @@ Site estático (exportação estática, sem servidor Node em produção). Ver o
 
 | Caminho | O que tem |
 |---|---|
-| `src/app/` | Páginas: início, `/eleicoes/`, `/contratacoes/`, `/conformidade/`, `/economia/`, `/avisos/`, `/operacao/`, `/pessoa-juridica/` e a página de não encontrado |
+| `src/app/` | Páginas: início, `/eleicoes/`, `/contratacoes/`, `/conformidade/`, `/economia/`, `/avisos/`, `/operacao/`, `/pessoa-juridica/`, `/novidades/` (o CHANGELOG, com o aviso das mudanças desde a última visita) e a página de não encontrado |
 | `src/componentes/eleicoes/` | `PainelEleicoes`, `Mapa`, `ListaCandidatos`, `Panorama`, `GraficoEvolucao`, `TabelaZonas`, `Totais`, `Busca`, `Faixas` |
 | `src/componentes/avisos/` | `PainelAvisos`: panorama do Brasil, avisos do local, filtros de tipo e período, link de contestação |
 | `src/componentes/paineis/` | `PainelContratacoes`, `PainelConformidade`, `PainelOperacao` (com `CoberturaEntes`), `PainelPessoaJuridica` e peças comuns (aviso metodológico, busca, gráfico por mês, cartão da Receita) |

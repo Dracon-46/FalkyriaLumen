@@ -7,6 +7,9 @@
  * município ou estado em qualquer aba, ele vai no endereço de cada aba (Eleições abre no mapa dele,
  * Contratações e Conformidade no ente, as estatais nas que ele controla) e fica guardado no navegador. É
  * componente de cliente porque lê o caminho e a URL, que no site estático só o navegador conhece.
+ *
+ * A aba Novidades mostra quantas mudanças do Lumen entraram desde a última visita (`lib/novidades.ts`): o layout
+ * passa os identificadores, lidos do CHANGELOG na geração do site.
  */
 
 import Link from "next/link";
@@ -14,6 +17,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { BuscaEnte } from "@/componentes/paineis/Comuns";
 import { type Area, codigoNaUrl, EVENTO_LOCAL, gravarMemoria, hrefDaArea, lerMemoria, type Local } from "@/lib/local";
+import { CHAVE_VISTA, EVENTO_VISTAS, naoVistas } from "@/lib/novidades";
 import { carregarEntes } from "@/lib/paineis";
 
 const ABAS: { area: Area; rotulo: string; prefixo: string }[] = [
@@ -25,18 +29,41 @@ const ABAS: { area: Area; rotulo: string; prefixo: string }[] = [
 ];
 
 /** Cabeçalho do Lumen. A parte que lê a URL fica num `Suspense`, como o site estático exige. */
-export function Cabecalho() {
+export function Cabecalho({ novidades = [] }: { novidades?: string[] }) {
   return (
     <header className="cabecalho">
-      <Suspense fallback={<Moldura local={null} />}>
-        <ComLocal />
+      <Suspense fallback={<Moldura local={null} novidades={novidades} />}>
+        <ComLocal novidades={novidades} />
       </Suspense>
     </header>
   );
 }
 
+/**
+ * Quantas mudanças entraram desde a última visita à página de novidades. Na primeira visita ao Lumen, guarda a mais
+ * nova como ponto de partida, para avisar só do que vier depois.
+ */
+function useNovidadesNaoVistas(ids: string[]): number {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    const contar = () => {
+      try {
+        const vista = window.localStorage.getItem(CHAVE_VISTA);
+        if (vista === null && ids[0]) window.localStorage.setItem(CHAVE_VISTA, ids[0]);
+        setN(naoVistas(ids, vista));
+      } catch {
+        setN(0);
+      }
+    };
+    contar();
+    window.addEventListener(EVENTO_VISTAS, contar);
+    return () => window.removeEventListener(EVENTO_VISTAS, contar);
+  }, [ids]);
+  return n;
+}
+
 /** Lê o local da URL (ou da memória), mantém-no em dia e monta as abas filtradas por ele. */
-function ComLocal() {
+function ComLocal({ novidades }: { novidades: string[] }) {
   const caminho = usePathname() ?? "/";
   const params = useSearchParams();
   const router = useRouter();
@@ -83,15 +110,16 @@ function ComLocal() {
     if (area && area !== "economia") router.push(hrefDaArea(area, novo, new URLSearchParams(params.toString())));
   };
 
-  return <Moldura local={local} caminho={caminho} params={params} onEscolher={escolher} />;
+  return <Moldura local={local} caminho={caminho} params={params} onEscolher={escolher} novidades={novidades} />;
 }
 
-/** A marca, as abas (com o local no endereço) e o filtro de local. */
-function Moldura({ local, caminho = "/", params, onEscolher }: {
+/** A marca, as abas (com o local no endereço), a aba de novidades e o filtro de local. */
+function Moldura({ local, caminho = "/", params, onEscolher, novidades }: {
   local: Local | null; caminho?: string; params?: URLSearchParams | ReturnType<typeof useSearchParams>;
-  onEscolher?: (l: Local | null) => void;
+  onEscolher?: (l: Local | null) => void; novidades: string[];
 }) {
   const [trocando, setTrocando] = useState(false);
+  const naoVistas = useNovidadesNaoVistas(novidades);
   const atual = params ? new URLSearchParams(params.toString()) : undefined;
   return (
     <div className="cabecalho-dentro">
@@ -107,6 +135,11 @@ function Moldura({ local, caminho = "/", params, onEscolher }: {
               {a.rotulo}
             </Link>
           ))}
+          <Link href="/novidades/" className="aba" aria-current={caminho.startsWith("/novidades") ? "page" : undefined}
+                aria-label={naoVistas ? `Novidades: ${naoVistas} mudança(s) desde a sua última visita` : undefined}>
+            Novidades
+            {naoVistas > 0 && <span className="aba-contador" aria-hidden="true">{naoVistas > 9 ? "9+" : naoVistas}</span>}
+          </Link>
         </div>
       </nav>
       {onEscolher && (

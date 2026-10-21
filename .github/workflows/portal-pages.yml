@@ -24,6 +24,7 @@ on:
     branches: [main]
     paths:
       - "packages/portal/**"
+      - "CHANGELOG.md"              # a aba Novidades lê o CHANGELOG na geração do site
       - ".github/workflows/portal-pages.yml"
   workflow_dispatch:
 
