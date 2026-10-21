@@ -9,7 +9,7 @@ As contratações, as emendas e os convênios são publicados por ente (quem con
   ADR-044);
 - **convenios:** os convênios com a União como convenente (ADR-045), com o objeto cortado em ``OBJETO``
   caracteres;
-- **tce:** os contratos registrados no tribunal de contas (o LicitaCon do TCE-RS, ADR-050), por ente e ano do
+- **tce:** os contratos registrados nos tribunais de contas (TCE-RS e TCE-PR, ADR-050), por ente e ano do
   contrato (``[ente, ano, contratos, valor]``).
 
 O nome é o mais recente das contratações e, sem elas, o dos convênios, das emendas ou do tribunal de contas; as fontes já chegam com o
@@ -31,7 +31,7 @@ import unicodedata
 from pathlib import Path
 from typing import Any, Callable
 
-from . import convenios, emendas, tce_rs
+from . import convenios, emendas, tce
 from .comum import grupo_do_cnpj, ler_json
 from .contratacoes import Painel
 
@@ -121,7 +121,7 @@ def montar_busca(indice: dict[str, dict]) -> tuple[dict[str, list], list[str]]:
 
 
 def de_tce(indice: dict[str, dict], dados: dict) -> None:
-    """Os contratos de cada empresa registrados no tribunal de contas, por ente e ano (o estado de ``tce_rs``)."""
+    """Os contratos de cada empresa registrados num tribunal de contas, por ente e ano (um estado de ``tce``)."""
     nomes = dados.get("nomes") or {}
     for ano, a in (dados.get("anos") or {}).items():
         for ente, fornecedores in a["fornecedores"].items():
@@ -162,8 +162,8 @@ def publicar(estado: Path | str, painel: Painel, gravar: Callable[[str, Any], An
     dados_emendas = _estado(estado, emendas)
     if dados_emendas:
         de_emendas(indice, dados_emendas)
-    dados_tce = _estado(estado, tce_rs)
-    if dados_tce:
+    estados_tce = tce.estados(estado)
+    for dados_tce in estados_tce:
         de_tce(indice, dados_tce)
     grupos: dict[str, dict[str, dict]] = {}
     for cnpj, registro in indice.items():
@@ -183,7 +183,7 @@ def publicar(estado: Path | str, painel: Painel, gravar: Callable[[str, Any], An
                         "convenios": COLUNAS_CONVENIO, "tce": ["ente", "ano", "contratos", "valor"]},
             "fontes": {"emendas": (dados_emendas or {}).get("data_arquivo"),
                        "convenios": (dados_convenios or {}).get("data_arquivo"),
-                       "tce": (dados_tce or {}).get("coletado_em")},
+                       "tce": {d["tribunal"]: d.get("coletado_em") for d in estados_tce} or None},
             "pessoas": dict(sorted(pessoas.items())),
         })
     return {"pessoas": len(indice), "arquivos": len(grupos), "arquivos_busca": len(busca),

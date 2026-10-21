@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from lumen_painel import comum, convenios, emendas, tce_rs
+from lumen_painel import comum, convenios, emendas, tce, tce_rs
 from lumen_painel import pessoas_juridicas as pj
 from lumen_painel.contratacoes import Acumulador, Fornecedor, Painel
 
@@ -86,7 +86,7 @@ def test_prefixo_com_nomes_demais_se_divide_em_tres_letras(monkeypatch):
 
 def test_contratos_registrados_no_tribunal_de_contas(tmp_path):
     comum.gravar_json(tmp_path / tce_rs.ARQUIVO, {
-        "versao": tce_rs.VERSAO_ESTADO, "coletado_em": "2026-10-21T00:00:00Z",
+        "versao": tce.VERSAO_ESTADO, "tribunal": "TCE-RS", "coletado_em": "2026-10-21T00:00:00Z",
         "anos": {"2019": {"entes": {}, "sem_ente": [0, 0], "fornecedores": {"4319604": {EMPRESA: [3, 900.0]}}},
                  "2020": {"entes": {}, "sem_ente": [0, 0], "fornecedores": {"4319604": {"33333333000133": [1, 50.0]}}}},
         "nomes": {"33333333000133": "SO NO TCE LTDA"}}, comprimir=True)
@@ -98,7 +98,7 @@ def test_contratos_registrados_no_tribunal_de_contas(tmp_path):
     assert empresa["tce"] == [["4319604", "2019", 3, 900.0]]
     so_tce = gravados[f"pj/{comum.grupo_do_cnpj('33333333000133')}.json.gz"]
     assert so_tce["pessoas"]["33333333000133"]["nome"] == "SO NO TCE LTDA"     # o nome vem do tribunal
-    assert so_tce["fontes"]["tce"] == "2026-10-21T00:00:00Z"
+    assert so_tce["fontes"]["tce"] == {"TCE-RS": "2026-10-21T00:00:00Z"}
 
 
 def test_sem_estado_de_emendas_e_convenios_so_os_contratos(tmp_path):

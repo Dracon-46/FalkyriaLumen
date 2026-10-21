@@ -44,6 +44,8 @@ from . import (
     pessoal,
     pessoas_juridicas,
     rcl,
+    tce,
+    tce_pr,
     tce_rs,
     transparencia,
 )
@@ -259,12 +261,14 @@ def cmd_cnpj(args) -> int:
     return 0
 
 
-def cmd_tce_rs(args) -> int:
-    """Lê os contratos do LicitaCon (TCE-RS) dos anos que mudaram e grava ``tce-rs.json.gz`` (ADR-050)."""
+def cmd_tce(args) -> int:
+    """Lê os contratos de um tribunal de contas (``tce-rs``: LicitaCon; ``tce-pr``: SIM-AM) nos anos que mudaram
+    e grava ``tce-<sigla>.json.gz`` (ADR-050)."""
     cfg = _configuracao(args)
     cadastro = Cadastro.ler(Path(args.estado) / ARQUIVO_CADASTRO)
     anos = [int(a) for a in _lista(args.anos)] if args.anos else None
-    r = tce_rs.coletar(Path(args.estado), cadastro, contato=cfg.contato, anos=anos, limite_minutos=args.limite_minutos)
+    modulo = {"tce-rs": tce_rs, "tce-pr": tce_pr}[args.comando]
+    r = modulo.coletar(Path(args.estado), cadastro, contato=cfg.contato, anos=anos, limite_minutos=args.limite_minutos)
     _imprimir(r.para_json())
     return 0
 
@@ -391,7 +395,7 @@ def cmd_publicar(args) -> int:
     receita = base_cnpj.publicar(estado, site.gravar, gerado_em=gerado_em)
     recebido_de_emendas = emendas.publicar(estado, site.gravar, gerado_em=gerado_em)
     convenios_dos_entes = convenios.publicar(estado, site.gravar, gerado_em=gerado_em)
-    contratos_no_tce = tce_rs.publicar(estado, site.gravar, gerado_em=gerado_em)
+    contratos_no_tce = tce.publicar(estado, site.gravar, gerado_em=gerado_em)
     pj = pessoas_juridicas.publicar(estado, painel, site.gravar, gerado_em=gerado_em)
 
     entes = {c: [c, e.nome, e.uf, e.esfera, e.populacao] for c, e in cadastro.entes.items()}
@@ -464,10 +468,12 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--estado", required=True)
     c.add_argument("--mes", help="pasta AAAA-MM da Receita (padrão: a mais recente)")
 
-    c = sub.add_parser("tce-rs", help="contratos dos órgãos gaúchos no LicitaCon do TCE-RS, por ente e ano")
-    c.add_argument("--estado", required=True)
-    c.add_argument("--anos", help="só estes anos, separados por vírgula (padrão: de 2016 ao corrente)")
-    c.add_argument("--limite-minutos", type=float, help="não começa outro ano depois disso")
+    for nome, ajuda, desde in (("tce-rs", "contratos dos órgãos gaúchos no LicitaCon do TCE-RS", tce_rs.PRIMEIRO_ANO),
+                               ("tce-pr", "contratos dos municípios paranaenses no SIM-AM do TCE-PR", tce_pr.PRIMEIRO_ANO)):
+        c = sub.add_parser(nome, help=f"{ajuda}, por ente e ano")
+        c.add_argument("--estado", required=True)
+        c.add_argument("--anos", help=f"só estes anos, separados por vírgula (padrão: de {desde} ao corrente)")
+        c.add_argument("--limite-minutos", type=float, help="não começa outro ano (ou município) depois disso")
 
     c = sub.add_parser("emendas", help="emendas parlamentares da CGU recebidas por município e UF")
     c.add_argument("--estado", required=True)
@@ -495,7 +501,7 @@ def construir_parser() -> argparse.ArgumentParser:
 
 COMANDOS = {"cadastro": cmd_cadastro, "contratacoes": cmd_contratacoes, "faltando": cmd_faltando,
             "conformidade": cmd_conformidade, "rcl": cmd_rcl, "despesa-funcao": cmd_despesa_funcao, "pessoal": cmd_pessoal,
-            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "tce-rs": cmd_tce_rs, "emendas": cmd_emendas, "convenios": cmd_convenios,
+            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "tce-rs": cmd_tce, "tce-pr": cmd_tce, "emendas": cmd_emendas, "convenios": cmd_convenios,
             "transparencia": cmd_transparencia, "anp": cmd_anp,
             "publicar": cmd_publicar}
 

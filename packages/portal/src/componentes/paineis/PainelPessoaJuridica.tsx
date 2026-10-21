@@ -231,8 +231,9 @@ function ContratosTce({ p, nomes }: { p: PessoaJuridica; nomes: Nomes }) {
     <section className="cartao cartao-corpo" aria-labelledby="titulo-pj-tce">
       <h2 id="titulo-pj-tce" className="titulo-secao">Contratos registrados no tribunal de contas</h2>
       <p>
-        {numero(t.contratosTce)} contrato(s), {moeda(t.valorTce)}, registrados por órgãos gaúchos no LicitaCon do
-        TCE-RS, de 2016 em diante.
+        {numero(t.contratosTce)} contrato(s), {moeda(t.valorTce)}, registrados pelos órgãos públicos nos sistemas
+        dos tribunais de contas que o Lumen já lê: o LicitaCon do TCE-RS, de 2016 em diante, e o SIM-AM do TCE-PR,
+        de 2013 em diante.
       </p>
       <TabelaPorEnte linhas={tcePorEnte(p)} nomes={nomes} contratos
         href={(ente) => (tipoDoCodigo(ente) === "municipio" ? `/economia/municipio/?ente=${ente}` : null)} />

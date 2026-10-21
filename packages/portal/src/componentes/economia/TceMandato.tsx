@@ -4,7 +4,7 @@
  * Contratos registrados no tribunal de contas no mandato aberto em Governos municipais (ADR-050): quantos e
  * quanto, pelo ano do contrato, os aditivos, a soma anônima de pessoa física e os fornecedores do mandato, cada
  * um com o link para a página da empresa (visão 360). Na comparação, o total do outro mandato ao lado. Por
- * enquanto, só os municípios gaúchos (LicitaCon do TCE-RS, desde 2016).
+ * enquanto, os municípios gaúchos (LicitaCon do TCE-RS, desde 2016) e paranaenses (SIM-AM do TCE-PR, desde 2013).
  */
 
 import Link from "next/link";
@@ -82,8 +82,9 @@ export function TceMandato({ estado, anos, anosComparado, rotulos, conv, fmt, un
         </button>
       )}
       <p className="busca-detalhe">
-        Contratos que os órgãos do município (prefeitura, câmara, autarquias e fundações) registraram no {t.sistema},
-        o sistema do {t.tribunal}, pelo ano do contrato, desde {t.primeiroAno}. Valores {unidade}. Contrato acima do
+        Contratos que os órgãos do município (prefeitura, câmara, fundos, autarquias e fundações; consórcios ficam
+        de fora) registraram no {t.sistema}, o sistema do {t.tribunal}, pelo ano do contrato, desde {t.primeiroAno}.
+        Valores {unidade}. Contrato acima do
         teto de plausibilidade conta e fica fora da soma
         {r.foraDaSoma ? ` (${numero(r.foraDaSoma)} no mandato)` : ""}; com pessoa física, só a soma
         {r.pfContratos ? ` (${numero(r.pfContratos)} contrato(s), ${fmt(r.pfValor)})` : ""}. A lista traz os 100

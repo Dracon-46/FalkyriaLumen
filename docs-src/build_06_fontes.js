@@ -251,7 +251,8 @@ body.push(table(["Situação", "Tribunais", "Municípios"], [3000, 4600, 2000], 
   ["Nada aberto sobre os municípios", "Os demais; a API do TCE-RN estava fora do ar", "—"],
 ], { size: 17 }));
 body.push(p("Ordem de integração: TCE-RS (em uso desde 21/10/2026: contratos de 2016 em diante, lidos por partes " +
-  "no servidor), TCE-SP, TCE-PR, TCE-PE e TCE-CE, perto de 1.900 municípios. Para os cinco atrás de captcha ou " +
+  "no servidor), TCE-SP, TCE-PR (em uso desde 21/10/2026: contratos de 2013 em diante, município a município), " +
+  "TCE-PE e TCE-CE, perto de 1.900 municípios. Para os cinco atrás de captcha ou " +
   "token, pedido formal de acesso automatizado ou pela Lei de Acesso à Informação; o do TCE-MT antes de 2027, " +
   "quando 2021 sai da janela de seis anos do Radar."));
 

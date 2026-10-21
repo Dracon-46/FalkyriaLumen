@@ -13,6 +13,9 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 - Coleta nova, `lumen painel tce-rs`, no fluxo diário `tce`: os contratos dos
   órgãos gaúchos no LicitaCon desde 2016, lidos no servidor por partes (uns 5 MB
   por ano, sem a tabela de pessoas que cada ZIP repete).
+- E `lumen painel tce-pr`, no mesmo fluxo: os contratos dos 399 municípios
+  paranaenses no SIM-AM do TCE-PR desde 2013, município a município. O comum
+  aos tribunais foi para `tce.py`.
 - Governos municipais: o mandato aberto mostra os contratos registrados no
   tribunal de contas, com aditivos e fornecedores, e o outro mandato ao lado.
 - Empresa ou entidade: os contratos no tribunal, por ente. O PNCP e o tribunal

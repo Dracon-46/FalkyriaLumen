@@ -6,6 +6,7 @@ import gzip
 import json
 import os
 import re
+import unicodedata
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -120,6 +121,11 @@ def ler_json(caminho: Path | str) -> Any:
     if dados[:2] == b"\x1f\x8b":
         dados = gzip.decompress(dados)
     return json.loads(dados)
+
+
+def sem_acento(texto: str | None) -> str:
+    """O texto sem os acentos ("CONSÓRCIO" → "CONSORCIO"), para comparar nomes."""
+    return "".join(c for c in unicodedata.normalize("NFKD", texto or "") if not unicodedata.combining(c))
 
 
 def grupo_do_ente(codigo: str) -> str:

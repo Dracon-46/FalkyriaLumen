@@ -283,7 +283,7 @@ body.push(callout("Antes da Fase 2", [
 body.push(h2("9.3 Fase 3 — Camada estadual: iniciada"));
 body.push(table(["Entregável", "Situação"], [5200, 4400], [
   ["Levantamento das fontes estaduais e dos tribunais de contas", "Feito para os 32 tribunais que fiscalizam municípios (ADR-050): sete com licitações ou contratos em lote, sem chave; cinco atrás de captcha ou token, com pedido formal a fazer"],
-  ["Conectores dos tribunais", "TCE-RS em uso: contratos de 2016 em diante, no mandato aberto de Governos municipais e na página da empresa. Na fila: TCE-SP, TCE-PR, TCE-PE e TCE-CE"],
+  ["Conectores dos tribunais", "TCE-RS (contratos de 2016 em diante) e TCE-PR (de 2013 em diante) em uso, no mandato aberto de Governos municipais e na página da empresa. Na fila: TCE-SP, TCE-PE e TCE-CE"],
   ["Motor de conectores declarativos", "Não iniciado"],
 ], { size: 17 }));
 

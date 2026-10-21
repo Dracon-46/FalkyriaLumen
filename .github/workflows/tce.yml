@@ -1,12 +1,13 @@
-# Contratos registrados nos tribunais de contas (ADR-050): por enquanto, o
-# LicitaCon do TCE-RS, com os contratos dos órgãos gaúchos desde 2016.
+# Contratos registrados nos tribunais de contas (ADR-050): o LicitaCon do
+# TCE-RS (órgãos gaúchos desde 2016) e o SIM-AM do TCE-PR (municípios
+# paranaenses desde 2013), um job por tribunal.
 #
-# Todo dia e à mão. Confere o cabeçalho do ZIP de cada ano no portal de dados
-# abertos do tribunal e só lê o que mudou: um ano fechado, quando o tamanho
-# muda; o corrente e o anterior, uma vez por semana. A leitura é por partes
-# (Range), sem baixar a tabela de pessoas que cada ZIP repete: perto de 5 MB
-# por ano. Grava tce-rs.json.gz na versão "painel-estado"; o site sai na
-# publicação seguinte dos painéis (paineis-site), às 05:17 de Brasília.
+# Todo dia e à mão. Confere o cabeçalho do arquivo de cada ano e só lê o que
+# mudou: um ano fechado, quando o tamanho muda; o corrente e o anterior, uma
+# vez por semana. No RS, o ZIP do ano é lido por partes (Range), uns 5 MB por
+# ano; no PR, são 399 arquivos pequenos por ano (perto de 80 s). Grava
+# tce-<sigla>.json.gz na versão "painel-estado"; o site sai na publicação
+# seguinte dos painéis (paineis-site), às 05:17 de Brasília.
 #
 # Usa o segredo LUMEN_CONTATO (User-Agent). Repositório público: os minutos
 # não são cobrados.
@@ -33,7 +34,11 @@ env:
   TAG: painel-estado
 
 jobs:
-  tce-rs:
+  tce:
+    strategy:
+      fail-fast: false
+      matrix:
+        tribunal: [rs, pr]
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
@@ -53,12 +58,12 @@ jobs:
         run: |
           mkdir -p estado
           gh release download "$TAG" -p cadastro-entes.json.gz -D estado --clobber
-          gh release download "$TAG" -p 'tce-rs.json.gz' -D estado --clobber || true
-      - name: Contratos do LicitaCon (TCE-RS)
+          gh release download "$TAG" -p "tce-${{ matrix.tribunal }}.json.gz" -D estado --clobber || true
+      - name: Contratos do tribunal
         run: |
-          lumen painel tce-rs --estado estado --limite-minutos 90 ${ANOS:+--anos "$ANOS"} | tee tce.json
+          lumen painel tce-${{ matrix.tribunal }} --estado estado --limite-minutos 90 ${ANOS:+--anos "$ANOS"} | tee tce.json
           if python -c "import json, sys; r = json.load(open('tce.json')); sys.exit(0 if r['lidos'] or r['nomes'] else 1)"; then
-            gh release upload "$TAG" estado/tce-rs.json.gz --clobber
+            gh release upload "$TAG" "estado/tce-${{ matrix.tribunal }}.json.gz" --clobber
           else
             echo "nada mudou"
           fi

@@ -103,6 +103,15 @@ apelidos das emendas (ADR-045).
 | `https://dados.tce.rs.gov.br/dados/auxiliar/orgaos_auditados_rs.csv` | Órgãos auditados: código, esfera, setor (consórcio, autarquia…) e o município pelo código IBGE |
 | `https://dados.tce.rs.gov.br/dados/licitacon/contrato/ano/AAAA.csv.zip` | Contratos de um ano de contrato, de todos os órgãos: `contrato.csv`, `alteracao.csv` (aditivos), `pessoas.csv` e outros. Aceita `Range`: o Lumen lê no servidor só os membros que usa (ADR-050) |
 
+Sem chave.
+
+### TCE-PR — SIM-AM (Portal Informação para Todos)
+
+| Endereço | Uso |
+|---|---|
+| `https://pit.tce.pr.gov.br/Arquivos/AAAA_PIT_TodosArquivos.zip` | O ZIP do estado no ano (1,3 GB): só o cabeçalho, para saber se o ano mudou |
+| `https://pit.tce.pr.gov.br/Arquivos/AAAA/AAAA_<IBGE de 6 dígitos>_Contrato.zip` | Contratos do município no ano (`Contrato.xml`, um registro por contratado) e os aditivos assinados no ano (`ContratoAditivo.xml`) |
+
 Sem chave. O levantamento dos outros tribunais está em [Tribunais de contas](Tribunais-de-Contas).
 
 ### Receita Federal — base pública de CNPJ

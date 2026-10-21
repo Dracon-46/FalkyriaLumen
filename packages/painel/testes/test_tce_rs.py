@@ -8,7 +8,7 @@ from datetime import date
 
 import pytest
 
-from lumen_painel import comum, tce_rs
+from lumen_painel import comum, tce, tce_rs
 from lumen_painel.cadastro import Cadastro, Ente
 
 ORGAOS = """﻿CD_ORGAO,NOME_ORGAO,SIGLA_ORGAO,ESFERA,SETOR_GOVERNAMENTAL,CNPJ,HOME_PAGE,NATUREZA_JURIDICA,CONTABILIDADE,\
@@ -53,6 +53,11 @@ def _teto(ente):
     return tce_rs.teto_do_ente(ente, CADASTRO)
 
 
+def test_sem_acento():
+    assert comum.sem_acento("CONSÓRCIO INTERMUNICIPAL DE SAÚDE") == "CONSORCIO INTERMUNICIPAL DE SAUDE"
+    assert comum.sem_acento(None) == ""
+
+
 def test_orgaos_no_ente_e_consorcio_sem_ente():
     orgaos = tce_rs.ler_orgaos(ORGAOS)
     assert [orgaos[c].ente for c in ("59600", "59601", "88135", "100")] == ["4319604", "4319604", None, "43"]
@@ -86,11 +91,12 @@ def test_arquivo_remoto_le_so_as_partes_pedidas():
         pedidos.append((ini, fim))
         return _Resposta(ZIP_2022[ini:fim + 1])
 
-    arquivo = tce_rs.ArquivoRemoto("https://exemplo.org/a.zip", len(ZIP_2022), contato="c", bloco=64, abrir=abrir)
+    arquivo = tce.ArquivoRemoto("https://exemplo.org/a.zip", len(ZIP_2022), contato="c", bloco=64, abrir=abrir)
     with zipfile.ZipFile(arquivo) as z:
         assert z.read("contrato.csv").decode("utf-8-sig") == CONTRATOS
     assert pedidos and all(fim < len(ZIP_2022) for _, fim in pedidos)
-    errado = tce_rs.ArquivoRemoto("https://exemplo.org/a.zip", len(ZIP_2022), contato="c", abrir=lambda p: _Resposta(ZIP_2022, status=200))
+    errado = tce.ArquivoRemoto("https://exemplo.org/a.zip", len(ZIP_2022), contato="c",
+                               abrir=lambda p: _Resposta(ZIP_2022, status=200))
     with pytest.raises(OSError, match="parte pedida"):
         errado.read(10)
 
@@ -98,12 +104,12 @@ def test_arquivo_remoto_le_so_as_partes_pedidas():
 def test_quando_ler_de_novo():
     hoje = date(2026, 10, 21)
     lido = {"tamanho": 10, "etiqueta": "a", "lido_em": "2026-10-19T00:00:00Z"}
-    assert tce_rs.precisa_ler(None, 10, "a", 2020, hoje)
-    assert not tce_rs.precisa_ler(lido, 10, "b", 2020, hoje)          # ano fechado: o tamanho não mudou
-    assert tce_rs.precisa_ler(lido, 11, "b", 2020, hoje)
-    assert not tce_rs.precisa_ler(lido, 10, "a", 2026, hoje)          # ano corrente sem mudança
-    assert not tce_rs.precisa_ler(lido, 10, "b", 2026, hoje)          # mudou, mas foi lido há 2 dias
-    assert tce_rs.precisa_ler(lido, 10, "b", 2025, date(2026, 10, 26))
+    assert tce.precisa_ler(None, 10, "a", 2020, hoje)
+    assert not tce.precisa_ler(lido, 10, "b", 2020, hoje)             # ano fechado: o tamanho não mudou
+    assert tce.precisa_ler(lido, 11, "b", 2020, hoje)
+    assert not tce.precisa_ler(lido, 10, "a", 2026, hoje)             # ano corrente sem mudança
+    assert not tce.precisa_ler(lido, 10, "b", 2026, hoje)             # mudou, mas foi lido há 2 dias
+    assert tce.precisa_ler(lido, 10, "b", 2025, date(2026, 10, 26))
 
 
 def test_coleta_grava_os_anos_lidos_e_os_nomes_e_publica(tmp_path):
@@ -128,10 +134,12 @@ def test_coleta_grava_os_anos_lidos_e_os_nomes_e_publica(tmp_path):
     assert r2.pulados == [2022] and r2.lidos == [] and len(abertos) == 2
 
     gravados = {}
-    resumo = tce_rs.publicar(tmp_path, lambda caminho, dados: gravados.__setitem__(caminho, dados), gerado_em="x")
-    assert resumo["entes"] == 2 and resumo["sem_ente"] == {"2022": [1, 700.0]}
+    resumo = tce.publicar(tmp_path, lambda caminho, dados: gravados.__setitem__(caminho, dados), gerado_em="x")
+    assert resumo["tribunais"]["TCE-RS"]["entes"] == 2
+    assert resumo["tribunais"]["TCE-RS"]["sem_ente"] == {"2022": [1, 700.0]}
     grupo = gravados[f"tce/ente/{comum.grupo_do_ente('4319604')}.json.gz"]
     sepe = grupo["entes"]["4319604"]
     assert grupo["tipo"] == "tce-entes" and sepe["tribunal"] == "TCE-RS" and sepe["anos"]["2022"][0] == 4
     assert sepe["fornecedores"][0] == ["09537392000105", "EMPRESA X LTDA", [["2022", 2, 1500.5]]]
-    assert tce_rs.publicar(tmp_path / "vazio", lambda *a: None, gerado_em="x") is None
+    assert grupo["tribunais"]["TCE-RS"]["primeiro_ano"] == 2016
+    assert tce.publicar(tmp_path / "vazio", lambda *a: None, gerado_em="x") is None
