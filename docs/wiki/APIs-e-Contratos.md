@@ -96,6 +96,15 @@ natureza jurídica e o município do favorecido) e `EmendasParlamentares_Conveni
 O município vem pelo nome e pelo código do SIAFI (não o do IBGE); o Lumen cruza pelo nome, com a tabela de
 apelidos das emendas (ADR-045).
 
+### TCE-RS — LicitaCon (arquivos de dados abertos)
+
+| Endereço | Uso |
+|---|---|
+| `https://dados.tce.rs.gov.br/dados/auxiliar/orgaos_auditados_rs.csv` | Órgãos auditados: código, esfera, setor (consórcio, autarquia…) e o município pelo código IBGE |
+| `https://dados.tce.rs.gov.br/dados/licitacon/contrato/ano/AAAA.csv.zip` | Contratos de um ano de contrato, de todos os órgãos: `contrato.csv`, `alteracao.csv` (aditivos), `pessoas.csv` e outros. Aceita `Range`: o Lumen lê no servidor só os membros que usa (ADR-050) |
+
+Sem chave. O levantamento dos outros tribunais está em [Tribunais de contas](Tribunais-de-Contas).
+
 ### Receita Federal — base pública de CNPJ
 
 | Endereço | Uso |
@@ -357,6 +366,7 @@ Os arquivos `.json.gz` vão comprimidos com gzip, e o portal os descomprime no n
 | `conformidade/ente/<código>.json` | Obrigações avaliadas de um ente e o grupo de pares (ADR-038) |
 | `operacao.json` | Situação das coletas: fluxos de dados, volume diário do PNCP e coleta da conformidade (ADR-039) |
 | `pj/<grupo>.json.gz` | Visão 360 por CNPJ (ADR-049): contratos no PNCP por ente e ano, emendas recebidas por ente e ano e convênios com a União; o grupo é o 6º, o 7º e o 8º dígitos (`comum.grupo_do_cnpj`) |
+| `tce/ente/<grupo>.json.gz` | Contratos registrados no tribunal de contas (ADR-050), por ente: por ano do contrato `[contratos, valor, a_conferir, pf_contratos, pf_valor, aditivos, aditivos_valor]` e os 100 maiores fornecedores com os anos; o tribunal de cada ente |
 | `pj/busca/<prefixo>.json.gz`, `pj/busca/indice.json` | Busca pelo nome (ADR-049): `[CNPJ, nome, peso]` de quem tem palavra do nome começando pelo prefixo (duas letras, ou três quando o de duas passa de 10 mil nomes), do maior peso ao menor; o índice diz os prefixos divididos e quantos nomes tem cada arquivo |
 | `cobertura.json` | Cobertura por ente e UF (ADR-048): por ente, os anos com publicação no PNCP, os exercícios do extrato coletados, a DCA, o RGF e a RCL e se é município com até 20 mil habitantes; somas por UF e do Brasil |
 | `conformidade/pares/<id>.json` | Um grupo de pares: critérios, distribuição da fração no prazo e os entes que o formam |

@@ -13,6 +13,8 @@ import { BASE_PAINEL, conferir, grupoDoCnpj } from "./paineis";
 export type LinhaContratos = [string, string, number, number];
 /** Emendas recebidas de um ente num ano: `[ente, ano, valor]`. */
 export type LinhaEmendas = [string, string, number];
+/** Contratos registrados no tribunal de contas com o ente num ano do contrato: `[ente, ano, contratos, valor]`. */
+export type LinhaTce = [string, string, number, number];
 /** Um convênio: `[ente, número, situação, objeto, órgão, valor, liberado, início]`. */
 export type LinhaConvenio = [string, string, string, string, string, number, number, string | null];
 
@@ -23,8 +25,10 @@ export interface PessoaJuridica {
   contratos: LinhaContratos[];
   emendas: LinhaEmendas[];
   convenios: LinhaConvenio[];
-  /** Data do arquivo da CGU de onde vieram as emendas e os convênios (`AAAAMMDD`). */
-  fontes: { emendas: string | null; convenios: string | null };
+  /** Contratos no tribunal de contas (ADR-050); ausente nos arquivos publicados antes dele. */
+  tce?: LinhaTce[];
+  /** Data do arquivo da CGU de onde vieram as emendas e os convênios (`AAAAMMDD`) e a da coleta do tribunal. */
+  fontes: { emendas: string | null; convenios: string | null; tce?: string | null };
   gerado_em: string;
 }
 
@@ -34,7 +38,7 @@ interface GrupoPessoasJuridicas {
   tipo: "pessoas-juridicas";
   gerado_em: string;
   fontes: PessoaJuridica["fontes"];
-  pessoas: Record<string, Pick<PessoaJuridica, "nome" | "contratos" | "emendas" | "convenios">>;
+  pessoas: Record<string, Pick<PessoaJuridica, "nome" | "contratos" | "emendas" | "convenios" | "tce">>;
 }
 
 /** O CNPJ no índice; `null` quando ele não aparece em nenhuma fonte ou o arquivo não foi publicado. */
@@ -74,6 +78,11 @@ export function contratosPorEnte(p: PessoaJuridica): PorEnte[] {
   return somarPorEnte(p.contratos.map(([ente, ano, contratos, valor]) => ({ ente, ano, contratos, valor })));
 }
 
+/** Os contratos registrados no tribunal de contas, por ente. */
+export function tcePorEnte(p: PessoaJuridica): PorEnte[] {
+  return somarPorEnte((p.tce ?? []).map(([ente, ano, contratos, valor]) => ({ ente, ano, contratos, valor })));
+}
+
 /** As emendas recebidas por ente. */
 export function emendasPorEnte(p: PessoaJuridica): PorEnte[] {
   return somarPorEnte(p.emendas.map(([ente, ano, valor]) => ({ ente, ano, contratos: 0, valor })));
@@ -101,6 +110,8 @@ export function totaisDaPessoa(p: PessoaJuridica) {
     convenios: p.convenios.length,
     valorConvenios: p.convenios.reduce((s, l) => s + l[5], 0),
     liberado: p.convenios.reduce((s, l) => s + l[6], 0),
+    contratosTce: (p.tce ?? []).reduce((s, l) => s + l[2], 0),
+    valorTce: (p.tce ?? []).reduce((s, l) => s + l[3], 0),
   };
 }
 

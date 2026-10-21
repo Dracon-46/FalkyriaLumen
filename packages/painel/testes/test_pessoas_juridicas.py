@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from lumen_painel import comum, convenios, emendas
+from lumen_painel import comum, convenios, emendas, tce_rs
 from lumen_painel import pessoas_juridicas as pj
 from lumen_painel.contratacoes import Acumulador, Fornecedor, Painel
 
@@ -46,9 +46,9 @@ def test_indice_por_cnpj_com_contratos_emendas_e_convenios(tmp_path):
     resumo = pj.publicar(tmp_path, _painel(), lambda caminho, dados: gravados.__setitem__(caminho, dados),
                          gerado_em="x")
     assert resumo == {"pessoas": 2, "arquivos": 2, "arquivos_busca": 2, "com_contratos": 1, "com_emendas": 2,
-                      "com_convenios": 1}
+                      "com_convenios": 1, "com_tce": 0}
     grupo = gravados[f"pj/{comum.grupo_do_cnpj(EMPRESA)}.json.gz"]
-    assert grupo["tipo"] == "pessoas-juridicas" and grupo["fontes"] == {"emendas": "20261010", "convenios": "20261009"}
+    assert grupo["tipo"] == "pessoas-juridicas" and grupo["fontes"] == {"emendas": "20261010", "convenios": "20261009", "tce": None}
     empresa = grupo["pessoas"][EMPRESA]
     assert empresa["nome"] == "EMPRESA X LTDA"                        # o das contratações vale sobre o das emendas
     assert empresa["contratos"] == [["43", "2026", 1, 1000.0], ["4319604", "2025", 2, 150.0],
@@ -76,7 +76,7 @@ def test_busca_pelo_nome_por_prefixo_de_palavra(tmp_path):
 
 def test_prefixo_com_nomes_demais_se_divide_em_tres_letras(monkeypatch):
     monkeypatch.setattr(pj, "LIMITE_BUSCA", 2)
-    vazio = {"contratos": {}, "emendas": {}, "convenios": []}
+    vazio = {"contratos": {}, "emendas": {}, "convenios": [], "tce": {}}
     indice = {"1": {**vazio, "nome": "COMERCIO A"}, "2": {**vazio, "nome": "CONSTRUTORA B"},
               "3": {**vazio, "nome": "COMERCIAL COMPUTADORES"}, "4": {**vazio, "nome": "SAUDE"}}
     busca, divididos = pj.montar_busca(indice)
@@ -84,9 +84,26 @@ def test_prefixo_com_nomes_demais_se_divide_em_tres_letras(monkeypatch):
     assert [p[0] for p in busca["com"]] == ["1", "3"] and [p[0] for p in busca["con"]] == ["2"]
 
 
+def test_contratos_registrados_no_tribunal_de_contas(tmp_path):
+    comum.gravar_json(tmp_path / tce_rs.ARQUIVO, {
+        "versao": tce_rs.VERSAO_ESTADO, "coletado_em": "2026-10-21T00:00:00Z",
+        "anos": {"2019": {"entes": {}, "sem_ente": [0, 0], "fornecedores": {"4319604": {EMPRESA: [3, 900.0]}}},
+                 "2020": {"entes": {}, "sem_ente": [0, 0], "fornecedores": {"4319604": {"33333333000133": [1, 50.0]}}}},
+        "nomes": {"33333333000133": "SO NO TCE LTDA"}}, comprimir=True)
+    gravados = {}
+    resumo = pj.publicar(tmp_path, _painel(), lambda caminho, dados: gravados.__setitem__(caminho, dados),
+                         gerado_em="x")
+    assert resumo["com_tce"] == 2
+    empresa = gravados[f"pj/{comum.grupo_do_cnpj(EMPRESA)}.json.gz"]["pessoas"][EMPRESA]
+    assert empresa["tce"] == [["4319604", "2019", 3, 900.0]]
+    so_tce = gravados[f"pj/{comum.grupo_do_cnpj('33333333000133')}.json.gz"]
+    assert so_tce["pessoas"]["33333333000133"]["nome"] == "SO NO TCE LTDA"     # o nome vem do tribunal
+    assert so_tce["fontes"]["tce"] == "2026-10-21T00:00:00Z"
+
+
 def test_sem_estado_de_emendas_e_convenios_so_os_contratos(tmp_path):
     gravados = {}
     resumo = pj.publicar(tmp_path, _painel(), lambda caminho, dados: gravados.__setitem__(caminho, dados),
                          gerado_em="x")
     assert resumo["pessoas"] == 1 and resumo["com_emendas"] == 0
-    assert gravados[f"pj/{comum.grupo_do_cnpj(EMPRESA)}.json.gz"]["fontes"] == {"emendas": None, "convenios": None}
+    assert gravados[f"pj/{comum.grupo_do_cnpj(EMPRESA)}.json.gz"]["fontes"] == {"emendas": None, "convenios": None, "tce": None}

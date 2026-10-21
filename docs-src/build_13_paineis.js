@@ -227,7 +227,16 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["sem_ente", "O publicado sem ente: totais, fração dos processos e do valor e os 20 órgãos sem ente com mais processos", "Fica no panorama do Brasil e fora das linhas; em 2026, 9,8% do valor estimado, depois das estatais federais"],
 ], { monoCols: [0], size: 17 }));
 
-body.push(h2("4.16 pessoas_juridicas.py"));
+body.push(h2("4.16 tce_rs.py"));
+body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
+  ["cabecalho, ArquivoRemoto", "O tamanho e a etiqueta de cada ZIP e a leitura por partes (Range)", "Cada ZIP anual repete a tabela de pessoas (80 MB); lendo por partes, cada ano custa uns 5 MB"],
+  ["ler_orgaos", "Os órgãos auditados no ente: municipais no município, estaduais no estado", "Consórcios administrativos e associações ficam sem ente, como no PNCP"],
+  ["ler_ano, ler_nomes", "Os contratos de um ano por ente (contratos, valor, fora do teto, pessoa física, aditivos) e por CNPJ; os nomes das empresas", "Mesmo teto de plausibilidade do PNCP; o CPF nunca é guardado; o nome do MEI sai mascarado"],
+  ["precisa_ler, coletar (lumen painel tce-rs)", "Lê só os anos que mudaram e grava tce-rs.json.gz depois de cada um", "Ano fechado só quando muda de tamanho; o corrente e o anterior, uma vez por semana"],
+  ["publicar", "tce/ente/<grupo>.json.gz: por ente, os anos e os 100 maiores fornecedores", "Lido no mandato aberto de Governos municipais; não se soma ao PNCP (ADR-050)"],
+], { monoCols: [0], size: 17 }));
+
+body.push(h2("4.17 pessoas_juridicas.py"));
 body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["de_contratacoes", "Os contratos de cada fornecedor pessoa jurídica por ente contratante e ano", "Da mesma soma do painel; o valor a conferir conta e não soma"],
   ["de_convenios, de_emendas", "Os convênios como convenente e o recebido de emendas como favorecido", "Dos estados das coletas da CGU (ADR-044 e ADR-045); objeto cortado em 160 caracteres"],
@@ -275,6 +284,7 @@ body.push(table(["Caminho", "tipo", "Conteúdo"], [3200, 2200, 4200], [
   ["conformidade/uf/<sigla>.json", "conformidade-uf", "Entes da UF com o resumo de cada um"],
   ["conformidade/ente/<código>.json", "conformidade-ente", "Obrigações avaliadas de um ente e o grupo de pares"],
   ["operacao.json", "operacao", "Situação das coletas: fluxos, volume diário do PNCP e coleta da conformidade (ADR-039)"],
+  ["tce/ente/<grupo>.json.gz", "tce-entes", "Por ente: contratos no tribunal de contas por ano do contrato e os 100 maiores fornecedores (ADR-050). Comprimido"],
   ["pj/<grupo>.json.gz", "pessoas-juridicas", "Por CNPJ: contratos no PNCP por ente e ano, emendas recebidas e convênios com a União (ADR-049). Comprimido"],
   ["cobertura.json", "cobertura", "Por ente: anos com publicação no PNCP, extrato coletado, DCA, RGF, RCL e a marca de até 20 mil habitantes; somas por UF e do Brasil (ADR-048)"],
   ["conformidade/pares/<id>.json", "conformidade-pares", "Um grupo de pares: critérios, distribuição da fração no prazo e os entes que o formam, por nome"],
@@ -439,7 +449,7 @@ L.buildDoc({
   codigo: "DOC-13",
   titulo: "Painéis de Contratações e Conformidade",
   subtitulo: "O que cada ente publicou no PNCP e as entregas da LRF ao Tesouro, com a fonte de cada número",
-  meta: { versao: "2.2", data: "21 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038, o ADR-039, o ADR-041 e o ADR-042",
+  meta: { versao: "2.3", data: "21 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038, o ADR-039, o ADR-041 e o ADR-042",
     verificado: "outubro de 2026" },
   body,
   outFile: path.join(__dirname, "..", "docs", "DOC-13_Paineis.docx"),

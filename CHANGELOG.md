@@ -5,6 +5,19 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Tribunais de contas: o levantamento e o TCE-RS (ADR-050)
+
+- Levantamento dos 32 tribunais de contas que fiscalizam municípios: o que cada
+  um publica em dado aberto, como se acessa e desde quando (wiki, "Tribunais
+  de contas"). Sete têm licitações ou contratos em lote, sem chave.
+- Coleta nova, `lumen painel tce-rs`, no fluxo diário `tce`: os contratos dos
+  órgãos gaúchos no LicitaCon desde 2016, lidos no servidor por partes (uns 5 MB
+  por ano, sem a tabela de pessoas que cada ZIP repete).
+- Governos municipais: o mandato aberto mostra os contratos registrados no
+  tribunal de contas, com aditivos e fornecedores, e o outro mandato ao lado.
+- Empresa ou entidade: os contratos no tribunal, por ente. O PNCP e o tribunal
+  ficam lado a lado e não se somam.
+
 ### Governos municipais: lado a lado com outro município (ADR-040, adendo)
 
 - Filtro "Lado a lado com" (`?com=<código IBGE>`): a tabela de mandatos ganha

@@ -21,6 +21,8 @@ import { EmendasMandato, type EstadoEmendas } from "@/componentes/economia/Emend
 import { carregarEmendas } from "@/lib/emendas";
 import { ConveniosMandato, type EstadoConvenios } from "@/componentes/economia/ConveniosMandato";
 import { carregarConvenios } from "@/lib/convenios";
+import { TceMandato, type EstadoTce } from "@/componentes/economia/TceMandato";
+import { carregarTce } from "@/lib/tce";
 import { BuscaEnte } from "@/componentes/paineis/Comuns";
 import { numero, percentual } from "@/lib/formato";
 import { carregarEconomia } from "@/lib/economia";
@@ -269,6 +271,19 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
     return () => c.abort();
   }, [ente.codigo]);
 
+  // Os contratos registrados no tribunal de contas (ADR-050): um arquivo por grupo de entes, lido uma vez
+  const [tce, setTce] = useState<EstadoTce>({ fase: "carregando" });
+  useEffect(() => {
+    const c = new AbortController();
+    setTce({ fase: "carregando" });
+    carregarTce(ente.codigo, c.signal)
+      .then((t) => setTce({ fase: "pronto", tce: t }))
+      .catch((e: Error) => {
+        if (e.name !== "AbortError") setTce({ fase: "erro" });
+      });
+    return () => c.abort();
+  }, [ente.codigo]);
+
   // A despesa por natureza vem sob demanda: só os anos dos mandatos abertos, quando a abertura é por tipo de gasto
   const [natureza, setNatureza] = useState<Natureza>(new Map());
   useEffect(() => setNatureza(new Map()), [ente.codigo]);
@@ -404,7 +419,7 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
           outro={lidoOutro && somaNoOutro ? { nome: lidoOutro.ente.nome, soma: somaNoOutro } : null}
           somaFuncao={[somas.get(aberto.mandato.eleicao)!, comparado ? somas.get(comparado.mandato.eleicao)! : null]}
           natureza={natureza} conv={conv} fmt={fmt} unidade={unidade} opcoesComparar={comContas} mudar={mudar}
-          emendas={emendas} convenios={convenios} receitas={receitas} contas={dados.contas} />
+          emendas={emendas} convenios={convenios} tce={tce} receitas={receitas} contas={dados.contas} />
       )}
 
       <AnoAAno contas={dados.contas} conv={conv} fmt={fmt} populacao={populacao} unidade={unidade} />
@@ -501,7 +516,7 @@ function LinhaMandato({ resumo: r, soma, fmt, aberto, outro, onAbrir }: { resumo
 
 /** O mandato aberto: com o que foi gasto, a comparação com outro mandato e os links nas outras abas. */
 function DetalheMandato({ codigo, nome, aberto, comparado, outro, opcoes, somaFuncao, natureza, conv, fmt, unidade,
-  opcoesComparar, mudar, emendas, convenios, receitas, contas }: {
+  opcoesComparar, mudar, emendas, convenios, tce, receitas, contas }: {
   codigo: string;
   nome: string;
   aberto: ResumoMandato;
@@ -518,6 +533,7 @@ function DetalheMandato({ codigo, nome, aberto, comparado, outro, opcoes, somaFu
   mudar: (t: Record<string, string | null>) => void;
   emendas: EstadoEmendas;
   convenios: EstadoConvenios;
+  tce: EstadoTce;
   receitas: Receitas;
   contas: Map<string, Abertura | null>;
 }) {
@@ -594,6 +610,9 @@ function DetalheMandato({ codigo, nome, aberto, comparado, outro, opcoes, somaFu
 
       <ConveniosMandato estado={convenios} anos={anosDo(m)}
         anosComparado={comparado ? anosDo(comparado.mandato) : null}
+        rotulos={[rotulo(aberto), comparado ? rotulo(comparado) : ""]} conv={conv} fmt={fmt} unidade={unidade} />
+
+      <TceMandato estado={tce} anos={anosDo(m)} anosComparado={comparado ? anosDo(comparado.mandato) : null}
         rotulos={[rotulo(aberto), comparado ? rotulo(comparado) : ""]} conv={conv} fmt={fmt} unidade={unidade} />
 
       <h3 className="modal-subtitulo">Este mandato nas outras abas</h3>

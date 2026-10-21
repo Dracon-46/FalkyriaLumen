@@ -1,0 +1,137 @@
+"""Contratos dos municípios gaúchos no LicitaCon do TCE-RS (ADR-050)."""
+
+from __future__ import annotations
+
+import io
+import zipfile
+from datetime import date
+
+import pytest
+
+from lumen_painel import comum, tce_rs
+from lumen_painel.cadastro import Cadastro, Ente
+
+ORGAOS = """﻿CD_ORGAO,NOME_ORGAO,SIGLA_ORGAO,ESFERA,SETOR_GOVERNAMENTAL,CNPJ,HOME_PAGE,NATUREZA_JURIDICA,CONTABILIDADE,\
+SITUACAO_ORGAO,CD_MUNICIPIO_TCERS,NOME_MUNICIPIO,CD_MUNICIPIO_IBGE
+59600,PM DE SÃO SEPÉ,PM,MUNICIPAL,EXECUTIVO,1,,PUBLICA,,1-ATIVO,1,SAO SEPE,4319604
+59601,CM DE SÃO SEPÉ,CM,MUNICIPAL,LEGISLATIVO,2,,PUBLICA,,1-ATIVO,1,SAO SEPE,4319604
+88135,CIS - CONSÓRCIO,CIS,MUNICIPAL,CONSÓRCIO ADMINISTRATIVO,3,,PRIVADA,,1-ATIVO,1,SAO SEPE,4319604
+100,AL - ASSEMBLEIA,AL,ESTADUAL,LEGISLATIVO,4,,PUBLICA,,1-ATIVO,149,PORTO ALEGRE,4314902
+"""
+CONTRATOS = ("CD_ORGAO,NR_LICITACAO,ANO_LICITACAO,CD_TIPO_MODALIDADE,NR_CONTRATO,ANO_CONTRATO,TP_INSTRUMENTO,"
+             "TP_DOCUMENTO,NR_DOCUMENTO,VL_CONTRATO,DS_OBJETO\n"
+             "59600,1,2022,PRE,10,2022,C,J,09537392000105,1000.50,Obra\n"
+             "59600,2,2022,PRD,11,2022,C,J,09537392000105,500,Material\n"
+             "59601,3,2022,PRE,12,2022,C,F,05975069068,300,Aluguel\n"
+             "59600,4,2022,PRE,13,2022,C,J,11111111000191,999999999999,Erro de digitação\n"
+             "88135,5,2022,PRE,14,2022,C,J,22222222000122,700,Consórcio\n"
+             "100,6,2022,PRE,15,2022,C,J,09537392000105,2000,Assembleia\n")
+ALTERACOES = ("CD_ORGAO,NR_LICITACAO,ANO_LICITACAO,CD_TIPO_MODALIDADE,NR_CONTRATO,ANO_CONTRATO,TP_INSTRUMENTO,"
+              "VL_ACRESCIMO,VL_REDUCAO\n"
+              "59600,1,2022,PRE,10,2022,C,100,\n"
+              "59600,1,2022,PRE,10,2022,C,,30\n")
+PESSOAS = ("TP_DOCUMENTO,NR_DOCUMENTO,TP_PESSOA,NM_PESSOA\n"
+           "J,09537392000105,J,EMPRESA X LTDA\n"
+           "J,11111111000191,J,JOAO 123.456.789-09 MEI\n"
+           "F,05975069068,F,FULANO\n")
+CADASTRO = Cadastro({"4319604": Ente("4319604", "São Sepé", "RS", "M", 23_000),
+                     "43": Ente("43", "Rio Grande do Sul", "RS", "E", 11_000_000)})
+
+
+def _zip(**arquivos: str) -> bytes:
+    saida = io.BytesIO()
+    with zipfile.ZipFile(saida, "w", zipfile.ZIP_DEFLATED) as z:
+        for nome, texto in arquivos.items():
+            z.writestr(nome.replace("_csv", ".csv"), "﻿" + texto)
+    return saida.getvalue()
+
+
+ZIP_2022 = _zip(contrato_csv=CONTRATOS, alteracao_csv=ALTERACOES, pessoas_csv=PESSOAS)
+
+
+def _teto(ente):
+    return tce_rs.teto_do_ente(ente, CADASTRO)
+
+
+def test_orgaos_no_ente_e_consorcio_sem_ente():
+    orgaos = tce_rs.ler_orgaos(ORGAOS)
+    assert [orgaos[c].ente for c in ("59600", "59601", "88135", "100")] == ["4319604", "4319604", None, "43"]
+
+
+def test_ano_por_ente_com_teto_pessoa_fisica_e_aditivos():
+    with zipfile.ZipFile(io.BytesIO(ZIP_2022)) as z:
+        r = tce_rs.ler_ano(z, tce_rs.ler_orgaos(ORGAOS), _teto)
+    # São Sepé: 4 contratos (o do erro de digitação conta e fica fora da soma), um com pessoa física, 2 aditivos
+    assert r["entes"]["4319604"] == [4, 1800.5, 1, 1, 300.0, 2, 70.0]
+    assert r["entes"]["43"] == [1, 2000.0, 0, 0, 0.0, 0, 0.0]
+    assert r["sem_ente"] == [1, 700.0]                                # o consórcio
+    assert r["fornecedores"]["4319604"] == {"09537392000105": [2, 1500.5], "11111111000191": [1, 0.0]}
+    assert "05975069068" not in str(r)                                # o CPF não é guardado
+    with zipfile.ZipFile(io.BytesIO(ZIP_2022)) as z:
+        nomes = tce_rs.ler_nomes(z, {"09537392000105", "11111111000191"})
+    assert nomes == {"09537392000105": "EMPRESA X LTDA", "11111111000191": "JOAO ***.456.789-** MEI"}
+
+
+class _Resposta(io.BytesIO):
+    def __init__(self, dados: bytes, status: int = 206):
+        super().__init__(dados)
+        self.status = status
+
+
+def test_arquivo_remoto_le_so_as_partes_pedidas():
+    pedidos = []
+
+    def abrir(pedido):
+        ini, fim = (int(x) for x in pedido.headers["Range"].split("=")[1].split("-"))
+        pedidos.append((ini, fim))
+        return _Resposta(ZIP_2022[ini:fim + 1])
+
+    arquivo = tce_rs.ArquivoRemoto("https://exemplo.org/a.zip", len(ZIP_2022), contato="c", bloco=64, abrir=abrir)
+    with zipfile.ZipFile(arquivo) as z:
+        assert z.read("contrato.csv").decode("utf-8-sig") == CONTRATOS
+    assert pedidos and all(fim < len(ZIP_2022) for _, fim in pedidos)
+    errado = tce_rs.ArquivoRemoto("https://exemplo.org/a.zip", len(ZIP_2022), contato="c", abrir=lambda p: _Resposta(ZIP_2022, status=200))
+    with pytest.raises(OSError, match="parte pedida"):
+        errado.read(10)
+
+
+def test_quando_ler_de_novo():
+    hoje = date(2026, 10, 21)
+    lido = {"tamanho": 10, "etiqueta": "a", "lido_em": "2026-10-19T00:00:00Z"}
+    assert tce_rs.precisa_ler(None, 10, "a", 2020, hoje)
+    assert not tce_rs.precisa_ler(lido, 10, "b", 2020, hoje)          # ano fechado: o tamanho não mudou
+    assert tce_rs.precisa_ler(lido, 11, "b", 2020, hoje)
+    assert not tce_rs.precisa_ler(lido, 10, "a", 2026, hoje)          # ano corrente sem mudança
+    assert not tce_rs.precisa_ler(lido, 10, "b", 2026, hoje)          # mudou, mas foi lido há 2 dias
+    assert tce_rs.precisa_ler(lido, 10, "b", 2025, date(2026, 10, 26))
+
+
+def test_coleta_grava_os_anos_lidos_e_os_nomes_e_publica(tmp_path):
+    cabecalhos = {tce_rs.URL_ANO.format(ano=2022): (len(ZIP_2022), "e1")}
+    abertos = []
+
+    def remoto(url, tamanho, *, contato):
+        abertos.append(url)
+        return io.BytesIO(ZIP_2022)
+
+    r = tce_rs.coletar(tmp_path, CADASTRO, contato="c", hoje=date(2023, 3, 1),
+                       cabecalho_fn=lambda url, contato: cabecalhos.get(url),
+                       texto_fn=lambda url, contato: ORGAOS, remoto_fn=remoto)
+    assert r.para_json()["lidos"] == [2022] and r.ausentes == [2016, 2017, 2018, 2019, 2020, 2021, 2023]
+    assert r.nomes == 2 and len(abertos) == 2                        # o ano e, no fim, a tabela de pessoas
+    estado = comum.ler_json(tmp_path / tce_rs.ARQUIVO)
+    assert estado["anos"]["2022"]["entes"]["4319604"][0] == 4 and estado["nomes"]["09537392000105"] == "EMPRESA X LTDA"
+    # Na segunda vez, nada mudou: pula o ano e não relê os nomes
+    r2 = tce_rs.coletar(tmp_path, CADASTRO, contato="c", hoje=date(2023, 3, 2),
+                        cabecalho_fn=lambda url, contato: cabecalhos.get(url),
+                        texto_fn=lambda url, contato: ORGAOS, remoto_fn=remoto)
+    assert r2.pulados == [2022] and r2.lidos == [] and len(abertos) == 2
+
+    gravados = {}
+    resumo = tce_rs.publicar(tmp_path, lambda caminho, dados: gravados.__setitem__(caminho, dados), gerado_em="x")
+    assert resumo["entes"] == 2 and resumo["sem_ente"] == {"2022": [1, 700.0]}
+    grupo = gravados[f"tce/ente/{comum.grupo_do_ente('4319604')}.json.gz"]
+    sepe = grupo["entes"]["4319604"]
+    assert grupo["tipo"] == "tce-entes" and sepe["tribunal"] == "TCE-RS" and sepe["anos"]["2022"][0] == 4
+    assert sepe["fornecedores"][0] == ["09537392000105", "EMPRESA X LTDA", [["2022", 2, 1500.5]]]
+    assert tce_rs.publicar(tmp_path / "vazio", lambda *a: None, gerado_em="x") is None

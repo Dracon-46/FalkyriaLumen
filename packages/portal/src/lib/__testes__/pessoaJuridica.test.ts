@@ -33,7 +33,10 @@ describe("pessoa jurídica pelo CNPJ", () => {
     expect(contratosPorAno(pessoa)).toEqual([{ ano: "2025", contratos: 2, valor: 150 },
                                               { ano: "2026", contratos: 2, valor: 1000 }]);
     expect(totaisDaPessoa(pessoa)).toEqual({ contratos: 4, valorContratos: 1150, entesContratantes: 2, emendas: 90,
-                                             convenios: 1, valorConvenios: 100, liberado: 80 });
+                                             convenios: 1, valorConvenios: 100, liberado: 80, contratosTce: 0,
+                                             valorTce: 0 });
+    expect(totaisDaPessoa({ ...pessoa, tce: [["4319604", "2019", 3, 900], ["4319604", "2020", 1, 50]] }))
+      .toMatchObject({ contratosTce: 4, valorTce: 950 });
   });
 
   it("aceita o CNPJ com pontuação e recusa o que não tem 14 dígitos", () => {

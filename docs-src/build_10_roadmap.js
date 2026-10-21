@@ -280,7 +280,14 @@ body.push(callout("Antes da Fase 2", [
   "exige essa informação para publicar indício.",
 ], "amber"));
 
-body.push(h2("9.3 Trilha paralela: aba Eleições"));
+body.push(h2("9.3 Fase 3 — Camada estadual: iniciada"));
+body.push(table(["Entregável", "Situação"], [5200, 4400], [
+  ["Levantamento das fontes estaduais e dos tribunais de contas", "Feito para os 32 tribunais que fiscalizam municípios (ADR-050): sete com licitações ou contratos em lote, sem chave; cinco atrás de captcha ou token, com pedido formal a fazer"],
+  ["Conectores dos tribunais", "TCE-RS em uso: contratos de 2016 em diante, no mandato aberto de Governos municipais e na página da empresa. Na fila: TCE-SP, TCE-PR, TCE-PE e TCE-CE"],
+  ["Motor de conectores declarativos", "Não iniciado"],
+], { size: 17 }));
+
+body.push(h2("9.4 Trilha paralela: aba Eleições"));
 body.push(p("A aba Eleições não estava no plano original. Entrou como trilha paralela porque não disputa o " +
   "caminho crítico: usa só a camada bronze, a identificação da coleta e o cadastro de entes, e não depende do " +
   "motor de detecção (ADR-024). O detalhamento está no DOC-12."));
@@ -296,14 +303,14 @@ body.push(table(["Item", "Situação"], [5200, 4400], [
   ["Contexto eleitoral nas telas de contratação (família K)", "Fase 2 em diante"],
 ], { size: 17 }));
 
-body.push(h2("9.4 Efeito no cronograma"));
+body.push(h2("9.5 Efeito no cronograma"));
 body.push(p("Os entregáveis pendentes da Fase 1 (CGU, Receita, grupos de pares e painel) são os de menor " +
   "risco técnico: fontes com documentação estável ou arquivos completos. O risco de prazo estava no critério " +
   "de saída, que exige infraestrutura para a carga histórica. A ADR-026 resolve a hospedagem sem custo; o que " +
   "resta é trabalho técnico (levar a coleta de contratações para o GitHub Actions, como a das eleições) e " +
   "criar as contas. A decisão não técnica que sobra é o domínio: o nome ficou Lumen (ADR-043), e falta registrá-lo."));
 
-body.push(h2("9.5 Hospedagem sem custo (ADR-026)"));
+body.push(h2("9.6 Hospedagem sem custo (ADR-026)"));
 body.push(p("Nenhum banco gratuito comporta o Lumen inteiro: só as eleições por município passam de 500 MB em " +
   "linhas de banco, e a base de CNPJ da Receita tem dezenas de GB. Por isso cada tipo de dado vai para o " +
   "serviço gratuito que lhe serve. Limites verificados em 7 de outubro de 2026."));
@@ -322,7 +329,7 @@ L.buildDoc({
   codigo: "DOC-10",
   titulo: "Roadmap",
   subtitulo: "Fases, marcos, esforço, custos e critérios de replanejamento",
-  meta: { versao: "2.2", data: "21 de outubro de 2026",
+  meta: { versao: "2.3", data: "21 de outubro de 2026",
     situacao: "Plano aprovado, com a situação de cada fase em outubro de 2026 (seção 9)",
     verificado: "outubro de 2026" },
   body,

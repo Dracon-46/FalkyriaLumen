@@ -21,6 +21,7 @@ import {
   emendasPorEnte,
   type PessoaJuridica,
   type PorEnte,
+  tcePorEnte,
   totaisDaPessoa,
 } from "@/lib/pessoaJuridica";
 import { GraficoBarras, Situacao } from "./Comuns";
@@ -164,10 +165,14 @@ function Pessoa({ cnpj, estado, nomes }: { cnpj: string; estado: Estado; nomes: 
       </h2>
       <EmpresaReceitaCartao cnpj={cnpj} />
       {!p ? (
-        <Situacao>Nenhum contrato no PNCP, emenda parlamentar ou convênio com a União com este CNPJ nos dados do Lumen.</Situacao>
+        <Situacao>
+          Nenhum contrato no PNCP ou no tribunal de contas, emenda parlamentar ou convênio com a União com este CNPJ
+          nos dados do Lumen.
+        </Situacao>
       ) : (
         <>
           <Contratos p={p} nomes={nomes} />
+          <ContratosTce p={p} nomes={nomes} />
           <Emendas p={p} nomes={nomes} />
           <Convenios p={p} nomes={nomes} />
           <p className="busca-detalhe">
@@ -214,6 +219,27 @@ function Contratos({ p, nomes }: { p: PessoaJuridica; nomes: Nomes }) {
             href={(ente) => `/contratacoes/?ente=${ente}&forn=${p.cnpj}`} />
         </>
       )}
+    </section>
+  );
+}
+
+/** Contratos registrados no tribunal de contas (ADR-050), por ente; só aparece quando há algum. */
+function ContratosTce({ p, nomes }: { p: PessoaJuridica; nomes: Nomes }) {
+  if (!p.tce?.length) return null;
+  const t = totaisDaPessoa(p);
+  return (
+    <section className="cartao cartao-corpo" aria-labelledby="titulo-pj-tce">
+      <h2 id="titulo-pj-tce" className="titulo-secao">Contratos registrados no tribunal de contas</h2>
+      <p>
+        {numero(t.contratosTce)} contrato(s), {moeda(t.valorTce)}, registrados por órgãos gaúchos no LicitaCon do
+        TCE-RS, de 2016 em diante.
+      </p>
+      <TabelaPorEnte linhas={tcePorEnte(p)} nomes={nomes} contratos
+        href={(ente) => (tipoDoCodigo(ente) === "municipio" ? `/economia/municipio/?ente=${ente}` : null)} />
+      <p className="busca-detalhe">
+        Pelo ano do contrato. A partir de 2021, parte destes contratos é a mesma publicada no PNCP, acima: as duas
+        fontes ficam lado a lado e não se somam.
+      </p>
     </section>
   );
 }

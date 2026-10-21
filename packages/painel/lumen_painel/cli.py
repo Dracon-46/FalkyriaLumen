@@ -44,6 +44,7 @@ from . import (
     pessoal,
     pessoas_juridicas,
     rcl,
+    tce_rs,
     transparencia,
 )
 from . import conformidade as conf
@@ -258,6 +259,16 @@ def cmd_cnpj(args) -> int:
     return 0
 
 
+def cmd_tce_rs(args) -> int:
+    """Lê os contratos do LicitaCon (TCE-RS) dos anos que mudaram e grava ``tce-rs.json.gz`` (ADR-050)."""
+    cfg = _configuracao(args)
+    cadastro = Cadastro.ler(Path(args.estado) / ARQUIVO_CADASTRO)
+    anos = [int(a) for a in _lista(args.anos)] if args.anos else None
+    r = tce_rs.coletar(Path(args.estado), cadastro, contato=cfg.contato, anos=anos, limite_minutos=args.limite_minutos)
+    _imprimir(r.para_json())
+    return 0
+
+
 def cmd_emendas(args) -> int:
     """Lê o arquivo de emendas parlamentares da CGU quando ele muda e grava ``emendas.json.gz`` (ADR-044)."""
     cfg = _configuracao(args)
@@ -380,6 +391,7 @@ def cmd_publicar(args) -> int:
     receita = base_cnpj.publicar(estado, site.gravar, gerado_em=gerado_em)
     recebido_de_emendas = emendas.publicar(estado, site.gravar, gerado_em=gerado_em)
     convenios_dos_entes = convenios.publicar(estado, site.gravar, gerado_em=gerado_em)
+    contratos_no_tce = tce_rs.publicar(estado, site.gravar, gerado_em=gerado_em)
     pj = pessoas_juridicas.publicar(estado, painel, site.gravar, gerado_em=gerado_em)
 
     entes = {c: [c, e.nome, e.uf, e.esfera, e.populacao] for c, e in cadastro.entes.items()}
@@ -392,7 +404,7 @@ def cmd_publicar(args) -> int:
               "cadastro": {"entes": len(cadastro), "gerado_em": cadastro.gerado_em},
               "contratacoes": {**painel.cobertura(), "entes": len(painel.entes), "orgaos": len(painel.por_orgao)},
               "conformidade": {"entes": len(avaliacao.entes), "ufs": avaliacao.coletas, "pares": grupos},
-              "transparencia": pntp, "anp": precos_anp, "cnpj": receita, "emendas": recebido_de_emendas, "convenios": convenios_dos_entes, "pj": pj, "operacao": {"alertas": len(situacao["alertas"])},
+              "transparencia": pntp, "anp": precos_anp, "cnpj": receita, "emendas": recebido_de_emendas, "convenios": convenios_dos_entes, "tce": contratos_no_tce, "pj": pj, "operacao": {"alertas": len(situacao["alertas"])},
               "avisos": resumo_avisos}
     site.gravar("indice.json", indice)
     site.finalizar()
@@ -452,6 +464,11 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--estado", required=True)
     c.add_argument("--mes", help="pasta AAAA-MM da Receita (padrão: a mais recente)")
 
+    c = sub.add_parser("tce-rs", help="contratos dos órgãos gaúchos no LicitaCon do TCE-RS, por ente e ano")
+    c.add_argument("--estado", required=True)
+    c.add_argument("--anos", help="só estes anos, separados por vírgula (padrão: de 2016 ao corrente)")
+    c.add_argument("--limite-minutos", type=float, help="não começa outro ano depois disso")
+
     c = sub.add_parser("emendas", help="emendas parlamentares da CGU recebidas por município e UF")
     c.add_argument("--estado", required=True)
 
@@ -478,7 +495,7 @@ def construir_parser() -> argparse.ArgumentParser:
 
 COMANDOS = {"cadastro": cmd_cadastro, "contratacoes": cmd_contratacoes, "faltando": cmd_faltando,
             "conformidade": cmd_conformidade, "rcl": cmd_rcl, "despesa-funcao": cmd_despesa_funcao, "pessoal": cmd_pessoal,
-            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "emendas": cmd_emendas, "convenios": cmd_convenios,
+            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "tce-rs": cmd_tce_rs, "emendas": cmd_emendas, "convenios": cmd_convenios,
             "transparencia": cmd_transparencia, "anp": cmd_anp,
             "publicar": cmd_publicar}
 

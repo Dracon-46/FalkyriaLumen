@@ -241,6 +241,19 @@ body.push(table(["Tipo de fonte", "Quantidade", "Estratégia"], [2600, 1800, 520
 body.push(p("A ordem de ataque dentro da camada 2 é definida por um critério simples: número de " +
   "municípios cobertos por integração construída. Tribunais de contas com dados abertos consolidados " +
   "vêm primeiro; portais estaduais isolados vêm por último."));
+body.push(h2("3.1 Levantamento dos tribunais de contas (21/10/2026, ADR-050)"));
+body.push(p("Os 32 tribunais que fiscalizam municípios foram levantados com as APIs e os downloads testados. A " +
+  "tabela completa está na wiki, página \"Tribunais de contas\". Em resumo:"));
+body.push(table(["Situação", "Tribunais", "Municípios"], [3000, 4600, 2000], [
+  ["Licitações ou contratos em lote, sem chave", "TCE-SP (desde 2018), TCE-RS (2016), TCE-PR (2013), TCE-PE (2011), TCE-CE (2003), TCE-RJ (2020), TCE-ES (2022)", "Perto de 2.080"],
+  ["Lote aberto, incompleto ou com obstáculo", "TCE-PB (sem contratos), TCE-MA (SACOP por API interna), TCE-TO, TCE-AM (sem CNPJ), TCM-PA (só o mural)", "Perto de 790"],
+  ["Atrás de captcha, token ou só em tela", "TCE-MG, TCM-BA, TCE-SC, TCM-GO, TCE-MT", "Perto de 1.850"],
+  ["Nada aberto sobre os municípios", "Os demais; a API do TCE-RN estava fora do ar", "—"],
+], { size: 17 }));
+body.push(p("Ordem de integração: TCE-RS (em uso desde 21/10/2026: contratos de 2016 em diante, lidos por partes " +
+  "no servidor), TCE-SP, TCE-PR, TCE-PE e TCE-CE, perto de 1.900 municípios. Para os cinco atrás de captcha ou " +
+  "token, pedido formal de acesso automatizado ou pela Lei de Acesso à Informação; o do TCE-MT antes de 2027, " +
+  "quando 2021 sai da janela de seis anos do Radar."));
 
 body.push(h1("4. Camada 3 — Municípios"));
 body.push(h2("4.1 Abordagem por família de plataforma"));
@@ -388,7 +401,7 @@ L.buildDoc({
   codigo: "DOC-06",
   titulo: "Catálogo de Fontes",
   subtitulo: "Fontes por esfera, estratégia de cobertura nacional e coleta responsável",
-  meta: { versao: "2.5", data: "21 de outubro de 2026",
+  meta: { versao: "2.6", data: "21 de outubro de 2026",
     situacao: "Atualizado com o comportamento real das fontes da Fase 1, as da aba Eleições e as de referência de mercado (seção 2.8)",
     verificado: "outubro de 2026" },
   body,

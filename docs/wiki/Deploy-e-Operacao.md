@@ -104,6 +104,7 @@ publicação para com erro e o índice não sobe. Falha passageira de envio (408
 | [`paineis-carga.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/paineis-carga.yml) | À mão | Meses anteriores do PNCP em blocos de dias, no máximo quatro máquinas ao mesmo tempo; publica no fim | `LUMEN_CONTATO` |
 | [`paineis-site.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/paineis-site.yml) | Chamado pelos dois acima, e à mão | Baixa o estado, roda `lumen painel publicar` e publica no GitHub Pages | — |
 | [`deteccao-sancoes.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/deteccao-sancoes.yml) | Depois de cada `paineis` e `paineis-carga`, e à mão | Regra J-01 (sanções da CGU × contratos do painel), relatório guardado em `painel-estado` e site publicado de novo, com os avisos ([ADR-047](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-047.md)) | — |
+| [`tce.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/tce.yml) | Todo dia, 03:30 em Brasília, e à mão | Contratos dos órgãos gaúchos no LicitaCon do TCE-RS, só os anos que mudaram (ADR-050) | `LUMEN_CONTATO` |
 | [`mercado-referencia.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/mercado-referencia.yml) | À mão | Regra A-05 com dados reais, em modo silencioso: PNCP, itens, ANP e o relatório como artefato de sete dias | `LUMEN_CONTATO` |
 
 Repositório: [`wiki.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/wiki.yml)
@@ -169,6 +170,12 @@ O fluxo `cnpj` (toda segunda-feira e à mão, ADR-043) lê a base pública de CN
 dos contratos guardados e grava `cnpj-fornecedores.json.gz` na mesma versão `painel-estado`. A primeira leitura de
 um mês baixa perto de 8 GB, um arquivo de cada vez; quando o estado já tem a base do mês para todos os
 fornecedores, ele não baixa nada.
+
+O fluxo `tce` (todo dia às 03:30 de Brasília e à mão, ADR-050) lê os contratos dos órgãos gaúchos no LicitaCon do
+TCE-RS e grava `tce-rs.json.gz` na versão `painel-estado`. Cada ano vem de um ZIP lido no servidor por partes
+(`Range`), uns 5 MB por ano. Um ano fechado só é relido quando o arquivo muda de tamanho, e o corrente e o anterior,
+uma vez por semana. Na maioria dos dias, o fluxo só confere os cabeçalhos. A carga inteira, de 2016 em diante, leva
+perto de 2 minutos. À mão, o campo `anos` relê só os anos pedidos.
 
 O site dos painéis tinha perto de 30 mil arquivos em outubro de 2026, e a implantação do GitHub Pages demora
 com o número deles: em 20/10/2026, o `deploy-pages` estourou o prazo padrão de 10 minutos. O `paineis-site` dá

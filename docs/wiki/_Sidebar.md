@@ -12,6 +12,7 @@
 - [[Instalação e execução|Instalacao-e-Execucao]]
 - [[Configuração e variáveis|Configuracao-e-Variaveis]]
 - [[APIs e contratos|APIs-e-Contratos]]
+- [[Tribunais de contas|Tribunais-de-Contas]]
 - [[Banco de dados|Banco-de-Dados]]
 - [[Testes|Testes]]
 - [[Deploy e operação|Deploy-e-Operacao]]

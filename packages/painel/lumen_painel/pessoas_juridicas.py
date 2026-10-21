@@ -8,9 +8,11 @@ As contratações, as emendas e os convênios são publicados por ente (quem con
 - **emendas:** o recebido de emendas parlamentares como favorecida, por ente e ano (``[ente, ano, valor]``,
   ADR-044);
 - **convenios:** os convênios com a União como convenente (ADR-045), com o objeto cortado em ``OBJETO``
-  caracteres.
+  caracteres;
+- **tce:** os contratos registrados no tribunal de contas (o LicitaCon do TCE-RS, ADR-050), por ente e ano do
+  contrato (``[ente, ano, contratos, valor]``).
 
-O nome é o mais recente das contratações e, sem elas, o dos convênios ou das emendas; as fontes já chegam com o
+O nome é o mais recente das contratações e, sem elas, o dos convênios, das emendas ou do tribunal de contas; as fontes já chegam com o
 CPF do MEI mascarado (ADR-043). A página do portal junta o cartão da Receita (``cnpj/``). Pessoa física não
 entra: o índice é por CNPJ.
 
@@ -29,7 +31,7 @@ import unicodedata
 from pathlib import Path
 from typing import Any, Callable
 
-from . import convenios, emendas
+from . import convenios, emendas, tce_rs
 from .comum import grupo_do_cnpj, ler_json
 from .contratacoes import Painel
 
@@ -53,7 +55,7 @@ def palavras_da_busca(nome: str | None) -> list[str]:
 
 def _registro(indice: dict[str, dict], cnpj: str) -> dict:
     """O registro do CNPJ no índice, criado vazio na primeira vez."""
-    return indice.setdefault(cnpj, {"nome": None, "contratos": {}, "emendas": {}, "convenios": []})
+    return indice.setdefault(cnpj, {"nome": None, "contratos": {}, "emendas": {}, "convenios": [], "tce": {}})
 
 
 def de_contratacoes(indice: dict[str, dict], painel: Painel) -> None:
@@ -105,7 +107,7 @@ def montar_busca(indice: dict[str, dict]) -> tuple[dict[str, list], list[str]]:
     busca: dict[str, list] = {}
     for cnpj, registro in indice.items():
         peso = round(sum(v for _, v in registro["contratos"].values()) + sum(registro["emendas"].values())
-                     + sum(c[5] for c in registro["convenios"]), 2)
+                     + sum(c[5] for c in registro["convenios"]) + sum(v for _, v in registro["tce"].values()), 2)
         palavras = palavras_da_busca(registro["nome"])
         for prefixo in sorted({p[:2] for p in palavras}):
             busca.setdefault(prefixo, []).append((cnpj, registro["nome"], peso, palavras))
@@ -116,6 +118,17 @@ def montar_busca(indice: dict[str, dict]) -> tuple[dict[str, list], list[str]]:
                 busca.setdefault(prefixo, []).append(pessoa)
     return ({prefixo: [list(p[:3]) for p in sorted(pessoas, key=lambda x: (-x[2], x[0]))]
              for prefixo, pessoas in busca.items()}, divididos)
+
+
+def de_tce(indice: dict[str, dict], dados: dict) -> None:
+    """Os contratos de cada empresa registrados no tribunal de contas, por ente e ano (o estado de ``tce_rs``)."""
+    nomes = dados.get("nomes") or {}
+    for ano, a in (dados.get("anos") or {}).items():
+        for ente, fornecedores in a["fornecedores"].items():
+            for cnpj, (n, valor) in fornecedores.items():
+                r = _registro(indice, cnpj)
+                r["nome"] = r["nome"] or nomes.get(cnpj)
+                r["tce"][(ente, ano)] = [n, valor]
 
 
 def _estado(estado: Path, modulo) -> dict | None:
@@ -134,6 +147,7 @@ def para_json(registro: dict) -> dict:
         "contratos": [[ente, ano, n, round(v, 2)] for (ente, ano), (n, v) in sorted(registro["contratos"].items())],
         "emendas": [[ente, ano, round(v, 2)] for (ente, ano), v in sorted(registro["emendas"].items())],
         "convenios": sorted(registro["convenios"], key=lambda c: (c[7] or "", c[0], c[1])),
+        "tce": [[ente, ano, n, round(v, 2)] for (ente, ano), (n, v) in sorted(registro["tce"].items())],
     }
 
 
@@ -148,6 +162,9 @@ def publicar(estado: Path | str, painel: Painel, gravar: Callable[[str, Any], An
     dados_emendas = _estado(estado, emendas)
     if dados_emendas:
         de_emendas(indice, dados_emendas)
+    dados_tce = _estado(estado, tce_rs)
+    if dados_tce:
+        de_tce(indice, dados_tce)
     grupos: dict[str, dict[str, dict]] = {}
     for cnpj, registro in indice.items():
         grupos.setdefault(grupo_do_cnpj(cnpj), {})[cnpj] = para_json(registro)
@@ -163,12 +180,14 @@ def publicar(estado: Path | str, painel: Painel, gravar: Callable[[str, Any], An
         gravar(f"pj/{grupo}.json.gz", {
             "versao": 1, "tipo": "pessoas-juridicas", "gerado_em": gerado_em,
             "colunas": {"contratos": ["ente", "ano", "contratos", "valor"], "emendas": ["ente", "ano", "valor"],
-                        "convenios": COLUNAS_CONVENIO},
+                        "convenios": COLUNAS_CONVENIO, "tce": ["ente", "ano", "contratos", "valor"]},
             "fontes": {"emendas": (dados_emendas or {}).get("data_arquivo"),
-                       "convenios": (dados_convenios or {}).get("data_arquivo")},
+                       "convenios": (dados_convenios or {}).get("data_arquivo"),
+                       "tce": (dados_tce or {}).get("coletado_em")},
             "pessoas": dict(sorted(pessoas.items())),
         })
     return {"pessoas": len(indice), "arquivos": len(grupos), "arquivos_busca": len(busca),
             "com_contratos": sum(1 for r in indice.values() if r["contratos"]),
             "com_emendas": sum(1 for r in indice.values() if r["emendas"]),
-            "com_convenios": sum(1 for r in indice.values() if r["convenios"])}
+            "com_convenios": sum(1 for r in indice.values() if r["convenios"]),
+            "com_tce": sum(1 for r in indice.values() if r["tce"])}
