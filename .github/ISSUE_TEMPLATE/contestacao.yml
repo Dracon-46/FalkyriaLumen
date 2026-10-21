@@ -1,0 +1,50 @@
+name: Contestar um aviso
+description: Você é citado num aviso do Lumen (ou o conhece) e quer apontar um erro ou dar contexto.
+title: "[contestação] "
+labels: ["contestacao"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Os avisos do Lumen são fatos observados em dados públicos, com a fonte de cada um (ADR-047). Não são
+        acusação. Esta contestação **é pública**: aparece aqui e, na publicação seguinte, no próprio aviso,
+        marcado como "contestado, em análise".
+
+        - **Não escreva** CPF, endereço, telefone ou outros dados pessoais, nem anexe documento que os tenha.
+          Basta o link da publicação oficial (diário oficial, processo, decisão).
+        - Se a contestação for aceita, o aviso é retificado ou tirado do portal. Se não, ele fica, com a
+          contestação ao lado.
+  - type: input
+    id: aviso
+    attributes:
+      label: Código do aviso
+      description: "Os 12 caracteres que aparecem no fim do aviso (ex.: 3f2a9c1b7d04)."
+    validations:
+      required: true
+  - type: input
+    id: resumo
+    attributes:
+      label: O aviso
+      description: "O título do aviso, como aparece no portal."
+  - type: dropdown
+    id: quem
+    attributes:
+      label: Quem contesta
+      options:
+        - A empresa citada
+        - O órgão ou ente citado
+        - Outra pessoa
+    validations:
+      required: true
+  - type: textarea
+    id: explicacao
+    attributes:
+      label: O que está errado ou falta no aviso
+      description: "Por exemplo, a sanção foi suspensa por decisão judicial antes da assinatura, ou o relatório foi entregue no prazo."
+    validations:
+      required: true
+  - type: textarea
+    id: documentos
+    attributes:
+      label: Documentos públicos que mostram isso
+      description: "Links para o diário oficial, o processo, a decisão ou a publicação na fonte."

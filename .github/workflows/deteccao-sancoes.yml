@@ -1,4 +1,4 @@
-# Regra J-01 em modo silencioso — ADR-031.
+# Regra J-01: sanções da CGU × contratos do painel — ADR-031 e ADR-047.
 #
 # Roda sozinho toda vez que o painel termina de carregar dias novos do PNCP
 # (paineis, todo dia, e paineis-carga), e à mão. Baixa o retrato do dia do
@@ -7,10 +7,10 @@
 # "painel-estado") e cruza: contrato com fornecedor que constava num cadastro
 # que o impedia de contratar, na data da assinatura.
 #
-# Nada disto é publicado. O resumo da execução só tem contagens (sem nome de
-# fornecedor nem de órgão), e o relatório completo vai para o bucket privado
-# do armazenamento (deteccao/j01/ultimo.json.gz), com os mesmos segredos do
-# eleicoes-carga. Sem eles, fica só o resumo.
+# Desde 21/10/2026 (ADR-047) o relatório é publicado como avisos: vai para o
+# estado dos painéis (deteccao-j01.json.gz, na versão "painel-estado") e o
+# site é refeito no fim, para os avisos saírem no mesmo dia. Continua indo
+# também para o bucket privado, se houver os segredos do eleicoes-carga.
 
 name: deteccao-sancoes
 
@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write     # o relatório vai para os anexos da versão painel-estado
 
 concurrency:
   group: deteccao-sancoes
@@ -57,12 +57,24 @@ jobs:
           lumen normalizar --fontes cgu_ceis,cgu_cnep
       - name: Contratos guardados pelo painel
         run: ferramentas/painel/dias.sh baixar estado
-      - name: Cruzamento (modo silencioso)
+      - name: Cruzamento
         run: |
-          set -- j01 --estado estado --resumo "$GITHUB_STEP_SUMMARY"
+          set -- j01 --estado estado --resumo "$GITHUB_STEP_SUMMARY" --saida estado/deteccao-j01.json.gz
           if [ -n "$LUMEN_S3_CHAVE_ACESSO" ] && [ -n "$LUMEN_PUBLICACAO_ENDPOINT" ]; then
             set -- "$@" --privado
           else
-            echo "::notice::Sem as chaves do armazenamento: só o resumo, sem o relatório completo."
+            echo "::notice::Sem as chaves do armazenamento: o relatório fica só no estado dos painéis."
           fi
           lumen deteccao "$@"
+      - name: Guardar o relatório no estado dos painéis
+        run: gh release upload painel-estado estado/deteccao-j01.json.gz --clobber
+
+  site:
+    needs: j01
+    permissions:
+      contents: read
+      actions: read
+      issues: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/paineis-site.yml

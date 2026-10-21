@@ -1,13 +1,13 @@
-"""Linha de comando das regras de detecção em modo silencioso.
+"""Linha de comando das regras de detecção.
 
     lumen deteccao j01 --estado DIR [--silver DIR] [--saida ARQ] [--resumo ARQ] [--privado]
 
 ``j01`` cruza os contratos do painel (``contratacoes-AAAA-MM-DD.json.gz`` em ``--estado``) com as sanções da
 silver (``lumen coletar cgu_ceis`` e ``cgu_cnep``, depois ``lumen normalizar``). Imprime só as contagens.
-O relatório completo, com as coincidências, vai para ``--saida`` (um arquivo local) e, com ``--privado``,
-para o bucket privado da publicação (``deteccao/j01/ultimo.json.gz``, trocado a cada execução, com a data
-dentro): nunca para um lugar público (ADR-031). Guardar só o último mantém o bucket privado pequeno (o
-relatório tem perto de 600 KB comprimido); qualquer dia pode ser refeito a partir dos dados. ``--resumo`` acrescenta o resumo sem nomes a um arquivo Markdown (o resumo da execução no GitHub).
+O relatório completo, com as coincidências, vai para ``--saida``: no fluxo ``deteccao-sancoes``, o
+``deteccao-j01.json.gz`` do estado dos painéis, de onde saem os avisos do portal (ADR-047). Com ``--privado``,
+vai também para o bucket privado da publicação (``deteccao/j01/ultimo.json.gz``, trocado a cada execução).
+``--resumo`` acrescenta o resumo, só com contagens, a um arquivo Markdown (o resumo da execução no GitHub).
 """
 
 from __future__ import annotations
@@ -75,7 +75,7 @@ def cmd_j01(args) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     """Ponto de entrada de ``lumen deteccao`` e de ``python -m lumen_deteccao``."""
-    parser = argparse.ArgumentParser(prog="lumen deteccao", description="Regras de detecção em modo silencioso")
+    parser = argparse.ArgumentParser(prog="lumen deteccao", description="Regras de detecção")
     parser.add_argument("--config", help="caminho do lumen.toml")
     sub = parser.add_subparsers(dest="comando", required=True)
     p = sub.add_parser("j01", help="contratos com fornecedor que constava num cadastro de sanções da CGU")

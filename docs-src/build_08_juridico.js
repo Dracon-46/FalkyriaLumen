@@ -9,6 +9,8 @@ body.push(callout("Natureza deste documento", [
   "Antes de a primeira publicação ir ao ar, a política aqui descrita deve ser revisada por advogado com " +
   "atuação em direito digital e responsabilidade civil, e o fluxo de direito de resposta deve ser " +
   "validado por esse profissional.",
+  "Os avisos do portal (ADR-047) foram ao ar em 21/10/2026, por decisão do autor, antes dessa revisão. Ela " +
+  "continua recomendada.",
 ], "red"));
 
 body.push(h1("1. Base legal para coletar, tratar e republicar"));
@@ -45,7 +47,8 @@ body.push(table(["Situação", "Risco", "Como o Lumen o neutraliza"], [2400, 330
   ["Rotular pessoa ou empresa como suspeita", "Alto",
     "Vocabulário controlado veda o termo; o rótulo recai sobre a atividade, nunca sobre a pessoa"],
   ["Publicar indício com dado de origem incorreto", "Alto",
-    "Revisão humana confere o documento fonte antes da publicação; errata com mesmo destaque"],
+    "Link da fonte em cada aviso, ressalva em toda página, contestação marcada na publicação seguinte e remoção " +
+    "quando o dado estava errado (ADR-047); errata com mesmo destaque"],
   ["Ordenar entes por pontuação de risco", "Alto",
     "Não existe ranking de risco; a ordenação pública é por conformidade objetiva"],
   ["Cruzar doação eleitoral e apresentar como nexo", "Alto",
@@ -125,13 +128,13 @@ body.push(table(["Cód.", "Regra"], [1100, 8500], [
   ["PUB-02", "Todo indício exibe a regra aplicada, sua versão, seus parâmetros e a referência comparada."],
   ["PUB-03", "Todo indício exibe pelo menos um documento fonte com link, hash e data de coleta."],
   ["PUB-04", "Nenhum indício é publicado sem que o documento fonte esteja armazenado e íntegro."],
-  ["PUB-05", "Indícios de severidade alta exigem aprovação de dois analistas distintos."],
+  ["PUB-05", "Avisos são publicados sem revisão humana prévia (ADR-047, decisão do autor): cada um traz a ressalva, a fonte, o que observar e o link de contestação, e a revisão vem depois, quando alguém contesta. Indícios do motor de regras (Fase 2) de severidade alta continuam exigindo dois analistas."],
   ["PUB-06", "O nome de agente público aparece apenas como signatário do ato, sem adjetivação."],
   ["PUB-07", "Não existe ranking público de entes por pontuação de risco; a ordenação pública é por conformidade objetiva."],
   ["PUB-08", "Toda página pública exibe o aviso metodológico e o link para a metodologia completa."],
   ["PUB-09", "Erratas e remoções são publicadas no mesmo canal, no mesmo formato e com o mesmo destaque da publicação original."],
   ["PUB-10", "Comunicação em redes sociais segue exatamente o mesmo vocabulário controlado, sem exceção para linguagem informal."],
-  ["PUB-11", "Nenhum indício é publicado enquanto houver contestação pendente de análise que alegue erro de dado."],
+  ["PUB-11", "O aviso contestado continua publicado e aparece como contestado, em análise, a partir da publicação seguinte; sai quando a análise conclui que o dado estava errado (ADR-047)."],
   ["PUB-12", "Critérios de detecção e publicação são idênticos para todos os entes, sem distinção de porte, região ou vinculação política."],
 ]));
 
@@ -211,6 +214,15 @@ body.push(table(["Instância", "Composição", "Competência"], [2200, 3400, 400
   ["Consulta jurídica", "Advogado externo",
     "Avaliar caso limite, contestação com ameaça de medida judicial e revisão anual da política"],
 ]));
+
+body.push(callout("Avisos sem revisão prévia (ADR-047)", [
+  "O projeto tem um autor só, e ele decidiu que a revisão antes da publicação não é viável. Os avisos do portal " +
+  "(contrato com empresa sancionada, valor a conferir, relatório fiscal que não consta ou atrasado, portal de " +
+  "transparência com nível baixo) vão a público com ressalva, e as instâncias acima passam a atuar depois: na " +
+  "análise das contestações.",
+  "A contestação é uma issue pública no repositório, aberta pelo link do próprio aviso. Aberta, marca o aviso " +
+  "como contestado; fechada com o rótulo removido, tira o aviso; com retificado, deixa a nota de retificação.",
+], "amber"));
 
 body.push(h2("7.1 Situações que exigem escalonamento obrigatório"));
 body.push(bullet("Contestação acompanhada de notificação extrajudicial ou ameaça de medida judicial."));

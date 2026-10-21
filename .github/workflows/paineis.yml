@@ -232,6 +232,7 @@ jobs:
     permissions:
       contents: read
       actions: read       # execuções dos fluxos para o painel operacional (ADR-039)
+      issues: read       # contestações dos avisos (ADR-047)
       pages: write
       id-token: write
     uses: ./.github/workflows/paineis-site.yml

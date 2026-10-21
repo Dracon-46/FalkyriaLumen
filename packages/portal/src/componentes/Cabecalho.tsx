@@ -21,6 +21,7 @@ const ABAS: { area: Area; rotulo: string; prefixo: string }[] = [
   { area: "contratacoes", rotulo: "Contratações", prefixo: "/contratacoes" },
   { area: "conformidade", rotulo: "Conformidade", prefixo: "/conformidade" },
   { area: "economia", rotulo: "Economia", prefixo: "/economia" },
+  { area: "avisos", rotulo: "Avisos", prefixo: "/avisos" },
 ];
 
 /** Cabeçalho do Lumen. A parte que lê a URL fica num `Suspense`, como o site estático exige. */

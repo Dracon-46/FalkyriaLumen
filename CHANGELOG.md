@@ -5,6 +5,26 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Avisos: o que aconteceu e o que observar, em público (ADR-047)
+
+- Página nova, **Avisos** (`/avisos/`), na barra de abas e no filtro de local:
+  no Brasil, os totais por tipo e por UF e os mais recentes; num estado ou
+  município, todos os avisos dele (o estado, com os municípios se pedido),
+  com filtro de tipo e de período, em ordem de data.
+- Cinco tipos, cada um com a fonte e o que observar: contrato assinado com
+  empresa que constava no CEIS ou no CNEP (J-01, com o alcance da sanção),
+  valor a conferir na fonte, relatório fiscal que não consta, relatórios
+  fiscais em atraso e portal de transparência com nível baixo no PNTP.
+- Públicos sem revisão prévia, por decisão do autor, sempre com a ressalva
+  de que aviso não é acusação. O DOC-07 e o DOC-08 mudam com isso (PUB-05 e
+  PUB-11), e a J-01 deixa o modo silencioso do ADR-031.
+- Contestação pelo link do aviso: abre uma issue pública com o formulário
+  `contestacao`. Aberta, o aviso aparece como contestado na publicação
+  seguinte; fechada com `removido`, ele sai; com `retificado`, fica com a
+  nota.
+- O fluxo da J-01 guarda o relatório no estado dos painéis e publica o site.
+  Nome de fornecedor e objeto passam pela máscara de CPF.
+
 ### Histórico desde 2021 e filtro de período em todas as abas (ADR-046)
 
 - **Contratações desde agosto de 2021**, quando o PNCP começou: a carga

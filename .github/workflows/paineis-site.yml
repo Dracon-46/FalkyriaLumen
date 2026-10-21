@@ -1,11 +1,14 @@
 # Publicação dos painéis de contratações e de conformidade — ADR-028.
 #
-# Monta o site inteiro a partir do estado guardado nos anexos da versão
-# "painel-estado" (um arquivo por dia do PNCP, um por UF da conformidade e o
-# cadastro de entes) e o publica no GitHub Pages, de onde o portal lê:
+# Monta o site inteiro a partir do estado guardado nos anexos das versões
+# "painel-estado" (um por UF da conformidade, o cadastro de entes, economia,
+# transparência, ANP e o relatório da J-01) e "painel-dias-AAAA" (um arquivo
+# por dia do PNCP), mais as contestações dos avisos (issues), e o publica no
+# GitHub Pages, de onde o portal lê:
 # https://dracon-46.github.io/FalkyriaLumen/
 #
-# Chamado no fim de paineis.yml e de paineis-carga.yml; pode ser disparado à
+# Chamado no fim de paineis.yml, de paineis-carga.yml e de deteccao-sancoes.yml
+# (os avisos da J-01 saem no mesmo dia); pode ser disparado à
 # mão para refazer o site (a avaliação da conformidade usa a data do dia: um
 # prazo que vence muda o resultado sem coleta nova).
 #
@@ -22,6 +25,7 @@ on:
 permissions:
   contents: read
   actions: read       # execuções dos fluxos para o painel operacional (ADR-039)
+  issues: read       # contestações dos avisos (ADR-047)
   pages: write
   id-token: write
 
@@ -54,6 +58,12 @@ jobs:
             gh release download "$TAG" -D estado --clobber -p '*.json.gz'
           fi
           ferramentas/painel/dias.sh baixar estado
+      - name: Contestações dos avisos (issues com o rótulo contestacao, ADR-047)
+        run: |
+          gh api --paginate "repos/$GITHUB_REPOSITORY/issues?labels=contestacao&state=all&per_page=100" \
+            --jq '[.[] | {title, body, state, html_url, created_at, labels: [.labels[].name]}]' | jq -s 'add // []' \
+            > estado/contestacoes.json || echo '[]' > estado/contestacoes.json
+          echo "contestações: $(jq length estado/contestacoes.json)"
           ls estado | sed -e 's/-[0-9-]*\.json\.gz$//' -e 's/-[A-Z]*\.json\.gz$//' | sort | uniq -c
       - name: Execuções dos fluxos de dados (painel operacional)
         run: |

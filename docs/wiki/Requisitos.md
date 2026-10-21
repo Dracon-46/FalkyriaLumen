@@ -98,7 +98,7 @@ Prioridade em MoSCoW: **M** obrigatório na versão 1.0, **S** importante, **C**
 | RF-DE-14 | Detectar concentração atípica de empenhos no encerramento do exercício | S |
 | RF-DE-15 | Detectar aditivos que elevem o valor do contrato acima dos percentuais previstos em lei | M |
 | RF-DE-16 | Calcular score composto e severidade para cada indício | M |
-| RF-DE-17 | Indícios acima do limiar de severidade entram obrigatoriamente em fila de revisão humana antes de qualquer publicação | M |
+| RF-DE-17 | Indícios do motor de regras acima do limiar de severidade entram obrigatoriamente em fila de revisão humana antes de qualquer publicação; os avisos do portal ficam fora, publicados com ressalva e contestação ([ADR-047](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-047.md)) | M |
 | RF-DE-18 | Simular uma regra sobre dados históricos sem publicar, para calibração | M |
 | RF-DE-19 | Registrar indícios descartados com o motivo, para realimentar a calibração | M |
 | RF-DE-20 | Não produzir, em nenhum campo, texto que afirme ou sugira conduta contrária à lei | M |
@@ -257,6 +257,8 @@ Situação descrita no DOC-10 (seção 9), no README e nas ADRs:
   indeterminado quando a dúvida é do Lumen (RF-CF-01, RF-CF-02, RF-CF-07).
 - **Publicação:** painéis de Contratações e de Conformidade com fatos publicados, sem indício
   ([ADR-028](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-028.md)), e aba Eleições.
+- **Avisos:** página pública com o que aconteceu em cada local e o que observar (J-01, valor a conferir,
+  LRF e PNTP), com ressalva e contestação, sem revisão prévia ([ADR-047](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-047.md)).
 
 ## Casos de uso (DOC-03)
 

@@ -46,7 +46,7 @@ lumen coletar ibge_localidades --de 2026-10-05
 lumen coletar siconfi_extrato --de 2026-10-05 --entes 3550308 --exercicio 2025
 lumen coletar cgu_ceis           # sanções da CGU: o retrato do dia, sem --de (também cgu_cnep e cgu_cepim)
 lumen coletar pntp_avaliacoes    # portais de transparência de todos os entes (PNTP), sem --de
-lumen deteccao j01 --estado DIR  # regra J-01 em modo silencioso: contratos do painel × sanções
+lumen deteccao j01 --estado DIR  # regra J-01: contratos do painel × sanções (vira avisos, ADR-047)
 lumen economia coletar --estado DIR      # séries do SGS do Banco Central (inflação, juros, dívida, fiscal, PIB)
 lumen economia publicar --estado DIR --saida SITE   # economia/indicadores.json para o portal
 lumen normalizar                 # bronze → silver, idempotente
