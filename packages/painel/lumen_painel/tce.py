@@ -10,6 +10,10 @@ Cada tribunal tem o próprio módulo (``tce_rs``, ``tce_pr``), que lê a fonte d
 - ``nomes``: o nome de cada CNPJ, com o CPF do MEI mascarado;
 - ``tribunal``, ``sistema``, ``fonte`` e ``primeiro_ano``.
 
+A leitura por partes (``ArquivoRemoto``) é um arquivo que o ``zipfile`` abre e lê em fluxo. O ``zip_remoto`` do
+``lumen_ingestao`` (ADR-032) faz parecido, mas traz o arquivo pedido inteiro para a memória e não lê ZIP64; o
+``pessoas.csv`` do TCE-RS tem 200 MB.
+
 O valor acima do teto de plausibilidade do ente (o mesmo do painel de contratações, ADR-028) conta e fica fora
 da soma. Contrato com pessoa física entra só na soma anônima, sem nome nem documento (DOC-08). A publicação junta
 todos os tribunais em ``tce/ente/<grupo>.json.gz``: um ente só é fiscalizado por um tribunal.
