@@ -14,6 +14,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { LigacoesDoEnte } from "@/componentes/Ligacoes";
 import { EmpresaReceitaCartao } from "./EmpresaReceita";
+import { TceNoEnte } from "./TceNoEnte";
 import { FiltroPeriodo } from "@/componentes/FiltroPeriodo";
 import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import { instante } from "@/lib/formato";
@@ -753,6 +754,7 @@ function Ente({
       </h2>
       <Periodo cobertura={dados.cobertura} gerado={dados.gerado_em} />
       <Secoes dados={dados} onOrgao={onOrgao} />
+      <TceNoEnte codigo={e.codigo} meses={originais.meses} />
       {dados.municipios && dados.municipios.length > 0 && (
         <section className="cartao cartao-corpo">
           <h2 className="titulo-secao">Municípios de {e.uf}</h2>

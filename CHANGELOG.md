@@ -13,6 +13,9 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   Governos municipais e na página da empresa, como os do RS e do PR.
 - Governos municipais: no lado a lado com outro município, o mandato aberto
   mostra também o contratado no tribunal de contas do outro, no mesmo mandato.
+- Contratações: na página de um ente cujo tribunal já está no Lumen, os
+  contratos ano a ano no PNCP ao lado dos registrados no tribunal, que mostram
+  os anos antes de 2024, quando nem tudo passava pelo PNCP.
 
 ## 0.9.0 — 2026-10-21
 

@@ -1,6 +1,6 @@
 import { gzipSync } from "node:zlib";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { carregarTce, type TceEnte, tceNoPeriodo } from "../tce";
+import { anoAAnoComPncp, carregarTce, type TceEnte, tceNoPeriodo } from "../tce";
 
 const sepe: TceEnte = {
   tribunal: "TCE-RS", sistema: "LicitaCon", fonte: "f", primeiroAno: 2016, coletadoEm: null,
@@ -25,6 +25,22 @@ describe("contratos no tribunal de contas", () => {
     expect(r.anos).toEqual(["2019"]);
     expect(r.valor).toBe(2000);
     expect(r.fornecedores[0]).toMatchObject({ contratos: 4, valor: 1200 });
+  });
+});
+
+describe("ano a ano ao lado do PNCP", () => {
+  it("soma os meses do PNCP por ano e junta com o tribunal, do mais recente ao mais antigo", () => {
+    const meses = [
+      { mes: "2022", contratos: 4, valor_contratos: 40 },               // ano publicado inteiro (ADR-046)
+      { mes: "2023-01", contratos: 2, valor_contratos: 20 },
+      { mes: "2023-07", contratos: 1, valor_contratos: 5 },
+    ];
+    expect(anoAAnoComPncp(sepe, meses)).toEqual([
+      { ano: "2023", pncpContratos: 3, pncpValor: 25, tceContratos: 7, tceValor: 700 },
+      { ano: "2022", pncpContratos: 4, pncpValor: 40, tceContratos: null, tceValor: null },
+      { ano: "2020", pncpContratos: null, pncpValor: null, tceContratos: 5, tceValor: 500 },
+      { ano: "2019", pncpContratos: null, pncpValor: null, tceContratos: 10, tceValor: 1000 },
+    ]);
   });
 });
 

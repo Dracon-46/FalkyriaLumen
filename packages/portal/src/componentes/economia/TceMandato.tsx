@@ -90,7 +90,8 @@ export function TceMandato({ estado, anos, anosComparado, outroMunicipio = null,
       )}
       <p className="busca-detalhe">
         Contratos que os órgãos do município (prefeitura, câmara, fundos, autarquias e fundações; consórcios ficam
-        de fora) registraram no {t.sistema}, o sistema do {t.tribunal}, pelo ano do contrato, desde {t.primeiroAno}.
+        de fora) registraram no {t.sistema}, o sistema do {t.tribunal}, pelo ano do contrato
+        {t.primeiroAno ? `, desde ${t.primeiroAno}` : ""}.
         Valores {unidade}. Contrato acima do
         teto de plausibilidade conta e fica fora da soma
         {r.foraDaSoma ? ` (${numero(r.foraDaSoma)} no mandato)` : ""}; com pessoa física, só a soma

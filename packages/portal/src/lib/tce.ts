@@ -18,7 +18,8 @@ export interface TceEnte {
   tribunal: string;
   sistema: string;
   fonte: string;
-  primeiroAno: number;
+  /** Ausente nos estados gravados antes do módulo comum dos tribunais. */
+  primeiroAno: number | null;
   coletadoEm: string | null;
   anos: Record<string, AnoTce>;
   /** `[CNPJ, nome, [[ano, contratos, valor], ...]]`, do maior valor ao menor (até 100). */
@@ -29,7 +30,7 @@ export interface TceEnte {
 interface GrupoTce {
   versao: 1;
   tipo: "tce-entes";
-  tribunais: Record<string, { sistema: string; fonte: string; coletado_em: string | null; primeiro_ano: number }>;
+  tribunais: Record<string, { sistema: string; fonte: string; coletado_em: string | null; primeiro_ano?: number | null }>;
   entes: Record<string, { tribunal: string; anos: Record<string, AnoTce>; fornecedores: TceEnte["fornecedores"] }>;
 }
 
@@ -42,7 +43,7 @@ export async function carregarTce(codigo: string, sinal?: AbortSignal): Promise<
   const e = grupo.entes?.[codigo];
   const t = e ? grupo.tribunais[e.tribunal] : undefined;
   if (!e || !t) return null;
-  return { tribunal: e.tribunal, sistema: t.sistema, fonte: t.fonte, primeiroAno: t.primeiro_ano,
+  return { tribunal: e.tribunal, sistema: t.sistema, fonte: t.fonte, primeiroAno: t.primeiro_ano ?? null,
            coletadoEm: t.coletado_em, anos: e.anos, fornecedores: e.fornecedores };
 }
 
@@ -90,4 +91,36 @@ export function tceNoPeriodo(t: TceEnte, anos: string[], converter: (valor: numb
   }
   r.fornecedores.sort((x, y) => y.valor - x.valor || y.contratos - x.contratos);
   return r;
+}
+
+/** Um ano na comparação com o PNCP: contratos e valor nas duas fontes (`null` quando a fonte não tem o ano). */
+export interface AnoComPncp {
+  ano: string;
+  pncpContratos: number | null;
+  pncpValor: number | null;
+  tceContratos: number | null;
+  tceValor: number | null;
+}
+
+/**
+ * Os anos do ente nas duas fontes, do mais recente ao mais antigo: os meses do PNCP (`AAAA-MM`, ou `AAAA` nos anos
+ * publicados ano a ano) somados por ano, ao lado do tribunal. As fontes não se somam: de 2021 em diante, muitos
+ * contratos estão nas duas.
+ */
+export function anoAAnoComPncp(t: TceEnte, meses: { mes: string; contratos: number; valor_contratos: number }[]): AnoComPncp[] {
+  const pncp = new Map<string, { contratos: number; valor: number }>();
+  for (const m of meses) {
+    const ano = m.mes.slice(0, 4);
+    const x = pncp.get(ano) ?? { contratos: 0, valor: 0 };
+    x.contratos += m.contratos;
+    x.valor += m.valor_contratos;
+    pncp.set(ano, x);
+  }
+  const anos = [...new Set([...pncp.keys(), ...Object.keys(t.anos)])].sort().reverse();
+  return anos.map((ano) => {
+    const p = pncp.get(ano);
+    const a = t.anos[ano];
+    return { ano, pncpContratos: p ? p.contratos : null, pncpValor: p ? p.valor : null,
+             tceContratos: a ? a[0] : null, tceValor: a ? a[1] : null };
+  });
 }
