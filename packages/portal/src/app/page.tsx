@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-/** Apresentação e um cartão por área (Eleições, Contratações, Economia, Conformidade). */
+/** Apresentação e um cartão por área (Eleições, Contratações, Economia, Conformidade, Empresas e entidades). */
 export default function Inicio() {
   return (
     <>
@@ -38,6 +38,13 @@ export default function Inicio() {
           <p>
             Se as contas anuais, o RREO e o RGF de cada estado e município constam do extrato do Tesouro Nacional, e em
             que data, contra o prazo da Lei de Responsabilidade Fiscal.
+          </p>
+        </Link>
+        <Link href="/pessoa-juridica/" className="cartao inicio-cartao">
+          <h2>Empresas e entidades</h2>
+          <p>
+            Uma empresa ou entidade pelo CNPJ ou pelo nome: o cadastro na Receita, os contratos com a União, os
+            estados e os municípios no PNCP, as emendas parlamentares recebidas e os convênios com a União.
           </p>
         </Link>
       </div>
