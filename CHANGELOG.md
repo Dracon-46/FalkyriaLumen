@@ -5,6 +5,21 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Histórico desde 2021 e filtro de período em todas as abas (ADR-046)
+
+- **Contratações desde agosto de 2021**, quando o PNCP começou: a carga
+  (`paineis-carga`) passa a começar em 2021-08-01. Cada ano de dias fica
+  numa versão própria (`painel-dias-AAAA`), porque uma versão aceita até mil
+  anexos. Os anos antes do anterior são publicados ano a ano, para o site
+  caber no GitHub Pages, e o filtro de período oferece esses anos inteiros.
+- **Conformidade desde 2021**: o exercício anterior e o corrente são
+  coletados todo dia; os encerrados, uma vez só, um por dia, do mais
+  recente para trás.
+- **Filtro de período** também na Economia (recorta o gráfico e a tabela da
+  série, com atalhos de 12 meses e 5, 10 e 20 anos) e na Conformidade (por
+  exercício, com contagens e frações refeitas).
+- No celular, tabelas e campos de mês não alargam mais a página.
+
 ### Implantação do site dos painéis
 
 - O `deploy-pages` estourou o prazo de 10 minutos em 20/10/2026 (o site tem

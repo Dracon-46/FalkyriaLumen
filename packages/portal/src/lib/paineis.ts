@@ -264,6 +264,8 @@ export interface ConformidadeEnte {
   ente: EnteResumo;
   coleta: Record<string, boolean>;
   resumo: ResumoConformidade;
+  /** O resumo de cada exercício (`"2025"`), para o filtro de período; ausente nos arquivos antigos. */
+  por_exercicio?: Record<string, ResumoConformidade>;
   obrigacoes: Obrigacao[];
   /** Grupo de pares (ADR-038); ausente nos arquivos publicados antes dele. */
   pares?: ParesConformidade;
@@ -457,7 +459,8 @@ export interface ConformidadeUf {
   avaliado_em: string;
   coletado_em: string | null;
   uf: string;
-  entes: (ResumoConformidade & { codigo: string; nome: string; tipo: TipoEnte | null; populacao: number | null })[];
+  entes: (ResumoConformidade & { codigo: string; nome: string; tipo: TipoEnte | null; populacao: number | null;
+                                 por_exercicio?: Record<string, ResumoConformidade> })[];
 }
 
 /** Arquivo `conformidade/panorama.json`: o Brasil, por obrigação e por UF. */
@@ -468,8 +471,10 @@ export interface ConformidadePanorama {
   avaliado_em: string;
   entes: number;
   brasil: ResumoConformidade;
-  criterios: (ResumoConformidade & { criterio: string; nome: string })[];
-  ufs: (ResumoConformidade & { uf: string; entes: number; coletado_em: string | null })[];
+  brasil_por_exercicio?: Record<string, ResumoConformidade>;
+  criterios: (ResumoConformidade & { criterio: string; nome: string; por_exercicio?: Record<string, ResumoConformidade> })[];
+  ufs: (ResumoConformidade & { uf: string; entes: number; coletado_em: string | null;
+                               por_exercicio?: Record<string, ResumoConformidade> })[];
 }
 
 // ------------------------------------------------------------------------------------------ leitura

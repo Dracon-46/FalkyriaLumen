@@ -32,7 +32,7 @@ concurrency:
 jobs:
   site:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 120   # com o histórico desde 2021: perto de 1.800 dias para baixar e somar
     environment:
       name: github-pages
       url: ${{ steps.publicacao.outputs.page_url }}
@@ -53,6 +53,7 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release download "$TAG" -D estado --clobber -p '*.json.gz'
           fi
+          ferramentas/painel/dias.sh baixar estado
           ls estado | sed -e 's/-[0-9-]*\.json\.gz$//' -e 's/-[A-Z]*\.json\.gz$//' | sort | uniq -c
       - name: Execuções dos fluxos de dados (painel operacional)
         run: |

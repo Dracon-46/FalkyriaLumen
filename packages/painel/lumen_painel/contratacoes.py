@@ -17,6 +17,11 @@ listas ``[mês, ...]``), para o portal refazer as tabelas num período escolhido
 fornecedores listados são os de maior valor no período inteiro: num período menor, a ordem é refeita entre
 eles, e o portal diz isso.
 
+Com o histórico inteiro (desde agosto de 2021), o mês a mês dos anos mais antigos vira ano a ano
+(``compactar_meses``): ficam mês a mês o ano corrente e o anterior; antes deles, uma linha por ano
+(``"2023"``). Sem isso, o mês a mês de cada linha das tabelas passaria de 60 entradas e o site, de 1 GB. O
+portal filtra por ano nesse trecho.
+
 O ente de cada publicação é o do órgão que publicou (``dia.resumir_dia``): os números de um município são os
 dos órgãos municipais, e não os de órgãos estaduais ou federais que ficam nele.
 
@@ -53,6 +58,67 @@ A_CONFERIR = 50
 # Teto de plausibilidade de um processo ou contrato: acima dele o valor fica fora das somas (ADR-028)
 TETO_ABSOLUTO = 10_000_000_000.0
 TETO_POR_HABITANTE = 20_000.0
+
+
+def corte_mes_a_mes(ate: str | None) -> str | None:
+    """O primeiro mês que fica mês a mês: janeiro do ano anterior ao do último dia coletado (``AAAA-MM``)."""
+    return f"{int(ate[:4]) - 1}-01" if ate else None
+
+
+def _somar_linhas(linhas: list) -> list:
+    """Linhas de meses do mesmo ano somadas numa só, com o ano no lugar do mês (objetos ou listas)."""
+    por_ano: dict[str, object] = {}
+    for linha in linhas:
+        if isinstance(linha, dict):
+            ano = str(linha["mes"])[:4]
+            alvo = por_ano.setdefault(ano, {"mes": ano})
+            for k, v in linha.items():
+                if k != "mes" and isinstance(v, (int, float)) and not isinstance(v, bool):
+                    alvo[k] = alvo.get(k, 0) + v
+        else:
+            ano = str(linha[0])[:4]
+            alvo = por_ano.setdefault(ano, [ano] + [0] * (len(linha) - 1))
+            for i, v in enumerate(linha[1:], start=1):
+                if i >= len(alvo):
+                    alvo.append(0)
+                alvo[i] += v or 0
+    return [por_ano[a] for a in sorted(por_ano)]
+
+
+def compactar_meses(dados, corte: str | None):
+    """Troca, em toda lista ``meses`` do arquivo, os meses anteriores a ``corte`` por uma linha por ano.
+
+    As somas não mudam: a linha do ano é a soma dos meses dele. Valores arredondados a centavos, para o número
+    em ponto flutuante não crescer o arquivo à toa.
+    """
+    if corte is None:
+        return dados
+    if isinstance(dados, dict):
+        saida = {}
+        for k, v in dados.items():
+            if k == "meses" and isinstance(v, list):
+                antigos = [x for x in v if len(_chave_mes(x)) == 7 and _chave_mes(x) < corte]
+                novos = [x for x in v if x not in antigos]
+                saida[k] = [_arredondar(x) for x in _somar_linhas(antigos)] + novos
+            else:
+                saida[k] = compactar_meses(v, corte)
+        return saida
+    if isinstance(dados, list):
+        return [compactar_meses(x, corte) for x in dados]
+    return dados
+
+
+def _chave_mes(linha) -> str:
+    """O mês (ou o ano) de uma linha de ``meses``, em objeto ou em lista."""
+    return str(linha["mes"]) if isinstance(linha, dict) else str(linha[0])
+
+
+def _arredondar(linha):
+    """Valores da linha somada com duas casas (as contagens já são inteiras)."""
+    def r(v):
+        return round(v, 2) if isinstance(v, float) else v
+
+    return {k: r(v) for k, v in linha.items()} if isinstance(linha, dict) else [r(v) for v in linha]
 
 
 def _mes(dia: str) -> str:

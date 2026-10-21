@@ -17,7 +17,7 @@ Tudo roda em planos gratuitos, sem computador pessoal ligado. O repositório é 
 | Feeds das eleições | Supabase Storage, bucket público `lumen-eleicoes` (configuração escolhida para o 2º turno de 2026); Cloudflare R2 como alternativa | Fluxos `eleicoes-carga` e `eleicoes-ao-vivo` |
 | Estado da carga das eleições | Bucket privado `lumen-privado` | Os mesmos fluxos |
 | Dados dos painéis | GitHub Pages (`https://dracon-46.github.io/FalkyriaLumen/`) | Fluxo `paineis-site` |
-| Estado dos painéis | Anexos da versão `painel-estado` do repositório | Fluxos `paineis` e `paineis-carga` |
+| Estado dos painéis | Anexos da versão `painel-estado` (cadastro, UFs, economia) e das versões `painel-dias-AAAA` (um ano de dias do PNCP cada) | Fluxos `paineis` e `paineis-carga` |
 | Núcleo transacional | Supabase gratuito, organização própria do projeto | Pendente |
 
 ## Portal
@@ -243,7 +243,8 @@ Verificados em 7/10/2026 (ADR-026; DOC-10, seção 9.5) e no adendo da ADR-026.
 | Cloudflare R2 | 10 GB-mês, 1 milhão de escritas e 10 milhões de leituras por mês; saída grátis; o endereço `r2.dev` tem limite de requisições e é para desenvolvimento | Passar de 10 GB: US$ 0,015 por GB-mês |
 | Cloudflare Pages | Até 20.000 arquivos por site e 25 MiB por arquivo | Domínio próprio, pago à parte |
 | GitHub Actions | 6 horas por execução; 2.000 minutos por mês só em repositório privado | O repositório é público desde 14/10/2026 |
-| Versão `painel-estado` | Até mil anexos: perto de três anos de dias | Antes disso, juntar os dias de meses fechados num arquivo por mês |
+| Anexos por versão | Até mil: os dias ficam numa versão por ano (`painel-dias-AAAA`, ADR-046) | Nada a fazer: um ano tem no máximo 366 dias |
+| GitHub Pages | Site de até 1 GB: perto de 600 MB com o histórico desde 2021, anos antigos ano a ano (ADR-046) | Mover os anos antigos para outro lugar, ou o site para o R2 |
 | Vercel Hobby | Uso não comercial | — |
 
 A carga diária mantém o projeto do Supabase ativo, porque lê e grava no bucket todo dia.

@@ -52,7 +52,7 @@ jobs:
       - name: Dias do PNCP e a base anterior
         run: |
           mkdir -p estado
-          gh release download "$TAG" -p 'contratacoes-*.json.gz' -D estado --clobber
+          ferramentas/painel/dias.sh baixar estado
           gh release download "$TAG" -p 'cnpj-fornecedores.json.gz' -D estado --clobber || true
       - name: Base de CNPJ dos fornecedores
         run: |

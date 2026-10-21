@@ -51,6 +51,7 @@ nunca apagadas: uma ADR substituída continua aqui, marcada como tal.
 | [043](ADR-043.md) | Nome "Lumen", sócios da base de CNPJ e CPF mascarado em nomes e textos | **proposta** |
 | [044](ADR-044.md) | Emendas parlamentares recebidas por município e UF, pelo arquivo de dados abertos da CGU | **proposta** |
 | [045](ADR-045.md) | Convênios da União com estados, municípios e entidades, pelo arquivo de dados abertos da CGU | **proposta** |
+| [046](ADR-046.md) | Histórico desde 2021 nos painéis e filtro de período em todas as abas | **proposta** |
 
 As ADRs 011 a 015 foram tomadas durante a implementação da Fase 0, e as 016 a
 033 durante a Fase 1 e a criação da aba Eleições; todas aguardam revisão. Para aceitar, troque a situação para `aceita`. Para rejeitar, marque

@@ -96,16 +96,18 @@ def test_comando_conformidade(tmp_path, monkeypatch, capsys):
                       Cadastro({"43": Ente("43", "Rio Grande do Sul", "RS", "E")}).para_json(), comprimir=True)
     pedidos = []
 
-    def coletar_uf(cfg, uf, cadastro, exercicios, estado):
-        pedidos.append((uf, exercicios))
-        return conf.ResultadoUf(uf, entes=1, consultas=2, consultas_ok=2, gravado=uf == "RS")
+    def coletar_uf(cfg, uf, cadastro, exercicios, estado, maximo_anteriores):
+        pedidos.append((uf, exercicios, maximo_anteriores))
+        return conf.ResultadoUf(uf, entes=1, exercicios=exercicios or [2025, 2026], consultas=2, consultas_ok=2,
+                                gravado=uf == "RS")
 
     monkeypatch.setattr(conf, "coletar_uf", coletar_uf)
     assert cli.main(["conformidade", "--estado", str(tmp_path / "e"), "--ufs", "rs, ap"]) == 1
-    assert pedidos == [("RS", [2025, 2026]), ("AP", [2025, 2026])]
-    assert json.loads(capsys.readouterr().out)["exercicios"] == [2025, 2026]
-    assert cli.main(["conformidade", "--estado", str(tmp_path / "e"), "--ufs", "RS", "--exercicios", "2024"]) == 0
-    assert pedidos[-1] == ("RS", [2024])
+    assert pedidos == [("RS", None, 1), ("AP", None, 1)]   # sem --exercicios: a coleta escolhe pelo estado
+    assert json.loads(capsys.readouterr().out)["ufs"][0]["exercicios"] == [2025, 2026]
+    assert cli.main(["conformidade", "--estado", str(tmp_path / "e"), "--ufs", "RS", "--exercicios", "2024",
+                     "--maximo-anteriores", "2"]) == 0
+    assert pedidos[-1] == ("RS", [2024], 2)
 
 
 def test_comando_despesa_funcao_divide_o_prazo_entre_as_ufs(tmp_path, monkeypatch, capsys):

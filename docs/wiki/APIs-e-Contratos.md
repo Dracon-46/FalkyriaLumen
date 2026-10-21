@@ -356,6 +356,11 @@ Versão do formato: `VERSAO_PAINEL` = 1
 | `transparencia/uf-<sigla>.json`, `transparencia/uniao.json` | Entidades avaliadas pelo PNTP, agrupadas pelo ente (ADR-035) |
 | `mercado/anp/uf-<sigla>-<ano>.json` | Preço de revenda da ANP por semana e produto, na UF e em cada município (código IBGE): `[semana, n, mínimo, 1º quartil, mediana, 3º quartil, máximo]` (ADR-037) |
 
+O mês a mês (`meses`) traz o ano corrente e o anterior mês a mês (`"2026-03"`). Antes deles, traz uma linha
+por ano (`"2023"`), com a soma dos meses
+([ADR-046](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-046.md)). Os arquivos da
+Conformidade trazem também o resumo de cada exercício (`por_exercicio`, e `brasil_por_exercicio` no panorama).
+
 Processo ou contrato com valor acima de R$ 10 bilhões, ou de R$ 20 mil por habitante do ente (o que
 for menor), conta nas quantidades, mas fica fora das somas e aparece em "Valores a conferir na
 fonte" ([ADR-028](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-028.md),
@@ -408,7 +413,7 @@ Opções globais: `--config`, `--saida <diretório dos feeds>`, `-v`.
 | `cadastro --estado <dir>` | Cadastro de entes do SICONFI |
 | `contratacoes --estado <dir> [--de] [--ate] [--ultimos N] [--limite-minutos] [--refazer]` | Coleta os dias do PNCP que faltam no estado (padrão: os últimos 3 até ontem) |
 | `faltando --estado <dir> [--de] [--ate] [--partes N]` | Blocos de dias que faltam, em JSON, para execuções paralelas |
-| `conformidade --estado <dir> --ufs <siglas> [--exercicios]` | Extrato de entregas do SICONFI por UF (padrão: exercício anterior e corrente) |
+| `conformidade --estado <dir> --ufs <siglas> [--exercicios] [--maximo-anteriores N]` | Extrato de entregas do SICONFI por UF: o exercício anterior, o corrente e até N encerrados que faltam desde 2021 (padrão 1); os já coletados são mantidos |
 | `transparencia --estado <dir>` | Ciclo mais recente do PNTP, só quando o arquivo muda (ADR-035) |
 | `anp --estado <dir> [--maximo-semanas N]` | Planilhas semanais da ANP que faltam no estado, desde 2025, até 40 por execução (ADR-037) |
 | `publicar --estado <dir> --saida <dir> [--hoje AAAA-MM-DD]` | Monta o site dos painéis a partir do estado |

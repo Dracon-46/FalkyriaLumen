@@ -11,7 +11,12 @@ Duas etapas, em momentos diferentes:
    ``lumen_deteccao.parametros_legais``. A avaliação roda a cada publicação, e não na coleta, porque um prazo
    que vence entre duas coletas muda o resultado sem que o extrato mude.
 
-Obrigações avaliadas (exercício anterior inteiro e o corrente até a data da publicação):
+Exercícios: desde 2021 (``INICIO_HISTORICO``, o ano em que o PNCP começou e o painel de contratações também).
+O anterior e o corrente são coletados de novo a cada execução, porque ainda recebem entregas e retificações; os
+encerrados são coletados uma vez (``maximo_anteriores`` por execução, para caber no prazo do fluxo) e depois
+reaproveitados do estado (``exercicios_a_coletar``).
+
+Obrigações avaliadas (cada exercício coletado, o corrente até a data da publicação):
 
 - contas anuais (DCA) do exercício anterior — LC 101/2000, art. 51;
 - RREO de cada bimestre encerrado — art. 52;
@@ -57,6 +62,11 @@ from .comum import (
     tipo_do_ente,
     uf_do_ente,
 )
+
+INICIO_HISTORICO = 2021
+# Exercícios encerrados coletados por execução, além do anterior e do corrente: cada um custa uma consulta por
+# ente, e o fluxo diário já usa perto do prazo com dois
+MAXIMO_ANTERIORES = 1
 
 COLUNAS_ENTREGAS = ["instituicao", "entregavel", "exercicio", "periodo", "periodicidade", "status", "entregue_em"]
 ENTREGAVEIS = set(es._DCA) | set(es._RREO) | set(es._RGF)
@@ -155,12 +165,49 @@ def estado_da_uf(uf: str, entes: list[str], exercicios: list[int], silver: Path 
     }
 
 
+def exercicios_a_coletar(anterior: dict | None, hoje: date, *, maximo_anteriores: int = MAXIMO_ANTERIORES,
+                         inicio: int = INICIO_HISTORICO) -> tuple[list[int], list[int]]:
+    """Quais exercícios coletar agora e quais manter do estado anterior da UF.
+
+    O anterior e o corrente são sempre coletados. Um exercício encerrado que o estado já tem, com a consulta de
+    todos os entes completa, é mantido; os que faltam (ou vieram com falha) entram na coleta, do mais recente
+    para o mais antigo, até ``maximo_anteriores``.
+    """
+    abertos = [hoje.year - 1, hoje.year]
+    coleta_anterior = {}
+    if anterior:
+        anos = {int(a) for a in anterior.get("exercicios") or []}
+        for ano in anos:
+            coleta_anterior[ano] = all((info.get("coleta") or {}).get(str(ano), False)
+                                       for info in (anterior.get("entes") or {}).values())
+    manter = sorted(a for a, completo in coleta_anterior.items() if completo and inicio <= a < abertos[0])
+    faltam = [a for a in range(abertos[0] - 1, inicio - 1, -1) if a not in manter]
+    return sorted(abertos + faltam[:maximo_anteriores]), manter
+
+
+def juntar_estados(novo: dict, anterior: dict | None, manter: list[int]) -> dict:
+    """O estado novo da UF com os exercícios ``manter`` (entregas e situação da coleta) do estado anterior."""
+    if not anterior or not manter:
+        return novo
+    pos = COLUNAS_ENTREGAS.index("exercicio")
+    for codigo, info in novo["entes"].items():
+        antes = (anterior.get("entes") or {}).get(codigo) or {}
+        info["entregas"] = sorted(info["entregas"] + [e for e in antes.get("entregas") or [] if int(e[pos]) in manter],
+                                  key=lambda e: e[:4])
+        for ano in manter:
+            info["coleta"][str(ano)] = bool((antes.get("coleta") or {}).get(str(ano), False))
+        info["coleta"] = dict(sorted(info["coleta"].items()))
+    novo["exercicios"] = sorted(set(novo["exercicios"]) | set(manter))
+    return novo
+
+
 @dataclass
 class ResultadoUf:
     """Resumo da coleta de uma UF para a saída do comando."""
 
     uf: str
     entes: int = 0
+    exercicios: list[int] = field(default_factory=list)
     consultas_ok: int = 0
     consultas: int = 0
     gravado: bool = False
@@ -168,16 +215,20 @@ class ResultadoUf:
 
     def para_json(self) -> dict:
         """O resumo como dicionário."""
-        return {"uf": self.uf, "entes": self.entes, "consultas": self.consultas, "consultas_ok": self.consultas_ok,
+        return {"uf": self.uf, "entes": self.entes, "exercicios": self.exercicios, "consultas": self.consultas,
+                "consultas_ok": self.consultas_ok,
                 "gravado": self.gravado, "problemas": self.problemas}
 
 
-def coletar_uf(cfg, uf: str, cadastro: Cadastro, exercicios: list[int], estado: Path | str, *,
-               coletar=None, normalizar=None, temporario: Path | None = None) -> ResultadoUf:
-    """Coleta o extrato de entregas dos entes da UF nos ``exercicios`` e grava o estado da UF.
+def coletar_uf(cfg, uf: str, cadastro: Cadastro, exercicios: list[int] | None, estado: Path | str, *,
+               coletar=None, normalizar=None, temporario: Path | None = None,
+               maximo_anteriores: int = MAXIMO_ANTERIORES) -> ResultadoUf:
+    """Coleta o extrato de entregas dos entes da UF e grava o estado da UF.
 
-    Grava mesmo com consultas que falharam: o ente fica com a coleta marcada como malsucedida e a avaliação
-    dele sai indeterminada. ``coletar`` e ``normalizar`` são as funções de ``lumen_orquestracao.etapas``.
+    Sem ``exercicios``, escolhe por ``exercicios_a_coletar``, a partir do estado já gravado; com eles, coleta
+    exatamente esses. Os exercícios do estado anterior que não foram coletados agora são mantidos. Grava mesmo
+    com consultas que falharam: o ente fica com a coleta marcada como malsucedida e a avaliação dele sai
+    indeterminada. ``coletar`` e ``normalizar`` são as funções de ``lumen_orquestracao.etapas``.
     """
     if coletar is None or normalizar is None:
         from lumen_orquestracao import etapas
@@ -188,6 +239,15 @@ def coletar_uf(cfg, uf: str, cadastro: Cadastro, exercicios: list[int], estado: 
     uf = uf.upper()
     entes = [e.codigo for e in cadastro.da_uf(uf)]
     resultado = ResultadoUf(uf, entes=len(entes))
+    caminho = Path(estado) / nome_do_arquivo(uf)
+    anterior = ler_json(caminho) if caminho.exists() and caminho.stat().st_size else None
+    if anterior is not None and anterior.get("versao") != 1:
+        anterior = None
+    if exercicios is None:
+        exercicios, manter = exercicios_a_coletar(anterior, hoje_brasilia(), maximo_anteriores=maximo_anteriores)
+    else:
+        manter = sorted({int(a) for a in (anterior or {}).get("exercicios") or []} - set(exercicios))
+    resultado.exercicios = list(exercicios)
     if not entes:
         resultado.problemas.append("nenhum ente da UF no cadastro")
         return resultado
@@ -204,8 +264,8 @@ def coletar_uf(cfg, uf: str, cadastro: Cadastro, exercicios: list[int], estado: 
         coletas = coletas_por_ente(ArmazemBronzeLocal(cfg_uf.bronze).listar_registros("siconfi_extrato"))
         resultado.consultas = len(entes) * len(exercicios)
         resultado.consultas_ok = sum(1 for c in entes for a in exercicios if coletas.get((c, a)))
-        gravar_json(Path(estado) / nome_do_arquivo(uf),
-                    estado_da_uf(uf, entes, exercicios, cfg_uf.silver, coletas), comprimir=True)
+        novo = estado_da_uf(uf, entes, exercicios, cfg_uf.silver, coletas)
+        gravar_json(caminho, juntar_estados(novo, anterior, manter), comprimir=True)
         resultado.gravado = True
         return resultado
     finally:
@@ -275,6 +335,14 @@ def avaliar_ente(codigo: str, esfera: str, entregas: list[Entrega], coleta: dict
     return saida
 
 
+def por_exercicio(obrigacoes: list[dict]) -> dict[str, dict]:
+    """O resumo de cada exercício, para o filtro de período do portal: ``{"2025": resumo, ...}``."""
+    anos: dict[int, list[dict]] = {}
+    for o in obrigacoes:
+        anos.setdefault(int(o["exercicio"]), []).append(o)
+    return {str(a): resumo(lista) for a, lista in sorted(anos.items())}
+
+
 def resumo(obrigacoes: list[dict]) -> dict:
     """Quantas obrigações em cada resultado e a fração entregue no prazo entre as avaliáveis.
 
@@ -325,7 +393,8 @@ def avaliar(arquivos: Iterable[Path], cadastro: Cadastro, *, hoje: date | None =
                 "coletado_em": dados.get("coletado_em"),
                 "ente": {"codigo": codigo, "nome": cadastro.nome(codigo), "uf": uf_do_ente(codigo), "tipo": tipo,
                          "populacao": ente.populacao if ente else None},
-                "coleta": info.get("coleta") or {}, "resumo": resumo(obrigacoes), "obrigacoes": obrigacoes,
+                "coleta": info.get("coleta") or {}, "resumo": resumo(obrigacoes),
+                "por_exercicio": por_exercicio(obrigacoes), "obrigacoes": obrigacoes,
             }
     return avaliacao
 
@@ -333,7 +402,7 @@ def avaliar(arquivos: Iterable[Path], cadastro: Cadastro, *, hoje: date | None =
 def uf_para_json(uf: str, avaliacao: Avaliacao, gerado_em: str) -> dict:
     """``conformidade/uf/<sigla>.json``: os entes avaliados da UF, por nome, com o resumo de cada um."""
     entes = [{"codigo": c, "nome": a["ente"]["nome"], "tipo": a["ente"]["tipo"], "populacao": a["ente"]["populacao"],
-              **a["resumo"]}
+              **a["resumo"], "por_exercicio": a["por_exercicio"]}
              for c, a in avaliacao.entes.items() if uf_do_ente(c) == uf]
     entes.sort(key=lambda x: (x["tipo"] != "estado" and x["tipo"] != "df", x["nome"].casefold(), x["codigo"]))
     return {"versao": 1, "tipo": "conformidade-uf", "gerado_em": gerado_em, "avaliado_em": avaliacao.hoje.isoformat(),
@@ -346,7 +415,8 @@ def panorama_para_json(avaliacao: Avaliacao, gerado_em: str) -> dict:
     for uf in sorted(set(UFS.values())):
         da_uf = [a for c, a in avaliacao.entes.items() if uf_do_ente(c) == uf]
         todas = [o for a in da_uf for o in a["obrigacoes"]]
-        ufs.append({"uf": uf, "entes": len(da_uf), "coletado_em": avaliacao.coletas.get(uf), **resumo(todas)})
+        ufs.append({"uf": uf, "entes": len(da_uf), "coletado_em": avaliacao.coletas.get(uf), **resumo(todas),
+                    "por_exercicio": por_exercicio(todas)})
     por_criterio: dict[str, list[dict]] = {}
     for a in avaliacao.entes.values():
         for o in a["obrigacoes"]:
@@ -356,6 +426,7 @@ def panorama_para_json(avaliacao: Avaliacao, gerado_em: str) -> dict:
     todas = [o for a in avaliacao.entes.values() for o in a["obrigacoes"]]
     return {"versao": 1, "tipo": "conformidade-panorama", "gerado_em": gerado_em,
             "avaliado_em": avaliacao.hoje.isoformat(), "entes": len(avaliacao.entes), "brasil": resumo(todas),
-            "criterios": [{"criterio": c, "nome": nomes.get(c, c), **resumo(lista)}
+            "brasil_por_exercicio": por_exercicio(todas),
+            "criterios": [{"criterio": c, "nome": nomes.get(c, c), **resumo(lista), "por_exercicio": por_exercicio(lista)}
                           for c, lista in sorted(por_criterio.items())],
             "ufs": ufs}

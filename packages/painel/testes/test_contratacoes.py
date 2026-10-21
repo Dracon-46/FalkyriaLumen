@@ -356,3 +356,23 @@ def test_valor_acima_do_teto_fica_fora_das_somas(estado_sintetico):
     assert sp["municipios"]["valores_a_conferir"] == 3
     o = contratacoes.orgao_para_json("00000000000500", painel.por_orgao["00000000000500"], painel, cadastro, "G")
     assert o["totais"]["valores_a_conferir"] == 3 and len(o["a_conferir"]) == 3
+
+
+def test_meses_antigos_viram_um_ano_e_as_somas_nao_mudam():
+    from lumen_painel.contratacoes import compactar_meses, corte_mes_a_mes
+    assert corte_mes_a_mes("2026-10-17") == "2025-01" and corte_mes_a_mes(None) is None
+    dados = {
+        "meses": [{"mes": "2023-05", "processos": 2, "valor_estimado": 10.105, "valores_a_conferir": 0},
+                  {"mes": "2023-11", "processos": 3, "valor_estimado": 5.0, "valores_a_conferir": 1},
+                  {"mes": "2024-02", "processos": 1, "valor_estimado": 1.0, "valores_a_conferir": 0},
+                  {"mes": "2025-01", "processos": 7, "valor_estimado": 2.0, "valores_a_conferir": 0}],
+        "fornecedores": [{"cnpj": "1", "meses": [["2023-01", 1, 10.0], ["2023-02", 2, 20.0], ["2026-03", 1, 5.0]]}],
+        "texto": "meses",
+    }
+    c = compactar_meses(dados, "2025-01")
+    assert c["meses"] == [{"mes": "2023", "processos": 5, "valor_estimado": 15.11, "valores_a_conferir": 1},
+                          {"mes": "2024", "processos": 1, "valor_estimado": 1.0, "valores_a_conferir": 0},
+                          {"mes": "2025-01", "processos": 7, "valor_estimado": 2.0, "valores_a_conferir": 0}]
+    assert c["fornecedores"][0]["meses"] == [["2023", 3, 30.0], ["2026-03", 1, 5.0]]
+    assert c["texto"] == "meses" and compactar_meses(dados, None) is dados
+    assert compactar_meses(c, "2025-01") == c        # já compactado: não muda

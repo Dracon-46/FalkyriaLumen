@@ -56,7 +56,7 @@ jobs:
           lumen coletar cgu_cnep
           lumen normalizar --fontes cgu_ceis,cgu_cnep
       - name: Contratos guardados pelo painel
-        run: gh release download painel-estado -p 'contratacoes-*.json.gz' -D estado
+        run: ferramentas/painel/dias.sh baixar estado
       - name: Cruzamento (modo silencioso)
         run: |
           set -- j01 --estado estado --resumo "$GITHUB_STEP_SUMMARY"
