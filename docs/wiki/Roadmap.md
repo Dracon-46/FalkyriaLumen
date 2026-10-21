@@ -20,7 +20,7 @@ entes monitora.
 | Fase | Período | Objetivo | Critério de saída | Situação |
 |---|---|---|---|---|
 | 0 — Fundação | Mês 1 | Bases técnicas e decisões difíceis de mudar depois | Artefato coletado, armazenado com hash e recuperado pelo identificador | **Concluída** (marco M1 verificado por teste) |
-| 1 — Espinha dorsal nacional | Meses 2 a 4 | Cobertura nacional de contratações e dados fiscais | Carga histórica de ao menos três exercícios, com relatório de cobertura por ente e UF | **Núcleo pronto**; critério de saída não iniciado |
+| 1 — Espinha dorsal nacional | Meses 2 a 4 | Cobertura nacional de contratações e dados fiscais | Carga histórica de ao menos três exercícios, com relatório de cobertura por ente e UF | **Núcleo pronto**; critério de saída em andamento: relatório de cobertura publicado (ADR-048) e carga desde 2021 em curso (ADR-046) |
 | 2 — Motor de detecção | Meses 5 a 7 | Indícios revisáveis, com evidência completa | Amostra de 100 indícios por família revisada, com falso positivo dentro do limite do DOC-07 | Não iniciada (A-05 antecipada em modo silencioso) |
 | 3 — Camada estadual | Meses 8 e 9 | Profundidade estadual e tribunais de contas | Cadastro de fonte por analista, sem código, validado em ao menos cinco fontes reais | Não iniciada |
 | 4 — Cauda longa municipal | Meses 9 a 11 | Lacunas municipais por família de plataforma e extração de documentos | Relatório de cobertura municipal | Não iniciada |
@@ -44,7 +44,7 @@ por um comando. Tudo concluído; ADRs 011 em diante registradas durante a implem
 | Cadastro de entes do IBGE com população e porte | Concluído |
 | Normalização com qualidade e quarentena | Concluída para PNCP, SICONFI e IBGE |
 | Grupos de pares | Concluído (ADR-038): porte, região e RCL por habitante (versão 2), comparação na conformidade de cada ente |
-| Painel operacional | Concluído (ADR-039): "Situação das coletas", com fluxos, volume diário do PNCP e coleta da conformidade |
+| Painel operacional | Concluído (ADR-039): "Situação das coletas", com fluxos, volume diário do PNCP, coleta da conformidade e cobertura por ente e UF (ADR-048) |
 | Parâmetros legais verificados | Concluído além do previsto: limites de dispensa de 2021 a 2026, fator do § 2º e acréscimos do art. 125 |
 | Regra A-05 (antecipada da Fase 2) | Relatório silencioso; sob demanda no modal para combustível e gás de cozinha (ADR-037), limiares não calibrados |
 | Regra A-01 (antecipada da Fase 2) | Sob demanda no modal da contratação, parâmetros iniciais, sem lote (ADR-036) |

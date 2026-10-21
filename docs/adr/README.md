@@ -53,6 +53,7 @@ nunca apagadas: uma ADR substituída continua aqui, marcada como tal.
 | [045](ADR-045.md) | Convênios da União com estados, municípios e entidades, pelo arquivo de dados abertos da CGU | **proposta** |
 | [046](ADR-046.md) | Histórico desde 2021 nos painéis e filtro de período em todas as abas | **proposta** |
 | [047](ADR-047.md) | Avisos públicos: o que aconteceu e o que observar, sem revisão humana prévia | **proposta** |
+| [048](ADR-048.md) | Relatório de cobertura por ente e UF | **proposta** |
 
 As ADRs 011 a 015 foram tomadas durante a implementação da Fase 0, e as 016 a
 033 durante a Fase 1 e a criação da aba Eleições; todas aguardam revisão. Para aceitar, troque a situação para `aceita`. Para rejeitar, marque

@@ -8402,7 +8402,7 @@
   {
    "caminho": "packages/painel/lumen_painel/cli.py",
    "linguagem": "python",
-   "linhas": 478,
+   "linhas": 482,
    "doc": "``lumen painel``: coleta e publicação dos painéis de contratações e de conformidade (ADR-028).\n\nExemplos::\n\n    lumen painel cadastro --estado estado/                          # cadastro de entes do SICONFI\n    lumen painel contratacoes --estado estado/ --ultimos 3          # dias que faltam entre os 3 últimos\n    lumen painel contratacoes --estado estado/ --de 2026-01-01 --ate 2026-01-31 --limite-minutos 300\n    lumen painel faltando --estado estado/ --de 2026-01-01 --partes 6   # divisão para execuções paralelas\n    lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026\n    lumen painel rcl --estado estado/ --ufs SP,MG                  # RCL do exercício anterior, para os pares\n    lumen painel despesa-funcao --estado estado/ --ufs SP,MG --limite-minutos 30   # DCA por função, pares\n    lumen painel pessoal --estado estado/ --ufs SP,MG --limite-minutos 20          # RGF: pessoal em % da RCL\n    lumen painel cnpj --estado estado/                              # base de CNPJ da Receita, dos fornecedores\n    lumen painel emendas --estado estado/                           # emendas parlamentares (CGU), por ente\n    lumen painel convenios --estado estado/                         # convênios da União (CGU), por ente\n    lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)\n    lumen painel anp --estado estado/                               # preço de revenda da ANP por semana\n    lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado\n\nO estado é um diretório com ``cadastro-entes.json.gz``, um ``contratacoes-<dia>.json.gz`` por dia coletado e\num ``conformidade-<UF>.json.gz`` por UF. No GitHub Actions, ele fica nos anexos de uma versão do repositório\n(``painel-estado``) entre uma execução e outra.",
    "itens": [
     {
@@ -8557,14 +8557,14 @@
      "nome": "construir_parser",
      "assinatura": "def construir_parser() -> argparse.ArgumentParser",
      "doc": "Os subcomandos e as opções de cada um.",
-     "linha": 385
+     "linha": 389
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada de ``lumen painel``; falta de configuração (contato da coleta) vira código 2.",
-     "linha": 467
+     "linha": 471
     }
    ]
   },
@@ -8713,6 +8713,49 @@
      "assinatura": "def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> dict | None",
      "doc": "Grava ``cnpj/<3 primeiros dígitos>.json.gz`` e ``cnpj/tabelas.json`` a partir do estado; devolve o resumo.",
      "linha": 366
+    }
+   ]
+  },
+  {
+   "caminho": "packages/painel/lumen_painel/cobertura.py",
+   "linguagem": "python",
+   "linhas": 90,
+   "doc": "Relatório de cobertura por ente e UF (critério de saída da Fase 1 no DOC-10; ADR-048).\n\nO que o Lumen tem de cada ente do cadastro do SICONFI (estados, Distrito Federal e municípios), num arquivo só,\n``cobertura.json``, publicado com os painéis:\n\n- **PNCP:** os anos com ao menos um processo de contratação ou um contrato publicado em nome do ente, desde o\n  primeiro dia guardado;\n- **SICONFI:** os exercícios com o extrato de entregas coletado e se o ente tem a DCA (despesa por função), o RGF\n  (despesa com pessoal) e a RCL do exercício que os grupos de pares usam (ADR-038, ADR-041 e ADR-042).\n\nA soma vai por UF e para o Brasil, e a linha de cada ente deixa a página listar quem não tem um dado numa UF.\nOs municípios com até 20 mil habitantes vão marcados: a Lei 14.133 (art. 176) deu a eles até 1º/4/2027 para\ndivulgar no PNCP, e até lá podem publicar em diário oficial. Sem publicação no PNCP não quer dizer sem\ncontratação. A União entra à parte, só com os anos do PNCP.",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "anos_com_publicacao",
+     "assinatura": "def anos_com_publicacao(acumulador: Acumulador | None) -> list[str]",
+     "doc": "Os anos (``\"2024\"``) com ao menos um processo ou um contrato no acumulador do ente.",
+     "linha": 27
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ate_20_mil",
+     "assinatura": "def ate_20_mil(ente: Ente) -> bool",
+     "doc": "Município com até ``LIMITE_ART_176`` habitantes, pela população do cadastro.",
+     "linha": 34
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_totais",
+     "assinatura": "def _totais(anos_pncp: list[str], anos_extrato: list[str]) -> dict",
+     "doc": "Contagens zeradas de uma UF ou do Brasil.",
+     "linha": 40
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_somar",
+     "assinatura": "def _somar(totais: dict, linha: list) -> None",
+     "doc": "Soma a linha de um ente (na ordem de ``COLUNAS``) nas contagens.",
+     "linha": 47
+    },
+    {
+     "tipo": "funcao",
+     "nome": "montar",
+     "assinatura": "def montar(painel: Painel, cadastro: Cadastro, coleta: dict[str, dict[str, bool]], *, dca, rgf, rcl, exercicios: dict[str, int | None], gerado_em: str) -> dict",
+     "doc": "``cobertura.json``. ``coleta``: por ente, os exercícios do extrato e se a coleta deu certo; ``dca``, ``rgf``\ne ``rcl``: os códigos dos entes com o dado do exercício em ``exercicios`` (as chaves dos ``ler_*``).",
+     "linha": 63
     }
    ]
   },
@@ -10426,6 +10469,119 @@
      "assinatura": "export function buscar(termo: string, municipios: Municipio[], limite = 12): Achado[]",
      "doc": "Até `limite` resultados: UFs primeiro, depois municípios; dentro de cada\ngrupo, quem começa com o termo vem antes de quem só o contém, e capitais\nantes das demais.",
      "linha": 54
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/lib/cobertura.ts",
+   "linguagem": "typescript",
+   "linhas": 151,
+   "doc": "Relatório de cobertura por ente e UF (ADR-048): o arquivo `cobertura.json`, publicado com os painéis, diz o que o\nLumen tem de cada ente (os anos com publicação no PNCP e os dados do SICONFI). A situação das coletas soma por\nUF no recorte escolhido e lista os entes sem o dado.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "LinhaCobertura",
+     "assinatura": "export type LinhaCobertura = [string, boolean, string[], string[], boolean, boolean, boolean];",
+     "doc": "Um ente, na ordem de `colunas`: código, se é município com até 20 mil habitantes, os anos com publicação no\nPNCP, os exercícios com o extrato coletado e se tem a DCA, o RGF e a RCL do exercício.",
+     "linha": 16
+    },
+    {
+     "tipo": "interface",
+     "nome": "Cobertura",
+     "assinatura": "export interface Cobertura",
+     "doc": "Arquivo `cobertura.json`; as somas por UF e do Brasil que ele traz são refeitas aqui, no recorte da tela.",
+     "linha": 19
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarCobertura",
+     "assinatura": "export async function carregarCobertura(sinal?: AbortSignal): Promise<Cobertura | null>",
+     "doc": "Lê e confere `cobertura.json`; `null` se ainda não foi publicado.",
+     "linha": 32
+    },
+    {
+     "tipo": "tipo",
+     "nome": "Dado",
+     "assinatura": "export type Dado = { fonte: \"pncp\" | \"extrato\"; ano: string } | { fonte: \"dca\" | \"rgf\" | \"rcl\" };",
+     "doc": "O dado medido: publicação no PNCP ou extrato coletado num ano; a DCA, o RGF ou a RCL do exercício.",
+     "linha": 39
+    },
+    {
+     "tipo": "tipo",
+     "nome": "Recorte",
+     "assinatura": "export type Recorte = \"todos\" | \"acima\" | \"ate\";",
+     "doc": "Que entes contar: todos; estados, DF e municípios acima de 20 mil habitantes, já obrigados a divulgar no PNCP;\nou os municípios com até 20 mil, que têm até 1º/4/2027 (Lei 14.133, art. 176).",
+     "linha": 45
+    },
+    {
+     "tipo": "funcao",
+     "nome": "temDado",
+     "assinatura": "export function temDado(l: LinhaCobertura, d: Dado): boolean",
+     "doc": "Se o ente tem o dado.",
+     "linha": 48
+    },
+    {
+     "tipo": "funcao",
+     "nome": "noRecorte",
+     "assinatura": "export function noRecorte(l: LinhaCobertura, r: Recorte): boolean",
+     "doc": "Se o ente entra no recorte.",
+     "linha": 64
+    },
+    {
+     "tipo": "interface",
+     "nome": "ContagemCobertura",
+     "assinatura": "export interface ContagemCobertura",
+     "doc": "Uma UF (ou o Brasil): entes do recorte, quantos têm o dado e os códigos dos que não têm.",
+     "linha": 69
+    },
+    {
+     "tipo": "funcao",
+     "nome": "contarPorUf",
+     "assinatura": "export function contarPorUf(c: Cobertura, d: Dado, r: Recorte): { brasil: ContagemCobertura; ufs: ContagemCobertura[] }",
+     "doc": "As UFs, na ordem das siglas, e o Brasil (sem a lista dos que não têm o dado).",
+     "linha": 77
+    },
+    {
+     "tipo": "funcao",
+     "nome": "pncpPorAno",
+     "assinatura": "export function pncpPorAno(c: Cobertura, r: Recorte): { ano: string; com: number; entes: number }[]",
+     "doc": "Os entes do recorte com publicação no PNCP, ano a ano.",
+     "linha": 99
+    },
+    {
+     "tipo": "funcao",
+     "nome": "valorDoDado",
+     "assinatura": "export function valorDoDado(d: Dado): string",
+     "doc": "O dado como valor da caixa de escolha (`pncp:2025`, `dca`…) e de volta.",
+     "linha": 105
+    },
+    {
+     "tipo": "funcao",
+     "nome": "dadoDoValor",
+     "assinatura": "export function dadoDoValor(valor: string, c: Cobertura): Dado | null",
+     "doc": "O dado de um valor da caixa de escolha; `null` se não é um dos oferecidos.",
+     "linha": 110
+    },
+    {
+     "tipo": "funcao",
+     "nome": "rotuloDoDado",
+     "assinatura": "export function rotuloDoDado(d: Dado, c: Cobertura): string",
+     "doc": "Rótulo do dado na tela.",
+     "linha": 119
+    },
+    {
+     "tipo": "funcao",
+     "nome": "opcoesDeDado",
+     "assinatura": "export function opcoesDeDado(c: Cobertura): Opcao[]",
+     "doc": "As opções da caixa: os anos do PNCP (o mais recente primeiro), os do extrato e os exercícios do SICONFI.",
+     "linha": 135
+    },
+    {
+     "tipo": "funcao",
+     "nome": "dadoPadrao",
+     "assinatura": "export function dadoPadrao(c: Cobertura): Dado | null",
+     "doc": "O dado de partida: o PNCP no último ano inteiro coberto (o anterior ao do último dia), ou no único ano.",
+     "linha": 145
     }
    ]
   },
@@ -13951,145 +14107,6 @@
    ]
   },
   {
-   "caminho": "packages/portal/src/componentes/Cabecalho.tsx",
-   "linguagem": "typescript",
-   "linhas": 143,
-   "doc": "Cabeçalho do portal, presente em todas as páginas: a marca, as abas e o filtro de local.\n\nO local (União, estado, DF ou município) filtra todas as abas (ADR-035): escolhido aqui, ou ao entrar num\nmunicípio ou estado em qualquer aba, ele vai no endereço de cada aba (Eleições abre no mapa dele,\nContratações e Conformidade no ente, as estatais nas que ele controla) e fica guardado no navegador. É\ncomponente de cliente porque lê o caminho e a URL, que no site estático só o navegador conhece.",
-   "itens": [
-    {
-     "tipo": "componente",
-     "nome": "Cabecalho",
-     "assinatura": "export function Cabecalho()",
-     "doc": "Cabeçalho do Lumen. A parte que lê a URL fica num `Suspense`, como o site estático exige.",
-     "linha": 28
-    },
-    {
-     "tipo": "componente",
-     "nome": "ComLocal",
-     "assinatura": "function ComLocal()",
-     "doc": "Lê o local da URL (ou da memória), mantém-no em dia e monta as abas filtradas por ele.",
-     "linha": 39
-    },
-    {
-     "tipo": "componente",
-     "nome": "Moldura",
-     "assinatura": "function Moldura({ local, caminho = \"/\", params, onEscolher }:",
-     "doc": "A marca, as abas (com o local no endereço) e o filtro de local.",
-     "linha": 90
-    }
-   ]
-  },
-  {
-   "caminho": "packages/portal/src/componentes/Escolha.tsx",
-   "linguagem": "typescript",
-   "linhas": 137,
-   "doc": "Caixa de escolha com busca, no lugar dos `<select>` do portal: mostra a opção escolhida; ao clicar (ou\nfocar e apertar seta para baixo) abre a lista inteira; ao escrever, a lista fica só com o que casa. Setas\npara mover, Enter para escolher, Esc para fechar sem mudar. Segue o padrão ARIA de combobox com listbox.",
-   "itens": [
-    {
-     "tipo": "componente",
-     "nome": "Escolha",
-     "assinatura": "export function Escolha(",
-     "doc": "Caixa de escolha com busca; `onEscolher` recebe o `valor` da opção.",
-     "linha": 13
-    }
-   ]
-  },
-  {
-   "caminho": "packages/portal/src/componentes/FiltroPeriodo.tsx",
-   "linguagem": "typescript",
-   "linhas": 102,
-   "doc": "Filtro de período das abas (Contratações, Economia, Conformidade): do primeiro ao último mês, com atalhos.\nFica na URL (`?de=AAAA-MM&ate=AAAA-MM`, `lerPeriodo`), para compartilhar a consulta.\n\nAs opções vêm do que a aba tem: meses (`AAAA-MM`) ou anos (`AAAA`). Um ano entra como o ano inteiro\n(janeiro no primeiro, dezembro no último): é o caso dos anos antigos das Contratações, publicados ano a ano,\ne das abas que só têm ano (os exercícios da Conformidade, as séries longas da Economia).",
-   "itens": [
-    {
-     "tipo": "interface",
-     "nome": "AtalhoPeriodo",
-     "assinatura": "export interface AtalhoPeriodo",
-     "doc": "Um atalho: o rótulo do botão e o período que ele escolhe.",
-     "linha": 18
-    },
-    {
-     "tipo": "funcao",
-     "nome": "atalhosPadrao",
-     "assinatura": "export function atalhosPadrao(opcoes: string[], anos = true): AtalhoPeriodo[]",
-     "doc": "Os atalhos de sempre: tudo, o último mês e os últimos 3 (se houver mês a mês) e cada ano.",
-     "linha": 29
-    },
-    {
-     "tipo": "componente",
-     "nome": "FiltroPeriodo",
-     "assinatura": "export function FiltroPeriodo(",
-     "doc": "O filtro: primeiro e último período, os atalhos e, com recorte, a nota de como o recorte é feito.",
-     "linha": 46
-    }
-   ]
-  },
-  {
-   "caminho": "packages/portal/src/componentes/Ligacoes.tsx",
-   "linguagem": "typescript",
-   "linhas": 50,
-   "doc": "O mesmo ente nas outras abas (visão 360, ADR-035): de Contratações, Conformidade e Governos municipais, um link\npara cada uma das outras e para o resultado das eleições do lugar. A aba aberta fica de fora.",
-   "itens": [
-    {
-     "tipo": "tipo",
-     "nome": "AbaDoEnte",
-     "assinatura": "export type AbaDoEnte = \"contratacoes\" | \"conformidade\" | \"governos\";",
-     "doc": "As abas que mostram um ente.",
-     "linha": 11
-    },
-    {
-     "tipo": "funcao",
-     "nome": "ligacoesDoEnte",
-     "assinatura": "export function ligacoesDoEnte(codigo: string, atual: AbaDoEnte): { href: string; rotulo: string }[]",
-     "doc": "Os links do ente nas outras abas, na ordem da tela.",
-     "linha": 14
-    },
-    {
-     "tipo": "componente",
-     "nome": "LigacoesDoEnte",
-     "assinatura": "export function LigacoesDoEnte({ codigo, atual }: { codigo: string; atual: AbaDoEnte })",
-     "doc": "A faixa \"Este ente nas outras abas\".",
-     "linha": 34
-    }
-   ]
-  },
-  {
-   "caminho": "packages/portal/src/componentes/Paginacao.tsx",
-   "linguagem": "typescript",
-   "linhas": 72,
-   "doc": "Paginação das listas e tabelas do portal: toda lista com mais de 20 itens mostra 20 por vez, com a\nnavegação embaixo (\"anterior\", os números e \"próxima\") e quantos itens há. A página volta à primeira\nquando a lista muda (outro filtro, outro ente).",
-   "itens": [
-    {
-     "tipo": "funcao",
-     "nome": "usePaginacao",
-     "assinatura": "export function usePaginacao<T>(itens: readonly T[], porPagina = POR_PAGINA)",
-     "doc": "A página atual de `itens` e o que a navegação precisa; volta à primeira quando `itens` muda.",
-     "linha": 14
-    },
-    {
-     "tipo": "componente",
-     "nome": "Paginacao",
-     "assinatura": "export function Paginacao(",
-     "doc": "A navegação entre as páginas; não aparece quando tudo cabe numa página.",
-     "linha": 22
-    }
-   ]
-  },
-  {
-   "caminho": "packages/portal/src/componentes/Rodape.tsx",
-   "linguagem": "typescript",
-   "linhas": 26,
-   "doc": "Rodapé de todas as páginas: de onde vêm os números, o compromisso editorial do projeto e o link da situação das\ncoletas (ADR-039).",
-   "itens": [
-    {
-     "tipo": "componente",
-     "nome": "Rodape",
-     "assinatura": "export function Rodape()",
-     "doc": "Rodapé: de onde vêm os números e o compromisso editorial do projeto.",
-     "linha": 9
-    }
-   ]
-  },
-  {
    "caminho": "packages/portal/src/componentes/avisos/PainelAvisos.tsx",
    "linguagem": "typescript",
    "linhas": 263,
@@ -14129,6 +14146,35 @@
      "assinatura": "function CartaoAviso({ a }: { a: Aviso })",
      "doc": "Um aviso: o tipo, a data, o local, o que aconteceu, o detalhe, o que observar, a fonte e a contestação.",
      "linha": 227
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/Cabecalho.tsx",
+   "linguagem": "typescript",
+   "linhas": 143,
+   "doc": "Cabeçalho do portal, presente em todas as páginas: a marca, as abas e o filtro de local.\n\nO local (União, estado, DF ou município) filtra todas as abas (ADR-035): escolhido aqui, ou ao entrar num\nmunicípio ou estado em qualquer aba, ele vai no endereço de cada aba (Eleições abre no mapa dele,\nContratações e Conformidade no ente, as estatais nas que ele controla) e fica guardado no navegador. É\ncomponente de cliente porque lê o caminho e a URL, que no site estático só o navegador conhece.",
+   "itens": [
+    {
+     "tipo": "componente",
+     "nome": "Cabecalho",
+     "assinatura": "export function Cabecalho()",
+     "doc": "Cabeçalho do Lumen. A parte que lê a URL fica num `Suspense`, como o site estático exige.",
+     "linha": 28
+    },
+    {
+     "tipo": "componente",
+     "nome": "ComLocal",
+     "assinatura": "function ComLocal()",
+     "doc": "Lê o local da URL (ou da memória), mantém-no em dia e monta as abas filtradas por ele.",
+     "linha": 39
+    },
+    {
+     "tipo": "componente",
+     "nome": "Moldura",
+     "assinatura": "function Moldura({ local, caminho = \"/\", params, onEscolher }:",
+     "doc": "A marca, as abas (com o local no endereço) e o filtro de local.",
+     "linha": 90
     }
    ]
   },
@@ -14855,6 +14901,137 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/componentes/Escolha.tsx",
+   "linguagem": "typescript",
+   "linhas": 137,
+   "doc": "Caixa de escolha com busca, no lugar dos `<select>` do portal: mostra a opção escolhida; ao clicar (ou\nfocar e apertar seta para baixo) abre a lista inteira; ao escrever, a lista fica só com o que casa. Setas\npara mover, Enter para escolher, Esc para fechar sem mudar. Segue o padrão ARIA de combobox com listbox.",
+   "itens": [
+    {
+     "tipo": "componente",
+     "nome": "Escolha",
+     "assinatura": "export function Escolha(",
+     "doc": "Caixa de escolha com busca; `onEscolher` recebe o `valor` da opção.",
+     "linha": 13
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/FiltroPeriodo.tsx",
+   "linguagem": "typescript",
+   "linhas": 102,
+   "doc": "Filtro de período das abas (Contratações, Economia, Conformidade): do primeiro ao último mês, com atalhos.\nFica na URL (`?de=AAAA-MM&ate=AAAA-MM`, `lerPeriodo`), para compartilhar a consulta.\n\nAs opções vêm do que a aba tem: meses (`AAAA-MM`) ou anos (`AAAA`). Um ano entra como o ano inteiro\n(janeiro no primeiro, dezembro no último): é o caso dos anos antigos das Contratações, publicados ano a ano,\ne das abas que só têm ano (os exercícios da Conformidade, as séries longas da Economia).",
+   "itens": [
+    {
+     "tipo": "interface",
+     "nome": "AtalhoPeriodo",
+     "assinatura": "export interface AtalhoPeriodo",
+     "doc": "Um atalho: o rótulo do botão e o período que ele escolhe.",
+     "linha": 18
+    },
+    {
+     "tipo": "funcao",
+     "nome": "atalhosPadrao",
+     "assinatura": "export function atalhosPadrao(opcoes: string[], anos = true): AtalhoPeriodo[]",
+     "doc": "Os atalhos de sempre: tudo, o último mês e os últimos 3 (se houver mês a mês) e cada ano.",
+     "linha": 29
+    },
+    {
+     "tipo": "componente",
+     "nome": "FiltroPeriodo",
+     "assinatura": "export function FiltroPeriodo(",
+     "doc": "O filtro: primeiro e último período, os atalhos e, com recorte, a nota de como o recorte é feito.",
+     "linha": 46
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/Ligacoes.tsx",
+   "linguagem": "typescript",
+   "linhas": 50,
+   "doc": "O mesmo ente nas outras abas (visão 360, ADR-035): de Contratações, Conformidade e Governos municipais, um link\npara cada uma das outras e para o resultado das eleições do lugar. A aba aberta fica de fora.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "AbaDoEnte",
+     "assinatura": "export type AbaDoEnte = \"contratacoes\" | \"conformidade\" | \"governos\";",
+     "doc": "As abas que mostram um ente.",
+     "linha": 11
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ligacoesDoEnte",
+     "assinatura": "export function ligacoesDoEnte(codigo: string, atual: AbaDoEnte): { href: string; rotulo: string }[]",
+     "doc": "Os links do ente nas outras abas, na ordem da tela.",
+     "linha": 14
+    },
+    {
+     "tipo": "componente",
+     "nome": "LigacoesDoEnte",
+     "assinatura": "export function LigacoesDoEnte({ codigo, atual }: { codigo: string; atual: AbaDoEnte })",
+     "doc": "A faixa \"Este ente nas outras abas\".",
+     "linha": 34
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/Paginacao.tsx",
+   "linguagem": "typescript",
+   "linhas": 72,
+   "doc": "Paginação das listas e tabelas do portal: toda lista com mais de 20 itens mostra 20 por vez, com a\nnavegação embaixo (\"anterior\", os números e \"próxima\") e quantos itens há. A página volta à primeira\nquando a lista muda (outro filtro, outro ente).",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "usePaginacao",
+     "assinatura": "export function usePaginacao<T>(itens: readonly T[], porPagina = POR_PAGINA)",
+     "doc": "A página atual de `itens` e o que a navegação precisa; volta à primeira quando `itens` muda.",
+     "linha": 14
+    },
+    {
+     "tipo": "componente",
+     "nome": "Paginacao",
+     "assinatura": "export function Paginacao(",
+     "doc": "A navegação entre as páginas; não aparece quando tudo cabe numa página.",
+     "linha": 22
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/paineis/CoberturaEntes.tsx",
+   "linguagem": "typescript",
+   "linhas": 193,
+   "doc": "Cobertura por ente e UF (ADR-048), na situação das coletas: quantos entes de cada UF têm o dado escolhido no\nLumen (publicação no PNCP num ano, o extrato de entregas, a DCA, o RGF ou a RCL) e quais não têm. Mede o que o\nLumen e as fontes cobrem, não o ente.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "Estado",
+     "assinatura": "type Estado = { fase: \"carregando\" } | { fase: \"pronto\"; dados: Cobertura | null } | { fase: \"erro\"; erro: string };",
+     "doc": "Carregando, o arquivo lido (null quando ainda não publicado) ou o erro.",
+     "linha": 40
+    },
+    {
+     "tipo": "componente",
+     "nome": "CoberturaEntes",
+     "assinatura": "export function CoberturaEntes()",
+     "doc": "A seção inteira: filtros, a evolução no PNCP, a tabela por UF e, aberta, a lista de quem não tem o dado.",
+     "linha": 43
+    },
+    {
+     "tipo": "componente",
+     "nome": "LinhaUf",
+     "assinatura": "function LinhaUf({ c, destaque = false, aberta = false, onAbrir }:",
+     "doc": "Uma linha da tabela: a UF (ou o Brasil), as contagens e o botão que abre a lista de quem não tem o dado.",
+     "linha": 154
+    },
+    {
+     "tipo": "componente",
+     "nome": "ListaSem",
+     "assinatura": "function ListaSem({ codigos, nomes, pagina }: { codigos: string[]; nomes: Map<string, string> | null; pagina: string })",
+     "doc": "Os entes da UF sem o dado, com o link para a página deles.",
+     "linha": 178
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/componentes/paineis/ComparacaoMercado.tsx",
    "linguagem": "typescript",
    "linhas": 104,
@@ -15400,22 +15577,22 @@
   {
    "caminho": "packages/portal/src/componentes/paineis/PainelOperacao.tsx",
    "linguagem": "typescript",
-   "linhas": 176,
-   "doc": "Situação das coletas (RF-AD-05; ADR-039): os alertas, as execuções dos fluxos de dados, o volume diário do\nPNCP contra o usual e a coleta da conformidade por UF. É a saúde do Lumen e das fontes, não dos entes.",
+   "linhas": 180,
+   "doc": "Situação das coletas (RF-AD-05; ADR-039): os alertas, as execuções dos fluxos de dados, o volume diário do\nPNCP contra o usual, a coleta da conformidade por UF e a cobertura por ente e UF (ADR-048). É a saúde do Lumen\ne das fontes, não dos entes.",
    "itens": [
     {
      "tipo": "tipo",
      "nome": "Estado",
      "assinatura": "type Estado = { fase: \"carregando\" } | { fase: \"pronto\"; dados: Operacao | null } | { fase: \"erro\"; erro: string };",
      "doc": "Carregando, o arquivo lido (null quando ainda não publicado) ou o erro.",
-     "linha": 17
+     "linha": 19
     },
     {
      "tipo": "componente",
      "nome": "PainelOperacao",
      "assinatura": "export function PainelOperacao()",
      "doc": "A página inteira da situação das coletas.",
-     "linha": 20
+     "linha": 22
     }
    ]
   },
@@ -15438,6 +15615,21 @@
      "assinatura": "export function Transparencia({ codigo }: { codigo: string })",
      "doc": "A seção dos portais de transparência de um ente.",
      "linha": 20
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/Rodape.tsx",
+   "linguagem": "typescript",
+   "linhas": 26,
+   "doc": "Rodapé de todas as páginas: de onde vêm os números, o compromisso editorial do projeto e o link da situação das\ncoletas (ADR-039).",
+   "itens": [
+    {
+     "tipo": "componente",
+     "nome": "Rodape",
+     "assinatura": "export function Rodape()",
+     "doc": "Rodapé: de onde vêm os números e o compromisso editorial do projeto.",
+     "linha": 9
     }
    ]
   }
@@ -15714,6 +15906,11 @@
    "testes": 3
   },
   {
+   "caminho": "packages/painel/testes/test_cobertura.py",
+   "doc": "Relatório de cobertura por ente e UF (ADR-048).",
+   "testes": 2
+  },
+  {
    "caminho": "packages/painel/testes/test_conformidade.py",
    "doc": "Painel de conformidade: estado por UF, avaliação na data da publicação e arquivos publicados (ADR-028).",
    "testes": 12
@@ -15787,6 +15984,11 @@
    "caminho": "packages/portal/src/lib/__testes__/avisos.test.ts",
    "doc": "",
    "testes": 4
+  },
+  {
+   "caminho": "packages/portal/src/lib/__testes__/cobertura.test.ts",
+   "doc": "",
+   "testes": 3
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/contratacao.test.ts",

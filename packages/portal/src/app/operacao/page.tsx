@@ -10,8 +10,8 @@ import { PainelOperacao } from "@/componentes/paineis/PainelOperacao";
 export const metadata: Metadata = {
   title: "Situação das coletas",
   description:
-    "Execuções dos fluxos de dados do Lumen, volume diário publicado no PNCP contra o usual e coleta da " +
-    "conformidade por UF.",
+    "Execuções dos fluxos de dados do Lumen, volume diário publicado no PNCP contra o usual, coleta da " +
+    "conformidade por UF e cobertura por ente e UF.",
 };
 
 /** A página: título e o painel. */

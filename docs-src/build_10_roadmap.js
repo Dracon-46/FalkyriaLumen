@@ -264,13 +264,13 @@ body.push(table(["Entregável", "Situação"], [5200, 4400], [
   ["Cadastro de entes do IBGE com população e porte", "Concluído"],
   ["Normalização com qualidade e quarentena", "Concluída para PNCP, SICONFI e IBGE; silver idempotente, reconstruível do bronze"],
   ["Grupos de pares", "Concluído (ADR-038): municípios por porte e região, com recuo para o porte no país abaixo de 15 entes; estados e DF num grupo; versão 2 com a receita corrente líquida por habitante (todo grupo com 30 entes com RCL publicada se divide na mediana). Comparação publicada na conformidade de cada ente"],
-  ["Painel operacional", "Concluído (ADR-039): página pública \"Situação das coletas\" com as execuções dos fluxos, o volume diário do PNCP contra o usual (alarme de queda, sem falso positivo em 172 dias úteis de 2026) e a coleta da conformidade; limiares iniciais"],
+  ["Painel operacional", "Concluído (ADR-039): página pública \"Situação das coletas\" com as execuções dos fluxos, o volume diário do PNCP contra o usual (alarme de queda, sem falso positivo em 172 dias úteis de 2026) e a coleta da conformidade e a cobertura por ente e UF (ADR-048); limiares iniciais"],
   ["Cadastro dos portais de transparência (ADR-028)", "Concluído pelo PNTP (ADR-032): 11.697 entidades com endereço do portal e nível de transparência; leitura dos portais pendente"],
   ["Regra J-01: contratação de sancionado (antecipada da Fase 2)", "Publicada como aviso no portal desde 21/10/2026 (ADR-047), a cada carga do painel, com ressalva e contestação; calibração pendente"],
   ["Parâmetros legais verificados", "Concluído além do previsto: limites de dispensa de 2021 a 2026, fator do § 2º e acréscimos do art. 125, conferidos no Planalto"],
   ["Itens e resultados do PNCP no pipeline", "Concluído: coleta sob demanda dos processos da silver por objeto (lumen coletar pncp_itens)"],
   ["Regra A-05: preço comparado com o mercado de fora do governo (antecipada da Fase 2)", "Em modo silencioso (ADR-027): combustível contra a série da ANP; informática contra o varejo pela API oficial, a validar; limiares não calibrados"],
-  ["Critério de saída (três exercícios e relatório de cobertura)", "Não iniciado. A hospedagem está decidida (ADR-026); faltam o projeto no Supabase e levar a coleta de contratações para a nuvem"],
+  ["Critério de saída (três exercícios e relatório de cobertura)", "Em andamento. O relatório de cobertura por ente e UF está publicado na \"Situação das coletas\" (ADR-048), e a carga das contratações e da conformidade desde 2021 está em curso no GitHub Actions (ADR-046)"],
 ], { size: 17 }));
 body.push(spacer(80));
 body.push(callout("Antes da Fase 2", [
@@ -322,7 +322,7 @@ L.buildDoc({
   codigo: "DOC-10",
   titulo: "Roadmap",
   subtitulo: "Fases, marcos, esforço, custos e critérios de replanejamento",
-  meta: { versao: "2.1", data: "21 de outubro de 2026",
+  meta: { versao: "2.2", data: "21 de outubro de 2026",
     situacao: "Plano aprovado, com a situação de cada fase em outubro de 2026 (seção 9)",
     verificado: "outubro de 2026" },
   body,

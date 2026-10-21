@@ -5,6 +5,18 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Cobertura por ente e UF (ADR-048)
+
+- A "Situação das coletas" ganha a seção "Cobertura por ente e UF": para cada
+  UF e para o Brasil, quantos entes têm publicação no PNCP num ano, o extrato
+  de entregas coletado, a DCA, o RGF e a RCL, com a lista dos que não têm e o
+  link para a página de cada um.
+- Filtro dos entes: todos; estados, DF e municípios acima de 20 mil
+  habitantes; ou municípios até 20 mil, que podem divulgar fora do PNCP até
+  1º/4/2027 (Lei 14.133, art. 176). Um gráfico mostra a fração com
+  publicação no PNCP ano a ano.
+- Novo arquivo dos painéis, `cobertura.json`, gerado pelo `publicar`.
+
 ### Avisos: o que aconteceu e o que observar, em público (ADR-047)
 
 - Página nova, **Avisos** (`/avisos/`), na barra de abas e no filtro de local:

@@ -356,6 +356,7 @@ Os arquivos `.json.gz` vão comprimidos com gzip, e o portal os descomprime no n
 | `conformidade/uf/<sigla>.json` | Entes da UF, com o resumo de cada um |
 | `conformidade/ente/<código>.json` | Obrigações avaliadas de um ente e o grupo de pares (ADR-038) |
 | `operacao.json` | Situação das coletas: fluxos de dados, volume diário do PNCP e coleta da conformidade (ADR-039) |
+| `cobertura.json` | Cobertura por ente e UF (ADR-048): por ente, os anos com publicação no PNCP, os exercícios do extrato coletados, a DCA, o RGF e a RCL e se é município com até 20 mil habitantes; somas por UF e do Brasil |
 | `conformidade/pares/<id>.json` | Um grupo de pares: critérios, distribuição da fração no prazo e os entes que o formam |
 | `transparencia/uf-<sigla>.json`, `transparencia/uniao.json` | Entidades avaliadas pelo PNTP, agrupadas pelo ente (ADR-035) |
 | `avisos/uf-<sigla>.json`, `avisos/uniao.json` | Avisos do estado e dos municípios da UF (e dos órgãos sem ente identificado que contrataram nela), ou da União: tipo, data, ente, órgão, título, detalhe, o que observar, fonte, chave do PNCP, valor e contestação; em ordem de data (ADR-047) |

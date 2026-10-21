@@ -218,6 +218,13 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["publicar", "convenios/ente/<grupo>.json.gz (3º a 5º dígitos do município, ou a UF)", "Comprimido e em grupos, como as emendas; lido pelo mandato aberto em Governos municipais"],
 ], { monoCols: [0], size: 17 }));
 
+body.push(h2("4.15 cobertura.py"));
+body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
+  ["anos_com_publicacao", "Os anos com ao menos um processo ou um contrato no acumulador do ente", "Mês sem nada não conta"],
+  ["ate_20_mil", "Se o município tem até 20 mil habitantes pela população do cadastro", "Lei 14.133, art. 176: até 1º/4/2027 para divulgar no PNCP; até lá, diário oficial"],
+  ["montar", "cobertura.json: uma linha por estado, DF e município, somas por UF e do Brasil, a União à parte", "Critério de saída da Fase 1 (ADR-048); mede o que o Lumen tem, não avalia o ente"],
+], { monoCols: [0], size: 17 }));
+
 // ============================================================ 5. Estado
 
 body.push(h1("5. Estado guardado entre execuções"));
@@ -258,6 +265,7 @@ body.push(table(["Caminho", "tipo", "Conteúdo"], [3200, 2200, 4200], [
   ["conformidade/uf/<sigla>.json", "conformidade-uf", "Entes da UF com o resumo de cada um"],
   ["conformidade/ente/<código>.json", "conformidade-ente", "Obrigações avaliadas de um ente e o grupo de pares"],
   ["operacao.json", "operacao", "Situação das coletas: fluxos, volume diário do PNCP e coleta da conformidade (ADR-039)"],
+  ["cobertura.json", "cobertura", "Por ente: anos com publicação no PNCP, extrato coletado, DCA, RGF, RCL e a marca de até 20 mil habitantes; somas por UF e do Brasil (ADR-048)"],
   ["conformidade/pares/<id>.json", "conformidade-pares", "Um grupo de pares: critérios, distribuição da fração no prazo e os entes que o formam, por nome"],
 ], { monoCols: [0, 1], size: 17 }));
 
@@ -420,7 +428,7 @@ L.buildDoc({
   codigo: "DOC-13",
   titulo: "Painéis de Contratações e Conformidade",
   subtitulo: "O que cada ente publicou no PNCP e as entregas da LRF ao Tesouro, com a fonte de cada número",
-  meta: { versao: "2.0", data: "21 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038, o ADR-039, o ADR-041 e o ADR-042",
+  meta: { versao: "2.1", data: "21 de outubro de 2026", situacao: "Proposta — acompanha o ADR-028, o ADR-038, o ADR-039, o ADR-041 e o ADR-042",
     verificado: "outubro de 2026" },
   body,
   outFile: path.join(__dirname, "..", "docs", "DOC-13_Paineis.docx"),

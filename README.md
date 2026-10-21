@@ -428,7 +428,8 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
   (ADR-038), por porte, região e receita corrente líquida por habitante, do RREO normalizado, e a
   despesa por função de cada ente aparece ao lado da do grupo (ADR-041, DCA do último exercício), com a
   despesa com pessoal do Executivo em % da RCL e os limites do RGF (ADR-042). O painel
-  operacional está no portal, em "Situação das coletas" (ADR-039).
+  operacional está no portal, em "Situação das coletas" (ADR-039), com a cobertura por ente e UF
+  (ADR-048) do critério de saída da fase; falta a carga desde 2021 terminar (ADR-046).
   Os cadastros de sanções da CGU (CEIS, CNEP e CEPIM) já são coletados e normalizados (ADR-030); o
   cruzamento com as contratações é a regra J-01 da Fase 2. As emendas parlamentares (ADR-044) e os convênios
   (ADR-045) entram pelos arquivos de dados abertos, sem chave; as transferências da União seguem pelo mesmo

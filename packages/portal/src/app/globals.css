@@ -1683,6 +1683,12 @@ table.tabela {
   width: 170px;
 }
 
+/* Rótulos longos, como os dados da cobertura por ente e UF */
+.filtro-periodo .escolha.escolha-larga {
+  width: 320px;
+  max-width: 100%;
+}
+
 .filtro-periodo-titulo {
   font-weight: 600;
 }

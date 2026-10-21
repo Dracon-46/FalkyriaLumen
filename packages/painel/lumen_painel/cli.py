@@ -33,9 +33,9 @@ from pathlib import Path
 
 from . import avisos as av
 from . import cnpj as base_cnpj
+from . import cobertura, convenios, despesa_funcao, emendas, mercado, operacao, pares, pessoal, rcl, transparencia
 from . import conformidade as conf
 from . import contratacoes as contr
-from . import convenios, despesa_funcao, emendas, mercado, operacao, pares, pessoal, rcl, transparencia
 from .cadastro import Cadastro
 from .comum import gravar_json, grupo_do_ente, grupo_do_orgao, hoje_brasilia, instante_utc, ler_json, uf_do_ente
 from .dia import coletar_dia, dias_guardados, mascarar_dia
@@ -353,6 +353,10 @@ def cmd_publicar(args) -> int:
         coletas=avaliacao.coletas, entes=avaliacao.entes, uf_do_ente=uf_do_ente,
         agora=datetime.fromisoformat(gerado_em.replace("Z", "+00:00")), hoje=hoje, gerado_em=gerado_em)
     site.gravar("operacao.json", situacao)
+    site.gravar("cobertura.json", cobertura.montar(
+        painel, cadastro, {c: a["coleta"] for c, a in avaliacao.entes.items()}, dca=despesa_entes, rgf=pessoal_entes,
+        rcl=rcl_entes, exercicios={"dca": exercicio_despesa, "rgf": exercicio_pessoal, "rcl": exercicio_rcl},
+        gerado_em=gerado_em))
 
     pntp = transparencia.publicar(estado, site.gravar, gerado_em=gerado_em)
     avisos.juntar(av.de_transparencia(transparencia.montar(transparencia.ler_estado(estado), gerado_em=gerado_em).arquivos))

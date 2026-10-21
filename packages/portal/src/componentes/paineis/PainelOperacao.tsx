@@ -2,13 +2,15 @@
 
 /**
  * Situação das coletas (RF-AD-05; ADR-039): os alertas, as execuções dos fluxos de dados, o volume diário do
- * PNCP contra o usual e a coleta da conformidade por UF. É a saúde do Lumen e das fontes, não dos entes.
+ * PNCP contra o usual, a coleta da conformidade por UF e a cobertura por ente e UF (ADR-048). É a saúde do Lumen
+ * e das fontes, não dos entes.
  */
 
 import { useEffect, useState } from "react";
 import { haQuanto, instante, numero, numeroCompacto, percentual } from "@/lib/formato";
 import { carregarOperacao, rotuloExecucao, type Operacao } from "@/lib/operacao";
 import { dataCurta } from "@/lib/paineis";
+import { CoberturaEntes } from "./CoberturaEntes";
 import { GraficoBarras, Situacao } from "./Comuns";
 
 const METODO = "https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-039.md";
@@ -171,6 +173,8 @@ export function PainelOperacao() {
           </table>
         </div>
       </section>
+
+      <CoberturaEntes />
     </>
   );
 }
