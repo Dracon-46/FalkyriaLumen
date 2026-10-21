@@ -223,6 +223,7 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["anos_com_publicacao", "Os anos com ao menos um processo ou um contrato no acumulador do ente", "Mês sem nada não conta"],
   ["ate_20_mil", "Se o município tem até 20 mil habitantes pela população do cadastro", "Lei 14.133, art. 176: até 1º/4/2027 para divulgar no PNCP; até lá, diário oficial"],
   ["montar", "cobertura.json: uma linha por estado, DF e município, somas por UF e do Brasil, a União à parte", "Critério de saída da Fase 1 (ADR-048); mede o que o Lumen tem, não avalia o ente"],
+  ["sem_ente", "O publicado sem ente: totais, fração dos processos e do valor e os 20 órgãos sem ente com mais processos", "Fica no panorama do Brasil e fora das linhas; em 2026, 13,9% do valor estimado"],
 ], { monoCols: [0], size: 17 }));
 
 body.push(h2("4.16 pessoas_juridicas.py"));

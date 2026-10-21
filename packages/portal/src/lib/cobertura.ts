@@ -24,8 +24,23 @@ export interface Cobertura {
   siconfi: { extrato: string[]; dca: number | null; rgf: number | null; rcl: number | null };
   limite_art_176: number;
   uniao: { pncp: string[] };
+  /** O publicado no PNCP sem ente identificado; ausente nos arquivos antigos. */
+  sem_ente?: SemEnte;
   colunas: string[];
   entes: LinhaCobertura[];
+}
+
+/** O publicado sem ente: totais, frações do Brasil e os órgãos sem ente no cadastro com mais processos. */
+export interface SemEnte {
+  processos: number;
+  valor_estimado: number;
+  contratos: number;
+  valor_contratos: number;
+  fracao_processos: number | null;
+  fracao_valor: number | null;
+  orgaos_sem_ente: number;
+  /** `[CNPJ, razão social, esfera, processos, valor estimado]`. */
+  orgaos: [string, string | null, string | null, number, number][];
 }
 
 /** Lê e confere `cobertura.json`; `null` se ainda não foi publicado. */

@@ -6,6 +6,8 @@ from lumen_painel import cobertura
 from lumen_painel.cadastro import Cadastro, Ente
 from lumen_painel.contratacoes import Acumulador, Painel, Totais
 
+SEM_ENTE = "00394544000185"
+
 CADASTRO = Cadastro({
     "1": Ente("1", "União", None, "F"),
     "43": Ente("43", "Rio Grande do Sul", "RS", "E", 11_000_000),
@@ -25,6 +27,11 @@ def _acumulador(*meses: tuple[str, int, int]) -> Acumulador:
 
 def _painel() -> Painel:
     p = Painel(dias=["2021-08-02", "2024-05-10", "2026-10-20"])
+    p.brasil.totais = Totais(processos=10, valor_estimado=1000.0)
+    p.sem_ente = Totais(processos=2, valor_estimado=400.0)
+    p.orgaos = {SEM_ENTE: ["ORGAO FEDERAL SEM ENTE", "F", None], "88000000000100": ["PREFEITURA", "M", "4314902"]}
+    p.por_orgao = {SEM_ENTE: Acumulador(totais=Totais(processos=2, valor_estimado=400.0)),
+                   "88000000000100": Acumulador(totais=Totais(processos=5))}
     p.entes = {"1": _acumulador(("2021-08", 3, 0)),
                "43": _acumulador(("2024-05", 1, 0), ("2026-10", 0, 2)),
                "4314902": _acumulador(("2021-08", 0, 1), ("2024-05", 5, 5)),
@@ -58,3 +65,7 @@ def test_arquivo_por_ente_por_uf_e_brasil():
                   "extrato": {"2025": 2, "2026": 1}, "dca": 2, "rgf": 1, "rcl": 1}
     assert [u["uf"] for u in r["ufs"]] == ["DF", "RS"]
     assert r["brasil"]["entes"] == 5 and r["brasil"]["pncp"]["2024"] == 2 and r["brasil"]["municipios"] == 3
+    # O publicado sem ente, com a fração do Brasil e o órgão sem ente no cadastro
+    assert r["sem_ente"]["fracao_processos"] == 0.2 and r["sem_ente"]["fracao_valor"] == 0.4
+    assert r["sem_ente"]["orgaos_sem_ente"] == 1
+    assert r["sem_ente"]["orgaos"] == [[SEM_ENTE, "ORGAO FEDERAL SEM ENTE", "F", 2, 400.0]]

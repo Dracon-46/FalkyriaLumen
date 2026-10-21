@@ -22,9 +22,10 @@ import {
   type ContagemCobertura,
   type Dado,
   type Recorte,
+  type SemEnte,
 } from "@/lib/cobertura";
 import { numero, percentual } from "@/lib/formato";
-import { carregarEntes, dataCurta } from "@/lib/paineis";
+import { carregarEntes, dataCurta, moedaCompacta } from "@/lib/paineis";
 import { GraficoBarras } from "./Comuns";
 
 const METODO = "https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-048.md";
@@ -138,6 +139,7 @@ export function CoberturaEntes() {
             como é medido
           </a>
         </p>
+        {dados.sem_ente && <PublicadoSemEnte s={dados.sem_ente} />}
       </>
     );
   }
@@ -171,6 +173,32 @@ function LinhaUf({ c, destaque = false, aberta = false, onAbrir }: {
         )}
       </td>
     </tr>
+  );
+}
+
+/** O que o PNCP publicou sem ente identificado: a fração do total e os órgãos com mais processos. */
+function PublicadoSemEnte({ s }: { s: SemEnte }) {
+  if (s.processos === 0 && s.contratos === 0) return null;
+  return (
+    <>
+      <h3 className="titulo-secao">Publicado sem ente identificado</h3>
+      <p className="busca-detalhe">
+        {numero(s.processos)} processo(s)
+        {s.fracao_processos !== null && ` (${percentual(100 * s.fracao_processos)} do total)`}, com{" "}
+        {moedaCompacta(s.valor_estimado)} de valor estimado
+        {s.fracao_valor !== null && ` (${percentual(100 * s.fracao_valor)})`}, e {numero(s.contratos)} contrato(s) vêm
+        de órgãos que o cadastro não liga a um ente. Entram no panorama do Brasil, mas em nenhuma linha acima. São{" "}
+        {numero(s.orgaos_sem_ente)} órgão(s); os com mais processos:
+      </p>
+      <ul className="busca-detalhe">
+        {s.orgaos.map(([cnpj, nome, , processos, valor]) => (
+          <li key={cnpj}>
+            <Link href={`/contratacoes/?orgao=${cnpj}`}>{nome ?? cnpj}</Link> · {numero(processos)} processo(s),{" "}
+            {moedaCompacta(valor)}
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 

@@ -27,6 +27,8 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   habitantes; ou municípios até 20 mil, que podem divulgar fora do PNCP até
   1º/4/2027 (Lei 14.133, art. 176). Um gráfico mostra a fração com
   publicação no PNCP ano a ano.
+- O publicado no PNCP sem ente identificado vai à parte: a fração dos
+  processos e do valor estimado e os 20 órgãos com mais processos.
 - Novo arquivo dos painéis, `cobertura.json`, gerado pelo `publicar`.
 
 ### Avisos: o que aconteceu e o que observar, em público (ADR-047)

@@ -8719,43 +8719,50 @@
   {
    "caminho": "packages/painel/lumen_painel/cobertura.py",
    "linguagem": "python",
-   "linhas": 90,
-   "doc": "Relatório de cobertura por ente e UF (critério de saída da Fase 1 no DOC-10; ADR-048).\n\nO que o Lumen tem de cada ente do cadastro do SICONFI (estados, Distrito Federal e municípios), num arquivo só,\n``cobertura.json``, publicado com os painéis:\n\n- **PNCP:** os anos com ao menos um processo de contratação ou um contrato publicado em nome do ente, desde o\n  primeiro dia guardado;\n- **SICONFI:** os exercícios com o extrato de entregas coletado e se o ente tem a DCA (despesa por função), o RGF\n  (despesa com pessoal) e a RCL do exercício que os grupos de pares usam (ADR-038, ADR-041 e ADR-042).\n\nA soma vai por UF e para o Brasil, e a linha de cada ente deixa a página listar quem não tem um dado numa UF.\nOs municípios com até 20 mil habitantes vão marcados: a Lei 14.133 (art. 176) deu a eles até 1º/4/2027 para\ndivulgar no PNCP, e até lá podem publicar em diário oficial. Sem publicação no PNCP não quer dizer sem\ncontratação. A União entra à parte, só com os anos do PNCP.",
+   "linhas": 111,
+   "doc": "Relatório de cobertura por ente e UF (critério de saída da Fase 1 no DOC-10; ADR-048).\n\nO que o Lumen tem de cada ente do cadastro do SICONFI (estados, Distrito Federal e municípios), num arquivo só,\n``cobertura.json``, publicado com os painéis:\n\n- **PNCP:** os anos com ao menos um processo de contratação ou um contrato publicado em nome do ente, desde o\n  primeiro dia guardado;\n- **SICONFI:** os exercícios com o extrato de entregas coletado e se o ente tem a DCA (despesa por função), o RGF\n  (despesa com pessoal) e a RCL do exercício que os grupos de pares usam (ADR-038, ADR-041 e ADR-042).\n\nA soma vai por UF e para o Brasil, e a linha de cada ente deixa a página listar quem não tem um dado numa UF.\nO que o PNCP publica sem ente identificado (órgão sem ente no cadastro) vai à parte, com a fração do total e os\n``ORGAOS_SEM_ENTE`` órgãos com mais processos: fica no panorama do Brasil, fora das linhas dos entes.\nOs municípios com até 20 mil habitantes vão marcados: a Lei 14.133 (art. 176) deu a eles até 1º/4/2027 para\ndivulgar no PNCP, e até lá podem publicar em diário oficial. Sem publicação no PNCP não quer dizer sem\ncontratação. A União entra à parte, só com os anos do PNCP.",
    "itens": [
     {
      "tipo": "funcao",
      "nome": "anos_com_publicacao",
      "assinatura": "def anos_com_publicacao(acumulador: Acumulador | None) -> list[str]",
      "doc": "Os anos (``\"2024\"``) com ao menos um processo ou um contrato no acumulador do ente.",
-     "linha": 27
+     "linha": 30
     },
     {
      "tipo": "funcao",
      "nome": "ate_20_mil",
      "assinatura": "def ate_20_mil(ente: Ente) -> bool",
      "doc": "Município com até ``LIMITE_ART_176`` habitantes, pela população do cadastro.",
-     "linha": 34
+     "linha": 37
+    },
+    {
+     "tipo": "funcao",
+     "nome": "sem_ente",
+     "assinatura": "def sem_ente(painel: Painel) -> dict",
+     "doc": "O publicado sem ente: os totais, a fração dos processos e do valor estimado do Brasil e os órgãos sem ente\nno cadastro com mais processos (``[CNPJ, razão social, esfera, processos, valor estimado]``).",
+     "linha": 43
     },
     {
      "tipo": "funcao",
      "nome": "_totais",
      "assinatura": "def _totais(anos_pncp: list[str], anos_extrato: list[str]) -> dict",
      "doc": "Contagens zeradas de uma UF ou do Brasil.",
-     "linha": 40
+     "linha": 60
     },
     {
      "tipo": "funcao",
      "nome": "_somar",
      "assinatura": "def _somar(totais: dict, linha: list) -> None",
      "doc": "Soma a linha de um ente (na ordem de ``COLUNAS``) nas contagens.",
-     "linha": 47
+     "linha": 67
     },
     {
      "tipo": "funcao",
      "nome": "montar",
      "assinatura": "def montar(painel: Painel, cadastro: Cadastro, coleta: dict[str, dict[str, bool]], *, dca, rgf, rcl, exercicios: dict[str, int | None], gerado_em: str) -> dict",
      "doc": "``cobertura.json``. ``coleta``: por ente, os exercícios do extrato e se a coleta deu certo; ``dca``, ``rgf``\ne ``rcl``: os códigos dos entes com o dado do exercício em ``exercicios`` (as chaves dos ``ler_*``).",
-     "linha": 63
+     "linha": 83
     }
    ]
   },
@@ -10532,7 +10539,7 @@
   {
    "caminho": "packages/portal/src/lib/cobertura.ts",
    "linguagem": "typescript",
-   "linhas": 151,
+   "linhas": 166,
    "doc": "Relatório de cobertura por ente e UF (ADR-048): o arquivo `cobertura.json`, publicado com os painéis, diz o que o\nLumen tem de cada ente (os anos com publicação no PNCP e os dados do SICONFI). A situação das coletas soma por\nUF no recorte escolhido e lista os entes sem o dado.",
    "itens": [
     {
@@ -10550,95 +10557,102 @@
      "linha": 19
     },
     {
+     "tipo": "interface",
+     "nome": "SemEnte",
+     "assinatura": "export interface SemEnte",
+     "doc": "O publicado sem ente: totais, frações do Brasil e os órgãos sem ente no cadastro com mais processos.",
+     "linha": 34
+    },
+    {
      "tipo": "funcao",
      "nome": "carregarCobertura",
      "assinatura": "export async function carregarCobertura(sinal?: AbortSignal): Promise<Cobertura | null>",
      "doc": "Lê e confere `cobertura.json`; `null` se ainda não foi publicado.",
-     "linha": 32
+     "linha": 47
     },
     {
      "tipo": "tipo",
      "nome": "Dado",
      "assinatura": "export type Dado = { fonte: \"pncp\" | \"extrato\"; ano: string } | { fonte: \"dca\" | \"rgf\" | \"rcl\" };",
      "doc": "O dado medido: publicação no PNCP ou extrato coletado num ano; a DCA, o RGF ou a RCL do exercício.",
-     "linha": 39
+     "linha": 54
     },
     {
      "tipo": "tipo",
      "nome": "Recorte",
      "assinatura": "export type Recorte = \"todos\" | \"acima\" | \"ate\";",
      "doc": "Que entes contar: todos; estados, DF e municípios acima de 20 mil habitantes, já obrigados a divulgar no PNCP;\nou os municípios com até 20 mil, que têm até 1º/4/2027 (Lei 14.133, art. 176).",
-     "linha": 45
+     "linha": 60
     },
     {
      "tipo": "funcao",
      "nome": "temDado",
      "assinatura": "export function temDado(l: LinhaCobertura, d: Dado): boolean",
      "doc": "Se o ente tem o dado.",
-     "linha": 48
+     "linha": 63
     },
     {
      "tipo": "funcao",
      "nome": "noRecorte",
      "assinatura": "export function noRecorte(l: LinhaCobertura, r: Recorte): boolean",
      "doc": "Se o ente entra no recorte.",
-     "linha": 64
+     "linha": 79
     },
     {
      "tipo": "interface",
      "nome": "ContagemCobertura",
      "assinatura": "export interface ContagemCobertura",
      "doc": "Uma UF (ou o Brasil): entes do recorte, quantos têm o dado e os códigos dos que não têm.",
-     "linha": 69
+     "linha": 84
     },
     {
      "tipo": "funcao",
      "nome": "contarPorUf",
      "assinatura": "export function contarPorUf(c: Cobertura, d: Dado, r: Recorte): { brasil: ContagemCobertura; ufs: ContagemCobertura[] }",
      "doc": "As UFs, na ordem das siglas, e o Brasil (sem a lista dos que não têm o dado).",
-     "linha": 77
+     "linha": 92
     },
     {
      "tipo": "funcao",
      "nome": "pncpPorAno",
      "assinatura": "export function pncpPorAno(c: Cobertura, r: Recorte): { ano: string; com: number; entes: number }[]",
      "doc": "Os entes do recorte com publicação no PNCP, ano a ano.",
-     "linha": 99
+     "linha": 114
     },
     {
      "tipo": "funcao",
      "nome": "valorDoDado",
      "assinatura": "export function valorDoDado(d: Dado): string",
      "doc": "O dado como valor da caixa de escolha (`pncp:2025`, `dca`…) e de volta.",
-     "linha": 105
+     "linha": 120
     },
     {
      "tipo": "funcao",
      "nome": "dadoDoValor",
      "assinatura": "export function dadoDoValor(valor: string, c: Cobertura): Dado | null",
      "doc": "O dado de um valor da caixa de escolha; `null` se não é um dos oferecidos.",
-     "linha": 110
+     "linha": 125
     },
     {
      "tipo": "funcao",
      "nome": "rotuloDoDado",
      "assinatura": "export function rotuloDoDado(d: Dado, c: Cobertura): string",
      "doc": "Rótulo do dado na tela.",
-     "linha": 119
+     "linha": 134
     },
     {
      "tipo": "funcao",
      "nome": "opcoesDeDado",
      "assinatura": "export function opcoesDeDado(c: Cobertura): Opcao[]",
      "doc": "As opções da caixa: os anos do PNCP (o mais recente primeiro), os do extrato e os exercícios do SICONFI.",
-     "linha": 135
+     "linha": 150
     },
     {
      "tipo": "funcao",
      "nome": "dadoPadrao",
      "assinatura": "export function dadoPadrao(c: Cobertura): Dado | null",
      "doc": "O dado de partida: o PNCP no último ano inteiro coberto (o anterior ao do último dia), ou no único ano.",
-     "linha": 145
+     "linha": 160
     }
    ]
   },
@@ -15176,7 +15190,7 @@
   {
    "caminho": "packages/portal/src/componentes/paineis/CoberturaEntes.tsx",
    "linguagem": "typescript",
-   "linhas": 193,
+   "linhas": 221,
    "doc": "Cobertura por ente e UF (ADR-048), na situação das coletas: quantos entes de cada UF têm o dado escolhido no\nLumen (publicação no PNCP num ano, o extrato de entregas, a DCA, o RGF ou a RCL) e quais não têm. Mede o que o\nLumen e as fontes cobrem, não o ente.",
    "itens": [
     {
@@ -15184,28 +15198,35 @@
      "nome": "Estado",
      "assinatura": "type Estado = { fase: \"carregando\" } | { fase: \"pronto\"; dados: Cobertura | null } | { fase: \"erro\"; erro: string };",
      "doc": "Carregando, o arquivo lido (null quando ainda não publicado) ou o erro.",
-     "linha": 40
+     "linha": 41
     },
     {
      "tipo": "componente",
      "nome": "CoberturaEntes",
      "assinatura": "export function CoberturaEntes()",
      "doc": "A seção inteira: filtros, a evolução no PNCP, a tabela por UF e, aberta, a lista de quem não tem o dado.",
-     "linha": 43
+     "linha": 44
     },
     {
      "tipo": "componente",
      "nome": "LinhaUf",
      "assinatura": "function LinhaUf({ c, destaque = false, aberta = false, onAbrir }:",
      "doc": "Uma linha da tabela: a UF (ou o Brasil), as contagens e o botão que abre a lista de quem não tem o dado.",
-     "linha": 154
+     "linha": 156
+    },
+    {
+     "tipo": "componente",
+     "nome": "PublicadoSemEnte",
+     "assinatura": "function PublicadoSemEnte({ s }: { s: SemEnte })",
+     "doc": "O que o PNCP publicou sem ente identificado: a fração do total e os órgãos com mais processos.",
+     "linha": 180
     },
     {
      "tipo": "componente",
      "nome": "ListaSem",
      "assinatura": "function ListaSem({ codigos, nomes, pagina }: { codigos: string[]; nomes: Map<string, string> | null; pagina: string })",
      "doc": "Os entes da UF sem o dado, com o link para a página deles.",
-     "linha": 178
+     "linha": 206
     }
    ]
   },
@@ -15777,7 +15798,7 @@
   {
    "caminho": "packages/portal/src/componentes/paineis/PainelPessoaJuridica.tsx",
    "linguagem": "typescript",
-   "linhas": 262,
+   "linhas": 268,
    "doc": "Visão 360 de uma empresa ou entidade pelo CNPJ (ADR-049): o cadastro na Receita, os contratos publicados no PNCP\ncom cada ente, as emendas parlamentares recebidas e os convênios com a União. São fatos das fontes, como\npublicados; a página não marca nem ordena ninguém por risco.",
    "itens": [
     {
@@ -15798,57 +15819,57 @@
      "tipo": "funcao",
      "nome": "dataDoArquivo",
      "assinatura": "function dataDoArquivo(d: string | null): string",
-     "doc": "\"20261009\" → \"09/10/2026\".",
-     "linha": 40
+     "doc": "A data do arquivo da CGU: \"20261009\" (convênios, a data na página de download) ou o `Last-Modified` do servidor\n(emendas) → \"09/10/2026\".",
+     "linha": 43
     },
     {
      "tipo": "componente",
      "nome": "PainelPessoaJuridica",
      "assinatura": "export function PainelPessoaJuridica()",
      "doc": "A página: o campo do CNPJ e, com um CNPJ válido na URL, tudo o que o Lumen tem dele.",
-     "linha": 45
+     "linha": 51
     },
     {
      "tipo": "componente",
      "nome": "Pessoa",
      "assinatura": "function Pessoa({ cnpj, estado, nomes }: { cnpj: string; estado: Estado; nomes: Nomes })",
      "doc": "O que há do CNPJ: o cartão da Receita e as três seções das fontes.",
-     "linha": 95
+     "linha": 101
     },
     {
      "tipo": "funcao",
      "nome": "nomeDoEnte",
      "assinatura": "function nomeDoEnte(codigo: string, nomes: Nomes): string",
      "doc": "\"Porto Alegre (RS)\", \"São Paulo (estado)\", \"Distrito Federal\", \"União\" ou o código.",
-     "linha": 127
+     "linha": 133
     },
     {
      "tipo": "componente",
      "nome": "Contratos",
      "assinatura": "function Contratos({ p, nomes }: { p: PessoaJuridica; nomes: Nomes })",
      "doc": "Contratos no PNCP: os totais, o ano a ano e a tabela por ente contratante.",
-     "linha": 136
+     "linha": 142
     },
     {
      "tipo": "componente",
      "nome": "Emendas",
      "assinatura": "function Emendas({ p, nomes }: { p: PessoaJuridica; nomes: Nomes })",
      "doc": "Emendas parlamentares recebidas como favorecida, por ente.",
-     "linha": 162
+     "linha": 168
     },
     {
      "tipo": "componente",
      "nome": "TabelaPorEnte",
      "assinatura": "function TabelaPorEnte({ linhas, nomes, contratos = false, href }:",
      "doc": "A tabela de somas por ente, com o link de cada um; as primeiras linhas e, a pedido, todas.",
-     "linha": 176
+     "linha": 182
     },
     {
      "tipo": "componente",
      "nome": "Convenios",
      "assinatura": "function Convenios({ p, nomes }: { p: PessoaJuridica; nomes: Nomes })",
      "doc": "Convênios com a União como convenente, do maior valor ao menor.",
-     "linha": 219
+     "linha": 225
     }
    ]
   },
