@@ -232,8 +232,11 @@ function ContratosTce({ p, nomes }: { p: PessoaJuridica; nomes: Nomes }) {
       <h2 id="titulo-pj-tce" className="titulo-secao">Contratos registrados no tribunal de contas</h2>
       <p>
         {numero(t.contratosTce)} contrato(s), {moeda(t.valorTce)}, registrados pelos órgãos públicos nos sistemas
-        dos tribunais de contas que o Lumen já lê: o LicitaCon do TCE-RS, de 2016 em diante, e o SIM-AM do TCE-PR,
-        de 2013 em diante.
+        dos{" "}
+        <a href="https://github.com/Dracon-46/FalkyriaLumen/wiki/Tribunais-de-Contas" target="_blank" rel="noreferrer">
+          tribunais de contas que o Lumen já lê
+        </a>
+        .
       </p>
       <TabelaPorEnte linhas={tcePorEnte(p)} nomes={nomes} contratos
         href={(ente) => (tipoDoCodigo(ente) === "municipio" ? `/economia/municipio/?ente=${ente}` : null)} />

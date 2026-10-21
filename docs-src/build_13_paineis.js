@@ -227,7 +227,7 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["sem_ente", "O publicado sem ente: totais, fração dos processos e do valor e os 20 órgãos sem ente com mais processos", "Fica no panorama do Brasil e fora das linhas; em 2026, 9,8% do valor estimado, depois das estatais federais"],
 ], { monoCols: [0], size: 17 }));
 
-body.push(h2("4.16 tce.py, tce_rs.py e tce_pr.py"));
+body.push(h2("4.16 tce.py, tce_rs.py, tce_pr.py e tce_pe.py"));
 body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["tce.cabecalho, tce.ArquivoRemoto", "O tamanho e a etiqueta de cada arquivo e a leitura por partes (Range)", "Cada ZIP anual do TCE-RS repete a tabela de pessoas (80 MB); lendo por partes, cada ano custa uns 5 MB"],
   ["tce.SomaAno", "A soma de um ano por ente (contratos, valor, fora do teto, pessoa física, aditivos) e por CNPJ", "Mesmo teto de plausibilidade do PNCP; o CPF nunca é guardado"],
@@ -235,6 +235,7 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["tce.publicar", "tce/ente/<grupo>.json.gz: por ente, o tribunal, os anos e os 100 maiores fornecedores", "Junta os tribunais; lido no mandato aberto de Governos municipais; não se soma ao PNCP (ADR-050)"],
   ["tce_rs.ler_orgaos, ler_ano, ler_nomes, coletar", "LicitaCon: órgão no ente, contratos e aditivos do ano, nomes das empresas", "Consórcios e associações sem ente; o nome do MEI sai mascarado"],
   ["tce_pr.ler_municipio, coletar", "SIM-AM: o ZIP de cada município no ano, com os contratos por contratado e os aditivos do ano", "O ZIP do estado só sinaliza mudança; consórcio sem ente; supressão entra negativa"],
+  ["tce_pe.consultar, somar_ano, coletar", "API do TCE-PE: contratos e aditivos do ano, município pelo nome", "Sem cabeçalho de mudança: ano fechado relido uma vez por mês (tce.precisa_ler_por_idade); consulta cortada vai para os problemas"],
 ], { monoCols: [0], size: 17 }));
 
 body.push(h2("4.17 pessoas_juridicas.py"));

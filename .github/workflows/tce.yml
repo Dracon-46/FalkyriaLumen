@@ -1,11 +1,13 @@
 # Contratos registrados nos tribunais de contas (ADR-050): o LicitaCon do
-# TCE-RS (órgãos gaúchos desde 2016) e o SIM-AM do TCE-PR (municípios
-# paranaenses desde 2013), um job por tribunal.
+# TCE-RS (órgãos gaúchos desde 2016), o SIM-AM do TCE-PR (municípios
+# paranaenses desde 2013) e a API do TCE-PE (órgãos pernambucanos desde
+# 2013), um job por tribunal.
 #
 # Todo dia e à mão. Confere o cabeçalho do arquivo de cada ano e só lê o que
 # mudou: um ano fechado, quando o tamanho muda; o corrente e o anterior, uma
 # vez por semana. No RS, o ZIP do ano é lido por partes (Range), uns 5 MB por
-# ano; no PR, são 399 arquivos pequenos por ano (perto de 80 s). Grava
+# ano; no PR, são 399 arquivos pequenos por ano (perto de 80 s); em PE, a API
+# não diz se o ano mudou, e o ano fechado é relido uma vez por mês. Grava
 # tce-<sigla>.json.gz na versão "painel-estado"; o site sai na publicação
 # seguinte dos painéis (paineis-site), às 05:17 de Brasília.
 #
@@ -38,7 +40,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tribunal: [rs, pr]
+        tribunal: [rs, pr, pe]
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:

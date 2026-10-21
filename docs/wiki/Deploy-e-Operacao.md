@@ -104,7 +104,7 @@ publicação para com erro e o índice não sobe. Falha passageira de envio (408
 | [`paineis-carga.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/paineis-carga.yml) | À mão | Meses anteriores do PNCP em blocos de dias, no máximo quatro máquinas ao mesmo tempo; publica no fim | `LUMEN_CONTATO` |
 | [`paineis-site.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/paineis-site.yml) | Chamado pelos dois acima, e à mão | Baixa o estado, roda `lumen painel publicar` e publica no GitHub Pages | — |
 | [`deteccao-sancoes.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/deteccao-sancoes.yml) | Depois de cada `paineis` e `paineis-carga`, e à mão | Regra J-01 (sanções da CGU × contratos do painel), relatório guardado em `painel-estado` e site publicado de novo, com os avisos ([ADR-047](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-047.md)) | — |
-| [`tce.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/tce.yml) | Todo dia, 03:30 em Brasília, e à mão | Contratos nos tribunais de contas (LicitaCon do TCE-RS e SIM-AM do TCE-PR), só os anos que mudaram (ADR-050) | `LUMEN_CONTATO` |
+| [`tce.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/tce.yml) | Todo dia, 03:30 em Brasília, e à mão | Contratos nos tribunais de contas (TCE-RS, TCE-PR e TCE-PE), só os anos que mudaram (ADR-050) | `LUMEN_CONTATO` |
 | [`mercado-referencia.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/mercado-referencia.yml) | À mão | Regra A-05 com dados reais, em modo silencioso: PNCP, itens, ANP e o relatório como artefato de sete dias | `LUMEN_CONTATO` |
 
 Repositório: [`wiki.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/wiki.yml)
@@ -177,6 +177,8 @@ um job por tribunal, e grava `tce-<sigla>.json.gz` na versão `painel-estado`:
   diante leva perto de 2 minutos.
 - **TCE-PR:** cada ano são 399 arquivos pequenos, um por município (perto de 80 segundos). A carga de 2013 em diante
   leva perto de 18 minutos.
+- **TCE-PE:** cada ano são duas consultas à API do tribunal (contratos e aditivos, perto de 35 segundos). Como a API
+  não diz se o ano mudou, o ano fechado é relido uma vez por mês.
 
 Um ano fechado só é relido quando o arquivo muda de tamanho, e o corrente e o anterior, uma vez por semana. Na
 maioria dos dias, o fluxo só confere os cabeçalhos. À mão, o campo `anos` relê só os anos pedidos.

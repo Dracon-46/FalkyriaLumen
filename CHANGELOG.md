@@ -5,6 +5,13 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Tribunais de contas: o TCE-PE (ADR-050, adendo)
+
+- Coleta nova, `lumen painel tce-pe`, no fluxo diário `tce`: os contratos dos
+  órgãos pernambucanos, estaduais e municipais, de 2013 em diante, pela API de
+  dados abertos do tribunal, com os aditivos. Aparecem no mandato aberto de
+  Governos municipais e na página da empresa, como os do RS e do PR.
+
 ## 0.9.0 — 2026-10-21
 
 ### Novidades: as mudanças e as versões no portal

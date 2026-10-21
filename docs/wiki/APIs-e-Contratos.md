@@ -112,6 +112,16 @@ Sem chave.
 | `https://pit.tce.pr.gov.br/Arquivos/AAAA_PIT_TodosArquivos.zip` | O ZIP do estado no ano (1,3 GB): só o cabeçalho, para saber se o ano mudou |
 | `https://pit.tce.pr.gov.br/Arquivos/AAAA/AAAA_<IBGE de 6 dígitos>_Contrato.zip` | Contratos do município no ano (`Contrato.xml`, um registro por contratado) e os aditivos assinados no ano (`ContratoAditivo.xml`) |
 
+Sem chave.
+
+### TCE-PE — API de dados abertos
+
+| Endereço | Uso |
+|---|---|
+| `https://sistemas.tce.pe.gov.br/DadosAbertos/Contratos!json?AnoContrato=AAAA` | Contratos estaduais e municipais do ano (até 100 mil por consulta, ISO-8859-1) |
+| `https://sistemas.tce.pe.gov.br/DadosAbertos/TermoAditivo!json?AnoContrato=AAAA` | Aditivos dos contratos do ano |
+| `https://sistemas.tce.pe.gov.br/DadosAbertos/Municipios!json` | Nome e código IBGE dos municípios, para ligar o contrato ao ente |
+
 Sem chave. O levantamento dos outros tribunais está em [Tribunais de contas](Tribunais-de-Contas).
 
 ### Receita Federal — base pública de CNPJ

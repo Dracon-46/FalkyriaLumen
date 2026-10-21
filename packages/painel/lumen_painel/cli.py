@@ -45,6 +45,7 @@ from . import (
     pessoas_juridicas,
     rcl,
     tce,
+    tce_pe,
     tce_pr,
     tce_rs,
     transparencia,
@@ -262,12 +263,12 @@ def cmd_cnpj(args) -> int:
 
 
 def cmd_tce(args) -> int:
-    """Lê os contratos de um tribunal de contas (``tce-rs``: LicitaCon; ``tce-pr``: SIM-AM) nos anos que mudaram
-    e grava ``tce-<sigla>.json.gz`` (ADR-050)."""
+    """Lê os contratos de um tribunal de contas (``tce-rs``: LicitaCon; ``tce-pr``: SIM-AM; ``tce-pe``: API de dados
+    abertos) nos anos que mudaram e grava ``tce-<sigla>.json.gz`` (ADR-050)."""
     cfg = _configuracao(args)
     cadastro = Cadastro.ler(Path(args.estado) / ARQUIVO_CADASTRO)
     anos = [int(a) for a in _lista(args.anos)] if args.anos else None
-    modulo = {"tce-rs": tce_rs, "tce-pr": tce_pr}[args.comando]
+    modulo = {"tce-rs": tce_rs, "tce-pr": tce_pr, "tce-pe": tce_pe}[args.comando]
     r = modulo.coletar(Path(args.estado), cadastro, contato=cfg.contato, anos=anos, limite_minutos=args.limite_minutos)
     _imprimir(r.para_json())
     return 0
@@ -469,7 +470,8 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--mes", help="pasta AAAA-MM da Receita (padrão: a mais recente)")
 
     for nome, ajuda, desde in (("tce-rs", "contratos dos órgãos gaúchos no LicitaCon do TCE-RS", tce_rs.PRIMEIRO_ANO),
-                               ("tce-pr", "contratos dos municípios paranaenses no SIM-AM do TCE-PR", tce_pr.PRIMEIRO_ANO)):
+                               ("tce-pr", "contratos dos municípios paranaenses no SIM-AM do TCE-PR", tce_pr.PRIMEIRO_ANO),
+                               ("tce-pe", "contratos dos órgãos pernambucanos na API do TCE-PE", tce_pe.PRIMEIRO_ANO)):
         c = sub.add_parser(nome, help=f"{ajuda}, por ente e ano")
         c.add_argument("--estado", required=True)
         c.add_argument("--anos", help=f"só estes anos, separados por vírgula (padrão: de {desde} ao corrente)")
@@ -501,7 +503,7 @@ def construir_parser() -> argparse.ArgumentParser:
 
 COMANDOS = {"cadastro": cmd_cadastro, "contratacoes": cmd_contratacoes, "faltando": cmd_faltando,
             "conformidade": cmd_conformidade, "rcl": cmd_rcl, "despesa-funcao": cmd_despesa_funcao, "pessoal": cmd_pessoal,
-            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "tce-rs": cmd_tce, "tce-pr": cmd_tce, "emendas": cmd_emendas, "convenios": cmd_convenios,
+            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "tce-rs": cmd_tce, "tce-pr": cmd_tce, "tce-pe": cmd_tce, "emendas": cmd_emendas, "convenios": cmd_convenios,
             "transparencia": cmd_transparencia, "anp": cmd_anp,
             "publicar": cmd_publicar}
 

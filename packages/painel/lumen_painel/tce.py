@@ -1,7 +1,7 @@
 """O que os coletores dos tribunais de contas têm em comum (ADR-050): a leitura por partes, a regra de quando reler
 um ano, a soma de um ano por ente e a publicação.
 
-Cada tribunal tem o próprio módulo (``tce_rs``, ``tce_pr``), que lê a fonte dele e grava o estado em
+Cada tribunal tem o próprio módulo (``tce_rs``, ``tce_pr``, ``tce_pe``), que lê a fonte dele e grava o estado em
 ``tce-<sigla>.json.gz`` no mesmo formato:
 
 - ``anos``: por ano do contrato, a ``etiqueta`` e o ``tamanho`` do que foi lido, quando foi lido e a soma do ano
@@ -36,6 +36,7 @@ COLUNAS_ENTE = ["contratos", "valor", "a_conferir", "pf_contratos", "pf_valor", 
 VERSAO_ESTADO = 1
 PADRAO_ESTADO = "tce-*.json.gz"
 DIAS_ENTRE_LEITURAS = 6        # o ano corrente e o anterior mudam todo dia; basta ler uma vez por semana
+DIAS_ANO_FECHADO = 30          # fonte sem cabeçalho que diga se mudou: o ano fechado é relido uma vez por mês
 BLOCO = 4 << 20
 TENTATIVAS = 4
 FORNECEDORES_PUBLICADOS = 100
@@ -231,6 +232,15 @@ def precisa_ler(guardado: dict | None, tamanho: int, etiqueta: str, ano: int, ho
         return False
     lido = datetime.fromisoformat(guardado["lido_em"].replace("Z", "+00:00")).date()
     return (hoje - lido).days >= DIAS_ENTRE_LEITURAS
+
+
+def precisa_ler_por_idade(guardado: dict | None, ano: int, hoje: date) -> bool:
+    """Para a fonte sem cabeçalho de mudança (uma API): nunca lido, sim; fechado, quando a leitura tem
+    ``DIAS_ANO_FECHADO`` dias ou mais; corrente ou anterior, ``DIAS_ENTRE_LEITURAS``."""
+    if not guardado:
+        return True
+    lido = datetime.fromisoformat(guardado["lido_em"].replace("Z", "+00:00")).date()
+    return (hoje - lido).days >= (DIAS_ANO_FECHADO if ano < hoje.year - 1 else DIAS_ENTRE_LEITURAS)
 
 
 def ler_estado(caminho: Path, *, tribunal: str, sistema: str, fonte: str, primeiro_ano: int) -> dict:

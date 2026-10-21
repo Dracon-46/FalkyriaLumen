@@ -1,7 +1,7 @@
 /**
  * Contratos registrados nos tribunais de contas (ADR-050), do arquivo `tce/ente/<grupo>.json.gz` que os painéis
  * publicam: por ente e ano do contrato, quantos e quanto, com os aditivos, a soma anônima de pessoa física e os
- * fornecedores. Por enquanto, o LicitaCon do TCE-RS (desde 2016) e o SIM-AM do TCE-PR (desde 2013).
+ * fornecedores: o LicitaCon do TCE-RS (desde 2016), o SIM-AM do TCE-PR e a API do TCE-PE (desde 2013).
  */
 
 import { obterJsonComprimido } from "./comprimido";
