@@ -22,6 +22,17 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   as Contratações, nos dois sentidos.
 - Contratações: no modal da contratação, o fornecedor (do contrato ou vencedor
   do item) leva também à página da empresa, em todos os entes.
+- Na Receita Federal: o sócio pessoa jurídica leva à página da empresa sócia.
+
+### Correções
+
+- TCE-RS: os contratos não chegaram ao site. O servidor de dados abertos do
+  tribunal só responde a endereços do Brasil, e o fluxo diário roda fora. O
+  RS sai do fluxo `tce` e passa a ser coletado à mão de uma máquina no Brasil
+  (ADR-050, adendo).
+- Fluxos `tce`, `cnpj` e `paineis-site`: a falha do `lumen` antes de um `tee`
+  terminava como sucesso. Agora o passo falha, e o site montado pela metade
+  não é publicado.
 
 ## 0.9.0 — 2026-10-21
 

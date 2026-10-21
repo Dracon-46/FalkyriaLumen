@@ -55,6 +55,7 @@ jobs:
           ferramentas/painel/dias.sh baixar estado
           gh release download "$TAG" -p 'cnpj-fornecedores.json.gz' -D estado --clobber || true
       - name: Base de CNPJ dos fornecedores
+        shell: bash               # com pipefail: a falha do lumen não some atrás do tee
         run: |
           lumen painel cnpj --estado estado ${MES:+--mes "$MES"} | tee cnpj.json
           if python -c "import json, sys; sys.exit(0 if json.load(open('cnpj.json'))['pulada'] else 1)"; then

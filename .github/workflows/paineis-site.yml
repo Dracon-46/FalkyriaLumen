@@ -75,6 +75,7 @@ jobs:
             echo "::warning::As execuções dos fluxos não puderam ser lidas: o painel operacional sai sem elas."
           fi
       - name: Montar o site
+        shell: bash               # com pipefail: um site montado pela metade não é publicado
         run: lumen painel publicar --estado estado --saida site | tee resumo.json
       - name: Economia e Contas Públicas
         run: |

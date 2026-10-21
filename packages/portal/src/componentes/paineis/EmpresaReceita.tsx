@@ -6,9 +6,11 @@
  * sobre a empresa: a tela não marca nem ordena nada.
  */
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { numero } from "@/lib/formato";
 import { cnpj as formatarCnpj, dataCurta, moeda } from "@/lib/paineis";
+import { cnpjDoTexto, urlDaPessoa } from "@/lib/pessoaJuridica";
 import { anosDesde, carregarEmpresa, type EmpresaReceita, mesPorExtenso } from "@/lib/receita";
 import { Numero } from "./Comuns";
 
@@ -25,6 +27,13 @@ function situacao(e: EmpresaReceita): string {
   const desde = e.data_situacao ? ` desde ${dataCurta(e.data_situacao)}` : "";
   const motivo = e.motivo?.nome ? ` (${e.motivo.nome.toLowerCase()})` : "";
   return `${e.situacao ?? "situação não informada"}${desde}${motivo}`;
+}
+
+/** Sócio pessoa jurídica: o CNPJ leva à página da empresa sócia (ADR-049). */
+function SocioPj({ cnpj }: { cnpj?: string }) {
+  const digitos = cnpj ? cnpjDoTexto(cnpj) : null;
+  if (!digitos) return <>pessoa jurídica</>;
+  return <>pessoa jurídica · <Link href={urlDaPessoa(digitos)}>{formatarCnpj(digitos)}</Link></>;
 }
 
 /** O cartão do fornecedor na Receita; não aparece enquanto a base de CNPJ não estiver publicada. */
@@ -121,7 +130,7 @@ export function EmpresaReceitaCartao({ cnpj }: { cnpj: string }) {
                   <td>
                     {s.nome}
                     <div className="busca-detalhe">
-                      {s.tipo === "PJ" ? `pessoa jurídica${s.cnpj ? ` · ${formatarCnpj(s.cnpj)}` : ""}`
+                      {s.tipo === "PJ" ? <SocioPj cnpj={s.cnpj} />
                         : s.tipo === "estrangeiro" ? `estrangeiro${s.pais ? ` · ${s.pais}` : ""}` : "pessoa física"}
                     </div>
                   </td>
