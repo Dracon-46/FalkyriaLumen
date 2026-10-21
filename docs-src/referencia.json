@@ -10127,7 +10127,7 @@
   {
    "caminho": "packages/painel/lumen_painel/tce.py",
    "linguagem": "python",
-   "linhas": 296,
+   "linhas": 297,
    "doc": "O que os coletores dos tribunais de contas têm em comum (ADR-050): a leitura por partes, a regra de quando reler\num ano, a soma de um ano por ente e a publicação.\n\nCada tribunal tem o próprio módulo (``tce_rs``, ``tce_pr``), que lê a fonte dele e grava o estado em\n``tce-<sigla>.json.gz`` no mesmo formato:\n\n- ``anos``: por ano do contrato, a ``etiqueta`` e o ``tamanho`` do que foi lido, quando foi lido e a soma do ano\n  (``SomaAno.para_json``): por ente, as ``COLUNAS_ENTE``; por ente e CNPJ, ``[contratos, valor]``; e o que ficou\n  sem ente (consórcios e associações, que reúnem vários municípios);\n- ``nomes``: o nome de cada CNPJ, com o CPF do MEI mascarado;\n- ``tribunal``, ``sistema``, ``fonte`` e ``primeiro_ano``.\n\nO valor acima do teto de plausibilidade do ente (o mesmo do painel de contratações, ADR-028) conta e fica fora\nda soma. Contrato com pessoa física entra só na soma anônima, sem nome nem documento (DOC-08). A publicação junta\ntodos os tribunais em ``tce/ente/<grupo>.json.gz``: um ente só é fiscalizado por um tribunal.",
    "itens": [
     {
@@ -10261,85 +10261,99 @@
      "nome": "ResultadoTce.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "Resumo para imprimir na linha de comando.",
-     "linha": 211
+     "linha": 212
     },
     {
      "tipo": "funcao",
      "nome": "precisa_ler",
      "assinatura": "def precisa_ler(guardado: dict | None, tamanho: int, etiqueta: str, ano: int, hoje: date) -> bool",
      "doc": "O ano tem de ser lido de novo? Nunca lido: sim. Fechado (antes do ano anterior): só se o tamanho mudou,\nporque os tribunais refazem os arquivos sem mudar o conteúdo. Corrente ou anterior: quando mudou e a última\nleitura tem ``DIAS_ENTRE_LEITURAS`` dias ou mais.",
-     "linha": 217
+     "linha": 218
     },
     {
      "tipo": "funcao",
      "nome": "ler_estado",
      "assinatura": "def ler_estado(caminho: Path, *, tribunal: str, sistema: str, fonte: str, primeiro_ano: int) -> dict",
      "doc": "O estado de um tribunal, ou um vazio; versão desconhecida é erro.",
-     "linha": 231
+     "linha": 232
     },
     {
      "tipo": "funcao",
      "nome": "estados",
      "assinatura": "def estados(estado: Path | str) -> list[dict]",
      "doc": "Os estados de todos os tribunais coletados (``tce-*.json.gz``), em ordem de nome.",
-     "linha": 243
+     "linha": 244
     },
     {
      "tipo": "funcao",
      "nome": "entes_do_estado",
      "assinatura": "def entes_do_estado(dados: dict) -> dict[str, dict]",
      "doc": "Por ente: os anos (``COLUNAS_ENTE``) e os fornecedores do maior valor ao menor, cada um com os anos\n(``[CNPJ, nome, [[ano, contratos, valor], ...]]``), até ``FORNECEDORES_PUBLICADOS``.",
-     "linha": 254
+     "linha": 255
     },
     {
      "tipo": "funcao",
      "nome": "publicar",
      "assinatura": "def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> dict | None",
      "doc": "Grava ``tce/ente/<grupo>.json.gz`` (comprimido, ``comum.grupo_do_ente``) com os contratos de cada ente\nregistrados no tribunal de contas dele, e devolve o resumo de cada tribunal para o índice.",
-     "linha": 273
+     "linha": 274
     }
    ]
   },
   {
    "caminho": "packages/painel/lumen_painel/tce_pr.py",
    "linguagem": "python",
-   "linhas": 126,
-   "doc": "Contratos dos municípios paranaenses registrados no Tribunal de Contas do Estado, pelo SIM-AM (ADR-050).\n\nO TCE-PR publica, sem chave, um ZIP por município e ano no Portal Informação para Todos\n(``pit.tce.pr.gov.br/Arquivos/AAAA/AAAA_<IBGE de 6 dígitos>_Contrato.zip``), desde 2013. Dentro dele:\n\n- ``Contrato.xml``: um registro por contratado, com a entidade (prefeitura, câmara, fundo, autarquia, consórcio),\n  o documento do contratado (o CPF já vem mascarado pelo tribunal), o valor do contrato e a parte daquele\n  contratado (``vlDesteContratado``), que é a que se soma;\n- ``ContratoAditivo.xml``: os aditivos assinados no ano, com o valor (``vlAditivo``). A supressão vem com valor\n  positivo e entra negativa no acréscimo líquido.\n\nO ZIP do estado (``AAAA_PIT_TodosArquivos.zip``, 1,3 GB) só serve para saber, com um pedido de cabeçalho, se o ano\nmudou; os 399 arquivos dos municípios são pequenos (20 MB no ano). O ente é o município do arquivo; a entidade com\n\"consórcio\" no nome fica sem ente. Quem não tem CNPJ válido entra na soma anônima de pessoa física: o tribunal\npublica o nome, e o Lumen não guarda. O estado (``tce-pr.json.gz``) segue o formato comum de ``tce``.",
+   "linhas": 150,
+   "doc": "Contratos dos municípios paranaenses registrados no Tribunal de Contas do Estado, pelo SIM-AM (ADR-050).\n\nO TCE-PR publica, sem chave, um ZIP por município e ano no Portal Informação para Todos\n(``pit.tce.pr.gov.br/Arquivos/AAAA/AAAA_<IBGE de 6 dígitos>_Contrato.zip``), desde 2013. Dentro dele:\n\n- ``Contrato.xml``: um registro por contratado, com a entidade (prefeitura, câmara, fundo, autarquia, consórcio),\n  o documento do contratado (o CPF já vem mascarado pelo tribunal), o valor do contrato e a parte daquele\n  contratado (``vlDesteContratado``), que é a que se soma;\n- ``ContratoAditivo.xml``: os aditivos assinados no ano, com o valor (``vlAditivo``). A supressão vem com valor\n  positivo e entra negativa no acréscimo líquido.\n\nO ZIP do estado (``AAAA_PIT_TodosArquivos.zip``, 1,3 GB) só serve para saber, com um pedido de cabeçalho, se o ano\nmudou; os 399 arquivos dos municípios são pequenos (20 MB no ano). Alguns XML trazem caractere de controle, que o XML\nnão aceita, e ele é trocado por espaço antes da leitura; o arquivo que ainda assim não abre fica de fora e vai para\nos ``problemas`` da coleta, sem derrubar o ano. O ente é o município do arquivo; a entidade com\n\"consórcio\" no nome fica sem ente. Quem não tem CNPJ válido entra na soma anônima de pessoa física: o tribunal\npublica o nome, e o Lumen não guarda. O estado (``tce-pr.json.gz``) segue o formato comum de ``tce``.",
    "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "_caractere_xml",
+     "assinatura": "def _caractere_xml(codigo: int) -> bool",
+     "doc": "O caractere é aceito em XML 1.0?",
+     "linha": 51
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_xml",
+     "assinatura": "def ler_xml(dados: bytes) -> ElementTree.Element",
+     "doc": "O XML, com as referências e os bytes de caracteres que o XML não aceita trocados por espaço.",
+     "linha": 57
+    },
     {
      "tipo": "funcao",
      "nome": "municipios",
      "assinatura": "def municipios(cadastro: Cadastro) -> list[str]",
      "doc": "Os municípios do Paraná no cadastro, pelo código IBGE de 7 dígitos.",
-     "linha": 46
+     "linha": 66
     },
     {
      "tipo": "funcao",
      "nome": "_valor",
      "assinatura": "def _valor(texto: str | None) -> float | None",
      "doc": "``\"1306000.00\"`` → 1306000.0; vazio ou fora do formato → ``None``.",
-     "linha": 51
+     "linha": 71
     },
     {
      "tipo": "funcao",
      "nome": "_consorcio",
      "assinatura": "def _consorcio(entidade: str | None) -> bool",
      "doc": "A entidade é um consórcio (reúne vários municípios)?",
-     "linha": 59
+     "linha": 79
     },
     {
      "tipo": "funcao",
      "nome": "ler_municipio",
      "assinatura": "def ler_municipio(conteudo: bytes, ente: str, soma: tce.SomaAno, nomes: dict[str, str]) -> None",
      "doc": "Soma os contratos e os aditivos do ZIP de um município e guarda o nome de cada CNPJ.",
-     "linha": 64
+     "linha": 84
     },
     {
      "tipo": "funcao",
      "nome": "coletar",
      "assinatura": "def coletar(estado: Path | str, cadastro: Cadastro, *, contato: str, hoje: date | None=None, anos: list[int] | None=None, limite_minutos: float | None=None, cabecalho_fn: Callable[..., tuple[int, str] | None]=tce.cabecalho, baixar_fn: Callable[..., bytes | None]=tce.baixar, relogio: Callable[[], float]=time.monotonic) -> tce.ResultadoTce",
      "doc": "Lê os anos que mudaram, município a município, e grava ``ARQUIVO`` depois de cada ano completo; o ano\ninterrompido pelo prazo não é gravado e volta na execução seguinte.",
-     "linha": 84
+     "linha": 104
     }
    ]
   },
@@ -16761,7 +16775,7 @@
   {
    "caminho": "packages/painel/testes/test_tce_pr.py",
    "doc": "Contratos dos municípios paranaenses no SIM-AM do TCE-PR (ADR-050).",
-   "testes": 2
+   "testes": 3
   },
   {
    "caminho": "packages/painel/testes/test_tce_rs.py",

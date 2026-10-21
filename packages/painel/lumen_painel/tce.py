@@ -207,11 +207,12 @@ class ResultadoTce:
     ausentes: list[int] = field(default_factory=list)
     nomes: int = 0
     interrompida: bool = False
+    problemas: list[str] = field(default_factory=list)
 
     def para_json(self) -> dict:
         """Resumo para imprimir na linha de comando."""
         return {"tribunal": self.tribunal, "lidos": self.lidos, "pulados": self.pulados, "ausentes": self.ausentes,
-                "nomes": self.nomes, "interrompida": self.interrompida}
+                "nomes": self.nomes, "interrompida": self.interrompida, "problemas": self.problemas}
 
 
 def precisa_ler(guardado: dict | None, tamanho: int, etiqueta: str, ano: int, hoje: date) -> bool:

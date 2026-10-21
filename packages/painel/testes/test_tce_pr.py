@@ -55,6 +55,19 @@ def test_municipio_por_contratado_com_consorcio_pessoa_fisica_e_aditivos():
     assert tce_pr.municipios(CADASTRO) == ["4100103", "4106902"]
 
 
+def test_xml_com_caractere_invalido_e_arquivo_que_nao_abre(tmp_path):
+    # O SIM-AM às vezes traz referência a caractere de controle (&#x1;) ou o próprio byte, que o XML não aceita
+    sujo = CONTRATOS.replace("EMPRESA Y", "EMPRESA&#x1; Y\x02").replace("Obra", "Obra&#55;")
+    nomes = [c.get("nmContratado") for c in tce_pr.ler_xml(sujo.encode()).iter("Contrato")]
+    assert "EMPRESA  Y " in nomes
+    quebrado = _zip(2022, "410010", Contrato="<root><Contrato")
+    cabecalhos = {tce_pr.URL_ESTADO.format(ano=2022): (1000, "e1")}
+    r = tce_pr.coletar(tmp_path, CADASTRO, contato="c", hoje=date(2023, 3, 1), anos=[2022],
+                       cabecalho_fn=lambda url, contato: cabecalhos.get(url),
+                       baixar_fn=lambda url, contato: quebrado if "_410010_" in url else ZIP_CURITIBA)
+    assert r.lidos == [2022] and len(r.problemas) == 1 and r.problemas[0].startswith("2022/4100103:")
+
+
 def test_coleta_baixa_os_municipios_dos_anos_que_mudaram(tmp_path):
     pedidos = []
 
@@ -66,7 +79,7 @@ def test_coleta_baixa_os_municipios_dos_anos_que_mudaram(tmp_path):
     r = tce_pr.coletar(tmp_path, CADASTRO, contato="c", hoje=date(2023, 3, 1), anos=[2021, 2022],
                        cabecalho_fn=lambda url, contato: cabecalhos.get(url), baixar_fn=baixar)
     assert r.para_json() == {"tribunal": "TCE-PR", "lidos": [2022], "pulados": [], "ausentes": [2021], "nomes": 3,
-                             "interrompida": False}
+                             "interrompida": False, "problemas": []}
     assert len(pedidos) == 2                                          # Abatiá e Curitiba
     estado = comum.ler_json(tmp_path / tce_pr.ARQUIVO)
     assert estado["tribunal"] == "TCE-PR" and estado["anos"]["2022"]["entes"]["4106902"][0] == 4

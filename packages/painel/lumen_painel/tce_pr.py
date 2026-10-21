@@ -10,7 +10,9 @@ O TCE-PR publica, sem chave, um ZIP por município e ano no Portal Informação 
   positivo e entra negativa no acréscimo líquido.
 
 O ZIP do estado (``AAAA_PIT_TodosArquivos.zip``, 1,3 GB) só serve para saber, com um pedido de cabeçalho, se o ano
-mudou; os 399 arquivos dos municípios são pequenos (20 MB no ano). O ente é o município do arquivo; a entidade com
+mudou; os 399 arquivos dos municípios são pequenos (20 MB no ano). Alguns XML trazem caractere de controle, que o XML
+não aceita, e ele é trocado por espaço antes da leitura; o arquivo que ainda assim não abre fica de fora e vai para
+os ``problemas`` da coleta, sem derrubar o ano. O ente é o município do arquivo; a entidade com
 "consórcio" no nome fica sem ente. Quem não tem CNPJ válido entra na soma anônima de pessoa física: o tribunal
 publica o nome, e o Lumen não guarda. O estado (``tce-pr.json.gz``) segue o formato comum de ``tce``.
 """
@@ -18,6 +20,7 @@ publica o nome, e o Lumen não guarda. O estado (``tce-pr.json.gz``) segue o for
 from __future__ import annotations
 
 import io
+import re
 import time
 import zipfile
 from datetime import date, datetime, timezone
@@ -41,6 +44,23 @@ ARQUIVO = "tce-pr.json.gz"
 PRIMEIRO_ANO = 2013
 UF = "PR"
 OPERACOES_QUE_REDUZEM = ("SUPRESSAO",)
+_REFERENCIA = re.compile(rb"&#(x[0-9A-Fa-f]+|[0-9]+);")
+_CONTROLE = re.compile(rb"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+def _caractere_xml(codigo: int) -> bool:
+    """O caractere é aceito em XML 1.0?"""
+    return (codigo in (0x9, 0xA, 0xD) or 0x20 <= codigo <= 0xD7FF or 0xE000 <= codigo <= 0xFFFD
+            or 0x10000 <= codigo <= 0x10FFFF)
+
+
+def ler_xml(dados: bytes) -> ElementTree.Element:
+    """O XML, com as referências e os bytes de caracteres que o XML não aceita trocados por espaço."""
+    def trocar(m: re.Match) -> bytes:
+        texto = m.group(1)
+        codigo = int(texto[1:], 16) if texto[:1] == b"x" else int(texto)
+        return m.group(0) if _caractere_xml(codigo) else b" "
+    return ElementTree.fromstring(_CONTROLE.sub(b" ", _REFERENCIA.sub(trocar, dados)))
 
 
 def municipios(cadastro: Cadastro) -> list[str]:
@@ -66,7 +86,7 @@ def ler_municipio(conteudo: bytes, ente: str, soma: tce.SomaAno, nomes: dict[str
     with zipfile.ZipFile(io.BytesIO(conteudo)) as z:
         for arquivo in z.namelist():
             if arquivo.endswith("_Contrato.xml"):
-                for c in ElementTree.fromstring(z.read(arquivo)).iter("Contrato"):
+                for c in ler_xml(z.read(arquivo)).iter("Contrato"):
                     documento = "".join(d for d in (c.get("nrDocContratado") or "") if d.isdigit())
                     cnpj = documento if cnpj_valido(documento) else None
                     valor = _valor(c.get("vlDesteContratado"))
@@ -75,7 +95,7 @@ def ler_municipio(conteudo: bytes, ente: str, soma: tce.SomaAno, nomes: dict[str
                     if cnpj and c.get("nmContratado"):
                         nomes[cnpj] = mascarar_cpfs_no_texto(c.get("nmContratado").strip())
             elif arquivo.endswith("_ContratoAditivo.xml"):
-                for a in ElementTree.fromstring(z.read(arquivo)).iter("ContratoAditivo"):
+                for a in ler_xml(z.read(arquivo)).iter("ContratoAditivo"):
                     operacao = sem_acento(a.get("dsTipoOperacaoAditivoContrato") or "").upper()
                     valor = _valor(a.get("vlAditivo")) or 0.0
                     soma.aditivo(ente, -valor if operacao.startswith(OPERACOES_QUE_REDUZEM) else valor)
@@ -110,8 +130,12 @@ def coletar(estado: Path | str, cadastro: Cadastro, *, contato: str, hoje: date 
                 resultado.interrompida = True
                 break
             conteudo = baixar_fn(URL_MUNICIPIO.format(ano=ano, ibge6=ente[:6]), contato=contato)
-            if conteudo:
+            if not conteudo:
+                continue
+            try:
                 ler_municipio(conteudo, ente, soma, nomes)
+            except (ElementTree.ParseError, zipfile.BadZipFile) as erro:
+                resultado.problemas.append(f"{ano}/{ente}: {erro}")
         if resultado.interrompida:
             break
         dados["anos"][str(ano)] = {"tamanho": tamanho, "etiqueta": etiqueta, "lido_em": instante_utc(),
