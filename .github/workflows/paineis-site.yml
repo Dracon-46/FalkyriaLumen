@@ -94,8 +94,10 @@ jobs:
         with:
           path: site
       # A implantação demora com o número de arquivos (perto de 30 mil em outubro de 2026): o padrão de 10
-      # minutos estourou em 20/10/2026.
+      # minutos estourou em 20/10/2026. A consulta do andamento a cada 5 s (o padrão) esgotou o limite da API em
+      # 22/10/2026, com a carga do histórico rodando junto: a cada 30 s basta.
       - id: publicacao
         uses: actions/deploy-pages@v5
         with:
           timeout: 1800000
+          reporting_interval: 30000
