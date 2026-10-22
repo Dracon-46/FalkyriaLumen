@@ -25,6 +25,7 @@ Os servidores do TCE-RS e do TCE-CE só respondem a endereços do Brasil, e o Gi
 
 from __future__ import annotations
 
+import http.client
 import io
 import os
 import time
@@ -100,15 +101,23 @@ def cabecalho(url: str, *, contato: str) -> tuple[int, str] | None:
         raise
 
 
-def baixar(url: str, *, contato: str) -> bytes | None:
-    """Um arquivo pequeno, inteiro; ``None`` quando ele não existe (404)."""
-    try:
-        with abrir(urllib.request.Request(url, headers=cabecalhos(contato))) as r:
-            return r.read()
-    except urllib.error.HTTPError as erro:
-        if erro.code == 404:
-            return None
-        raise
+def baixar(url: str, *, contato: str, tentativas: int = TENTATIVAS,
+           esperar: Callable[[float], None] = time.sleep) -> bytes | None:
+    """Um arquivo inteiro; ``None`` quando ele não existe (404). A conexão que cai no meio da leitura (o TCE-PE
+    fechou uma resposta de 30 MB depois de 8,7 MB, em 22/10/2026) faz baixar de novo, do começo."""
+    for tentativa in range(tentativas):
+        try:
+            with abrir(urllib.request.Request(url, headers=cabecalhos(contato))) as r:
+                return r.read()
+        except urllib.error.HTTPError as erro:
+            if erro.code == 404:
+                return None
+            raise
+        except (http.client.IncompleteRead, ConnectionError, TimeoutError):
+            if tentativa + 1 == tentativas:
+                raise
+        esperar(5 * (tentativa + 1))
+    raise AssertionError("inalcançável")
 
 
 class ArquivoRemoto(io.RawIOBase):

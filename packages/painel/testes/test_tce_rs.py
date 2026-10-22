@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import http.client
 import io
 import urllib.parse
 import urllib.request
@@ -141,6 +142,21 @@ def test_cabecalho_usa_o_tamanho_e_a_etag_originais_que_o_intermediario_repassa(
 
     monkeypatch.setattr(tce, "abrir", lambda pedido: Cabecalho())
     assert tce.cabecalho(tce_rs.URL_ANO.format(ano=2024), contato="c") == (129763680, '"e1"')
+
+
+def test_baixar_de_novo_quando_a_conexao_cai_no_meio_da_leitura(monkeypatch):
+    class Cortada(io.BytesIO):
+        def read(self, *_):
+            raise http.client.IncompleteRead(b"meio")
+
+    respostas = iter([Cortada(), _Resposta(b"inteiro", status=200)])
+    monkeypatch.setattr(tce, "abrir", lambda pedido: next(respostas))
+    esperas = []
+    assert tce.baixar("https://exemplo.org/a.json", contato="c", esperar=esperas.append) == b"inteiro"
+    assert esperas == [5]
+    monkeypatch.setattr(tce, "abrir", lambda pedido: Cortada())
+    with pytest.raises(http.client.IncompleteRead):
+        tce.baixar("https://exemplo.org/a.json", contato="c", esperar=lambda segundos: None)
 
 
 def test_quando_ler_de_novo():
