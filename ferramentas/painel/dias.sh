@@ -36,12 +36,22 @@ case "${1:-}" in
     ;;
   guardar)
     shift
+    vistas=" "
     for f in "$@"; do
       nome=$(basename "$f")
       ano=${nome:13:4}
       v="painel-dias-$ano"
-      gh release view "$v" >/dev/null 2>&1 || gh release create "$v" --prerelease --title "Dias do painel, $ano" --notes "$NOTAS"
-      gh release upload "$v" "$f" --clobber
+      if [[ "$vistas" != *" $v "* ]]; then
+        gh release view "$v" >/dev/null 2>&1           || gh release create "$v" --prerelease --title "Dias do painel, $ano" --notes "$NOTAS" || true
+        vistas+="$v "
+      fi
+      # Com muitos fluxos juntos, o limite da API do GITHUB_TOKEN (por hora, no repositório) estoura, como em
+      # 22/10/2026: espera um, dois, três e quatro minutos antes de desistir do dia
+      for tentativa in 1 2 3 4 5; do
+        gh release upload "$v" "$f" --clobber && break
+        [ "$tentativa" -lt 5 ] || exit 1
+        sleep $((60 * tentativa))
+      done
     done
     ;;
   *)
