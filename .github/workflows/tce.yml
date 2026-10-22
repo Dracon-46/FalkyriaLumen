@@ -1,20 +1,21 @@
-# Contratos registrados nos tribunais de contas (ADR-050): o SIM-AM do TCE-PR
-# (municípios paranaenses desde 2013) e a API do TCE-PE (órgãos pernambucanos
-# desde 2013), um job por tribunal.
+# Contratos registrados nos tribunais de contas (ADR-050): o LicitaCon do
+# TCE-RS (órgãos gaúchos desde 2016), o SIM-AM do TCE-PR (municípios
+# paranaenses desde 2013) e a API do TCE-PE (órgãos pernambucanos desde
+# 2013), um job por tribunal.
 #
 # Todo dia e à mão. Confere o cabeçalho do arquivo de cada ano e só lê o que
 # mudou: um ano fechado, quando o tamanho muda; o corrente e o anterior, uma
-# vez por semana. No PR, são 399 arquivos pequenos por ano (perto de 80 s); em
-# PE, a API não diz se o ano mudou, e o ano fechado é relido uma vez por mês.
-# Grava tce-<sigla>.json.gz na versão "painel-estado"; o site sai na
-# publicação seguinte dos painéis (paineis-site), às 05:17 de Brasília.
+# vez por semana. No RS, o ZIP do ano é lido por partes (Range), uns 5 MB por
+# ano; no PR, são 399 arquivos pequenos por ano (perto de 80 s); em PE, a API
+# não diz se o ano mudou, e o ano fechado é relido uma vez por mês. Grava
+# tce-<sigla>.json.gz na versão "painel-estado"; o site sai na publicação
+# seguinte dos painéis (paineis-site), às 05:17 de Brasília.
 #
-# O TCE-RS fica fora da matriz: o servidor de dados abertos dele só responde a
-# endereços do Brasil, e as máquinas do GitHub estão fora (ADR-050, adendo de
-# 21/10/2026). Até haver uma máquina no Brasil, ele é coletado de uma, à mão:
-#   lumen painel tce-rs --estado estado
-#   gh release upload painel-estado estado/tce-rs.json.gz --clobber
-# (com cadastro-entes.json.gz e o tce-rs.json.gz anterior baixados antes).
+# O servidor do TCE-RS só responde a endereços do Brasil, e as máquinas do
+# GitHub estão fora: os pedidos a ele passam pelo intermediário em São Paulo
+# (infra/proxy-br, função da Vercel), com o endereço na variável
+# LUMEN_PROXY_BR e a chave no segredo LUMEN_PROXY_CHAVE (ADR-050, adendo).
+# Sem a variável, o job do RS só avisa.
 #
 # Usa o segredo LUMEN_CONTATO (User-Agent). Repositório público: os minutos
 # não são cobrados.
@@ -45,7 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tribunal: [pr, pe]
+        tribunal: [rs, pr, pe]
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
@@ -54,6 +55,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       ANOS: ${{ inputs.anos }}
       PYTHONUNBUFFERED: "1"
+      LUMEN_PROXY_BR: ${{ vars.LUMEN_PROXY_BR }}
+      LUMEN_PROXY_CHAVE: ${{ secrets.LUMEN_PROXY_CHAVE }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -69,6 +72,10 @@ jobs:
       - name: Contratos do tribunal
         shell: bash               # com pipefail: a falha do lumen não some atrás do tee
         run: |
+          if [ "${{ matrix.tribunal }}" = rs ] && [ -z "$LUMEN_PROXY_BR" ]; then
+            echo "::warning::Sem LUMEN_PROXY_BR: o TCE-RS só responde do Brasil e fica para quando o intermediário estiver no ar."
+            exit 0
+          fi
           lumen painel tce-${{ matrix.tribunal }} --estado estado --limite-minutos 90 ${ANOS:+--anos "$ANOS"} | tee tce.json
           if python -c "import json, sys; r = json.load(open('tce.json')); sys.exit(0 if r['lidos'] or r['nomes'] else 1)"; then
             gh release upload "$TAG" "estado/tce-${{ matrix.tribunal }}.json.gz" --clobber

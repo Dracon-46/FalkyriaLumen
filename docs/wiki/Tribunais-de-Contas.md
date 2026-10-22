@@ -2,8 +2,9 @@
 
 O que cada tribunal de contas publica sobre os municípios em dado aberto. Levantado em 21/10/2026, com as APIs e os
 downloads testados de fato. A ordem de integração está na
-[ADR-050](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-050.md). Já integrados: TCE-PR e TCE-PE, no
-fluxo diário, e TCE-RS, coletado de uma máquina no Brasil, porque o servidor dele só responde a endereços do Brasil.
+[ADR-050](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-050.md). Já integrados, no fluxo diário: TCE-RS,
+TCE-PR e TCE-PE. O servidor do TCE-RS só responde a endereços do Brasil, e o fluxo chega a ele por um intermediário
+em São Paulo (`infra/proxy-br`, na Vercel), que já aceita também o TCE-CE.
 
 ## Resumo
 

@@ -116,3 +116,5 @@ jobs:
       - run: npm ci
       - run: npm run verificar     # tipos + testes
       - run: npm run build         # exportação estática
+      - name: Intermediário em São Paulo (infra/proxy-br)
+        run: node --test ../../infra/proxy-br/regras.test.js

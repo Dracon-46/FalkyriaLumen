@@ -19,6 +19,7 @@ Tudo roda em planos gratuitos, sem computador pessoal ligado. O repositório é 
 | Dados dos painéis | GitHub Pages (`https://dracon-46.github.io/FalkyriaLumen/`) | Fluxo `paineis-site` |
 | Estado dos painéis | Anexos da versão `painel-estado` (cadastro, UFs, economia) e das versões `painel-dias-AAAA` (um ano de dias do PNCP cada) | Fluxos `paineis` e `paineis-carga` |
 | Núcleo transacional | Supabase gratuito, organização própria do projeto | Pendente |
+| Intermediário em São Paulo (servidores que só respondem do Brasil) | Vercel, plano Hobby, projeto `lumen-proxy-br`, região `gru1` | Importa o repositório com *Root Directory* `infra/proxy-br` e gera a cada mudança nessa pasta |
 
 ## Portal
 
@@ -55,6 +56,21 @@ o portal e avisa que não publicou, sem falhar. Com o R2, o bucket dos feeds pre
 ```
 
 O bucket público do Supabase responde à leitura de qualquer origem, sem CORS a configurar.
+
+## Intermediário em São Paulo
+
+Os servidores de dados abertos do TCE-RS e do TCE-CE só respondem a endereços do Brasil, e o GitHub Actions roda
+fora. O fluxo `tce` manda os pedidos a eles pela função
+[`infra/proxy-br`](https://github.com/Dracon-46/FalkyriaLumen/tree/main/infra/proxy-br), na Vercel, região `gru1`
+([ADR-050](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-050.md), adendo de 22/10/2026):
+
+1. Na Vercel, uma vez: **Add New → Project**, importar o repositório, *Root Directory* `infra/proxy-br`, nome
+   `lumen-proxy-br`, sem framework nem build.
+2. No GitHub: a variável `LUMEN_PROXY_BR` = `https://lumen-proxy-br.vercel.app/api/tce` e o segredo
+   `LUMEN_PROXY_CHAVE` = a chave cujo SHA-256 está em `infra/proxy-br/lib/regras.js`.
+
+Sem a variável, o job do RS no fluxo `tce` só avisa. Para trocar a chave: um segredo novo no GitHub e o SHA-256 dele
+na variável `LUMEN_PROXY_HASH` do projeto na Vercel (ou em `lib/regras.js`, por commit).
 
 ## Feeds das eleições
 
@@ -104,7 +120,7 @@ publicação para com erro e o índice não sobe. Falha passageira de envio (408
 | [`paineis-carga.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/paineis-carga.yml) | À mão | Meses anteriores do PNCP em blocos de dias, no máximo quatro máquinas ao mesmo tempo; publica no fim | `LUMEN_CONTATO` |
 | [`paineis-site.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/paineis-site.yml) | Chamado pelos dois acima, e à mão | Baixa o estado, roda `lumen painel publicar` e publica no GitHub Pages | — |
 | [`deteccao-sancoes.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/deteccao-sancoes.yml) | Depois de cada `paineis` e `paineis-carga`, e à mão | Regra J-01 (sanções da CGU × contratos do painel), relatório guardado em `painel-estado` e site publicado de novo, com os avisos ([ADR-047](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-047.md)) | — |
-| [`tce.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/tce.yml) | Todo dia, 03:30 em Brasília, e à mão | Contratos nos tribunais de contas (TCE-PR e TCE-PE), só os anos que mudaram (ADR-050). O TCE-RS só responde a endereços do Brasil e é coletado à mão, de uma máquina no Brasil (comandos no cabeçalho do fluxo) | `LUMEN_CONTATO` |
+| [`tce.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/tce.yml) | Todo dia, 03:30 em Brasília, e à mão | Contratos nos tribunais de contas (TCE-RS, TCE-PR e TCE-PE), só os anos que mudaram (ADR-050); o TCE-RS pelo intermediário em São Paulo | `LUMEN_CONTATO`, `LUMEN_PROXY_CHAVE` e a variável `LUMEN_PROXY_BR` |
 | [`mercado-referencia.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/mercado-referencia.yml) | À mão | Regra A-05 com dados reais, em modo silencioso: PNCP, itens, ANP e o relatório como artefato de sete dias | `LUMEN_CONTATO` |
 
 Repositório: [`wiki.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/wiki.yml)

@@ -433,7 +433,7 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
 - Fase 3 (iniciada): os 32 tribunais de contas foram levantados (ADR-050, wiki "Tribunais de contas"). O TCE-RS
   (contratos de 2016 em diante), o TCE-PR e o TCE-PE (de 2013 em diante) estão integrados; seguem TCE-SP e TCE-CE,
   e um pedido formal de acesso a TCE-MG, TCM-BA, TCE-SC, TCM-GO e TCE-MT. O TCE-RS e o TCE-CE só respondem a
-  endereços do Brasil: o RS é coletado à mão de uma máquina no Brasil até o fluxo diário ter uma.
+  endereços do Brasil: o fluxo diário chega a eles por um intermediário em São Paulo (`infra/proxy-br`, na Vercel).
   Os cadastros de sanções da CGU (CEIS, CNEP e CEPIM) já são coletados e normalizados (ADR-030); o
   cruzamento com as contratações é a regra J-01 da Fase 2. As emendas parlamentares (ADR-044) e os convênios
   (ADR-045) entram pelos arquivos de dados abertos, sem chave; as transferências da União seguem pelo mesmo

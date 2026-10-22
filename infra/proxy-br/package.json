@@ -1,0 +1,12 @@
+{
+  "name": "lumen-proxy-br",
+  "private": true,
+  "description": "Intermediário em São Paulo para os dados abertos que só respondem do Brasil (ADR-050)",
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "test": "node --test regras.test.js"
+  }
+}

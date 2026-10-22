@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import io
+import urllib.parse
+import urllib.request
 import zipfile
 from datetime import date
 
@@ -99,6 +101,46 @@ def test_arquivo_remoto_le_so_as_partes_pedidas():
                                abrir=lambda p: _Resposta(ZIP_2022, status=200))
     with pytest.raises(OSError, match="parte pedida"):
         errado.read(10)
+
+
+def test_arquivo_remoto_nao_pede_mais_que_o_limite_do_intermediario(monkeypatch):
+    monkeypatch.setattr(tce, "BLOCO_MAXIMO", 100)
+    tamanhos = []
+
+    def abrir(pedido):
+        ini, fim = (int(x) for x in pedido.headers["Range"].split("=")[1].split("-"))
+        tamanhos.append(fim - ini + 1)
+        return _Resposta(ZIP_2022[ini:fim + 1])
+
+    arquivo = tce.ArquivoRemoto("https://exemplo.org/a.zip", len(ZIP_2022), contato="c", bloco=10, abrir=abrir)
+    assert arquivo.read(len(ZIP_2022)) == ZIP_2022[:100]
+    assert tamanhos == [100]
+
+
+def test_so_os_servidores_do_brasil_vao_pelo_intermediario_e_so_com_a_configuracao():
+    ambiente = {"LUMEN_PROXY_BR": "https://proxy.exemplo/api/tce", "LUMEN_PROXY_CHAVE": "k"}
+    url = tce_rs.URL_ANO.format(ano=2024)
+    pedido = urllib.request.Request(url, method="HEAD", headers={**tce.cabecalhos("c"), "Range": "bytes=0-9"})
+    novo = tce.pelo_intermediario(pedido, ambiente)
+    partes = urllib.parse.urlsplit(novo.full_url)
+    assert (partes.netloc, partes.path) == ("proxy.exemplo", "/api/tce")
+    assert urllib.parse.parse_qs(partes.query) == {"url": [url]}
+    assert novo.get_method() == "HEAD"
+    assert novo.get_header("X-lumen-chave") == "k" and novo.get_header("Range") == "bytes=0-9"
+    assert novo.get_header("User-agent") == "Lumen (contato: c)"
+    outro = urllib.request.Request("https://pit.tce.pr.gov.br/Arquivos/2024_PIT_TodosArquivos.zip")
+    assert tce.pelo_intermediario(outro, ambiente) is outro
+    assert tce.pelo_intermediario(pedido, {"LUMEN_PROXY_BR": "https://proxy.exemplo/api/tce"}) is pedido
+    assert tce.pelo_intermediario(pedido, {}) is pedido
+
+
+def test_cabecalho_usa_o_tamanho_e_a_etag_originais_que_o_intermediario_repassa(monkeypatch):
+    class Cabecalho(io.BytesIO):
+        status = 200
+        headers = {"Content-Length": "0", "X-Lumen-Tamanho": "129763680", "X-Lumen-Etag": '"e1"', "ETag": '"outra"'}
+
+    monkeypatch.setattr(tce, "abrir", lambda pedido: Cabecalho())
+    assert tce.cabecalho(tce_rs.URL_ANO.format(ano=2024), contato="c") == (129763680, '"e1"')
 
 
 def test_quando_ler_de_novo():

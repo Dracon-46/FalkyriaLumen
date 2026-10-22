@@ -40,9 +40,10 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 ### Correções
 
 - TCE-RS: os contratos não chegaram ao site. O servidor de dados abertos do
-  tribunal só responde a endereços do Brasil, e o fluxo diário roda fora. O
-  RS sai do fluxo `tce` e passa a ser coletado à mão de uma máquina no Brasil
-  (ADR-050, adendo).
+  tribunal só responde a endereços do Brasil, e o fluxo diário roda fora. Os
+  pedidos a ele passam agora por um intermediário em São Paulo, uma função da
+  Vercel em `infra/proxy-br`, protegida por chave e restrita aos servidores do
+  TCE-RS e do TCE-CE (ADR-050, adendos de 21 e 22/10/2026).
 - Fluxos `tce`, `cnpj` e `paineis-site`: a falha do `lumen` antes de um `tee`
   terminava como sucesso. Agora o passo falha, e o site montado pela metade
   não é publicado.

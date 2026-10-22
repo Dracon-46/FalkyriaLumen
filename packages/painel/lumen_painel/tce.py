@@ -17,13 +17,19 @@ A leitura por partes (``ArquivoRemoto``) é um arquivo que o ``zipfile`` abre e 
 O valor acima do teto de plausibilidade do ente (o mesmo do painel de contratações, ADR-028) conta e fica fora
 da soma. Contrato com pessoa física entra só na soma anônima, sem nome nem documento (DOC-08). A publicação junta
 todos os tribunais em ``tce/ente/<grupo>.json.gz``: um ente só é fiscalizado por um tribunal.
+
+Os servidores do TCE-RS e do TCE-CE só respondem a endereços do Brasil, e o GitHub Actions roda fora. Com
+``LUMEN_PROXY_BR`` e ``LUMEN_PROXY_CHAVE`` no ambiente, os pedidos a eles passam pelo intermediário em São Paulo
+(``infra/proxy-br``, uma função da Vercel), que devolve a resposta do tribunal como veio (ADR-050, adendo).
 """
 
 from __future__ import annotations
 
 import io
+import os
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -40,6 +46,8 @@ DIAS_ANO_FECHADO = 30          # fonte sem cabeçalho que diga se mudou: o ano f
 BLOCO = 4 << 20
 TENTATIVAS = 4
 FORNECEDORES_PUBLICADOS = 100
+BLOCO_MAXIMO = 4 << 20         # a resposta da função da Vercel tem no máximo 4,5 MB (infra/proxy-br)
+SO_DO_BRASIL = {"dados.tce.rs.gov.br", "api-dados-abertos.tce.ce.gov.br"}
 
 
 # ------------------------------------------------------------------------------------------ fonte
@@ -49,9 +57,22 @@ def cabecalhos(contato: str) -> dict[str, str]:
     return {"User-Agent": f"Lumen (contato: {contato})"}
 
 
+def pelo_intermediario(pedido: urllib.request.Request, ambiente=os.environ) -> urllib.request.Request:
+    """O pedido a um servidor que só responde do Brasil, refeito para o intermediário em São Paulo quando ele está
+    configurado (``LUMEN_PROXY_BR`` e ``LUMEN_PROXY_CHAVE``); os outros pedidos ficam como estão."""
+    base, chave = ambiente.get("LUMEN_PROXY_BR"), ambiente.get("LUMEN_PROXY_CHAVE")
+    if not base or not chave or urllib.parse.urlsplit(pedido.full_url).hostname not in SO_DO_BRASIL:
+        return pedido
+    url = f"{base}?{urllib.parse.urlencode({'url': pedido.full_url})}"
+    return urllib.request.Request(url, method=pedido.get_method(),
+                                  headers={**dict(pedido.header_items()), "X-Lumen-Chave": chave})
+
+
 def abrir(pedido: urllib.request.Request, *, tentativas: int = TENTATIVAS,
           esperar: Callable[[float], None] = time.sleep):
-    """``urlopen`` com novas tentativas para falha de rede e erro 5xx; 404 sobe na hora."""
+    """``urlopen`` com novas tentativas para falha de rede e erro 5xx; 404 sobe na hora. Passa pelo intermediário
+    em São Paulo quando o servidor só responde do Brasil (``pelo_intermediario``)."""
+    pedido = pelo_intermediario(pedido)
     for tentativa in range(tentativas):
         try:
             return urllib.request.urlopen(pedido, timeout=120)
@@ -66,10 +87,13 @@ def abrir(pedido: urllib.request.Request, *, tentativas: int = TENTATIVAS,
 
 
 def cabecalho(url: str, *, contato: str) -> tuple[int, str] | None:
-    """Tamanho e ETag (ou Last-Modified) do arquivo; ``None`` quando ele não existe (404)."""
+    """Tamanho e ETag (ou Last-Modified) do arquivo; ``None`` quando ele não existe (404). Pelo intermediário, os
+    originais vêm em ``X-Lumen-Tamanho`` e ``X-Lumen-Etag``."""
     try:
         with abrir(urllib.request.Request(url, method="HEAD", headers=cabecalhos(contato))) as r:
-            return int(r.headers["Content-Length"]), r.headers.get("ETag") or r.headers.get("Last-Modified") or ""
+            tamanho = r.headers.get("X-Lumen-Tamanho") or r.headers["Content-Length"]
+            etiqueta = r.headers.get("X-Lumen-Etag") or r.headers.get("ETag") or r.headers.get("Last-Modified") or ""
+            return int(tamanho), etiqueta
     except urllib.error.HTTPError as erro:
         if erro.code == 404:
             return None
@@ -124,7 +148,7 @@ class ArquivoRemoto(io.RawIOBase):
         if self.posicao >= self.tamanho or len(destino) == 0:
             return 0
         if not self._inicio <= self.posicao < self._inicio + len(self._dados):
-            fim = min(self.tamanho, self.posicao + max(len(destino), self.bloco)) - 1
+            fim = min(self.tamanho, self.posicao + max(min(len(destino), BLOCO_MAXIMO), self.bloco)) - 1
             pedido = urllib.request.Request(self.url, headers={**cabecalhos(self.contato),
                                                                "Range": f"bytes={self.posicao}-{fim}"})
             with self._abrir(pedido) as resposta:
