@@ -58,7 +58,7 @@ jobs:
       LUMEN_PROXY_BR: ${{ vars.LUMEN_PROXY_BR }}
       LUMEN_PROXY_CHAVE: ${{ secrets.LUMEN_PROXY_CHAVE }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
