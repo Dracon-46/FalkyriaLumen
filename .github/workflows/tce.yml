@@ -15,7 +15,7 @@
 # GitHub estão fora: os pedidos a ele passam pelo intermediário em São Paulo
 # (infra/proxy-br, função da Vercel), com o endereço na variável
 # LUMEN_PROXY_BR e a chave no segredo LUMEN_PROXY_CHAVE (ADR-050, adendo).
-# Sem a variável, o job do RS só avisa.
+# Sem a variável ou sem o segredo, o job do RS só avisa.
 #
 # Usa o segredo LUMEN_CONTATO (User-Agent). Repositório público: os minutos
 # não são cobrados.
@@ -72,8 +72,8 @@ jobs:
       - name: Contratos do tribunal
         shell: bash               # com pipefail: a falha do lumen não some atrás do tee
         run: |
-          if [ "${{ matrix.tribunal }}" = rs ] && [ -z "$LUMEN_PROXY_BR" ]; then
-            echo "::warning::Sem LUMEN_PROXY_BR: o TCE-RS só responde do Brasil e fica para quando o intermediário estiver no ar."
+          if [ "${{ matrix.tribunal }}" = rs ] && { [ -z "$LUMEN_PROXY_BR" ] || [ -z "$LUMEN_PROXY_CHAVE" ]; }; then
+            echo "::warning::Sem LUMEN_PROXY_BR ou LUMEN_PROXY_CHAVE: o TCE-RS só responde do Brasil e fica para quando o intermediário estiver configurado."
             exit 0
           fi
           lumen painel tce-${{ matrix.tribunal }} --estado estado --limite-minutos 90 ${ANOS:+--anos "$ANOS"} | tee tce.json

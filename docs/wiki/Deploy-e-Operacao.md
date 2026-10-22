@@ -69,7 +69,7 @@ fora. O fluxo `tce` manda os pedidos a eles pela função
 2. No GitHub: a variável `LUMEN_PROXY_BR` = `https://lumen-proxy-br.vercel.app/api/tce` e o segredo
    `LUMEN_PROXY_CHAVE` = a chave cujo SHA-256 está em `infra/proxy-br/lib/regras.js`.
 
-Sem a variável, o job do RS no fluxo `tce` só avisa. Para trocar a chave: um segredo novo no GitHub e o SHA-256 dele
+Sem a variável ou sem o segredo, o job do RS no fluxo `tce` só avisa. Para trocar a chave: um segredo novo no GitHub e o SHA-256 dele
 na variável `LUMEN_PROXY_HASH` do projeto na Vercel (ou em `lib/regras.js`, por commit).
 
 ## Feeds das eleições
