@@ -53,7 +53,7 @@ from typing import Callable, Iterable
 from lumen_ingestao.bronze import ArmazemBronze, ArmazemBronzeLocal
 from lumen_ingestao.cliente_http import ClienteHttp
 
-from . import antigas, carga, referencias, tse, zonas
+from . import antigas, carga, conferencia, referencias, tse, zonas
 from . import dados_abertos as da
 from .coletor import FONTE_ID, ColetorAoVivo, ResumoPassada, plano_padrao
 from .configuracao import ConfiguracaoEleicoes
@@ -98,13 +98,15 @@ class EstadoPreparacao:
 
     ``anos`` guarda, por ano, quando terminou, as eleições geradas, o SHA-256 de cada ZIP de entrada e a
     versão do processamento; ``ao_vivo``, por eleição do sistema de resultados, quando a coleta terminou
-    com a totalização concluída; ``zonas``, por ano, o SHA-256 do ZIP de locais de votação usado.
+    com a totalização concluída; ``zonas``, por ano, o SHA-256 do ZIP de locais de votação usado;
+    ``conferencias``, por ano, o SHA-256 do ZIP da votação por seção conferido e os turnos (``conferencia.py``).
     """
 
     caminho: Path
     anos: dict[str, dict] = field(default_factory=dict)
     ao_vivo: dict[str, dict] = field(default_factory=dict)
     zonas: dict[str, dict] = field(default_factory=dict)
+    conferencias: dict[str, dict] = field(default_factory=dict)
 
     @classmethod
     def carregar(cls, caminho: Path) -> "EstadoPreparacao":
@@ -114,13 +116,14 @@ class EstadoPreparacao:
         except (OSError, ValueError):
             dados = {}
         return cls(Path(caminho), anos=dict(dados.get("anos") or {}), ao_vivo=dict(dados.get("ao_vivo") or {}),
-                   zonas=dict(dados.get("zonas") or {}))
+                   zonas=dict(dados.get("zonas") or {}), conferencias=dict(dados.get("conferencias") or {}))
 
     def gravar(self) -> None:
         """Grava o registro por troca atômica (``.tmp`` e ``replace``)."""
         self.caminho.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.caminho.with_name(self.caminho.name + ".tmp")
-        tmp.write_text(json.dumps({"versao": 1, "anos": self.anos, "ao_vivo": self.ao_vivo, "zonas": self.zonas},
+        tmp.write_text(json.dumps({"versao": 1, "anos": self.anos, "ao_vivo": self.ao_vivo, "zonas": self.zonas,
+                                   "conferencias": self.conferencias},
                                   ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
         tmp.replace(self.caminho)
 
@@ -156,6 +159,12 @@ class EstadoPreparacao:
         """Registra o mapa das zonas do ano como gravado e grava."""
         self.zonas[str(ano)] = {"concluido_em": _agora(), "entradas": entradas, "municipios": municipios,
                                 "revisao": zonas.REVISAO_ZONAS, "contornos": zonas.assinatura_contornos()}
+        self.gravar()
+
+    def marcar_conferencia(self, ano: int, entradas: dict[str, str], turnos: list[int]) -> None:
+        """Registra a conferência do ano e grava."""
+        self.conferencias[str(ano)] = {"concluido_em": _agora(), "entradas": entradas, "turnos": turnos,
+                                       "revisao": conferencia.REVISAO_CONFERENCIA}
         self.gravar()
 
     def ao_vivo_pronto(self, eleicao_id: str) -> bool:
@@ -246,6 +255,7 @@ class OpcoesPreparacao:
     ao_vivo: bool = True
     historico: bool = True
     zonas: bool = True
+    conferencia: bool = True              # soma a votação por seção e confere com o total divulgado (ADR-053)
     portal: bool = True
     servir: bool = False
     abrir_navegador: bool = True
@@ -270,6 +280,7 @@ class ResumoPreparacao:
     endereco: str | None = None
     ao_vivo: list[dict] = field(default_factory=list)
     zonas: list[dict] = field(default_factory=list)
+    conferencias: list[dict] = field(default_factory=list)
     anos: list[dict] = field(default_factory=list)
     erros: list[str] = field(default_factory=list)
     publicados: int = 0
@@ -278,7 +289,8 @@ class ResumoPreparacao:
     def para_json(self) -> dict:
         """Dicionário para imprimir em JSON."""
         return {"referencias_instaladas": self.referencias, "portal": self.portal, "endereco": self.endereco,
-                "ao_vivo": self.ao_vivo, "zonas": self.zonas, "anos": self.anos, "erros": self.erros,
+                "ao_vivo": self.ao_vivo, "zonas": self.zonas, "conferencias": self.conferencias,
+                "anos": self.anos, "erros": self.erros,
                 "publicados_na_nuvem": self.publicados, "prazo_atingido": self.prazo_atingido}
 
 
@@ -529,6 +541,59 @@ class Preparacao:
             caminho.unlink(missing_ok=True)
         self.sincronizar()
 
+    def conferir_secoes(self, ano: int) -> None:
+        """Conferência seção a seção de um ano (ADR-053): soma a votação por seção de Presidente e compara,
+        turno a turno, com o total do sistema de resultados no Brasil e em cada UF; grava o feed de cada turno.
+
+        O arquivo é conferido na fonte a cada execução (o TSE acrescenta o 2º turno a ele); sem mudança de
+        SHA-256 nem de turnos, a etapa termina sem baixar o resultado de novo. Erro vira item do resumo.
+        """
+        try:
+            caminho, manifesto = conferencia.baixar_secoes(self.cfg, ano, bronze=self.bronze, atualizar=True,
+                                                           saida=self.saida)
+            entradas = {manifesto.arquivo: manifesto.sha256}
+            registro = self.estado.conferencias.get(str(ano)) or {}
+            if (not self.op.refazer and registro.get("entradas") == entradas
+                    and registro.get("revisao") == conferencia.REVISAO_CONFERENCIA):
+                self.saida(f"{ano}: votação por seção igual à já conferida")
+                self.resumo.conferencias.append({"ano": ano, "situacao": "sem mudança na fonte"})
+                return
+            self.saida(f"{ano}: somando a votação por seção")
+            somas = conferencia.somar_zip(caminho)
+            art = self.cliente_resultados.obter(tse.url_catalogo(self.op.base))
+            if art.status_http != 200:
+                raise RuntimeError(f"catálogo do sistema de resultados: HTTP {art.status_http}")
+            catalogo = [e for e in tse.ler_catalogo(art.conteudo) if e.ano == ano and e.tipo == "geral"]
+            turnos = []
+            for turno, soma in sorted(somas.items()):
+                e = next((x for x in catalogo if x.turno == turno), None)
+                if e is None:
+                    continue
+                cargo = e.cargo(conferencia.CARGO_PRESIDENTE)
+                divulgado, urls = {}, {}
+                for abr in ("br", *tse.UFS_TSE, tse.UF_EXTERIOR):
+                    url = tse.url_resultado(e.ciclo, cargo.eleicao_tse, cargo.codigo, abr, base=self.op.base)
+                    resposta = self.cliente_resultados.obter(url)
+                    if resposta.status_http == 200:
+                        divulgado[abr] = tse.ler_resultado(resposta.conteudo)
+                        urls[abr] = url
+                feed = conferencia.feed_conferencia(eleicao=e, soma=soma, divulgado=divulgado, manifesto=manifesto,
+                                                    urls_divulgado=urls)
+                conferencia.gravar_conferencia(self.escritor, e, feed)
+                turnos.append(turno)
+                self.saida(f"{e.id}: {len(soma.secoes)} seções somadas; "
+                           f"{'confere' if feed['confere'] else 'há diferenças'} com o total divulgado")
+        except Exception as erro:  # noqa: BLE001 - a conferência não impede as outras etapas
+            self.resumo.erros.append(f"conferência {ano}: {erro}")
+            self.resumo.conferencias.append({"ano": ano, "situacao": "erro"})
+            self.saida(f"erro na conferência de {ano}: {erro}")
+            return
+        self.estado.marcar_conferencia(ano, entradas, turnos)
+        self.resumo.conferencias.append({"ano": ano, "situacao": "conferida", "turnos": turnos})
+        if self.op.apagar_arquivos:
+            caminho.unlink(missing_ok=True)
+        self.sincronizar()
+
     def carregar_ano(self, ano: int) -> None:
         """Etapas 6 e 7, um ano: baixa, confere se mudou, processa e registra. Erro vira item do resumo.
 
@@ -603,6 +668,13 @@ class Preparacao:
                 if self.parar():
                     break
                 self.carregar_zonas(ano)
+        anos_conferencia = [a for a in conferencia.ANOS_SECAO if not self.op.anos or a in self.op.anos]
+        if self.op.conferencia and anos_conferencia and not self.parar():
+            self._etapa("Conferência seção a seção: a votação por seção contra o total divulgado")
+            for ano in anos_conferencia:
+                if self.parar():
+                    break
+                self.conferir_secoes(ano)
         if self.op.historico:
             antigos, recentes = self.anos_historicos()
             for titulo, anos in (("Eleições de 1933 a 1990 (resultados por UF)", antigos),

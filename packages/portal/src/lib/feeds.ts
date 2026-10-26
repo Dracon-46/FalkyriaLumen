@@ -17,9 +17,18 @@
 
 import { naRegraAtual } from "./paleta-antiga";
 import type { Topologia } from "./topojson";
-import type { ArquivoZonas, CadastroMunicipios, Feed, FeedHistorico, Indice, IndiceZonas } from "./tipos";
+import type {
+  ArquivoZonas,
+  CadastroMunicipios,
+  Feed,
+  FeedConferencia,
+  FeedHistorico,
+  Indice,
+  IndiceZonas,
+} from "./tipos";
 import {
   ErroFeed,
+  validarConferencia,
   validarFeed,
   validarHistorico,
   validarIndice,
@@ -58,6 +67,8 @@ export const urls = {
     `${BASE_DADOS}/${seguro(eleicao)}/${seguro(cargo)}/${seguro(abrangencia)}.json`,
   historico: (eleicao: string, cargo: string, abrangencia: string) =>
     `${BASE_DADOS}/${seguro(eleicao)}/${seguro(cargo)}/historico-${seguro(abrangencia)}.json`,
+  /** Conferência seção a seção do cargo na eleição (ADR-053). */
+  conferencia: (eleicao: string, cargo: string) => `${BASE_DADOS}/${seguro(eleicao)}/${seguro(cargo)}/conferencia.json`,
   malhaBrasil: () => `${BASE_DADOS}/geo/br-uf.json`,
   malhaUf: (uf: string) => `${BASE_DADOS}/geo/uf-${seguro(uf)}-mu.json`,
   /** Contorno fino (qualidade `maxima`) de um município com mais de uma zona eleitoral. */
@@ -157,6 +168,17 @@ export async function carregarHistorico(eleicao: string, cargo: string, abrangen
   const url = urls.historico(eleicao, cargo, abrangencia);
   const bruto = await obterJson(url, { sinal });
   return bruto === null ? null : naRegraAtual(validarHistorico(bruto, url));
+}
+
+const cacheConferencias = new Map<string, Promise<FeedConferencia | null>>();
+
+/** Lê e confere a conferência seção a seção; `null` quando a eleição não tem (a votação por seção não saiu). */
+export function carregarConferencia(eleicao: string, cargo: string): Promise<FeedConferencia | null> {
+  const url = urls.conferencia(eleicao, cargo);
+  return memorizar(cacheConferencias, url, async () => {
+    const bruto = await obterJson(url);
+    return bruto === null ? null : validarConferencia(bruto, url);
+  }, 20);
 }
 
 const cacheMalhas = new Map<string, Promise<Topologia | null>>();

@@ -49,14 +49,16 @@ def verificar_feed(caminho: Path, dados: dict, rel: Relatorio) -> None:
     Versão, tipo e campos obrigatórios vêm primeiro; se algum falha, o resto não é conferido. Nos
     resultados, a soma dos candidatos válidos não pode passar dos votos válidos (exceto com candidatos
     omitidos ou aviso de fonte sem destinação), a ordem tem de ser decrescente e os percentuais ficar
-    entre 0 e 100. Na evolução, os pontos têm de estar em ordem de tempo.
+    entre 0 e 100. Na evolução, os pontos têm de estar em ordem de tempo. Na conferência seção a seção
+    (ADR-053), só os campos: a diferença entre as seções e o divulgado é o que ela mostra, não um defeito do feed.
     """
     if dados.get("versao") != VERSAO_ESQUEMA_FEED:
         rel.problemas.append(f"{caminho}: versao {dados.get('versao')!r}, esperado {VERSAO_ESQUEMA_FEED}")
         return
     tipo = dados.get("tipo")
     obrigatorios = {"resultado": CAMPOS_RESULTADO, "panorama": CAMPOS_PANORAMA,
-                    "historico": ("versao", "tipo", "pontos", "candidatos")}.get(tipo)
+                    "historico": ("versao", "tipo", "pontos", "candidatos"),
+                    "conferencia": ("versao", "tipo", "secoes", "brasil", "ufs", "confere")}.get(tipo)
     if obrigatorios is None:
         rel.problemas.append(f"{caminho}: tipo desconhecido {tipo!r}")
         return

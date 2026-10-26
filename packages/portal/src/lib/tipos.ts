@@ -334,6 +334,46 @@ export interface FeedHistorico {
   pontos: PontoEvolucao[];
 }
 
+/** Uma linha da conferência seção a seção: um número votado (ou brancos, nulos, nulos técnicos). */
+export interface LinhaConferencia {
+  rotulo: string;
+  /** Número votado (95 branco, 96 nulo); null nos nulos técnicos, que juntam os números fora da lista. */
+  numero: string | null;
+  /** Nos nulos técnicos, os números e nomes que eles somam. */
+  detalhe: string | null;
+  /** Soma das seções. */
+  secoes: number;
+  /** Total do sistema de resultados; null quando o arquivo divulgado não separa esse número. */
+  divulgado: number | null;
+  diferenca: number | null;
+}
+
+/** Uma abrangência conferida: as linhas e se todas batem. */
+export interface AbrangenciaConferida {
+  conferida: boolean;
+  confere: boolean;
+  linhas: LinhaConferencia[];
+}
+
+/**
+ * Arquivo `<eleição>/presidente/conferencia.json` (ADR-053): a votação por
+ * seção dos dados abertos, somada, contra o total do sistema de resultados,
+ * no Brasil e em cada UF (com o exterior).
+ */
+export interface FeedConferencia {
+  versao: number;
+  tipo: "conferencia";
+  eleicao: ResumoEleicao;
+  cargo: CargoFeed;
+  conferido_em: string;
+  origem_secoes: Origem;
+  origem_divulgado: Origem;
+  secoes: { no_arquivo: number; divulgadas: number | null };
+  brasil: AbrangenciaConferida;
+  ufs: (AbrangenciaConferida & { uf: string; nome: string; secoes: number; secoes_divulgadas: number | null })[];
+  confere: boolean;
+}
+
 /** Os dois tipos de arquivo que a tela principal exibe; o campo `tipo` os distingue. */
 export type Feed = FeedResultado | FeedPanorama;
 

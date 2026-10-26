@@ -13,6 +13,7 @@ import {
   VERSAO_ZONAS,
   type ArquivoZonas,
   type CadastroMunicipios,
+  type FeedConferencia,
   type FeedHistorico,
   type FeedPanorama,
   type FeedResultado,
@@ -117,6 +118,17 @@ export function validarHistorico(bruto: unknown, onde = "historico"): FeedHistor
   exigir(o, ["candidatos", "pontos"], onde);
   lista(o.pontos, `${onde}.pontos`);
   return o as unknown as FeedHistorico;
+}
+
+/** Confere o feed da conferência seção a seção (`tipo: "conferencia"`). */
+export function validarConferencia(bruto: unknown, onde = "conferencia"): FeedConferencia {
+  const o = objeto(bruto, onde);
+  versao(o, onde);
+  if (o.tipo !== "conferencia") throw new ErroFeed(`${onde}: tipo ${String(o.tipo)} não é conferência`);
+  exigir(o, ["brasil", "ufs", "secoes", "confere"], onde);
+  lista(objeto(o.brasil, `${onde}.brasil`).linhas, `${onde}.brasil.linhas`);
+  lista(o.ufs, `${onde}.ufs`);
+  return o as unknown as FeedConferencia;
 }
 
 /** Confere o cadastro de municípios usado pela busca. */

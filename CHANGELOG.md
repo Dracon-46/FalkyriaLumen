@@ -5,6 +5,19 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Eleições: conferência seção a seção (ADR-053)
+
+- Presidente, no Brasil e na UF: quadro "Conferência seção a seção", com a
+  votação de cada seção dos dados abertos do TSE somada ao lado do total do
+  sistema de resultados, por candidato, brancos, nulos e nulos técnicos, e se
+  confere em cada UF e no exterior. No 1º turno de 2026, as 499.206 seções
+  com voto dão exatamente o total divulgado em tudo; os 5.246 nulos técnicos
+  são os votos no número 28, de candidatura com os votos anulados.
+- A carga baixa a votação por seção do ano em aberto a cada execução e
+  refaz a conferência quando o arquivo muda (o 2º turno entra assim quando o
+  TSE o publicar); `lumen eleicoes conferir` roda só essa etapa, e
+  `preparar --sem-conferencia` a pula.
+
 ### Eleições: cores dos partidos, exterior, evolução, zonas e 1º turno (ADR-052)
 
 - PL é sempre azul e PT sempre vermelho, em todas as eleições, cargos e níveis;

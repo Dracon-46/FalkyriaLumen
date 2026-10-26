@@ -2321,3 +2321,31 @@ table.tabela {
   gap: 4px 16px;
   margin-bottom: 0;
 }
+
+/* ------------------------------------------------------------ conferência seção a seção (ADR-053) */
+
+.conferencia-ok,
+.conferencia-diferenca {
+  font-weight: 600;
+  margin: 6px 0;
+}
+
+.conferencia-ok::before {
+  content: "✓ ";
+  color: var(--ok);
+}
+
+.conferencia-diferenca {
+  background: var(--aviso-fundo);
+  border-left: 3px solid var(--aviso-borda);
+  padding: 6px 10px;
+}
+
+.conferencia-diferenca::before {
+  content: "⚠ ";
+}
+
+.tabela tr.linha-diferenca td {
+  background: var(--aviso-fundo);
+  font-weight: 600;
+}

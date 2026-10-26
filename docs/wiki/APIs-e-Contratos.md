@@ -292,6 +292,10 @@ e espelhado em [`tipos.ts`](https://github.com/Dracon-46/FalkyriaLumen/blob/main
   a partir do 2, pela ordem de votação no nível mais alto do cargo, fixo durante a noite
   ([ADR-020](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-020.md)). O campo
   `paleta` (2) diz a regra; o portal lê o feed sem ele pela regra anterior.
+- `<eleição>/presidente/conferencia.json` (`tipo: "conferencia"`,
+  [ADR-053](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-053.md)): a votação por seção
+  dos dados abertos somada contra o total do sistema de resultados, no Brasil (`brasil`) e em cada UF (`ufs`),
+  linha a linha (`secoes`, `divulgado`, `diferenca`), com as duas origens.
 - O bloco `origem` liga cada número ao arquivo oficial: `fonte`, `url`, `sha256`, `coletado_em` e
   `registro_bronze`.
 

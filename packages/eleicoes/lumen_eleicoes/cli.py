@@ -35,7 +35,7 @@ from pathlib import Path
 from lumen_ingestao.bronze import ArmazemBronzeLocal
 from lumen_ingestao.cliente_http import ClienteHttp
 
-from . import antigas, carga, geo, medicao, referencias, tse, zonas
+from . import antigas, carga, conferencia, geo, medicao, referencias, tse, zonas
 from . import dados_abertos as da
 from .coletor import FONTE_ID, ColetorAoVivo, ResumoPassada, plano_padrao
 from .configuracao import ConfiguracaoAusente, ConfiguracaoEleicoes, carregar, carregar_publicacao
@@ -355,7 +355,7 @@ def cmd_preparar(cfg, args) -> int:
     """
     opcoes = OpcoesPreparacao(
         anos=args.anos, ao_vivo=not args.sem_ao_vivo, historico=not args.sem_historico, portal=not args.sem_portal,
-        zonas=not args.sem_zonas,
+        zonas=not args.sem_zonas, conferencia=not args.sem_conferencia,
         servir=args.servir, abrir_navegador=not args.sem_navegador, host=args.host, porta=args.porta,
         refazer=args.refazer, atualizar=args.atualizar, municipios_proporcionais=args.municipios_proporcionais,
         limite_municipio=args.limite_municipio, base=args.base, bronze=not args.sem_bronze,
@@ -370,6 +370,24 @@ def cmd_preparar(cfg, args) -> int:
     _imprimir(resumo.para_json())
     prep.aguardar()
     return 1 if resumo.erros else 0
+
+
+def cmd_conferir(cfg, args) -> int:
+    """Só a conferência seção a seção (ADR-053): soma a votação por seção de Presidente dos anos pedidos e
+    compara com o total do sistema de resultados; grava ``<eleição>/presidente/conferencia.json``.
+
+    O andamento vai para o stderr; no stdout, o resumo em JSON. Devolve 1 se a conferência falhou.
+    """
+    opcoes = OpcoesPreparacao(anos=args.anos, ao_vivo=False, historico=False, zonas=False, portal=False,
+                              abrir_navegador=False, refazer=args.refazer, base=args.base,
+                              bronze=not args.sem_bronze)
+    prep = Preparacao(cfg, opcoes, cliente_resultados=_cliente(cfg, FONTE_ID, cfg.rpm_resultados),
+                      cliente_dados=_cliente(cfg, carga.FONTE_DADOS_ABERTOS, cfg.rpm_dados_abertos),
+                      saida=lambda msg: print(msg, file=sys.stderr, flush=True))
+    for ano in args.anos:
+        prep.conferir_secoes(ano)
+    _imprimir(prep.resumo.conferencias)
+    return 1 if prep.resumo.erros else 0
 
 
 def _rodar_simulacao(cfg, arquivos: Path, eleicao_id: str, etapas: int, intervalo: float,
@@ -493,6 +511,8 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--sem-historico", action="store_true",
                    help="não baixa os dados abertos dos resultados (o mapa das zonas continua; --sem-zonas o tira)")
     c.add_argument("--sem-zonas", action="store_true", help="não baixa os locais de votação (mapa das zonas)")
+    c.add_argument("--sem-conferencia", action="store_true",
+                   help="não soma a votação por seção para conferir com o total divulgado (ADR-053)")
     c.add_argument("--sem-portal", action="store_true", help="não gera o portal (Node.js)")
     c.add_argument("--sem-navegador", action="store_true", help="com --servir, não abre o navegador")
     c.add_argument("--refazer", action="store_true", help="ignora o registro do que já foi feito")
@@ -533,6 +553,13 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--anos", type=_anos_locais, default=list(zonas.ANOS_LOCAIS),
                    help="anos separados por vírgula, ou todos (padrão: 2026 a 2018)")
     c.add_argument("--atualizar", action="store_true", help="consulta o servidor mesmo se já baixado")
+    c.add_argument("--sem-bronze", action="store_true")
+
+    c = sub.add_parser("conferir", help="conferência seção a seção: a votação por seção contra o total (ADR-053)")
+    c.add_argument("--anos", type=_anos, default=list(conferencia.ANOS_SECAO),
+                   help="anos separados por vírgula (padrão: o em aberto)")
+    c.add_argument("--refazer", action="store_true", help="confere mesmo sem mudança no arquivo")
+    c.add_argument("--base", default=tse.BASE, help="endereço do sistema de resultados")
     c.add_argument("--sem-bronze", action="store_true")
 
     c = sub.add_parser("ao-vivo", help="coleta a apuração em andamento")
@@ -589,7 +616,7 @@ def construir_parser() -> argparse.ArgumentParser:
     return p
 
 
-COMANDOS = {"preparar": cmd_preparar, "publicar": cmd_publicar, "catalogo": cmd_catalogo, "municipios": cmd_municipios, "mapas": cmd_mapas, "zonas": cmd_zonas, "ao-vivo": cmd_ao_vivo,
+COMANDOS = {"preparar": cmd_preparar, "publicar": cmd_publicar, "catalogo": cmd_catalogo, "municipios": cmd_municipios, "mapas": cmd_mapas, "zonas": cmd_zonas, "conferir": cmd_conferir, "ao-vivo": cmd_ao_vivo,
             "simular": cmd_simular, "amostra": cmd_amostra, "servir": cmd_servir, "verificar": cmd_verificar,
             "medir": cmd_medir}
 

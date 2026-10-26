@@ -22,6 +22,7 @@ import { indexarPartes } from "@/lib/areas";
 import { compararTurnos, primeiroTurnoDe } from "@/lib/comparacao";
 import { escreverSelecao, lerSelecao, ufDaAbrangencia } from "@/lib/estado-url";
 import {
+  carregarConferencia,
   carregarFeed,
   carregarHistorico,
   carregarIndice,
@@ -40,6 +41,7 @@ import type {
   CargoFeed,
   EleicaoIndice,
   Feed,
+  FeedConferencia,
   FeedResultado,
   FeedHistorico,
   Indice,
@@ -63,6 +65,7 @@ import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import type { Opcao } from "@/lib/escolha";
 import { Busca } from "./Busca";
 import { ComparacaoTurnos } from "./ComparacaoTurnos";
+import { ConferenciaPendente, ConferenciaSecoes } from "./ConferenciaSecoes";
 import { Faixas, Origem } from "./Faixas";
 import { GraficoEvolucao } from "./GraficoEvolucao";
 import { ListaCandidatos } from "./ListaCandidatos";
@@ -457,6 +460,26 @@ export function PainelEleicoes() {
     return () => controle.abort();
   }, [comEvolucao, eleicao?.id, cargo?.slug, abrangencia, tique]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Conferência seção a seção (ADR-053): Presidente, no Brasil e na UF. No 2º turno sem a votação por seção, a
+  // do 1º turno diz que a conferência existe e só falta o arquivo do TSE.
+  const comConferencia = cargo?.slug === "presidente" && (abrangencia === "br" || abrangencia.startsWith("uf-"));
+  const chaveConferencia = comConferencia && eleicao ? `${eleicao.id}|${primeiroTurno?.id ?? ""}` : null;
+  const [conferencia, setConferencia] = useState<
+    { chave: string; atual: FeedConferencia | null; primeiro: FeedConferencia | null } | null
+  >(null);
+  useEffect(() => {
+    if (!chaveConferencia || !eleicao) return;
+    let vivo = true;
+    Promise.all([
+      carregarConferencia(eleicao.id, "presidente").catch(() => null),
+      primeiroTurno ? carregarConferencia(primeiroTurno.id, "presidente").catch(() => null) : Promise.resolve(null),
+    ]).then(([atual, primeiro]) => vivo && setConferencia({ chave: chaveConferencia, atual, primeiro }));
+    return () => {
+      vivo = false;
+    };
+  }, [chaveConferencia]); // eslint-disable-line react-hooks/exhaustive-deps
+  const conferenciaAtual = conferencia?.chave === chaveConferencia ? conferencia : null;
+
   // Atalhos: Ctrl+K ou "/" abre a busca; "t" liga o modo TV; Esc sai dele
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
@@ -830,6 +853,12 @@ export function PainelEleicoes() {
                 titulo={ufsRegiao ? "Evolução da apuração no Brasil (não só na região)" : undefined} />
             )}
             {feed.tipo === "resultado" && <Totais feed={resultadoRegiao ?? feed} />}
+            {conferenciaAtual?.atual && !ufsRegiao ? (
+              <ConferenciaSecoes conferencia={conferenciaAtual.atual}
+                uf={abrangencia.startsWith("uf-") ? abrangencia.slice(3) : null} />
+            ) : (
+              conferenciaAtual?.primeiro && !ufsRegiao && <ConferenciaPendente turno={eleicao.turno} />
+            )}
           </div>
           <div className="coluna coluna-principal">
             {feed.tipo === "resultado" ? (

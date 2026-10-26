@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from lumen_eleicoes import antigas
+from lumen_eleicoes import antigas, conferencia
 
 FIX_UF = Path(__file__).resolve().parents[3] / "testes" / "fixtures" / "tse" / "dados_abertos_uf"
 
@@ -28,6 +28,13 @@ def _zips_do_ano(pasta: Path, ano: int) -> list[Path | None]:
             zf.writestr(f"{conjunto.upper()}_{ano}/{conjunto.upper()}_{ano}.txt", recorte.read_bytes())
         caminhos.append(destino)
     return caminhos
+
+
+@pytest.fixture(autouse=True)
+def sem_conferencia_de_secoes(monkeypatch):
+    """A etapa da conferência seção a seção baixa 160 MB do TSE: nos testes, nenhum ano a confere, a não ser o
+    teste que a liga de novo (``conferencia.ANOS_SECAO``)."""
+    monkeypatch.setattr(conferencia, "ANOS_SECAO", ())
 
 
 @pytest.fixture
