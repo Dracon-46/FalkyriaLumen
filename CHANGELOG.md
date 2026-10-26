@@ -5,6 +5,20 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Governos municipais: transferências da União (ADR-054)
+
+- No mandato aberto, "Transferências da União no mandato": o que a União
+  repassou à prefeitura e aos fundos municipais, e às entidades sem fins
+  lucrativos do município (escolas pelo PDDE), ano a ano, por área, por tipo
+  e pelas ações que mais pesam (TETO MAC, merenda, salário-educação…), com o
+  mandato comparado ao lado e o CSV. Fonte: arquivo mensal de transferências
+  do Portal da Transparência (CGU), de 2014 em diante. O FPM e as cotas-partes
+  não estão nesse arquivo e seguem nas receitas do município.
+- Coleta nova, `lumen painel transferencias`, no job `contratacoes`: os três
+  meses mais recentes a cada execução e os antigos que faltam, até 24 por
+  execução, com pausa entre eles (o servidor da CGU pede verificação humana a
+  quem baixa demais). A primeira carga leva alguns dias.
+
 ### Eleições: conferência seção a seção (ADR-053)
 
 - Presidente, no Brasil e na UF: quadro "Conferência seção a seção", com a

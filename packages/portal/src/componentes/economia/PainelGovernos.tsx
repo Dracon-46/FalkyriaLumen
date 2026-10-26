@@ -22,6 +22,8 @@ import { EmendasMandato, type EstadoEmendas } from "@/componentes/economia/Emend
 import { carregarEmendas } from "@/lib/emendas";
 import { ConveniosMandato, type EstadoConvenios } from "@/componentes/economia/ConveniosMandato";
 import { carregarConvenios } from "@/lib/convenios";
+import { carregarTransferencias } from "@/lib/transferencias";
+import { type EstadoTransferencias, TransferenciasMandato } from "@/componentes/economia/TransferenciasMandato";
 import { TceMandato, type EstadoTce } from "@/componentes/economia/TceMandato";
 import { carregarTce, type TceEnte } from "@/lib/tce";
 import { BuscaEnte } from "@/componentes/paineis/Comuns";
@@ -272,6 +274,19 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
     return () => c.abort();
   }, [ente.codigo]);
 
+  // As transferências da União ao município (ADR-054): um arquivo por grupo de entes, lido uma vez
+  const [transferencias, setTransferencias] = useState<EstadoTransferencias>({ fase: "carregando" });
+  useEffect(() => {
+    const c = new AbortController();
+    setTransferencias({ fase: "carregando" });
+    carregarTransferencias(ente.codigo, c.signal)
+      .then((x) => setTransferencias({ fase: "pronto", transferencias: x }))
+      .catch((e: Error) => {
+        if (e.name !== "AbortError") setTransferencias({ fase: "erro" });
+      });
+    return () => c.abort();
+  }, [ente.codigo]);
+
   // Os contratos registrados no tribunal de contas (ADR-050): um arquivo por grupo de entes, lido uma vez
   const [tce, setTce] = useState<EstadoTce>({ fase: "carregando" });
   useEffect(() => {
@@ -452,7 +467,8 @@ function Municipio({ ente, dados, medias, base, opcoes, mudar }: PropsMunicipio)
           outro={lidoOutro && somaNoOutro ? { nome: lidoOutro.ente.nome, soma: somaNoOutro } : null}
           somaFuncao={[somas.get(aberto.mandato.eleicao)!, comparado ? somas.get(comparado.mandato.eleicao)! : null]}
           natureza={natureza} conv={conv} fmt={fmt} unidade={unidade} opcoesComparar={comContas} mudar={mudar}
-          emendas={emendas} convenios={convenios} tce={tce} receitas={receitas} contas={dados.contas}
+          emendas={emendas} convenios={convenios} transferencias={transferencias} tce={tce} receitas={receitas}
+          contas={dados.contas}
           tceOutro={lidoOutro && tceOutro && doOutro ? { nome: lidoOutro.ente.nome, tce: tceOutro, conv: doOutro.conv } : null} />
       )}
 
@@ -550,7 +566,7 @@ function LinhaMandato({ resumo: r, soma, fmt, aberto, outro, onAbrir }: { resumo
 
 /** O mandato aberto: com o que foi gasto, a comparação com outro mandato e os links nas outras abas. */
 function DetalheMandato({ codigo, nome, aberto, comparado, outro, opcoes, somaFuncao, natureza, conv, fmt, unidade,
-  opcoesComparar, mudar, emendas, convenios, tce, tceOutro, receitas, contas }: {
+  opcoesComparar, mudar, emendas, convenios, transferencias, tce, tceOutro, receitas, contas }: {
   codigo: string;
   nome: string;
   aberto: ResumoMandato;
@@ -567,6 +583,7 @@ function DetalheMandato({ codigo, nome, aberto, comparado, outro, opcoes, somaFu
   mudar: (t: Record<string, string | null>) => void;
   emendas: EstadoEmendas;
   convenios: EstadoConvenios;
+  transferencias: EstadoTransferencias;
   tce: EstadoTce;
   /** O tribunal de contas do município lado a lado, com a conversão dele (população própria). */
   tceOutro: { nome: string; tce: TceEnte; conv: (valor: number, ano: string) => number | null } | null;
@@ -645,6 +662,10 @@ function DetalheMandato({ codigo, nome, aberto, comparado, outro, opcoes, somaFu
         rotulos={[rotulo(aberto), comparado ? rotulo(comparado) : ""]} conv={conv} fmt={fmt} unidade={unidade} />
 
       <ConveniosMandato estado={convenios} anos={anosDo(m)}
+        anosComparado={comparado ? anosDo(comparado.mandato) : null}
+        rotulos={[rotulo(aberto), comparado ? rotulo(comparado) : ""]} conv={conv} fmt={fmt} unidade={unidade} />
+
+      <TransferenciasMandato estado={transferencias} anos={anosDo(m)}
         anosComparado={comparado ? anosDo(comparado.mandato) : null}
         rotulos={[rotulo(aberto), comparado ? rotulo(comparado) : ""]} conv={conv} fmt={fmt} unidade={unidade} />
 

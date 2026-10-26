@@ -143,6 +143,16 @@ jobs:
           lumen painel convenios --estado estado || status=1
           if [ -f estado/convenios.json.gz ]; then gh release upload "$TAG" estado/convenios.json.gz --clobber; fi
           exit $status
+      # Até 24 meses por execução, com pausa entre eles: o servidor de arquivos da CGU pede verificação humana a
+      # quem baixa demais. A primeira carga (de 2014 em diante) se espalha por alguns dias (ADR-054).
+      - name: Transferências da União (CGU, arquivo mensal de dados abertos; os meses recentes e os que faltam)
+        continue-on-error: true
+        run: |
+          gh release download "$TAG" -p transferencias.json.gz -D estado --clobber || true
+          status=0
+          lumen painel transferencias --estado estado || status=1
+          if [ -f estado/transferencias.json.gz ]; then gh release upload "$TAG" estado/transferencias.json.gz --clobber; fi
+          exit $status
       - name: Transparência (portais avaliados pelo PNTP)
         continue-on-error: true
         run: |
