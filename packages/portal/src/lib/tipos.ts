@@ -178,8 +178,9 @@ export interface Candidato {
   /** Vice (executivo) ou 1º suplente (Senado). */
   vice: string | null;
   /**
-   * Posição na paleta (0 a 7) ou -1 (cinza). Atribuída pela ordem de votação
-   * e fixa durante a apuração; nos proporcionais, é a do partido.
+   * Posição na paleta (0 a 7) ou -1 (cinza). PL é sempre 0 (azul) e PT
+   * sempre 1 (vermelho), ADR-052; os demais, pela ordem de votação, fixa
+   * durante a apuração. Nos proporcionais, é a do partido.
    */
   cor: number;
   /** Caminho relativo da foto ("fotos/….jpg"); `urls.foto` só aceita esse formato. */
@@ -218,7 +219,7 @@ export interface Parte {
   pct?: number | null;
   /** Vantagem do líder sobre o segundo, em pontos percentuais. */
   margem?: number | null;
-  /** Posição na paleta de quem está à frente; o mapa só pinta as três primeiras. */
+  /** Posição na paleta de quem está à frente; o mapa só pinta as quatro primeiras. */
   cor: number;
   eleito?: boolean;
   segundo_turno?: boolean;

@@ -220,6 +220,16 @@ def test_registro_do_que_foi_feito(tmp_path):
     assert preparacao.EstadoPreparacao.carregar(caminho).anos == {}
 
 
+def test_versao_anterior_do_processamento_e_refeita(tmp_path):
+    # Registros de antes da cor fixa de PL e PT (ADR-052): o ano antigo, o recente e a coleta ao vivo voltam
+    caminho = tmp_path / "preparar.json"
+    caminho.write_text(json.dumps({"versao": 1, "anos": {"1950": {"processamento": 2}, "2022": {"processamento": 2}},
+                                   "ao_vivo": {"2026-1t-geral": {"concluido_em": "x"}}}), encoding="utf-8")
+    estado = preparacao.EstadoPreparacao.carregar(caminho)
+    assert not estado.ano_pronto(1950) and not estado.ano_pronto(2022)
+    assert not estado.ao_vivo_pronto("2026-1t-geral")
+
+
 def test_portal_desatualizado(tmp_path):
     import os
     portal = tmp_path / "portal"

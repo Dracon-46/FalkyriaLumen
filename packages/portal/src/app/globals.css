@@ -29,13 +29,13 @@
   --estado-indeterminado: #5e5d58;
 
   --serie-1: #2a78d6;
-  --serie-2: #eb6834;
-  --serie-3: #1baf7a;
-  --serie-4: #eda100;
+  --serie-2: #e34948;
+  --serie-3: #eda100;
+  --serie-4: #008300;
   --serie-5: #e87ba4;
-  --serie-6: #008300;
-  --serie-7: #4a3aa7;
-  --serie-8: #e34948;
+  --serie-6: #4a3aa7;
+  --serie-7: #1baf7a;
+  --serie-8: #eb6834;
   --serie-outros: #b9b7b0;
   --mapa-sem-lider: #e6e4df;
   --mapa-borda: #fcfcfb;
@@ -71,13 +71,13 @@
     --estado-ausente: #ff8a7a;
     --estado-indeterminado: #b5b4ab;
     --serie-1: #3987e5;
-    --serie-2: #d95926;
-    --serie-3: #199e70;
-    --serie-4: #c98500;
+    --serie-2: #e34948;
+    --serie-3: #c98500;
+    --serie-4: #008300;
     --serie-5: #d55181;
-    --serie-6: #008300;
-    --serie-7: #9085e9;
-    --serie-8: #e66767;
+    --serie-6: #9085e9;
+    --serie-7: #199e70;
+    --serie-8: #d95926;
     --serie-outros: #5b5a55;
     --mapa-sem-lider: #2b2b27;
     --mapa-borda: #1a1a19;
@@ -109,13 +109,13 @@
   --estado-ausente: #ff8a7a;
   --estado-indeterminado: #b5b4ab;
   --serie-1: #3987e5;
-  --serie-2: #d95926;
-  --serie-3: #199e70;
-  --serie-4: #c98500;
+  --serie-2: #e34948;
+  --serie-3: #c98500;
+  --serie-4: #008300;
   --serie-5: #d55181;
-  --serie-6: #008300;
-  --serie-7: #9085e9;
-  --serie-8: #e66767;
+  --serie-6: #9085e9;
+  --serie-7: #199e70;
+  --serie-8: #d95926;
   --serie-outros: #5b5a55;
   --mapa-sem-lider: #2b2b27;
   --mapa-borda: #1a1a19;
@@ -659,6 +659,18 @@ h2 {
   opacity: 0.38;
 }
 
+/* O exterior não é geografia: um quadrado tracejado no Atlântico, com rótulo (lib/areas.ts). */
+.mapa path[data-area="zz"] {
+  stroke: var(--texto-2);
+  stroke-dasharray: 3 2;
+}
+
+.mapa .rotulo-exterior {
+  text-anchor: middle;
+  fill: var(--texto-2);
+  pointer-events: none;
+}
+
 .mapa path.municipio-fundo {
   pointer-events: none;
 }
@@ -670,25 +682,33 @@ h2 {
 .mapa path.zona {
   fill: var(--cor-zona);
   stroke: var(--cor-zona);
-  stroke-width: 0.8;
+  stroke-width: calc(0.8px * var(--px, 1));
+}
+
+/* Espessura em unidades da malha (`--px`, do componente): sem traço que não escala, ver CamadaZonas. */
+.mapa path.zona,
+.mapa path.zona-fronteiras,
+.mapa path.zona-cursor,
+.mapa path.zona-destaque {
+  vector-effect: none;
 }
 
 .mapa path.zona:focus-visible {
   stroke: var(--texto);
-  stroke-width: 2.5;
+  stroke-width: calc(2.5px * var(--px, 1));
 }
 
 .mapa path.zona-fronteiras {
   fill: none;
   stroke: var(--mapa-borda);
-  stroke-width: 1.4;
+  stroke-width: calc(1.4px * var(--px, 1));
   pointer-events: none;
 }
 
 .mapa path.zona-cursor {
   fill: none;
   stroke: var(--texto);
-  stroke-width: 1.75;
+  stroke-width: calc(1.75px * var(--px, 1));
   stroke-opacity: 0.75;
   pointer-events: none;
 }
@@ -696,7 +716,7 @@ h2 {
 .mapa path.zona-destaque {
   fill: none;
   stroke: var(--texto);
-  stroke-width: 3;
+  stroke-width: calc(3px * var(--px, 1));
   pointer-events: none;
 }
 
@@ -792,6 +812,12 @@ h2 {
   height: 12px;
   border-radius: 3px;
   flex: none;
+}
+
+/* Dentro de texto corrido (tabela da comparação entre turnos), a amostra fica na linha. */
+.tabela td .amostra-cor {
+  display: inline-block;
+  vertical-align: -1px;
 }
 
 .faixa-lista {
@@ -1051,6 +1077,24 @@ table.tabela {
 .grafico text {
   fill: var(--texto-2);
   font-size: 11px;
+}
+
+.grafico-cabeca {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.grafico-marca {
+  stroke: var(--superficie);
+  stroke-width: 2;
+}
+
+.grafico svg:focus-visible {
+  outline: 2px solid var(--destaque);
+  outline-offset: 2px;
 }
 
 /* ------------------------------------------------------------ faixas de aviso */

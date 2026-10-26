@@ -35,6 +35,7 @@ from .feeds import (
     abrangencia_uf,
     abrangencia_zona,
     atribuir_cores,
+    cores_dos_candidatos,
     entrada_indice,
     feed_historico,
     feed_panorama,
@@ -80,11 +81,6 @@ def _cargo(codigo: int, codigo_tse: int | None) -> Cargo:
     slug, nome, _ = CARGOS[codigo]
     tipo = TipoCargo.PROPORCIONAL if proporcional(codigo) else TipoCargo.MAJORITARIO
     return Cargo(codigo=codigo, nome=nome, tipo=tipo, eleicao_tse=codigo_tse or 0)
-
-
-def _ordem_cores(r: ResultadoAbrangencia) -> list[str]:
-    """Números dos candidatos válidos na ordem do resultado: a ordem em que ``atribuir_cores`` distribui as cores."""
-    return [c.numero for c in r.candidatos if c.valido]
 
 
 # Resultados por zona de cada município: chave do município ("mu", uf, tse) → número da zona → resultado
@@ -285,7 +281,7 @@ class ProcessadorAno:
         cores_br: dict[str, int] = {}
         if nivel is Nivel.BRASIL and ("br",) in resultados:
             topo = resultados[("br",)]
-            cores_br = atribuir_cores(_ordem_cores(topo))
+            cores_br = cores_dos_candidatos(topo)
         partes_br = []
         fotos_br = self._fotos(e, cargo, "br")
         for uf in ufs:
@@ -296,7 +292,7 @@ class ProcessadorAno:
             elif por_partido:
                 cores = atribuir_cores(p for p, _ in ranking_partidos(r_uf))
             else:
-                cores = atribuir_cores(_ordem_cores(r_uf))
+                cores = cores_dos_candidatos(r_uf)
             partes_uf = []
             for chave, r_mu in sorted((k, v) for k, v in resultados.items() if k[0] == "mu" and k[1] == uf):
                 abr_mu = self._abr(chave, agregador)
@@ -349,7 +345,7 @@ class ProcessadorAno:
             if por_partido:
                 cores = atribuir_cores(p for p, _ in ranking_partidos(r))
             else:
-                cores = atribuir_cores(_ordem_cores(r))
+                cores = cores_dos_candidatos(r)
             self.escritor.gravar(e.id, cargo.slug, abr, feed_resultado(
                 eleicao=e, cargo=cargo, abr=abr, resultado=r, cores=cores, origem=self.origem,
                 partes=_partes_zonas(chave, zonas, cores, por_partido), fotos=self._fotos(e, cargo, chave[1])))
@@ -410,7 +406,7 @@ class ProcessadorAno:
             return False
         rotulos = list(pontos[-1].votos)
         mapa = {r: (da.casar_rotulo(r, final.candidatos) or r) for r in rotulos}
-        cores = atribuir_cores(_ordem_cores(final))
+        cores = cores_dos_candidatos(final)
         candidatos = []
         for c in final.candidatos:
             if c.valido and c.numero in mapa.values():

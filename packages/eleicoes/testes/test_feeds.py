@@ -31,20 +31,32 @@ def eleicao():
 # ------------------------------------------------------------------ cores
 
 def test_cores_por_ordem_e_estaveis():
-    assert f.atribuir_cores(["22", "13", "70"]) == {"22": 0, "13": 1, "70": 2}
-    # O 13 passou o 22: cada um mantém a cor
-    assert f.atribuir_cores(["13", "22", "70"], {"22": 0, "13": 1, "70": 2}) == {"22": 0, "13": 1, "70": 2}
+    # Sem partido de cor fixa, a ordem começa depois do azul e do vermelho
+    assert f.atribuir_cores(["20", "12", "70"]) == {"20": 2, "12": 3, "70": 4}
+    # O 12 passou o 20: cada um mantém a cor
+    assert f.atribuir_cores(["12", "20", "70"], {"20": 2, "12": 3, "70": 4}) == {"20": 2, "12": 3, "70": 4}
     # Quem chega pega o menor índice livre
-    assert f.atribuir_cores(["14", "22"], {"22": 0, "13": 1}) == {"22": 0, "13": 1, "14": 2}
+    assert f.atribuir_cores(["14", "20"], {"20": 2, "12": 3}) == {"20": 2, "12": 3, "14": 4}
+
+
+def test_pl_azul_e_pt_vermelho_sempre():
+    partidos = {"22": "PL", "13": "PT", "15": "MDB"}
+    # Pela sigla (panoramas e proporcionais) e pelo partido do candidato, em qualquer posição
+    assert f.atribuir_cores(["MDB", "PT", "PL"]) == {"MDB": 2, "PT": 1, "PL": 0}
+    assert f.atribuir_cores(["15", "13", "22"], partidos=partidos) == {"15": 2, "13": 1, "22": 0}
+    # Cor anterior trocada (estado gravado antes da regra) é corrigida, e o azul e o vermelho não ficam com outro
+    assert f.atribuir_cores(["13", "15"], {"13": 0, "15": 1}, partidos=partidos) == {"13": 1, "15": 2}
+    # Sem PL na disputa, o azul fica sem dono
+    assert f.atribuir_cores(["13", "15"], partidos=partidos) == {"13": 1, "15": 2}
 
 
 def test_cores_acabam_em_cinza():
     numeros = [str(i) for i in range(12)]
     cores = f.atribuir_cores(numeros, n=8)
-    assert [cores[n] for n in numeros[:8]] == list(range(8))
-    assert all(cores[n] == f.SEM_COR for n in numeros[8:])
+    assert [cores[n] for n in numeros[:6]] == list(range(2, 8))
+    assert all(cores[n] == f.SEM_COR for n in numeros[6:])
     # Cor anterior fora da paleta é descartada
-    assert f.atribuir_cores(["1"], {"1": 99})["1"] == 0
+    assert f.atribuir_cores(["1"], {"1": 99})["1"] == 2
 
 
 # ------------------------------------------------------------------ abrangências
@@ -68,7 +80,7 @@ def test_abrangencias_e_nomes_de_arquivo():
 
 def test_feed_resultado_a_partir_do_tse():
     r = tse.ler_resultado((FIX / "br-c0001-e006257-u.json").read_bytes())
-    cores = f.atribuir_cores(c.numero for c in r.candidatos)
+    cores = f.cores_dos_candidatos(r)
     feed = f.feed_resultado(eleicao=eleicao(), cargo=eleicao().cargos[0], abr=f.abrangencia_brasil(), resultado=r,
                             cores=cores, origem=f.origem_json("resultados", url="u"), ao_vivo=True,
                             fotos={"280002551544": "fotos/x.jpeg"})
@@ -132,8 +144,8 @@ def test_panorama_conta_municipios_e_eleitos():
     pan = f.feed_panorama(eleicao=eleicao(), cargo=eleicao().cargos[2], abr=f.abrangencia_uf("pe"), partes=partes,
                           origem={}, atualizado_em=datetime(2026, 10, 4, 20, 0, tzinfo=tse.BRT))
     assert [(p["partido"], p["liderados"], p["eleitos"], p["cor"]) for p in pan["partidos"]] == [
-        ("PX", 2, 1, 0), ("PY", 1, 0, 1)]
-    assert [p["cor"] for p in pan["partes"]] == [0, 1, 0, -1]
+        ("PX", 2, 1, 2), ("PY", 1, 0, 3)]
+    assert [p["cor"] for p in pan["partes"]] == [2, 3, 2, -1]
     assert pan["totalizacao"] == {"partes": 4, "partes_finalizadas": 2, "pct_partes": 50.0}
     linha = f.parte_de_panorama(f.abrangencia_uf("pe"), pan)
     assert (linha["partido"], linha["liderados"], linha["bancada"], linha["finalizada"]) == ("PX", 2, {"PX": 1}, False)

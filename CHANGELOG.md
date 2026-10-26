@@ -5,6 +5,29 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Eleições: cores dos partidos, exterior, evolução, zonas e 1º turno (ADR-052)
+
+- PL é sempre azul e PT sempre vermelho, em todas as eleições, cargos e níveis;
+  o Lula, do PT, é vermelho de 1989 a 2026. Os demais seguem a ordem de
+  votação, a partir do amarelo. A paleta foi reordenada e validada de novo
+  para daltonismo, e o mapa pinta quatro posições (azul, vermelho, amarelo e
+  verde). A versão do processamento sobe para 3: a carga refaz os feeds
+  publicados, inclusive os de 1933 a 1990 e a coleta ao vivo.
+- Mapa do Brasil: o exterior aparece como um quadrado tracejado no Atlântico,
+  com a cor de quem venceu lá, dica e clique, como as UFs.
+- Evolução da apuração: a escala vertical se ajusta à faixa dos dados (a
+  partir de 2% das seções), sem a queda até 0% no começo; nova leitura
+  "Vantagem", a diferença do primeiro para o segundo em pontos percentuais; o
+  detalhe embaixo mostra sempre um ponto (o último, sem o cursor), com a
+  diferença, e as setas do teclado percorrem os pontos.
+- 2º turno: quadro "Comparação com o 1º turno", com os votos de cada
+  finalista nos dois turnos, os dos demais candidatos, válidos, brancos, nulos,
+  comparecimento e abstenção, e a conta de onde vieram os votos a mais.
+- Mapa das zonas: os traços das fronteiras e do destaque têm espessura em
+  unidades do mapa (com aceleração de vídeo, o Chrome desenhava faixas pretas e
+  brancas largas sobre as zonas); sem resultado por zona na fonte, as zonas
+  ficam no tom de quem venceu no município, e a nota diz por quê.
+
 ### As tabelas em CSV (ADR-051)
 
 - "baixar CSV" nas tabelas de Contratações (modalidades, fornecedores, órgãos,

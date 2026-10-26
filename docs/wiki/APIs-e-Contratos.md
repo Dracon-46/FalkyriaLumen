@@ -286,8 +286,10 @@ e espelhado em [`tipos.ts`](https://github.com/Dracon-46/FalkyriaLumen/blob/main
 - Números são números (inteiros para votos, decimais com até 6 casas para percentuais), nunca texto
   com vírgula. Datas em ISO 8601 com fuso.
 - Nenhum número é calculado além de somas e percentuais sobre os totais publicados; não há projeção.
-- O feed não traz cor: traz `cor`, um índice de 0 a 7 (ou -1, cinza), atribuído pela ordem de
-  votação no nível mais alto do cargo e fixo durante a noite. Nunca é cor de partido
+- O feed não traz cor: traz `cor`, um índice de 0 a 7 (ou -1, cinza). PL tem sempre o 0 (azul) e PT
+  sempre o 1 (vermelho)
+  ([ADR-052](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-052.md)); os demais,
+  a partir do 2, pela ordem de votação no nível mais alto do cargo, fixo durante a noite
   ([ADR-020](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-020.md)).
 - O bloco `origem` liga cada número ao arquivo oficial: `fonte`, `url`, `sha256`, `coletado_em` e
   `registro_bronze`.

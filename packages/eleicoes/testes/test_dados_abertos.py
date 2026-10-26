@@ -339,10 +339,10 @@ def test_processa_eleicao_geral_sintetica(zips_2022, cadastro, tmp_path):
     assert br["votos"]["validos"] == 150 + 50 + 35 + 505 + 10
     assert br["comparecimento"]["eleitorado"] == 200 + 60 + 50 + 600 + 20
     assert br["candidatos"][0]["pct"] == pytest.approx(100 * 418 / 750)
-    assert br["candidatos"][0]["cor"] == 0 and br["candidatos"][1]["cor"] == 1
+    assert br["candidatos"][0]["cor"] == 2 and br["candidatos"][1]["cor"] == 3   # sem PL nem PT
     partes = {p["codigo"]: p for p in br["partes"]}
     assert set(partes) == {"ac", "sp", "zz"}
-    assert partes["ac"]["lider"] == "13" and partes["ac"]["cor"] == 1        # 120 x 115
+    assert partes["ac"]["lider"] == "13" and partes["ac"]["cor"] == 3        # 120 x 115
     assert partes["sp"]["lider"] == "22"
     assert partes["ac"]["ibge"] == "12"
     assert br["origem"]["fonte"] == "dados_abertos"
@@ -351,7 +351,7 @@ def test_processa_eleicao_geral_sintetica(zips_2022, cadastro, tmp_path):
     assert {c["numero"]: c["votos"] for c in ac["candidatos"]} == {"13": 120, "22": 115}
     mu = {p["codigo"]: p for p in ac["partes"]}
     assert set(mu) == {"1200013", "1200054"}
-    assert mu["1200013"]["lider"] == "22" and mu["1200013"]["cor"] == 0      # 110 x 90
+    assert mu["1200013"]["lider"] == "22" and mu["1200013"]["cor"] == 2      # 110 x 90
     assert mu["1200054"]["nome"] == "Assis Brasil"
 
     sp_capital = ler_feed(saida, "2022-1t-geral", "presidente", "mu-3550308.json")
@@ -368,7 +368,7 @@ def test_processa_eleicao_geral_sintetica(zips_2022, cadastro, tmp_path):
     gov_br = ler_feed(saida, "2022-1t-geral", "governador", "br.json")
     assert gov_br["tipo"] == "panorama"
     assert [(p["codigo"], p["lider"], p["partido"], p["eleito"]) for p in gov_br["partes"]] == [("ac", "45", "PD", True)]
-    assert gov_br["partidos"] == [{"partido": "PD", "liderados": 1, "eleitos": 1, "votos": 90, "cor": 0}]
+    assert gov_br["partidos"] == [{"partido": "PD", "liderados": 1, "eleitos": 1, "votos": 90, "cor": 2}]
     dep_br = ler_feed(saida, "2022-1t-geral", "deputado-federal", "br.json")
     assert dep_br["partes"][0]["bancada"] == {"PD": 1}
     assert {p["partido"]: p["eleitos"] for p in dep_br["partidos"]} == {"PB": 0, "PD": 1}
@@ -428,7 +428,7 @@ def test_processa_municipal_com_panorama(tmp_path):
     placar = {p["partido"]: p for p in pan["partidos"]}
     assert placar["PDT"]["eleitos"] == 1 and placar["PDT"]["liderados"] == 1
     assert placar["PSB"]["eleitos"] == 0 and placar["PSB"]["liderados"] == 1
-    assert pan["partidos"][0]["partido"] == "PDT" and pan["partidos"][0]["cor"] == 0
+    assert pan["partidos"][0]["partido"] == "PDT" and pan["partidos"][0]["cor"] == 2
     linhas_mu = {p["codigo"]: p for p in pan["partes"]}
     assert linhas_mu["ap-06009"]["segundo_turno"] is True
     assert linhas_mu["ap-06009"]["nome"] == "Município B"
@@ -461,9 +461,9 @@ def test_zonas_no_feed_do_municipio(zips_2022, cadastro, tmp_path):
     zonas = {p["codigo"]: p for p in acre["partes"]}
     assert list(zonas) == ["8", "9"]
     z8, z9 = zonas["8"], zonas["9"]
-    assert (z8["nome"], z8["ibge"], z8["lider"], z8["cor"], z8["eleitorado"]) == ("Zona 8", None, "22", 0, 200)
+    assert (z8["nome"], z8["ibge"], z8["lider"], z8["cor"], z8["eleitorado"]) == ("Zona 8", None, "22", 2, 200)
     assert z8["pct"] == pytest.approx(100 * 100 / 150) and z8["margem"] == pytest.approx(100 * 50 / 150)
-    assert (z9["lider"], z9["cor"], z9["eleitorado"]) == ("13", 1, 60)       # as cores são as do Brasil
+    assert (z9["lider"], z9["cor"], z9["eleitorado"]) == ("13", 3, 60)       # as cores são as do Brasil
     assert z9["pct"] == pytest.approx(80.0) and z9["finalizada"] is True
     # Quem se elege ou vai ao 2º turno é decidido no município, não na zona
     assert not {"eleito", "segundo_turno", "bancada"} & (set(z8) | set(z9))

@@ -1,20 +1,20 @@
 /**
- * Paleta da aba Eleições (ADR-020).
+ * Paleta da aba Eleições (ADR-020, ADR-052).
  *
- * A cor identifica o candidato (ou o partido, nos panoramas), nunca o
- * partido por tradição: o feed traz um índice, atribuído pela ordem de
- * votação no nível mais alto do cargo na primeira leitura e fixo dali em
- * diante (a cor segue a entidade; a ultrapassagem no meio da apuração não
- * troca cores). Nenhum candidato "ganha" a cor do partido — o Lumen não se
- * associa a cores partidárias e a leitura é a mesma em qualquer disputa.
+ * O feed traz um índice, não a cor. PL e PT têm índice fixo — azul (0) e
+ * vermelho (1) — em qualquer cargo, nível e eleição, e nenhum outro partido os
+ * recebe. Os demais ganham o índice pela ordem de votação no nível mais alto
+ * do cargo, na primeira leitura, e o mantêm dali em diante (a cor segue a
+ * entidade; a ultrapassagem no meio da apuração não troca cores).
  *
- * Valores: paleta categórica de referência, validada para daltonismo
- * (deuteranopia, protanopia, tritanopia) com o validador do método de
- * visualização — ordem fixa, oito posições, versões própria para fundo claro
- * e escuro. No **mapa** (coroplético, todos os pares lado a lado) só as três
- * primeiras posições passam em todos os pares; da quarta em diante a área
- * aparece como "Outros" (cinza), e o nome e o número continuam na dica, na
- * lista e na tabela (alívio exigido pelo contraste do verde-água < 3:1).
+ * Valores: paleta categórica validada para daltonismo (deuteranopia,
+ * protanopia, tritanopia) com o validador do método de visualização — ordem
+ * fixa, oito posições, versões próprias para fundo claro e escuro. No
+ * **mapa** (coroplético, todos os pares lado a lado) pintam as quatro
+ * primeiras posições — azul, vermelho, amarelo e verde —, a combinação que
+ * passa em todos os pares nos dois temas; da quinta em diante a área aparece
+ * como "Outros" (cinza), e o nome e o número continuam na dica, na lista e na
+ * tabela (alívio exigido pelo contraste do amarelo < 3:1 no fundo claro).
  */
 
 /**
@@ -23,30 +23,30 @@
  * a tela usa as variáveis, e esta lista serve a quem precisa do hexadecimal.
  */
 export const PALETA_CLARA = [
-  "#2a78d6", // azul
-  "#eb6834", // laranja
-  "#1baf7a", // verde-água
+  "#2a78d6", // azul (PL)
+  "#e34948", // vermelho (PT)
   "#eda100", // amarelo
-  "#e87ba4", // magenta
   "#008300", // verde
+  "#e87ba4", // magenta
   "#4a3aa7", // violeta
-  "#e34948", // vermelho
+  "#1baf7a", // verde-água
+  "#eb6834", // laranja
 ] as const;
 
 /** Paleta para fundo escuro, mesmas posições; espelha as variáveis do tema escuro em `globals.css`. */
 export const PALETA_ESCURA = [
   "#3987e5",
-  "#d95926",
-  "#199e70",
+  "#e34948",
   "#c98500",
-  "#d55181",
   "#008300",
+  "#d55181",
   "#9085e9",
-  "#e66767",
+  "#199e70",
+  "#d95926",
 ] as const;
 
 /** Posições que o mapa pinta; o resto é "Outros". */
-export const CORES_NO_MAPA = 3;
+export const CORES_NO_MAPA = 4;
 
 /** Variável CSS da posição: as cores reais vêm de `globals.css` (claro/escuro). */
 export function varCor(indice: number | null | undefined): string {
@@ -56,7 +56,7 @@ export function varCor(indice: number | null | undefined): string {
   return `var(--serie-${indice + 1})`;
 }
 
-/** Cor da área no mapa: só as três primeiras posições; o resto, "Outros". */
+/** Cor da área no mapa: só as quatro primeiras posições; o resto, "Outros". */
 export function varCorMapa(indice: number | null | undefined): string {
   if (indice === null || indice === undefined || indice < 0) return "var(--mapa-sem-lider)";
   return indice < CORES_NO_MAPA ? varCor(indice) : "var(--serie-outros)";

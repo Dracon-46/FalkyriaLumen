@@ -277,8 +277,10 @@ def test_etapa_das_zonas_no_preparar(cfg, cdn, monkeypatch):
 
 def test_ano_processado_por_versao_anterior_e_refeito(tmp_path):
     estado = preparacao.EstadoPreparacao(tmp_path / "p.json")
-    estado.anos = {"2022": {"entradas": {}}, "1950": {"entradas": {}}}
-    assert not estado.ano_pronto(2022) and estado.ano_pronto(1950) and not estado.ano_pronto(2018)
+    estado.anos = {"2022": {"entradas": {}}, "1950": {"entradas": {}}, "1962": {"processamento": 3}}
+    # Sem versão registrada (a 1), o ano volta; desde a cor fixa de PL e PT (versão 3), os antigos também
+    assert not estado.ano_pronto(2022) and not estado.ano_pronto(1950) and not estado.ano_pronto(2018)
+    assert estado.ano_pronto(1962)
     estado.marcar_ano(2022, {}, ["2022-1t-geral"])
     assert estado.ano_pronto(2022)
     assert preparacao.EstadoPreparacao.carregar(tmp_path / "p.json").anos["2022"]["processamento"] == (

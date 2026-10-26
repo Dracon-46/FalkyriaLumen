@@ -25,10 +25,10 @@ Regras do contrato:
   Brasil: nesses níveis o arquivo é um **panorama** (``tipo: panorama``),
   com o líder de cada município e a contagem por partido.
 - Cores: o feed não traz cor, traz ``cor`` = índice de 0 a ``N_CORES - 1``
-  (ou -1, cinza). O índice segue a ordem de votação no nível mais alto do
-  cargo e é o mesmo em todos os níveis (o candidato tem a mesma cor no mapa
-  do Brasil e no da UF). A paleta é do portal e não usa cor de partido
-  (ADR-020).
+  (ou -1, cinza). PL (azul) e PT (vermelho) têm índice fixo (ADR-052); os
+  demais seguem a ordem de votação no nível mais alto do cargo, e o índice é
+  o mesmo em todos os níveis (o candidato tem a mesma cor no mapa do Brasil
+  e no da UF). A paleta é do portal (ADR-020).
 """
 
 from __future__ import annotations
@@ -48,6 +48,8 @@ from .municipios import Municipio, codigo_ibge_da_uf, nome_da_uf
 
 N_CORES = 8
 SEM_COR = -1
+# Partidos de cor fixa (ADR-052): índice na paleta do portal (0 = azul, 1 = vermelho).
+CORES_DOS_PARTIDOS = {"PL": 0, "PT": 1}
 _SEGURO = re.compile(r"^[a-z0-9][a-z0-9-]{0,80}$")
 
 
@@ -127,21 +129,38 @@ def abrangencia_zona(uf: str, zona: str) -> Abrangencia:
 
 # ---------------------------------------------------------------- cores
 
-def atribuir_cores(numeros_em_ordem: Iterable[str], anteriores: Mapping[str, int] | None = None,
-                   n: int = N_CORES) -> dict[str, int]:
+def atribuir_cores(chaves_em_ordem: Iterable[str], anteriores: Mapping[str, int] | None = None,
+                   n: int = N_CORES, partidos: Mapping[str, str | None] | None = None) -> dict[str, int]:
     """Índice de cor por candidato (ou partido), estável entre atualizações.
 
-    Quem já tem cor a mantém — no meio da apuração, a troca de posição entre
-    dois candidatos não troca a cor deles no mapa. Quem chega pega o menor
-    índice livre, na ordem de votação. Do ``n``-ésimo em diante, cinza.
+    A chave é o número do candidato (``partidos`` diz o partido de cada um) ou
+    a sigla do partido. PL e PT têm cor fixa (``CORES_DOS_PARTIDOS``, ADR-052)
+    em qualquer cargo, nível e eleição, e ninguém mais as recebe. Os demais
+    seguem a ordem de votação: quem já tem cor a mantém — no meio da apuração,
+    a troca de posição entre dois candidatos não troca a cor deles no mapa —,
+    e quem chega pega o menor índice livre. Do ``n``-ésimo em diante, cinza.
     """
-    cores = {k: v for k, v in (anteriores or {}).items() if 0 <= v < n}
-    livres = [i for i in range(n) if i not in cores.values()]
-    for numero in numeros_em_ordem:
-        if numero in cores:
-            continue
-        cores[numero] = livres.pop(0) if livres else SEM_COR
+    partidos = partidos or {}
+    reservadas = set(CORES_DOS_PARTIDOS.values())
+
+    def fixa(chave: str) -> int | None:
+        return CORES_DOS_PARTIDOS.get(partidos.get(chave) or chave)
+
+    cores = {k: v for k, v in (anteriores or {}).items()
+             if 0 <= v < n and (fixa(k) == v or (fixa(k) is None and v not in reservadas))}
+    livres = [i for i in range(n) if i not in reservadas and i not in cores.values()]
+    for chave in chaves_em_ordem:
+        if (f := fixa(chave)) is not None:
+            cores[chave] = f
+        elif chave not in cores:
+            cores[chave] = livres.pop(0) if livres else SEM_COR
     return cores
+
+
+def cores_dos_candidatos(r: ResultadoAbrangencia, anteriores: Mapping[str, int] | None = None) -> dict[str, int]:
+    """Cores dos candidatos válidos de um resultado, na ordem dele, com a cor fixa do partido quando houver."""
+    return atribuir_cores((c.numero for c in r.candidatos if c.valido), anteriores,
+                          partidos={c.numero: c.partido for c in r.candidatos})
 
 
 def ranking_partidos(r: ResultadoAbrangencia) -> list[tuple[str, int]]:

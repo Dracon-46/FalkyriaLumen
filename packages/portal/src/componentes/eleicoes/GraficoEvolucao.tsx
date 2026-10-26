@@ -6,63 +6,62 @@
  * navegador escalar o desenho para a largura disponível.
  */
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { varCor } from "@/lib/cores";
+import { escalaVertical, pontosDaEscala, seriesDaEvolucao, vantagem } from "@/lib/evolucao";
 import { hora, percentual } from "@/lib/formato";
 import type { FeedHistorico } from "@/lib/tipos";
 
 const L = 640;
-const A = 240;
-const M = { esq: 40, dir: 120, topo: 12, base: 28 };
+const A = 280;
+const M = { esq: 52, dir: 120, topo: 12, base: 28 };
 const SERIES = 4;
 
-/** A linha de um candidato: x = % de seções totalizadas, y = % dos votos no ponto. */
-interface Serie {
-  numero: string;
-  rotulo: string;
-  cor: number;
-  pontos: { x: number; y: number }[];
+/** Valor do eixo vertical: até uma casa decimal, sem zeros sobrando. */
+const decimal = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
+
+/** Pontos percentuais com sinal ("+2,4 p.p."); o zero vai sem sinal. */
+function pontosPercentuais(v: number | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  const n = Math.abs(v) < 0.005 ? 0 : v;
+  return `${n > 0 ? "+" : n < 0 ? "−" : ""}${decimal.format(Math.abs(n))} p.p.`;
+}
+
+/** Corta o nome de urna para caber na ponta direita do gráfico. */
+function curto(rotulo: string): string {
+  return rotulo.length > 16 ? `${rotulo.slice(0, 15)}…` : rotulo;
 }
 
 /**
- * Evolução do percentual de votos válidos ao longo da apuração.
+ * Evolução dos votos válidos ao longo da apuração.
  *
  * Eixo horizontal: percentual de seções totalizadas (não o relógio) — é o que
- * mostra como a vantagem mudou conforme as urnas chegaram. Um só eixo
- * vertical, em % dos válidos; as quatro primeiras séries, rotuladas na ponta,
- * com legenda; a dica lista todas no ponto mais próximo do cursor.
+ * mostra como a vantagem mudou conforme as urnas chegaram. Duas leituras, um
+ * só eixo vertical em cada: **% dos válidos** (as quatro primeiras séries,
+ * rotuladas na ponta, com legenda) e **vantagem** (diferença do primeiro para
+ * o segundo, em pontos percentuais, com o zero marcado). A escala vertical se
+ * ajusta à faixa dos dados a partir de 2% das seções (`pontosDaEscala`): numa
+ * disputa apertada, as linhas não ficam coladas no meio de um eixo de 0 a 60%,
+ * e a oscilação das primeiras urnas é recortada na borda. O detalhe abaixo mostra o ponto sob
+ * o cursor (ou escolhido com as setas) e, sem foco, o último.
  */
 export function GraficoEvolucao({ historico }: { historico: FeedHistorico }) {
   const [foco, setFoco] = useState<number | null>(null);
+  const [modo, setModo] = useState<"pct" | "vantagem">("pct");
   const svg = useRef<SVGSVGElement>(null);
 
-  const { series, xs, instantes, maxY } = useMemo(() => {
-    const pontos = historico.pontos.filter((p) => p.pct_secoes != null);
-    const totais = pontos.map((p) => Object.values(p.votos).reduce((s, v) => s + v, 0));
-    const ultimo = pontos[pontos.length - 1];
-    const ordem = [...historico.candidatos]
-      .sort((a, b) => (ultimo?.votos[b.numero] ?? 0) - (ultimo?.votos[a.numero] ?? 0))
-      .slice(0, SERIES);
-    let maxY = 0;
-    const series: Serie[] = ordem.map((c) => ({
-      numero: c.numero,
-      rotulo: c.nome_urna,
-      cor: c.cor,
-      pontos: pontos.map((p, i) => {
-        const total = totais[i] ?? 0;
-        const y = total ? (100 * (p.votos[c.numero] ?? 0)) / total : 0;
-        if (y > maxY) maxY = y;
-        return { x: p.pct_secoes ?? 0, y };
-      }),
-    }));
-    return { series, xs: pontos.map((p) => p.pct_secoes ?? 0), instantes: pontos.map((p) => p.t), maxY };
-  }, [historico]);
+  const { series, xs, instantes } = useMemo(() => seriesDaEvolucao(historico, SERIES), [historico]);
+  const linhaVantagem = useMemo(() => vantagem(series), [series]);
 
   if (xs.length < 2 || !series.length) return null;
-  const topoY = Math.min(100, Math.ceil((maxY + 5) / 10) * 10);
+  const comVantagem = linhaVantagem.length > 0;
+  const verVantagem = modo === "vantagem" && comVantagem;
+  const escala = verVantagem
+    ? escalaVertical(pontosDaEscala(linhaVantagem).map((p) => p.y), { zero: true })
+    : escalaVertical(series.flatMap((s) => pontosDaEscala(s.pontos).map((p) => p.y)));
   const px = (x: number) => M.esq + (x / 100) * (L - M.esq - M.dir);
-  const py = (y: number) => M.topo + (1 - y / topoY) * (A - M.topo - M.base);
-  const marcasY = Array.from({ length: topoY / 10 + 1 }, (_, i) => i * 10).filter((v) => v % 20 === 0 || topoY <= 40);
+  const py = (y: number) => M.topo + (1 - (y - escala.min) / (escala.max - escala.min)) * (A - M.topo - M.base);
+  const ponto = foco ?? xs.length - 1;
 
   const mover = (clienteX: number) => {
     const r = svg.current?.getBoundingClientRect();
@@ -76,6 +75,13 @@ export function GraficoEvolucao({ historico }: { historico: FeedHistorico }) {
     setFoco(melhor);
   };
 
+  const teclar = (e: KeyboardEvent<SVGSVGElement>) => {
+    const passo = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+    if (!passo) return;
+    e.preventDefault();
+    setFoco((f) => Math.min(xs.length - 1, Math.max(0, (f ?? xs.length - 1) + passo)));
+  };
+
   // Rótulos na ponta direita, afastados para não se sobreporem
   const finais = series
     .map((s) => ({ s, y: py(s.pontos[s.pontos.length - 1]?.y ?? 0) }))
@@ -85,52 +91,104 @@ export function GraficoEvolucao({ historico }: { historico: FeedHistorico }) {
     const atual = finais[i];
     if (anterior && atual && atual.y - anterior.y < 14) atual.y = anterior.y + 14;
   }
+  const [primeiro, segundo] = series;
+  const xFoco = px(xs[ponto] ?? 0);
 
   return (
     <section className="cartao cartao-corpo grafico" aria-labelledby="titulo-evolucao">
-      <h2 id="titulo-evolucao" className="titulo-secao">
-        Evolução da apuração
-      </h2>
+      <div className="grafico-cabeca">
+        <h2 id="titulo-evolucao" className="titulo-secao">
+          Evolução da apuração
+        </h2>
+        {comVantagem && (
+          <span className="filtro-periodo-atalhos" role="group" aria-label="Leitura do gráfico">
+            <button type="button" className="botao" aria-pressed={!verVantagem} onClick={() => setModo("pct")}>
+              % dos válidos
+            </button>
+            <button type="button" className="botao" aria-pressed={verVantagem} onClick={() => setModo("vantagem")}>
+              Vantagem
+            </button>
+          </span>
+        )}
+      </div>
       <svg
         ref={svg}
         viewBox={`0 0 ${L} ${A}`}
         role="img"
-        aria-label="Percentual dos votos válidos de cada candidato conforme as seções foram totalizadas"
+        tabIndex={0}
+        aria-label={
+          verVantagem
+            ? `Diferença entre ${primeiro?.rotulo} e ${segundo?.rotulo}, em pontos percentuais, conforme as seções foram totalizadas`
+            : "Percentual dos votos válidos de cada candidato conforme as seções foram totalizadas"
+        }
         onPointerMove={(e) => mover(e.clientX)}
         onPointerLeave={() => setFoco(null)}
+        onKeyDown={teclar}
+        onBlur={() => setFoco(null)}
       >
-        {marcasY.map((v) => (
+        {escala.marcas.map((v) => (
           <g key={v}>
-            <line className="grade-linha" x1={M.esq} x2={L - M.dir} y1={py(v)} y2={py(v)} />
+            <line className={verVantagem && v === 0 ? "eixo" : "grade-linha"} x1={M.esq} x2={L - M.dir} y1={py(v)} y2={py(v)} />
             <text x={M.esq - 6} y={py(v) + 4} textAnchor="end">
-              {v}%
+              {verVantagem ? pontosPercentuais(v).replace(" p.p.", "") : `${decimal.format(v)}%`}
             </text>
           </g>
         ))}
-        <line className="eixo" x1={M.esq} x2={L - M.dir} y1={py(0)} y2={py(0)} />
+        {!verVantagem && <line className="eixo" x1={M.esq} x2={L - M.dir} y1={py(escala.min)} y2={py(escala.min)} />}
         {[0, 25, 50, 75, 100].map((v) => (
           <text key={v} x={px(v)} y={A - 8} textAnchor="middle">
             {v}%
           </text>
         ))}
-        {series.map((s) => (
-          <polyline
-            key={s.numero}
-            fill="none"
-            stroke={varCor(s.cor)}
-            strokeWidth={2}
-            strokeLinejoin="round"
-            points={s.pontos.map((p) => `${px(p.x).toFixed(1)},${py(p.y).toFixed(1)}`).join(" ")}
-          />
-        ))}
-        {finais.map(({ s, y }) => (
-          <text key={s.numero} x={L - M.dir + 8} y={y + 4} style={{ fill: "var(--texto)" }}>
-            {s.rotulo.length > 16 ? `${s.rotulo.slice(0, 15)}…` : s.rotulo}
-          </text>
-        ))}
-        {foco !== null && (
-          <line className="eixo" x1={px(xs[foco] ?? 0)} x2={px(xs[foco] ?? 0)} y1={M.topo} y2={py(0)} />
+        <defs>
+          <clipPath id="recorte-evolucao">
+            <rect x={M.esq} y={M.topo - 4} width={L - M.esq - M.dir + 8} height={A - M.topo - M.base + 8} />
+          </clipPath>
+        </defs>
+        {verVantagem ? (
+          <g clipPath="url(#recorte-evolucao)">
+            <text x={M.esq + 6} y={M.topo + 12}>
+              ↑ {primeiro?.rotulo} à frente
+            </text>
+            <text x={M.esq + 6} y={A - M.base - 6}>
+              ↓ {segundo?.rotulo} à frente
+            </text>
+            <polyline
+              fill="none"
+              stroke={varCor(primeiro?.cor)}
+              strokeWidth={2}
+              strokeLinejoin="round"
+              points={linhaVantagem.map((p) => `${px(p.x).toFixed(1)},${py(p.y).toFixed(1)}`).join(" ")}
+            />
+            <circle className="grafico-marca" cx={xFoco} cy={py(linhaVantagem[ponto]?.y ?? 0)} r={4}
+              style={{ fill: varCor(primeiro?.cor) }} />
+          </g>
+        ) : (
+          <>
+            <g clipPath="url(#recorte-evolucao)">
+              {series.map((s) => (
+                <polyline
+                  key={s.numero}
+                  fill="none"
+                  stroke={varCor(s.cor)}
+                  strokeWidth={2}
+                  strokeLinejoin="round"
+                  points={s.pontos.map((p) => `${px(p.x).toFixed(1)},${py(p.y).toFixed(1)}`).join(" ")}
+                />
+              ))}
+              {series.map((s) => (
+                <circle key={s.numero} className="grafico-marca" cx={xFoco} cy={py(s.pontos[ponto]?.y ?? 0)} r={4}
+                  style={{ fill: varCor(s.cor) }} />
+              ))}
+            </g>
+            {finais.map(({ s, y }) => (
+              <text key={s.numero} x={L - M.dir + 8} y={y + 4} style={{ fill: "var(--texto)" }}>
+                {curto(s.rotulo)}
+              </text>
+            ))}
+          </>
         )}
+        {foco !== null && <line className="eixo" x1={xFoco} x2={xFoco} y1={M.topo} y2={A - M.base} />}
       </svg>
       <div className="legenda">
         {series.map((s) => (
@@ -141,12 +199,11 @@ export function GraficoEvolucao({ historico }: { historico: FeedHistorico }) {
         ))}
         <span className="legenda-item">Eixo horizontal: seções totalizadas</span>
       </div>
-      {foco !== null && (
-        <div className="candidato-detalhe" aria-live="polite">
-          <strong>{percentual(xs[foco])}</strong> das seções{instantes[foco] ? ` (${hora(instantes[foco])})` : ""}:{" "}
-          {series.map((s) => `${s.rotulo} ${percentual(s.pontos[foco]?.y)}`).join(" · ")}
-        </div>
-      )}
+      <div className="candidato-detalhe" aria-live="polite">
+        <strong>{percentual(xs[ponto])}</strong> das seções{instantes[ponto] ? ` (${hora(instantes[ponto])})` : ""}:{" "}
+        {series.map((s) => `${s.rotulo} ${percentual(s.pontos[ponto]?.y)}`).join(" · ")}
+        {comVantagem && ` · diferença ${pontosPercentuais(linhaVantagem[ponto]?.y)}`}
+      </div>
     </section>
   );
 }

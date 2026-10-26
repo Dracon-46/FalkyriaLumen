@@ -58,10 +58,10 @@ describe("cores", () => {
     expect(varCor(8)).toBe("var(--serie-outros)");
     expect(varCor(-1)).toBe("var(--serie-outros)");
   });
-  it("mapa pinta só as três primeiras posições", () => {
-    expect(CORES_NO_MAPA).toBe(3);
-    expect(varCorMapa(2)).toBe("var(--serie-3)");
-    expect(varCorMapa(3)).toBe("var(--serie-outros)");
+  it("mapa pinta só as quatro primeiras posições", () => {
+    expect(CORES_NO_MAPA).toBe(4);
+    expect(varCorMapa(3)).toBe("var(--serie-4)");
+    expect(varCorMapa(4)).toBe("var(--serie-outros)");
     expect(varCorMapa(null)).toBe("var(--mapa-sem-lider)");
   });
   it("clarear mistura com branco", () => {

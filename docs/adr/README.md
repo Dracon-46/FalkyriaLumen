@@ -25,7 +25,7 @@ nunca apagadas: uma ADR substituída continua aqui, marcada como tal.
 | [017](ADR-017.md) | Modelo de fatos da Fase 1 a partir das respostas reais das fontes | **proposta** |
 | [018](ADR-018.md) | Cliente S3 próprio, só com a biblioteca padrão | **proposta** |
 | [019](ADR-019.md) | Aba Eleições: coletor único, feeds JSON versionados e portal estático | **proposta** |
-| [020](ADR-020.md) | Cor identifica o candidato pela ordem de votação, nunca o partido | **proposta** |
+| [020](ADR-020.md) | Cor identifica o candidato pela ordem de votação, nunca o partido | **proposta**, substituída em parte pela 052 |
 | [021](ADR-021.md) | Arquivos grandes fora do bronze, com manifesto e download retomável | **proposta** |
 | [022](ADR-022.md) | Revisão da regra B-01 frente ao art. 75, § 1º, da Lei 14.133 | **proposta (revisão jurídica)** |
 | [023](ADR-023.md) | Referência técnica gerada do código e cobrada por teste | **proposta** |
@@ -57,6 +57,7 @@ nunca apagadas: uma ADR substituída continua aqui, marcada como tal.
 | [049](ADR-049.md) | Visão 360 da empresa ou entidade pelo CNPJ | **proposta** |
 | [050](ADR-050.md) | Tribunais de contas: o levantamento, a ordem de integração e o TCE-RS primeiro | **proposta** |
 | [051](ADR-051.md) | As tabelas do portal em CSV | **proposta** |
+| [052](ADR-052.md) | PL azul e PT vermelho, em todas as eleições | **proposta** |
 
 As ADRs 011 a 015 foram tomadas durante a implementação da Fase 0, e as 016 a
 033 durante a Fase 1 e a criação da aba Eleições; todas aguardam revisão. Para aceitar, troque a situação para `aceita`. Para rejeitar, marque

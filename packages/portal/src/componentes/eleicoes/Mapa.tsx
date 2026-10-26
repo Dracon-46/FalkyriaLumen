@@ -3,9 +3,10 @@
 /**
  * Mapa coroplético das partes (UFs no Brasil, municípios na UF), desenhado em
  * SVG a partir da malha do IBGE. Cada área leva a cor de quem está à frente,
- * mas só as três primeiras posições da paleta são pintadas: da quarta em
- * diante a área fica cinza ("Outros"), porque só essas três passam na
- * validação para daltonismo em todos os pares lado a lado (ADR-020). O nome
+ * mas só as quatro primeiras posições da paleta são pintadas (azul do PL,
+ * vermelho do PT, amarelo e verde): da quinta em diante a área fica cinza
+ * ("Outros"), porque só essas quatro passam na validação para daltonismo em
+ * todos os pares lado a lado (ADR-020, ADR-052). O nome
  * e o percentual de quem lidera continuam na dica e na tabela.
  *
  * Com um município aberto, o mapa da UF aproxima até ele (com animação, que
@@ -28,7 +29,7 @@
  */
 
 import { type CSSProperties, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { chaveDaArea, indexarPartes, parteDaArea, partesSemArea } from "@/lib/areas";
+import { chaveDaArea, EXTERIOR, formaDoExterior, indexarPartes, parteDaArea, partesSemArea } from "@/lib/areas";
 import { UFS } from "@/lib/busca";
 import { CORES_NO_MAPA, varCorMapa } from "@/lib/cores";
 import { carregarMalha } from "@/lib/feeds";
@@ -190,11 +191,17 @@ const CamadaAreas = memo(function CamadaAreas({
  * As zonas do município aberto, os locais de votação e os números das zonas, recortados pelo contorno do
  * município. Memorizada: o tamanho dos pontos e dos rótulos (`px`, unidades da malha por pixel) muda em
  * degraus, não a cada quadro da animação.
+ *
+ * Os traços das zonas têm a espessura em unidades da malha (a variável CSS `--px` vezes os pixels), sem
+ * `vector-effect: non-scaling-stroke`: com o município muito aproximado, o Chrome com aceleração de vídeo
+ * desenhava alguns lados das fronteiras e do destaque com dezenas de pixels (faixas pretas e brancas sobre
+ * as zonas, 26/10/2026).
  */
 const CamadaZonas = memo(function CamadaZonas({
   desenho,
   partes,
   neutra,
+  corMunicipio,
   px,
   recorte,
   rotuloLider,
@@ -203,6 +210,8 @@ const CamadaZonas = memo(function CamadaZonas({
   partes: Map<string, Parte>;
   /** Sem resultado por zona (ao vivo): todas com a mesma cor, separadas pelas fronteiras. */
   neutra: boolean;
+  /** Na zona sem resultado próprio, a cor de quem lidera no município, clareada; sem líder, a neutra. */
+  corMunicipio: number | null;
   px: number;
   recorte: string;
   rotuloLider: (parte: Parte) => string;
@@ -210,9 +219,11 @@ const CamadaZonas = memo(function CamadaZonas({
   // Rótulos a 28 px uns dos outros e pontos a 6 px: o que não cabe aparece ao aproximar
   const rotulos = useMemo(() => rotulosVisiveis(desenho.zonas, 28 * px), [desenho, px]);
   const pontos = useMemo(() => rarear(desenho.locais, 6 * px), [desenho, px]);
+  const corNeutra =
+    corMunicipio === null ? "var(--zona-neutra)" : `color-mix(in srgb, ${varCorMapa(corMunicipio)} 70%, var(--superficie))`;
   return (
     <>
-      <g clipPath={`url(#${recorte})`}>
+      <g clipPath={`url(#${recorte})`} style={{ "--px": px } as CSSProperties}>
         {desenho.zonas.map((z) => {
           const p = partes.get(z.zona);
           const rotulo = p?.lider
@@ -224,7 +235,7 @@ const CamadaZonas = memo(function CamadaZonas({
               className="zona"
               d={z.d}
               data-zona={z.zona}
-              style={{ "--cor-zona": neutra ? "var(--zona-neutra)" : varCorMapa(p?.lider ? p.cor : null) } as CSSProperties}
+              style={{ "--cor-zona": neutra ? corNeutra : varCorMapa(p?.lider ? p.cor : null) } as CSSProperties}
               tabIndex={0}
               role="button"
               aria-label={rotulo}
@@ -261,8 +272,10 @@ function degrau(valor: number): number {
  * Baixa a malha (uma vez por visita, por `carregarMalha`), projeta e pinta.
  * Cada área com dados é um botão: clique, Enter ou espaço abre a parte, e o
  * foco pelo teclado mostra a mesma dica do cursor. Sem malha no servidor, o
- * mapa dá lugar a um aviso e a tabela segue com os números. Partes sem área
- * na malha (exterior, UFs que não existem mais) viram botões abaixo do mapa.
+ * mapa dá lugar a um aviso e a tabela segue com os números. No mapa do
+ * Brasil, o exterior é um quadrado no Atlântico (`formaDoExterior`); as
+ * outras partes sem área na malha (UFs que não existem mais) viram botões
+ * abaixo do mapa.
  */
 export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisualizar, rotuloLider, titulo }: Props) {
   const [mapa, setMapa] = useState<MapaProjetado | null>(null);
@@ -315,6 +328,14 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
 
   const porCodigo = useMemo(() => indexarPartes(partes), [partes]);
   const codigoAberto = municipio?.codigo ?? null;
+
+  // No mapa do Brasil, o exterior ganha uma área no Atlântico (`formaDoExterior`) quando o feed tem a parte dele
+  const temExterior = nivel === "uf" && partes.some((p) => p.codigo === EXTERIOR);
+  const formas = useMemo(
+    () => (mapa ? (temExterior ? [...mapa.formas, formaDoExterior(mapa.projecao, mapa.largura)] : mapa.formas) : []),
+    [mapa, temExterior],
+  );
+  const exterior = temExterior ? formas[formas.length - 1] : undefined;
 
   // Contorno do município aberto: o fino, projetado no enquadramento da UF; sem ele, o da malha da UF
   const formaFina = useMemo(() => {
@@ -410,8 +431,8 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
   });
 
   const fora = useMemo(
-    () => (mapa ? partesSemArea(partes, mapa.formas.map((f) => f.codigo), nivel) : []),
-    [mapa, partes, nivel],
+    () => (mapa ? partesSemArea(partes, formas.map((f) => f.codigo), nivel) : []),
+    [mapa, formas, partes, nivel],
   );
 
   const lideres = useMemo(() => {
@@ -491,7 +512,7 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
   const mostrar = (alvo: ReturnType<typeof alvoDe>, evento?: { clientX: number; clientY: number }) => {
     if (!alvo || arrasto.current?.moveu) return;
     if (alvo.area) {
-      const f = mapa.formas.find((x) => x.codigo === alvo.area);
+      const f = formas.find((x) => x.codigo === alvo.area);
       const parte = parteDaArea(porCodigo, alvo.area, nivel) ?? null;
       const chave = chaveDaArea(alvo.area, nivel);
       const nome = parte?.nome ?? (nivel === "uf" ? (UFS[chave] ?? chave) : chave);
@@ -615,7 +636,7 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
   };
 
   // Contorno por cima de tudo: no SVG, quem é desenhado depois cobre a borda dos vizinhos
-  const destaque = ativo && ativo !== codigoAberto ? mapa.formas.find((f) => f.codigo === ativo) : undefined;
+  const destaque = ativo && ativo !== codigoAberto ? formas.find((f) => f.codigo === ativo) : undefined;
   const aproximado = zoom > 1.001;
   const foraDoPadrao = vista !== null && animacao.current === null;
   // Pixels → unidades da malha, para rótulos e pontos de tamanho fixo na tela
@@ -642,7 +663,7 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
         onBlur={esconder}
       >
         <CamadaAreas
-          formas={mapa.formas}
+          formas={formas}
           partes={partes}
           nivel={nivel}
           rotuloLider={rotuloLider}
@@ -668,13 +689,14 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
                 desenho={desenho}
                 partes={zonasPorCodigo}
                 neutra={!municipio?.partes.length}
+                corMunicipio={parteAberta?.lider ? parteAberta.cor : null}
                 px={px}
                 recorte={idRecorte}
                 rotuloLider={rotuloLider}
               />
             )}
             {(zonaDestacada || zonaSobCursor) && !voando && (
-              <g clipPath={`url(#${idRecorte})`}>
+              <g clipPath={`url(#${idRecorte})`} style={{ "--px": px } as CSSProperties}>
                 {zonaSobCursor && zonaSobCursor !== zonaDestacada && (
                   <path className="zona-cursor" d={zonaSobCursor.contorno} aria-hidden="true" />
                 )}
@@ -683,6 +705,12 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
             )}
             <path className="contorno contorno-selecionado" d={formaAberta.d} aria-hidden="true" />
           </g>
+        )}
+        {exterior && (
+          <text className="rotulo-exterior" x={exterior.centro[0]} y={exterior.caixa[3] + mapa.largura * 0.026}
+            style={{ fontSize: `${mapa.largura * 0.02}px` }} aria-hidden="true">
+            Exterior
+          </text>
         )}
         {destaque && <path className="contorno" d={destaque.d} aria-hidden="true" />}
       </svg>
@@ -756,7 +784,10 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
           atual do IBGE e aparece{fora.length === 1 ? "" : "m"} só na tabela.
         </p>
       )}
-      {desenho && municipio?.zonas && <NotaZonas arquivo={municipio.zonas} />}
+      {desenho && municipio?.zonas && (
+        <NotaZonas arquivo={municipio.zonas} semResultado={!municipio.partes.length}
+          lider={parteAberta?.lider ? rotuloLider(parteAberta) : null} />
+      )}
     </div>
   );
 }
@@ -810,8 +841,11 @@ function ConteudoDica({ dica, rotuloLider }: { dica: Dica; rotuloLider: (p: Part
   );
 }
 
-/** Nota de método sob o mapa das zonas: de onde vem o desenho e o que ficou de fora. */
-function NotaZonas({ arquivo }: { arquivo: ArquivoZonas }) {
+/**
+ * Nota de método sob o mapa das zonas: de onde vem o desenho, o que ficou de fora e, sem resultado por
+ * zona na fonte, por que todas têm a mesma cor.
+ */
+function NotaZonas({ arquivo, semResultado, lider }: { arquivo: ArquivoZonas; semResultado: boolean; lider: string | null }) {
   const { sem_coordenada: sem = 0, fora_do_municipio: fora = 0 } = arquivo.descartados ?? {};
   const descartados = sem + fora;
   return (
@@ -820,6 +854,10 @@ function NotaZonas({ arquivo }: { arquivo: ArquivoZonas }) {
       mapa), segundo os dados abertos do TSE de {arquivo.ano}. A Justiça Eleitoral não publica os limites das zonas.
       {descartados > 0 &&
         ` ${numero(descartados)} ${descartados === 1 ? "local ficou" : "locais ficaram"} fora do desenho (sem coordenada ou com coordenada fora do município); os eleitores deles contam na tabela.`}
+      {semResultado &&
+        ` Esta fonte não traz o resultado de cada zona (sai nos dados abertos do TSE depois da totalização): ${
+          lider ? `as zonas aparecem no tom de quem venceu no município, ${lider}` : "as zonas aparecem na mesma cor"
+        }, só para mostrar onde ficam.`}
     </p>
   );
 }

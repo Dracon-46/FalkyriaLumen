@@ -98,7 +98,7 @@ as técnicas, o DOC-04, o DOC-05 e as ADRs.
 | **Malha** | Geometria do IBGE em TopoJSON, usada no mapa |
 | **UF histórica** | UF extinta ou de outro território (Guanabara, Distrito Federal antes de 1960, territórios), com código próprio e sem área no mapa atual |
 | **Ano em aberto** | Ano cujos dados abertos ainda podem ganhar arquivos (2026); o `preparar` confere a fonte a cada execução |
-| **Índice de cor** | Número de 0 a 7 que o feed atribui a cada candidato pela ordem de votação; nunca a cor do partido |
+| **Índice de cor** | Número de 0 a 7 que o feed atribui a cada candidato: 0 (azul) ao PL, 1 (vermelho) ao PT, e aos demais pela ordem de votação |
 
 ## Painéis e operação
 

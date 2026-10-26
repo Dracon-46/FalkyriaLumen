@@ -24,9 +24,10 @@ com o SHA-256 de cada um (ADR-021) e gera os feeds que o portal lê:
 É retomável. ``<estado>/preparar.json`` registra cada etapa concluída e o
 SHA-256 dos arquivos de entrada; rodar de novo pula o que já está pronto
 (``--refazer`` ignora o registro, ``--atualizar`` consulta a fonte e só
-reprocessa o ano cujos arquivos mudaram). Um ano de 1994 em diante processado
-por uma versão anterior do processamento (``VERSAO_PROCESSAMENTO``) é refeito
-uma vez: foi assim que os feeds dos municípios ganharam as zonas eleitorais. Um erro num ano não interrompe os
+reprocessa o ano cujos arquivos mudaram). Um ano (ou uma coleta ao vivo)
+processado por uma versão anterior do processamento (``VERSAO_PROCESSAMENTO``)
+é refeito uma vez: foi assim que os feeds dos municípios ganharam as zonas
+eleitorais e que PL e PT passaram a ter cor fixa. Um erro num ano não interrompe os
 outros: o resumo final lista o que falhou e o comando devolve 1.
 
 Na nuvem (``--nuvem``, ADR-026), a mesma sequência roda numa máquina que
@@ -72,9 +73,12 @@ ORCAMENTO_MUNICIPAL = 1000
 # passou dela, para entre dois lotes. No GitHub Actions: prazo de 280 minutos, publicação até 330, máquina 355.
 FOLGA_PUBLICACAO = 50 * 60
 MAX_PASSADAS = 500
-# Versão do processamento dos dados abertos de 1994 em diante. Sobe quando o que sai de um mesmo ZIP muda
-# (2: zonas eleitorais nos feeds dos municípios); ano registrado com versão menor é processado de novo.
-VERSAO_PROCESSAMENTO = 2
+# Versão do processamento. Sobe quando o que sai de uma mesma entrada muda (2: zonas eleitorais nos feeds dos
+# municípios, de 1994 em diante; 3: cor fixa de PL e PT, ADR-052, em todos os anos e na coleta ao vivo); ano
+# ou eleição registrados com versão menor são processados de novo.
+VERSAO_PROCESSAMENTO = 3
+# Versão mínima dos anos de 1933 a 1990 e da coleta ao vivo, que a versão 2 não mudou.
+VERSAO_ANTIGAS = 3
 
 
 class PortalIndisponivel(RuntimeError):
@@ -121,11 +125,12 @@ class EstadoPreparacao:
         tmp.replace(self.caminho)
 
     def ano_pronto(self, ano: int) -> bool:
-        """Se o ano já foi processado por completo, pela versão atual do processamento (de 1994 em diante)."""
+        """Se o ano já foi processado por completo, por uma versão do processamento que ainda vale para ele."""
         registro = self.anos.get(str(ano))
         if registro is None:
             return False
-        return ano in antigas.ANOS_ANTIGOS or registro.get("processamento", 1) >= VERSAO_PROCESSAMENTO
+        minima = VERSAO_ANTIGAS if ano in antigas.ANOS_ANTIGOS else VERSAO_PROCESSAMENTO
+        return registro.get("processamento", 1) >= minima
 
     def entradas_do_ano(self, ano: int) -> dict[str, str]:
         """{arquivo: SHA-256} dos ZIPs com que o ano foi processado."""
@@ -154,12 +159,13 @@ class EstadoPreparacao:
         self.gravar()
 
     def ao_vivo_pronto(self, eleicao_id: str) -> bool:
-        """Se a coleta da eleição já terminou com a totalização concluída."""
-        return eleicao_id in self.ao_vivo
+        """Se a coleta da eleição já terminou com a totalização concluída, por uma versão que ainda vale."""
+        registro = self.ao_vivo.get(eleicao_id)
+        return registro is not None and registro.get("processamento", 1) >= VERSAO_ANTIGAS
 
     def marcar_ao_vivo(self, eleicao_id: str) -> None:
         """Registra a coleta da eleição como concluída e grava."""
-        self.ao_vivo[eleicao_id] = {"concluido_em": _agora()}
+        self.ao_vivo[eleicao_id] = {"concluido_em": _agora(), "processamento": VERSAO_PROCESSAMENTO}
         self.gravar()
 
 

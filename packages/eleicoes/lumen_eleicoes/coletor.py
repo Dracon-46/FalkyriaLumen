@@ -169,6 +169,11 @@ class EstadoColeta:
         os.replace(tmp, self.caminho)
 
 
+def _partidos(r: ResultadoAbrangencia) -> dict[str, str | None]:
+    """Partido de cada candidato, pelo número: dá a cor fixa de PL e PT (ADR-052)."""
+    return {c.numero: c.partido for c in r.candidatos}
+
+
 def _topo(cargo: Cargo, abr: Abrangencia) -> bool:
     """A abrangência é o nível mais alto em que o cargo é disputado?"""
     return {"br": Nivel.BRASIL, "uf": Nivel.UF, "mu": Nivel.MUNICIPIO}[abr.tipo] is cargo.nivel
@@ -476,10 +481,10 @@ class ColetorAoVivo:
         chave_cores = self._chave_cores(cargo, abr)
         cores = self.estado.cores.setdefault(chave_cores, {})
         if _topo(cargo, abr):
-            cores.update(atribuir_cores(self._ordem(cargo, r), cores))
+            cores.update(atribuir_cores(self._ordem(cargo, r), cores, partidos=_partidos(r)))
         elif not cores:
             # O topo ainda não foi lido: cores provisórias pela ordem local.
-            cores = atribuir_cores(self._ordem(cargo, r))
+            cores = atribuir_cores(self._ordem(cargo, r), partidos=_partidos(r))
         chave = f"{cargo.codigo}/{abr.arquivo}"
         self.ultimo[chave] = (r, origem)
         self.sujos.add(chave)

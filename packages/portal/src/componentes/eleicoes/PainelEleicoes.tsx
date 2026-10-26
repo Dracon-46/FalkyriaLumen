@@ -18,6 +18,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Achado, normalizar, UFS } from "@/lib/busca";
+import { compararTurnos, primeiroTurnoDe } from "@/lib/comparacao";
 import { escreverSelecao, lerSelecao, ufDaAbrangencia } from "@/lib/estado-url";
 import {
   carregarFeed,
@@ -50,6 +51,7 @@ import { Escolha } from "@/componentes/Escolha";
 import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import type { Opcao } from "@/lib/escolha";
 import { Busca } from "./Busca";
+import { ComparacaoTurnos } from "./ComparacaoTurnos";
 import { Faixas, Origem } from "./Faixas";
 import { GraficoEvolucao } from "./GraficoEvolucao";
 import { ListaCandidatos } from "./ListaCandidatos";
@@ -205,6 +207,18 @@ export function PainelEleicoes() {
   const carregando = chaveFeed !== null && principal?.chave !== chaveFeed;
   // Enquanto o feed novo chega, a tela mantém o anterior, esmaecido, em vez de piscar "Carregando…"
   const feed = feedAtual ?? (carregando ? (principal?.feed ?? null) : null);
+
+  // No 2º turno, o mesmo cargo e lugar no 1º, para a comparação
+  const primeiroTurno = indice && eleicao && cargo ? primeiroTurnoDe(indice, eleicao, cargo.slug) : null;
+  const chavePrimeiro = primeiroTurno && cargo && feedAtual?.tipo === "resultado"
+    ? `${primeiroTurno.id}/${cargo.slug}/${abrangencia}`
+    : null;
+  const doPrimeiro = useFeed(chavePrimeiro,
+    (s) => carregarFeed(primeiroTurno!.id, cargo!.slug, abrangencia, s, { guardar: true }), 0);
+  const comparacao = useMemo(() => {
+    const um = doPrimeiro?.chave === chavePrimeiro ? doPrimeiro?.feed : null;
+    return um?.tipo === "resultado" && feedAtual?.tipo === "resultado" ? compararTurnos(um, feedAtual) : null;
+  }, [doPrimeiro, chavePrimeiro, feedAtual]);
 
   // No município, o mapa é o da UF, com as partes do arquivo da UF. A UF sai do código na URL: os dois
   // feeds são pedidos juntos, e o mapa da UF (já em memória, vindo dela) fica onde está.
@@ -606,6 +620,9 @@ export function PainelEleicoes() {
             {feed.tipo === "resultado" ? (
               <>
                 <ListaCandidatos feed={feed} />
+                {comparacao && primeiroTurno && (
+                  <ComparacaoTurnos comparacao={comparacao} onVerPrimeiro={() => navegar({ eleicao: primeiroTurno.id })} />
+                )}
                 {feed.partes.length > 0 && !abrangencia.startsWith("mu-") && (
                   <TabelaPartes partes={feed.partes} rotulo={rotuloLider} nivel={nivelMapa} onSelecionar={selecionarParte} />
                 )}

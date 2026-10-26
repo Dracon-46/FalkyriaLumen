@@ -11,6 +11,7 @@
 
 import { CODIGO_UF } from "./busca";
 import type { Parte } from "./tipos";
+import { type Forma, pontoProjetado, type Projecao } from "./topojson";
 
 /** O que cada área do mapa é: UF (mapa do Brasil) ou município (mapa de uma UF). */
 export type NivelMapa = "uf" | "mu";
@@ -35,8 +36,32 @@ export function parteDaArea(porCodigo: Map<string, Parte>, codarea: string, nive
   return porCodigo.get(chaveDaArea(codarea, nivel)) ?? porCodigo.get(codarea);
 }
 
+/** Código do exterior no feed (a "UF" ZZ do TSE) e na área que o representa no mapa do Brasil. */
+export const EXTERIOR = "zz";
+
 /**
- * Partes que nenhuma área da malha representa: o exterior, UFs extintas, o
+ * Área do exterior no mapa do Brasil: um quadrado no Atlântico, ao largo do
+ * Sudeste (centro em 38,5° O, 27,5° S), com lado de 6% da largura do mapa. Não
+ * é geografia — os votos vêm de cidades do mundo inteiro —, e a tela diz isso
+ * com o contorno tracejado e o rótulo; serve para o exterior ter cor, dica e
+ * clique como as UFs.
+ */
+export function formaDoExterior(projecao: Projecao, largura: number): Forma {
+  const [cx, cy] = pontoProjetado(projecao, -38.5, -27.5);
+  const m = (largura * 0.06) / 2;
+  const caixa: [number, number, number, number] = [cx - m, cy - m, cx + m, cy + m];
+  const f = (v: number) => Math.round(v * 1000) / 1000;
+  return {
+    codigo: EXTERIOR,
+    d: `M${f(caixa[0])} ${f(caixa[1])}H${f(caixa[2])}V${f(caixa[3])}H${f(caixa[0])}Z`,
+    centro: [cx, cy],
+    caixa,
+  };
+}
+
+/**
+ * Partes que nenhuma área da malha representa: o exterior (fora do mapa de
+ * uma UF; no do Brasil ele tem a área de `formaDoExterior`), UFs extintas, o
  * Distrito Federal anterior a 1960 (a cidade do Rio de Janeiro) e municípios
  * que o IBGE ainda não tem na malha. Elas aparecem fora do mapa.
  */

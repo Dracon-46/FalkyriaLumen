@@ -110,7 +110,7 @@ body.push(table(["Princípio", "O que significa na prática"], [2700, 6900], [
   ["Dado oficial, sem projeção", "Só somas e percentuais sobre os totais publicados pelo TSE. Nenhuma projeção, tendência, pesquisa ou estimativa (ADR-019, item 5)."],
   ["Rastreável", "Todo feed carrega a origem: fonte, URL do arquivo original, instante da coleta e SHA-256 da cópia guardada na camada bronze. A tela mostra os três."],
   ["Coleta responsável", "Um coletor só, identificado no User-Agent, com limite de taxa e requisição condicional. Milhões de visitas não viram milhões de consultas ao TSE (princípio P6)."],
-  ["Neutro", "A cor identifica a posição na votação, não o partido (ADR-020). Nenhum texto qualifica candidato ou partido."],
+  ["Cores", "PL é sempre azul e PT sempre vermelho (ADR-052); os demais candidatos e partidos têm a cor pela posição na votação (ADR-020). Nenhum texto qualifica candidato ou partido."],
   ["Acessível", "Paleta validada para os três tipos de daltonismo; identidade nunca só pela cor (nome na legenda, na dica e na tabela); tabela sempre ao lado do mapa."],
   ["Barato de servir", "O portal é estático. Na noite de maior demanda, o custo é o de servir arquivos por CDN, não o de manter um servidor de aplicação."],
 ], { boldFirstCol: true }));
@@ -511,16 +511,17 @@ body.push(h1("8. Regras de exibição"));
 
 body.push(h2("8.1 Paleta"));
 body.push(t("Paleta categórica de oito posições em ordem fixa, com versão própria para o fundo escuro (modo TV e " +
-  "tema escuro), validada para deuteranopia, protanopia e tritanopia (ADR-020). Os valores abaixo são lidos de " +
-  "`src/lib/cores.ts` na geração deste documento."));
-body.push(tabelaPaleta(CLARA.map((c, i) => [String(i), c, ESCURA[i] || "", i < 3
+  "tema escuro), validada para deuteranopia, protanopia e tritanopia (ADR-020, ADR-052). A posição 0 (azul) é " +
+  "sempre do PL e a 1 (vermelho) sempre do PT, em qualquer eleição; nenhum outro partido as recebe. Os valores " +
+  "abaixo são lidos de `src/lib/cores.ts` na geração deste documento."));
+body.push(tabelaPaleta(CLARA.map((c, i) => [String(i), c, ESCURA[i] || "", i < 4
   ? "Lista, legenda, gráfico e mapa"
   : "Lista, legenda e gráfico; no mapa, aparece como “Outros”"])));
 body.push(spacer(80));
-body.push(t("No mapa (coroplético: todas as áreas lado a lado) só as três primeiras posições passam na validação de " +
-  "todos os pares; da quarta em diante, a área aparece como “Outros”, e o nome continua na dica, na lista e na " +
-  "tabela. Nos panoramas e nos cargos proporcionais, a cor é do partido, pela ordem do placar (eleitos, depois " +
-  "partes lideradas, depois votos) — de novo pela posição, nunca pela cor tradicional do partido."));
+body.push(t("No mapa (coroplético: todas as áreas lado a lado) só as quatro primeiras posições (azul, vermelho, " +
+  "amarelo e verde) passam na validação de todos os pares; da quinta em diante, a área aparece como “Outros”, e " +
+  "o nome continua na dica, na lista e na tabela. Nos panoramas e nos cargos proporcionais, a cor é do partido: " +
+  "PL e PT com a sua, os demais pela ordem do placar (eleitos, depois partes lideradas, depois votos)."));
 
 body.push(h2("8.2 Leitura da tela"));
 body.push(table(["Elemento", "Regra"], [2600, 7000], [
@@ -969,7 +970,7 @@ body.push(table(["Risco", "Efeito", "Mitigação"], [2900, 3200, 3500], [
   ["Bucket do Supabase no teto de 900 MB (seção 9.7)", "A publicação para e o índice não sobe: eleições novas não aparecem no portal", "Erro no resumo da carga; feeds municipais mais enxutos ou passar para o R2"],
   ["Cota de saída do Supabase gratuito esgotada na noite da eleição (seção 9.7)", "Feeds restringidos até o mês seguinte", "Medir antes com eleicoes-medir.yml; acompanhar o uso durante a apuração; passar para o R2 trocando segredos e o endereço do portal"],
   ["Chave do R2 vazada", "Escrita indevida nos feeds publicados", "Token restrito aos dois buckets, guardado só em segredos do GitHub; revogar e trocar"],
-  ["Leitura indevida do mapa como mensagem partidária", "Dano à neutralidade do projeto", "Cor por posição, nunca por partido; tabela sempre ao lado"],
+  ["Leitura indevida do mapa como mensagem partidária", "Dano à neutralidade do projeto", "Só PL (azul) e PT (vermelho) têm cor própria, a mesma em todas as eleições (ADR-052); os demais, pela posição; tabela sempre ao lado"],
   ["Aproximação indevida entre eleição e contratação", "Dano editorial e jurídico", "ADR-024; família K só como contexto; revisão editorial"],
 ], { size: 17 }));
 

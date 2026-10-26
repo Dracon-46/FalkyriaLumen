@@ -60,6 +60,7 @@ from .feeds import (
     EscritorFeeds,
     abrangencia_brasil,
     atribuir_cores,
+    cores_dos_candidatos,
     entrada_indice,
     feed_panorama,
     feed_resultado,
@@ -694,7 +695,7 @@ class ProcessadorAnoAntigo:
             grupos = [list(leitura.candidatos[(e.id, cargo.codigo, u)].values()) for u in resultados]
             dets = [leitura.detalhe.get((e.id, cargo.codigo, u)) for u in resultados]
             r_br = _resultado(leitura, e.id, cargo, None, _somar_candidatos(grupos), _somar_detalhes(dets), [])
-            cores_br = atribuir_cores(c.numero for c in r_br.candidatos if c.valido)
+            cores_br = cores_dos_candidatos(r_br)
         partes: list[dict] = []
         fora_do_mapa = False
         for u, r in resultados.items():
@@ -705,7 +706,7 @@ class ProcessadorAnoAntigo:
             elif por_partido:
                 cores = atribuir_cores(p for p, _ in ranking_partidos(r))
             else:
-                cores = atribuir_cores(c.numero for c in r.candidatos if c.valido)
+                cores = cores_dos_candidatos(r)
             self.escritor.gravar(e.id, cargo.slug, abr, feed_resultado(
                 eleicao=e, cargo=cargo, abr=abr, resultado=r, cores=cores, origem=self.origem))
             gravados += 1
