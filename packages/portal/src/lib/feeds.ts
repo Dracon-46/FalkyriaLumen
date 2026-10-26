@@ -15,6 +15,7 @@
  * instantâneo.
  */
 
+import { naRegraAtual } from "./paleta-antiga";
 import type { Topologia } from "./topojson";
 import type { ArquivoZonas, CadastroMunicipios, Feed, FeedHistorico, Indice, IndiceZonas } from "./tipos";
 import {
@@ -140,7 +141,7 @@ export async function carregarFeed(eleicao: string, cargo: string, abrangencia: 
   const url = urls.feed(eleicao, cargo, abrangencia);
   const ler = async () => {
     const bruto = await obterJson(url, { sinal: opcoes.guardar ? undefined : sinal });
-    return bruto === null ? null : validarFeed(bruto, url);
+    return bruto === null ? null : naRegraAtual(validarFeed(bruto, url));
   };
   return opcoes.guardar ? memorizar(cacheFeeds, url, ler, LIMITE_CACHE_FEEDS) : ler();
 }
@@ -155,7 +156,7 @@ export async function carregarHistorico(eleicao: string, cargo: string, abrangen
   sinal?: AbortSignal): Promise<FeedHistorico | null> {
   const url = urls.historico(eleicao, cargo, abrangencia);
   const bruto = await obterJson(url, { sinal });
-  return bruto === null ? null : validarHistorico(bruto, url);
+  return bruto === null ? null : naRegraAtual(validarHistorico(bruto, url));
 }
 
 const cacheMalhas = new Map<string, Promise<Topologia | null>>();

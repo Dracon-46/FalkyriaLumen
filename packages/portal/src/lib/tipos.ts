@@ -239,6 +239,8 @@ export interface Parte {
  */
 export interface FeedResultado {
   versao: number;
+  /** Regra das cores (`cores.ts`): 2 desde o ADR-052; ausente nos feeds gravados antes. */
+  paleta?: number;
   tipo: "resultado";
   eleicao: ResumoEleicao;
   cargo: CargoFeed;
@@ -283,6 +285,8 @@ export interface PlacarPartido {
  */
 export interface FeedPanorama {
   versao: number;
+  /** Regra das cores (`cores.ts`): 2 desde o ADR-052; ausente nos feeds gravados antes. */
+  paleta?: number;
   tipo: "panorama";
   eleicao: ResumoEleicao;
   cargo: CargoFeed;
@@ -309,6 +313,8 @@ export interface PontoEvolucao {
 /** Arquivo `historico-<abrangência>.json`: a sequência de leituras que desenha o gráfico de evolução. */
 export interface FeedHistorico {
   versao: number;
+  /** Regra das cores (`cores.ts`): 2 desde o ADR-052; ausente nos feeds gravados antes. */
+  paleta?: number;
   tipo: "historico";
   eleicao: ResumoEleicao;
   cargo: CargoFeed;

@@ -74,3 +74,22 @@ export function clarear(hex: string, fator: number): string {
 export function hexClaro(indice: number): string {
   return PALETA_CLARA[indice] ?? "#8a8f98";
 }
+
+/** Partidos de cor fixa (ADR-052), espelho de `CORES_DOS_PARTIDOS` em `feeds.py`: PL azul (0), PT vermelho (1). */
+export const CORES_DOS_PARTIDOS: Readonly<Record<string, number>> = { PL: 0, PT: 1 };
+
+/** Regra de cores que o Python grava em `paleta`: 2 desde o ADR-052. Feed sem o campo é da regra anterior. */
+export const PALETA_DOS_FEEDS = 2;
+
+/**
+ * Posição de um feed gravado pela regra anterior (todas as cores pela ordem de votação) na regra atual: PL e
+ * PT com a sua; os demais andam duas posições, para deixar o azul e o vermelho livres, e da oitava em diante
+ * ficam cinza. Como a posição antiga era a mesma em todos os níveis do cargo, a nova também é. Vale até a
+ * carga refazer os feeds publicados.
+ */
+export function corDaRegraAtual(cor: number, partido: string | null | undefined): number {
+  const fixa = partido ? CORES_DOS_PARTIDOS[partido] : undefined;
+  if (fixa !== undefined) return fixa;
+  if (cor < 0) return cor;
+  return cor + 2 < PALETA_CLARA.length ? cor + 2 : -1;
+}

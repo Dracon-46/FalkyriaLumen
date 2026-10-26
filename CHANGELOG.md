@@ -11,8 +11,10 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   o Lula, do PT, é vermelho de 1989 a 2026. Os demais seguem a ordem de
   votação, a partir do amarelo. A paleta foi reordenada e validada de novo
   para daltonismo, e o mapa pinta quatro posições (azul, vermelho, amarelo e
-  verde). A versão do processamento sobe para 3: a carga refaz os feeds
-  publicados, inclusive os de 1933 a 1990 e a coleta ao vivo.
+  verde). Os feeds gravam `paleta: 2`; o portal lê os publicados antes (sem o
+  campo) já com PL azul e PT vermelho. A versão do processamento sobe para 3:
+  a carga refaz os feeds publicados, inclusive os de 1933 a 1990 e a coleta ao
+  vivo.
 - Mapa do Brasil: o exterior aparece como um quadrado tracejado no Atlântico,
   com a cor de quem venceu lá, dica e clique, como as UFs.
 - Evolução da apuração: a escala vertical se ajusta à faixa dos dados (a

@@ -28,7 +28,7 @@ Regras do contrato:
   (ou -1, cinza). PL (azul) e PT (vermelho) têm índice fixo (ADR-052); os
   demais seguem a ordem de votação no nível mais alto do cargo, e o índice é
   o mesmo em todos os níveis (o candidato tem a mesma cor no mapa do Brasil
-  e no da UF). A paleta é do portal (ADR-020).
+  e no da UF). A paleta é do portal (ADR-020); ``paleta`` diz a regra (2).
 """
 
 from __future__ import annotations
@@ -50,6 +50,9 @@ N_CORES = 8
 SEM_COR = -1
 # Partidos de cor fixa (ADR-052): índice na paleta do portal (0 = azul, 1 = vermelho).
 CORES_DOS_PARTIDOS = {"PL": 0, "PT": 1}
+# Regra das cores gravada em cada feed (``paleta``): 2 desde o ADR-052. O portal lê o feed sem o campo, gravado
+# pela regra anterior, como se fosse desta (``paleta-antiga.ts``), até a carga refazer os arquivos publicados.
+PALETA = 2
 _SEGURO = re.compile(r"^[a-z0-9][a-z0-9-]{0,80}$")
 
 
@@ -320,6 +323,7 @@ def feed_resultado(*, eleicao: Eleicao, cargo: Cargo, abr: Abrangencia, resultad
     return {
         "versao": VERSAO_ESQUEMA_FEED,
         "tipo": "resultado",
+        "paleta": PALETA,
         "eleicao": resumo_eleicao(eleicao),
         "cargo": cargo_json(cargo, resultado.vagas),
         "abrangencia": abr.para_json(),
@@ -377,6 +381,7 @@ def feed_panorama(*, eleicao: Eleicao, cargo: Cargo, abr: Abrangencia, partes: l
     return {
         "versao": VERSAO_ESQUEMA_FEED,
         "tipo": "panorama",
+        "paleta": PALETA,
         "eleicao": resumo_eleicao(eleicao),
         "cargo": cargo_json(cargo),
         "abrangencia": abr.para_json(),
@@ -442,6 +447,7 @@ def panorama_nacional(*, eleicao: Eleicao, cargo: Cargo, por_uf: Mapping[str, di
     return {
         "versao": VERSAO_ESQUEMA_FEED,
         "tipo": "panorama",
+        "paleta": PALETA,
         "eleicao": resumo_eleicao(eleicao),
         "cargo": cargo_json(cargo),
         "abrangencia": abrangencia_brasil().para_json(),
@@ -462,6 +468,7 @@ def feed_historico(*, eleicao: Eleicao, cargo: Cargo, abr: Abrangencia, pontos: 
     return {
         "versao": VERSAO_ESQUEMA_FEED,
         "tipo": "historico",
+        "paleta": PALETA,
         "eleicao": resumo_eleicao(eleicao),
         "cargo": cargo_json(cargo),
         "abrangencia": abr.para_json(),

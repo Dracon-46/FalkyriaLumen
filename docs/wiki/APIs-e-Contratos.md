@@ -290,7 +290,8 @@ e espelhado em [`tipos.ts`](https://github.com/Dracon-46/FalkyriaLumen/blob/main
   sempre o 1 (vermelho)
   ([ADR-052](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-052.md)); os demais,
   a partir do 2, pela ordem de votação no nível mais alto do cargo, fixo durante a noite
-  ([ADR-020](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-020.md)).
+  ([ADR-020](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-020.md)). O campo
+  `paleta` (2) diz a regra; o portal lê o feed sem ele pela regra anterior.
 - O bloco `origem` liga cada número ao arquivo oficial: `fonte`, `url`, `sha256`, `coletado_em` e
   `registro_bronze`.
 
