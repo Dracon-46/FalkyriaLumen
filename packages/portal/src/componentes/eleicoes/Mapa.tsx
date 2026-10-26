@@ -31,9 +31,19 @@
 import { type CSSProperties, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { chaveDaArea, EXTERIOR, formaDoExterior, indexarPartes, parteDaArea, partesSemArea } from "@/lib/areas";
 import { UFS } from "@/lib/busca";
-import { CORES_NO_MAPA, varCorMapa } from "@/lib/cores";
+import { CORES_NO_MAPA, varCor, varCorMapa } from "@/lib/cores";
 import { carregarMalha } from "@/lib/feeds";
 import { numero, percentual } from "@/lib/formato";
+import {
+  type ContextoMudanca,
+  corDaParte,
+  FAIXAS_ABSTENCAO,
+  FAIXAS_MUDANCA,
+  FAIXAS_PCT,
+  type Faixa,
+  misturar,
+  type ModoCor,
+} from "@/lib/modos-mapa";
 import type { ArquivoZonas, Parte, ZonaDoMunicipio } from "@/lib/tipos";
 import { type Forma, projetar, projetarCom, pontoProjetado, type MapaProjetado, type Topologia } from "@/lib/topojson";
 import { caixaComFolga, desenharZonas, type LocalNoMapa, rarear, rotulosVisiveis } from "@/lib/zonas";
@@ -84,6 +94,15 @@ interface Props {
   /** Rótulo do que lidera: candidato (resultado) ou partido (panorama). Estável entre renderizações. */
   rotuloLider: (parte: Parte) => string;
   titulo: string;
+  /** O que a cor das áreas mostra (`lib/modos-mapa.ts`); padrão, quem lidera. */
+  modo?: ModoCor;
+  /** Partes do 1º turno e os finalistas, para o modo Mudança. */
+  contextoMudanca?: ContextoMudanca | null;
+  /**
+   * Malhas dos municípios de todas as UFs: o mapa do Brasil por município. A `malha` (a das UFs) dá o
+   * enquadramento e as fronteiras estaduais, desenhadas por cima; as áreas são os municípios (`nivel` "mu").
+   */
+  malhasMunicipios?: string[] | null;
 }
 
 /** Caixa flutuante do que está sob o cursor ou com foco; `x` e `y` em pixels relativos ao contêiner. */
@@ -150,11 +169,14 @@ const CamadaAreas = memo(function CamadaAreas({
   nivel,
   rotuloLider,
   apagadas,
+  corDe,
 }: {
   formas: Forma[];
   partes: Parte[];
   nivel: "uf" | "mu";
   rotuloLider: (parte: Parte) => string;
+  /** Cor da área pela parte, no modo escolhido; estável entre renderizações. */
+  corDe: (parte: Parte | undefined) => string;
   /**
    * Com um município aberto, as áreas ficam apagadas (e clicáveis); a do próprio município também, por baixo
    * do contorno fino, e cobre a fresta entre ele e a fronteira simplificada dos vizinhos.
@@ -176,7 +198,7 @@ const CamadaAreas = memo(function CamadaAreas({
             key={f.codigo}
             d={f.d}
             data-area={f.codigo}
-            fill={varCorMapa(parte?.lider ? parte.cor : null)}
+            fill={corDe(parte)}
             tabIndex={parte ? 0 : -1}
             role="button"
             aria-label={rotulo}
@@ -277,8 +299,12 @@ function degrau(valor: number): number {
  * outras partes sem área na malha (UFs que não existem mais) viram botões
  * abaixo do mapa.
  */
-export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisualizar, rotuloLider, titulo }: Props) {
+export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisualizar, rotuloLider, titulo,
+  modo = "vencedor", contextoMudanca = null, malhasMunicipios = null }: Props) {
   const [mapa, setMapa] = useState<MapaProjetado | null>(null);
+  /** No mapa do Brasil por município: as fronteiras das UFs, por cima dos municípios. */
+  const [fronteiras, setFronteiras] = useState<Forma[] | null>(null);
+  const corDe = useCallback((p: Parte | undefined) => corDaParte(modo, p, contextoMudanca), [modo, contextoMudanca]);
   const [falhou, setFalhou] = useState(false);
   const [dica, setDica] = useState<Dica | null>(null);
   const [ativo, setAtivo] = useState<string | null>(null);
@@ -305,17 +331,34 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
     setVista(null);
     setFalhou(false);
     exibida.current = null;
+    setFronteiras(null);
+    const chaveMalhas = malhasMunicipios?.join("|") ?? "";
     carregarMalha(malha)
-      .then((topo) => {
+      .then(async (topo) => {
         if (!vivo) return;
-        if (topo) setMapa(projetar(topo, 1000));
-        else setFalhou(true);
+        if (!topo) {
+          setFalhou(true);
+          return;
+        }
+        const base = projetar(topo, 1000);
+        if (!chaveMalhas) {
+          setMapa(base);
+          return;
+        }
+        // Os municípios de cada UF no enquadramento do Brasil; a malha que faltar só deixa aquela UF vazia
+        const malhas = await Promise.all((malhasMunicipios ?? []).map((u) => carregarMalha(u).catch(() => null)));
+        if (!vivo) return;
+        const formas = malhas.flatMap((m) => (m ? projetarCom(m, base.projecao, 1) : []));
+        setFronteiras(base.formas);
+        setMapa({ ...base, formas });
       })
       .catch(() => vivo && setFalhou(true));
     return () => {
       vivo = false;
     };
-  }, [malha]);
+    // As malhas como texto: a mesma lista não recarrega
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [malha, malhasMunicipios?.join("|")]);
 
   // Largura do SVG na tela: o tamanho dos rótulos e dos pontos é em pixels, não em unidades da malha
   useEffect(() => {
@@ -653,7 +696,7 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
         viewBox={viewBox(janela)}
         role="group"
         aria-label={titulo}
-        className={aproximado ? "mapa-aproximado" : undefined}
+        className={[aproximado && "mapa-aproximado", fronteiras && "mapa-municipios"].filter(Boolean).join(" ") || undefined}
         onPointerDown={aoPressionar}
         onPointerMove={aoMover}
         onPointerUp={aoSoltar}
@@ -668,7 +711,15 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
           nivel={nivel}
           rotuloLider={rotuloLider}
           apagadas={!!formaAberta}
+          corDe={corDe}
         />
+        {fronteiras && (
+          <g className="fronteiras-uf" aria-hidden="true">
+            {fronteiras.map((f) => (
+              <path key={f.codigo} d={f.d} />
+            ))}
+          </g>
+        )}
         {formaAberta && (
           <g className="municipio-aberto">
             <defs>
@@ -758,7 +809,7 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
           <ConteudoDica dica={dica} rotuloLider={rotuloLider} />
         </div>
       )}
-      {lideres.length > 0 && (
+      {lideres.length > 0 && modo === "vencedor" && (
         <div className="legenda" aria-label="Legenda do mapa">
           {lideres.map(([cor, rotulo]) => (
             <span key={cor} className="legenda-item">
@@ -768,6 +819,39 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
           ))}
         </div>
       )}
+      {modo === "intensidade" && lideres.length > 0 && (
+        <div className="legenda escala-lideres" aria-label="Legenda do mapa: % dos válidos de quem lidera">
+          {lideres.map(([cor, rotulo]) => (
+            <span key={cor} className="legenda-item">
+              {FAIXAS_PCT.map((f) => (
+                <span key={f.rotulo} className="amostra-cor" title={f.rotulo}
+                  style={{ background: misturar(varCorMapa(cor), f.forca) }} />
+              ))}
+              {rotulo}
+            </span>
+          ))}
+          <span className="legenda-item">
+            % dos válidos de quem lidera, do mais claro ao mais forte: {FAIXAS_PCT.map((f) => f.rotulo).join(" · ")}
+          </span>
+        </div>
+      )}
+      {modo === "mudanca" && contextoMudanca && (
+        <div className="legenda" aria-label="Legenda do mapa">
+          <span className="legenda-item">
+            <span className="amostra-cor" style={{ background: varCor(contextoMudanca.a.cor) }} />
+            {contextoMudanca.a.nome} cresceu mais
+          </span>
+          <span className="legenda-item">
+            <span className="amostra-cor" style={{ background: varCor(contextoMudanca.b.cor) }} />
+            {contextoMudanca.b.nome} cresceu mais
+          </span>
+        </div>
+      )}
+      {modo === "mudanca" && (
+        <Escala titulo="Diferença entre o crescimento dos dois, do 1º para o 2º turno" faixas={FAIXAS_MUDANCA}
+          cor="var(--texto-2)" />
+      )}
+      {modo === "abstencao" && <Escala titulo="Abstenção sobre o eleitorado" faixas={FAIXAS_ABSTENCAO} cor="var(--texto)" />}
       {fora.length > 0 && nivel === "uf" && (
         <div className="legenda" aria-label="Fora do mapa atual">
           {fora.map((p) => (
@@ -788,6 +872,21 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
         <NotaZonas arquivo={municipio.zonas} semResultado={!municipio.partes.length}
           lider={parteAberta?.lider ? rotuloLider(parteAberta) : null} />
       )}
+    </div>
+  );
+}
+
+/** Escala de um modo de cor: as faixas, da mais fraca à mais forte, numa cor neutra. */
+function Escala({ titulo, faixas, cor }: { titulo: string; faixas: Faixa[]; cor: string }) {
+  return (
+    <div className="legenda escala-mapa" aria-label={titulo}>
+      <span className="legenda-item">{titulo}:</span>
+      {faixas.map((f) => (
+        <span key={f.rotulo} className="legenda-item">
+          <span className="amostra-cor" style={{ background: misturar(cor, f.forca) }} />
+          {f.rotulo}
+        </span>
+      ))}
     </div>
   );
 }

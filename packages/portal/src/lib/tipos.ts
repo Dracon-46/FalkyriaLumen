@@ -226,6 +226,10 @@ export interface Parte {
   margem?: number | null;
   /** Posição na paleta de quem está à frente; o mapa só pinta as quatro primeiras. */
   cor: number;
+  /** Abstenção sobre o eleitorado da parte (feeds gravados desde 26/10/2026). */
+  pct_abstencao?: number | null;
+  /** Percentual dos válidos dos mais votados na parte, por número (ou sigla); desde 26/10/2026. */
+  pcts?: Record<string, number | null>;
   eleito?: boolean;
   segundo_turno?: boolean;
   pct_secoes: number | null;

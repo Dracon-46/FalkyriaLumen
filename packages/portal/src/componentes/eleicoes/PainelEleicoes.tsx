@@ -18,6 +18,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Achado, normalizar, UFS } from "@/lib/busca";
+import { indexarPartes } from "@/lib/areas";
 import { compararTurnos, primeiroTurnoDe } from "@/lib/comparacao";
 import { escreverSelecao, lerSelecao, ufDaAbrangencia } from "@/lib/estado-url";
 import {
@@ -47,6 +48,7 @@ import type {
 } from "@/lib/tipos";
 import type { Topologia } from "@/lib/topojson";
 import { ErroFeed } from "@/lib/validacao";
+import { type ContextoMudanca, corDaParte, MODOS_COR, type ModoCor, modoDisponivel } from "@/lib/modos-mapa";
 import { Escolha } from "@/componentes/Escolha";
 import { Paginacao, usePaginacao } from "@/componentes/Paginacao";
 import type { Opcao } from "@/lib/escolha";
@@ -56,6 +58,7 @@ import { Faixas, Origem } from "./Faixas";
 import { GraficoEvolucao } from "./GraficoEvolucao";
 import { ListaCandidatos } from "./ListaCandidatos";
 import { Mapa, type MunicipioAberto } from "./Mapa";
+import { MapaExterior } from "./MapaExterior";
 import { Panorama } from "./Panorama";
 import { TabelaZonas } from "./TabelaZonas";
 import { Totais } from "./Totais";
@@ -120,6 +123,39 @@ function useFeed(chave: string | null, carregar: (sinal: AbortSignal) => Promise
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chave, tique]);
   return estado;
+}
+
+/**
+ * Partes (os municípios) dos feeds de todas as UFs de um cargo, para o mapa do Brasil por município; null
+ * enquanto carregam. A UF cujo feed falha só fica vazia no mapa.
+ */
+function usePartesDasUfs(eleicao: string | null, cargo: string | null, ufs: string[], guardar: boolean,
+  tique: number): Parte[] | null {
+  const chave = eleicao && cargo ? `${eleicao}/${cargo}/${ufs.join(",")}` : null;
+  const [estado, setEstado] = useState<{ chave: string; partes: Parte[] } | null>(null);
+  useEffect(() => {
+    if (!chave || !eleicao || !cargo) return;
+    let vivo = true;
+    Promise.all(ufs.map((u) => carregarFeed(eleicao, cargo, `uf-${u}`, undefined, { guardar }).catch(() => null)))
+      .then((feeds) => vivo && setEstado({ chave, partes: feeds.flatMap((f) => f?.partes ?? []) }));
+    return () => {
+      vivo = false;
+    };
+    // A chave junta eleição, cargo e UFs; o relógio refaz ao vivo
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chave, tique]);
+  return estado?.chave === chave ? estado.partes : null;
+}
+
+/** Os dois primeiros válidos de um resultado como finalistas do modo Mudança, ou null se não há dois. */
+function finalistasDe(feed: Feed | null): Pick<ContextoMudanca, "a" | "b"> | null {
+  if (feed?.tipo !== "resultado") return null;
+  const [a, b] = feed.candidatos.filter((c) => c.valido);
+  if (!a || !b) return null;
+  return {
+    a: { numero: a.numero, nome: a.nome_urna, cor: a.cor },
+    b: { numero: b.numero, nome: b.nome_urna, cor: b.cor },
+  };
 }
 
 /**
@@ -309,6 +345,41 @@ export function PainelEleicoes() {
     [eleicao, cargo, aoVivo, nivelMapa],
   );
 
+  // O que a cor do mapa mostra e, no mapa do Brasil, se as áreas são os estados ou os municípios
+  const [modoCor, setModoCor] = useState<ModoCor>("vencedor");
+  const [visaoBrasil, setVisaoBrasil] = useState<"estados" | "municipios">("estados");
+  const ufsDoCargo = useMemo(
+    () => (eleicao ? (cargo?.ufs ?? eleicao.ufs).filter((u) => u !== "zz") : []),
+    [eleicao, cargo?.ufs],
+  );
+  const brasilPorMunicipio = abrangencia === "br" && visaoBrasil === "municipios" && eleicao?.municipios !== false;
+  const partesUfs = usePartesDasUfs(brasilPorMunicipio ? (eleicao?.id ?? null) : null, cargo?.slug ?? null,
+    ufsDoCargo, guardar, tique);
+  // 1º turno do lugar que o mapa mostra (e, no Brasil por município, de todas as UFs), para o modo Mudança
+  const chavePrimeiroMapa = primeiroTurno && cargo ? `${primeiroTurno.id}/${cargo.slug}/${lugarDoMapa}` : null;
+  const doPrimeiroMapa = useFeed(chavePrimeiroMapa,
+    (s) => carregarFeed(primeiroTurno!.id, cargo!.slug, lugarDoMapa, s, { guardar: true }), 0);
+  const partesPrimeiroMapa = doPrimeiroMapa?.chave === chavePrimeiroMapa ? (doPrimeiroMapa?.feed?.partes ?? null) : null;
+  const partesUfs1 = usePartesDasUfs(brasilPorMunicipio && modoCor === "mudanca" ? (primeiroTurno?.id ?? null) : null,
+    cargo?.slug ?? null, ufsDoCargo, true, 0);
+  const finalistas = useMemo(() => finalistasDe(feedAtual), [feedAtual]);
+  const contextoEstados = useMemo<ContextoMudanca | null>(
+    () => (finalistas && partesPrimeiroMapa ? { ...finalistas, primeiro: indexarPartes(partesPrimeiroMapa) } : null),
+    [finalistas, partesPrimeiroMapa],
+  );
+  const contextoMunicipios = useMemo<ContextoMudanca | null>(
+    () => (finalistas && partesUfs1 ? { ...finalistas, primeiro: indexarPartes(partesUfs1) } : null),
+    [finalistas, partesUfs1],
+  );
+  // O que o feed do lugar tem decide os modos disponíveis; o escolhido sem dado volta a "Vencedor"
+  const disponiveis = useMemo(
+    () => new Set(MODOS_COR.filter((m) => modoDisponivel(m.id, feedMapa?.partes ?? [], contextoEstados)).map((m) => m.id)),
+    [feedMapa, contextoEstados],
+  );
+  const modo: ModoCor = disponiveis.has(modoCor) ? modoCor : "vencedor";
+  const contextoMudanca = brasilPorMunicipio ? contextoMunicipios : contextoEstados;
+  const corDoModo = useCallback((p: Parte | undefined) => corDaParte(modo, p, contextoMudanca), [modo, contextoMudanca]);
+
   const [historico, setHistorico] = useState<FeedHistorico | null>(null);
   // Evolução da apuração: não existe para as eleições de 1933 a 1990, publicadas só com o resultado final
   const comEvolucao =
@@ -425,8 +496,11 @@ export function PainelEleicoes() {
       : porMunicipio && ufMapa && ufMapa !== "zz"
         ? urls.malhaUf(ufMapa)
         : null;
+  // O exterior (a UF "zz" e as cidades dela) tem o mapa do mundo, com as cidades no lugar
+  const noExterior = ufMapa === "zz" && porMunicipio;
   const selecionarParte = (p: Parte) =>
     navegar({ abrangencia: nivelMapa === "uf" ? `uf-${p.codigo}` : `mu-${p.codigo}` });
+  const abrirMunicipio = (p: Parte) => navegar({ abrangencia: `mu-${p.codigo}` });
 
   const progresso =
     feed?.tipo === "resultado" ? feed.totalizacao.pct_secoes : feed?.tipo === "panorama" ? feed.totalizacao.pct_partes : null;
@@ -439,9 +513,11 @@ export function PainelEleicoes() {
     ? partesZonas.length
       ? `${cargo.nome}: mais votado em cada zona eleitoral de ${nomeAbr}`
       : `Zonas eleitorais de ${nomeAbr}`
-    : tela === "panorama"
-      ? `${cargo.nome}: quem está à frente em cada ${nivelMapa === "uf" ? "estado" : "município"}`
-      : `${cargo.nome}: mais votado em cada ${nivelMapa === "uf" ? "estado" : "município"}`;
+    : noExterior
+      ? `${cargo.nome}: mais votado em cada cidade do exterior`
+      : tela === "panorama"
+        ? `${cargo.nome}: quem está à frente em cada ${nivelMapa === "uf" && !brasilPorMunicipio ? "estado" : "município"}`
+        : `${cargo.nome}: mais votado em cada ${nivelMapa === "uf" && !brasilPorMunicipio ? "estado" : "município"}`;
 
   return (
     <div>
@@ -583,19 +659,71 @@ export function PainelEleicoes() {
       {feed && (
         <div className={carregando ? "grade grade-carregando" : "grade"} aria-busy={carregando}>
           <div className="coluna">
-            {malha && feedMapa && (
+            {(malha || noExterior) && feedMapa && (
               <section className="cartao cartao-corpo" aria-label={tituloMapa}>
                 <h2 className="titulo-secao">{tituloMapa}</h2>
-                <Mapa
-                  malha={malha}
-                  nivel={nivelMapa}
-                  partes={feedMapa.partes}
-                  municipio={municipioAberto}
-                  onSelecionar={selecionarParte}
-                  onPrevisualizar={previsualizar}
-                  rotuloLider={rotuloLider}
-                  titulo={tituloMapa}
-                />
+                <div className="seletor-mapa">
+                  {abrangencia === "br" && eleicao.municipios !== false && (
+                    <span className="filtro-periodo-atalhos" role="group" aria-label="Áreas do mapa">
+                      <button type="button" className="botao" aria-pressed={!brasilPorMunicipio}
+                        onClick={() => setVisaoBrasil("estados")}>
+                        Estados
+                      </button>
+                      <button type="button" className="botao" aria-pressed={brasilPorMunicipio}
+                        onClick={() => setVisaoBrasil("municipios")}>
+                        Municípios
+                      </button>
+                    </span>
+                  )}
+                  <span className="filtro-periodo-atalhos" role="group" aria-label="Cor do mapa">
+                    {MODOS_COR.filter((m) => m.id !== "mudanca" || primeiroTurno).map((m) => (
+                      <button key={m.id} type="button" className="botao" aria-pressed={modo === m.id}
+                        disabled={!disponiveis.has(m.id)} onClick={() => setModoCor(m.id)}
+                        title={disponiveis.has(m.id) ? m.descricao
+                          : `${m.descricao}: os arquivos publicados desta eleição ainda não trazem esse dado`}>
+                        {m.rotulo}
+                      </button>
+                    ))}
+                  </span>
+                </div>
+                {noExterior ? (
+                  <MapaExterior
+                    partes={feedMapa.partes}
+                    corDe={corDoModo}
+                    rotuloLider={rotuloLider}
+                    onSelecionar={abrirMunicipio}
+                    escolhida={abrangencia.startsWith("mu-") ? abrangencia.slice(3) : null}
+                  />
+                ) : brasilPorMunicipio ? (
+                  partesUfs && (modo !== "mudanca" || contextoMunicipios) ? (
+                    <Mapa
+                      malha={malha!}
+                      nivel="mu"
+                      partes={partesUfs}
+                      malhasMunicipios={ufsDoCargo.map((u) => urls.malhaUf(u))}
+                      onSelecionar={abrirMunicipio}
+                      rotuloLider={rotuloLider}
+                      titulo={tituloMapa}
+                      modo={modo}
+                      contextoMudanca={contextoMudanca}
+                    />
+                  ) : (
+                    <div className="mapa-vazio mapa-carregando">Carregando os municípios de todas as UFs…</div>
+                  )
+                ) : (
+                  <Mapa
+                    malha={malha!}
+                    nivel={nivelMapa}
+                    partes={feedMapa.partes}
+                    municipio={municipioAberto}
+                    onSelecionar={selecionarParte}
+                    onPrevisualizar={previsualizar}
+                    rotuloLider={rotuloLider}
+                    titulo={tituloMapa}
+                    modo={modo}
+                    contextoMudanca={contextoMudanca}
+                  />
+                )}
               </section>
             )}
             {comZonas && (

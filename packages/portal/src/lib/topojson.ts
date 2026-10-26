@@ -131,6 +131,29 @@ function geometriasDe(topo: Topologia): { codigo: string; aneis: Ponto[][] }[] {
 }
 
 /**
+ * Anel que cruza a linha de 180° (Rússia e Fiji, no mapa do mundo) em pedaços, um de cada lado: sem isso, o
+ * lado de um ponto a 179° E para o seguinte a 179° O atravessa o mapa inteiro. Cada pedaço começa e termina
+ * na linha, e fechá-lo traça a própria linha. Anel que não cruza (todos os do Brasil) volta inteiro.
+ */
+export function cortarNoAntimeridiano(anel: Ponto[]): Ponto[][] {
+  const salto = (i: number) => Math.abs(anel[i]![0] - anel[(i + anel.length - 1) % anel.length]![0]) > 180;
+  const inicio = anel.findIndex((_, i) => salto(i));
+  if (inicio < 0) return [anel];
+  const pedacos: Ponto[][] = [];
+  let atual: Ponto[] = [];
+  for (let k = 0; k < anel.length; k++) {
+    const i = (inicio + k) % anel.length;
+    if (k > 0 && salto(i)) {
+      pedacos.push(atual);
+      atual = [];
+    }
+    atual.push(anel[i]!);
+  }
+  pedacos.push(atual);
+  return pedacos.filter((r) => r.length > 2);
+}
+
+/**
  * Formas do SVG a partir de anéis em longitude e latitude, na projeção dada.
  * `casas` é a precisão das coordenadas no `d`: uma casa basta para o mapa de
  * uma UF inteira; o contorno de um município visto de perto precisa de mais.
@@ -145,6 +168,7 @@ function formasDe(geometrias: { codigo: string; aneis: Ponto[][] }[], p: Projeca
     let gy1 = -Infinity;
     const d = g.aneis
       .filter((r) => r.length > 2)
+      .flatMap(cortarNoAntimeridiano)
       .map((r) => {
         const pts = r.map(([lon, lat]) => {
           const [px, py] = pontoProjetado(p, lon, lat);

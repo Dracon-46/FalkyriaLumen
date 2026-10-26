@@ -17,6 +17,17 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   vivo.
 - Mapa do Brasil: o exterior aparece como um quadrado tracejado no Atlântico,
   com a cor de quem venceu lá, dica e clique, como as UFs.
+- Exterior: mapa do mundo com as 186 cidades em que brasileiros votam, cada
+  uma um círculo com área proporcional ao eleitorado e a cor de quem venceu;
+  botões de região (Américas, Europa, África e Oriente Médio, Ásia e
+  Oceania). O TSE não publica coordenada para os locais do exterior: a
+  posição de cada cidade está em `src/lib/exterior.ts`.
+- Mapa: escolha das áreas no Brasil (estados ou os 5.570 municípios) e do que
+  a cor mostra: vencedor; % de votos (a cor de quem lidera, mais forte quanto
+  maior o percentual); mudança desde o 1º turno (quem cresceu mais, e quanto);
+  e abstenção. Os feeds passam a gravar, em cada parte, a abstenção e o
+  percentual dos quatro mais votados; mudança e abstenção aparecem quando a
+  carga refizer os feeds publicados.
 - Evolução da apuração: a escala vertical se ajusta à faixa dos dados (a
   partir de 2% das seções), sem a queda até 0% no começo; nova leitura
   "Vantagem", a diferença do primeiro para o segundo em pontos percentuais; o

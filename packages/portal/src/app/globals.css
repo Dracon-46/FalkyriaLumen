@@ -671,6 +671,75 @@ h2 {
   pointer-events: none;
 }
 
+/* Mapa do Brasil por município: traço fino entre os municípios e as fronteiras das UFs por cima. */
+.mapa svg.mapa-municipios path {
+  stroke-width: 0.25;
+}
+
+.mapa .fronteiras-uf path,
+.mapa svg.mapa-municipios .fronteiras-uf path {
+  fill: none;
+  stroke: var(--superficie);
+  stroke-width: 1.4;
+  pointer-events: none;
+}
+
+/* Seletor do mapa: áreas (estados ou municípios) e o que a cor mostra. */
+.seletor-mapa {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 4px 0 10px;
+}
+
+.escala-mapa .amostra-cor {
+  border-radius: 2px;
+}
+
+.escala-lideres .legenda-item {
+  gap: 2px;
+}
+
+.escala-lideres .amostra-cor {
+  border-radius: 1px;
+}
+
+.escala-lideres .amostra-cor:last-of-type {
+  margin-right: 6px;
+}
+
+/* Mapa do mundo do exterior (MapaExterior.tsx). */
+.mapa-exterior svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 8px;
+  background: var(--superficie);
+}
+
+.mapa-exterior .paises path {
+  fill: var(--superficie-2);
+  stroke: var(--borda);
+  stroke-width: 0.6;
+  cursor: default;
+  pointer-events: none;
+}
+
+.mapa-exterior .cidades circle {
+  stroke: var(--superficie);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+}
+
+.mapa-exterior .cidades circle:hover,
+.mapa-exterior .cidades circle:focus-visible,
+.mapa-exterior .cidades circle.cidade-escolhida {
+  stroke: var(--texto);
+  stroke-width: 2;
+  outline: none;
+}
+
 .mapa path.municipio-fundo {
   pointer-events: none;
 }

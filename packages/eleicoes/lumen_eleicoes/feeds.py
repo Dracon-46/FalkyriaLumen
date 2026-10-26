@@ -248,12 +248,22 @@ def candidato_json(c: Candidato, r: ResultadoAbrangencia, cores: Mapping[str, in
     }
 
 
+# Quantos dos mais votados de cada parte levam o percentual em ``pcts``: o bastante para o mapa comparar os dois
+# turnos (os finalistas estão entre os quatro primeiros de quase todo município) sem inchar o feed da UF.
+PCTS_POR_PARTE = 4
+
+
 def parte_json(abr: Abrangencia, r: ResultadoAbrangencia, cores: Mapping[str, int], *,
                por_partido: bool = False) -> dict:
-    """Resumo de uma abrangência filha, para colorir o mapa do nível de cima."""
+    """Resumo de uma abrangência filha, para colorir o mapa do nível de cima.
+
+    Além do líder, leva a abstenção (``pct_abstencao``) e o percentual dos válidos dos ``PCTS_POR_PARTE`` mais
+    votados (``pcts``, por número ou, nos proporcionais, por sigla): é o que os modos "Abstenção" e "Mudança desde
+    o 1º turno" do mapa pintam.
+    """
     base = {"codigo": abr.codigo, "nome": abr.nome, "ibge": abr.ibge,
             "pct_secoes": _r(r.totalizacao.pct_secoes, 4), "finalizada": r.totalizacao.finalizada,
-            "eleitorado": r.comparecimento.eleitorado}
+            "eleitorado": r.comparecimento.eleitorado, "pct_abstencao": _r(r.comparecimento.pct_abstencao)}
     if por_partido:
         ranking = ranking_partidos(r)
         bancada: dict[str, int] = {}
@@ -265,6 +275,8 @@ def parte_json(abr: Abrangencia, r: ResultadoAbrangencia, cores: Mapping[str, in
         partido, votos = ranking[0]
         total = r.votos.validos or sum(v for _, v in ranking)
         segundo = ranking[1][1] if len(ranking) > 1 else 0
+        if total:
+            base["pcts"] = {p: _r(100.0 * v / total) for p, v in ranking[:PCTS_POR_PARTE]}
         return {**base, "lider": partido, "partido": partido, "nome_urna": None, "votos": votos,
                 "pct": _r(100.0 * votos / total) if total else None,
                 "margem": _r(100.0 * (votos - segundo) / total) if total else None,
@@ -274,6 +286,8 @@ def parte_json(abr: Abrangencia, r: ResultadoAbrangencia, cores: Mapping[str, in
     if lider is None or lider.votos == 0:
         return {**base, "lider": None, "cor": SEM_COR}
     pl, ps = _pct(lider, r), (_pct(segundo, r) if segundo else None)
+    mais_votados = sorted((c for c in r.candidatos if c.valido and c.votos > 0), key=lambda c: -c.votos)
+    base["pcts"] = {c.numero: _pct(c, r) for c in mais_votados[:PCTS_POR_PARTE]}
     return {**base, "lider": lider.numero, "partido": lider.partido, "nome_urna": lider.nome_urna,
             "votos": lider.votos, "pct": pl, "margem": _r(pl - ps) if pl is not None and ps is not None else None,
             "cor": cores.get(lider.numero, SEM_COR), "eleito": lider.eleito,
