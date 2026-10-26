@@ -26,8 +26,18 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   a cor mostra: vencedor; % de votos (a cor de quem lidera, mais forte quanto
   maior o percentual); mudança desde o 1º turno (quem cresceu mais, e quanto);
   e abstenção. Os feeds passam a gravar, em cada parte, a abstenção e o
-  percentual dos quatro mais votados; mudança e abstenção aparecem quando a
-  carga refizer os feeds publicados.
+  percentual dos quatro mais votados. No mapa por estado, mudança e
+  abstenção já funcionam com os feeds publicados (os dados saem dos feeds das
+  UFs); por município, aparecem quando a carga refizer os feeds.
+- Filtro de região no Brasil (Norte, Nordeste, Centro-Oeste, Sudeste, Sul): o
+  mapa (por estado ou por município) aproxima na região e apaga o resto do
+  país, a tabela por estado fica só com as UFs dela e, para Presidente, os
+  candidatos, o comparecimento e a comparação com o 1º turno passam a ser a
+  soma das UFs da região.
+- Cores durante a carga: o feed da UF regravado no meio de uma coleta levava,
+  nos municípios ainda não baixados de novo, a cor da regra anterior (o Lula
+  azul no Nordeste). O coletor recolore as partes guardadas com as cores
+  atuais, e o portal confere PL e PT pelo partido em qualquer feed.
 - Evolução da apuração: a escala vertical se ajusta à faixa dos dados (a
   partir de 2% das seções), sem a queda até 0% no começo; nova leitura
   "Vantagem", a diferença do primeiro para o segundo em pontos percentuais; o

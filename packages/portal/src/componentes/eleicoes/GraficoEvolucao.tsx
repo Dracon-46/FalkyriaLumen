@@ -45,7 +45,7 @@ function curto(rotulo: string): string {
  * e a oscilação das primeiras urnas é recortada na borda. O detalhe abaixo mostra o ponto sob
  * o cursor (ou escolhido com as setas) e, sem foco, o último.
  */
-export function GraficoEvolucao({ historico }: { historico: FeedHistorico }) {
+export function GraficoEvolucao({ historico, titulo = "Evolução da apuração" }: { historico: FeedHistorico; titulo?: string }) {
   const [foco, setFoco] = useState<number | null>(null);
   const [modo, setModo] = useState<"pct" | "vantagem">("pct");
   const svg = useRef<SVGSVGElement>(null);
@@ -98,7 +98,7 @@ export function GraficoEvolucao({ historico }: { historico: FeedHistorico }) {
     <section className="cartao cartao-corpo grafico" aria-labelledby="titulo-evolucao">
       <div className="grafico-cabeca">
         <h2 id="titulo-evolucao" className="titulo-secao">
-          Evolução da apuração
+          {titulo}
         </h2>
         {comVantagem && (
           <span className="filtro-periodo-atalhos" role="group" aria-label="Leitura do gráfico">

@@ -50,6 +50,16 @@ def test_pl_azul_e_pt_vermelho_sempre():
     assert f.atribuir_cores(["13", "15"], partidos=partidos) == {"13": 1, "15": 2}
 
 
+def test_partes_guardadas_ganham_a_cor_atual():
+    # Parte guardada pela regra anterior (o 13 na posição 0) regravada com as cores de agora
+    guardadas = [{"codigo": "a", "lider": "13", "partido": "PT", "cor": 0},
+                 {"codigo": "b", "lider": "22", "partido": "PL", "cor": 1},
+                 {"codigo": "c", "lider": "99", "partido": "PT", "cor": 5},
+                 {"codigo": "d", "lider": None, "cor": -1}]
+    cores = f.atribuir_cores(["13", "22"], partidos={"13": "PT", "22": "PL"})
+    assert [p["cor"] for p in f.recolorir(guardadas, cores)] == [1, 0, 1, -1]
+
+
 def test_cores_acabam_em_cinza():
     numeros = [str(i) for i in range(12)]
     cores = f.atribuir_cores(numeros, n=8)

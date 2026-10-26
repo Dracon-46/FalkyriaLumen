@@ -30,7 +30,7 @@
 
 import { type CSSProperties, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { chaveDaArea, EXTERIOR, formaDoExterior, indexarPartes, parteDaArea, partesSemArea } from "@/lib/areas";
-import { UFS } from "@/lib/busca";
+import { CODIGO_UF, UFS } from "@/lib/busca";
 import { CORES_NO_MAPA, varCor, varCorMapa } from "@/lib/cores";
 import { carregarMalha } from "@/lib/feeds";
 import { numero, percentual } from "@/lib/formato";
@@ -103,6 +103,16 @@ interface Props {
    * enquadramento e as fronteiras estaduais, desenhadas por cima; as áreas são os municípios (`nivel` "mu").
    */
   malhasMunicipios?: string[] | null;
+  /**
+   * Filtro de região: as siglas das UFs que ficam no mapa. O mapa enquadra essas UFs (ou os municípios
+   * delas) e deixa o resto do país apagado ao fundo, sem cor nem clique.
+   */
+  regiao?: readonly string[] | null;
+}
+
+/** A UF de uma área da malha: a do código (UF) ou a dos dois primeiros dígitos (município). */
+function ufDaArea(codigo: string, nivel: "uf" | "mu"): string | undefined {
+  return CODIGO_UF[nivel === "uf" ? codigo : codigo.slice(0, 2)];
 }
 
 /** Caixa flutuante do que está sob o cursor ou com foco; `x` e `y` em pixels relativos ao contêiner. */
@@ -300,7 +310,7 @@ function degrau(valor: number): number {
  * abaixo do mapa.
  */
 export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisualizar, rotuloLider, titulo,
-  modo = "vencedor", contextoMudanca = null, malhasMunicipios = null }: Props) {
+  modo = "vencedor", contextoMudanca = null, malhasMunicipios = null, regiao = null }: Props) {
   const [mapa, setMapa] = useState<MapaProjetado | null>(null);
   /** No mapa do Brasil por município: as fronteiras das UFs, por cima dos municípios. */
   const [fronteiras, setFronteiras] = useState<Forma[] | null>(null);
@@ -373,12 +383,29 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
   const codigoAberto = municipio?.codigo ?? null;
 
   // No mapa do Brasil, o exterior ganha uma área no Atlântico (`formaDoExterior`) quando o feed tem a parte dele
-  const temExterior = nivel === "uf" && partes.some((p) => p.codigo === EXTERIOR);
-  const formas = useMemo(
-    () => (mapa ? (temExterior ? [...mapa.formas, formaDoExterior(mapa.projecao, mapa.largura)] : mapa.formas) : []),
-    [mapa, temExterior],
-  );
+  const temExterior = nivel === "uf" && !regiao && partes.some((p) => p.codigo === EXTERIOR);
+  const chaveRegiao = regiao?.join(",") ?? "";
+  // Com o filtro de região, só as áreas das UFs dela; as demais vão para o fundo, apagadas
+  const { formas, fundo } = useMemo(() => {
+    if (!mapa) return { formas: [] as Forma[], fundo: [] as Forma[] };
+    const todas = temExterior ? [...mapa.formas, formaDoExterior(mapa.projecao, mapa.largura)] : mapa.formas;
+    if (!regiao) return { formas: todas, fundo: [] as Forma[] };
+    const dentro = (f: Forma) => regiao.includes(ufDaArea(f.codigo, nivel) ?? "");
+    return { formas: todas.filter(dentro), fundo: todas.filter((f) => !dentro(f)) };
+    // A região como texto: a mesma lista não refaz as formas
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapa, temExterior, chaveRegiao, nivel]);
   const exterior = temExterior ? formas[formas.length - 1] : undefined;
+  const caixaRegiao = useMemo((): [number, number, number, number] | null => {
+    if (!regiao || !formas.length) return null;
+    return [
+      Math.min(...formas.map((f) => f.caixa[0])),
+      Math.min(...formas.map((f) => f.caixa[1])),
+      Math.max(...formas.map((f) => f.caixa[2])),
+      Math.max(...formas.map((f) => f.caixa[3])),
+    ];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formas, chaveRegiao]);
 
   // Contorno do município aberto: o fino, projetado no enquadramento da UF; sem ele, o da malha da UF
   const formaFina = useMemo(() => {
@@ -400,21 +427,23 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
   );
 
   const caixaAberta = formaAberta?.caixa ?? null;
+  // O enquadramento: o município aberto ou, sem ele, a região escolhida
+  const caixaEnquadrada = caixaAberta ?? caixaRegiao;
   const limites: Limites | null = useMemo(
     () =>
       mapa
-        ? { largura: mapa.largura, altura: mapa.altura, maxZoom: zoomMaximoPara(caixaAberta, mapa) }
+        ? { largura: mapa.largura, altura: mapa.altura, maxZoom: zoomMaximoPara(caixaEnquadrada, mapa) }
         : null,
     // A caixa como texto: o mesmo enquadramento não refaz os limites
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mapa, caixaAberta?.join(",")],
+    [mapa, caixaEnquadrada?.join(",")],
   );
   // Com o contorno fino, o município ocupa o mapa; com o simplificado (poucos pontos), fica com a região em volta
-  const margem = formaFina ? 0.12 : 0.9;
+  const margem = caixaAberta ? (formaFina ? 0.12 : 0.9) : 0.06;
   const padrao = useMemo(
-    () => (limites ? (caixaAberta ? enquadrar(caixaAberta, limites, margem) : vistaInicial(limites)) : null),
+    () => (limites ? (caixaEnquadrada ? enquadrar(caixaEnquadrada, limites, margem) : vistaInicial(limites)) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [limites, caixaAberta?.join(","), margem],
+    [limites, caixaEnquadrada?.join(","), margem],
   );
   const janela = vista ?? padrao;
   const zoom = janela && limites ? zoomDe(janela, limites) : 1;
@@ -464,7 +493,7 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
 
   // Abriu (ou fechou) um município: voa até o novo enquadramento. Os dois efeitos rodam antes da pintura,
   // nesta ordem: o primeiro ainda vê a janela anterior em `exibida`, e o segundo a atualiza.
-  const chaveEnquadramento = padrao ? `${codigoAberto}|${caixaAberta?.join(",")}` : null;
+  const chaveEnquadramento = padrao ? `${codigoAberto}|${caixaEnquadrada?.join(",")}` : null;
   useLayoutEffect(() => {
     if (chaveEnquadramento === null) return;
     animar(null, DURACAO_VOO, true);
@@ -705,6 +734,13 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
         onFocus={(e) => mostrar(alvoDe(e.target))}
         onBlur={esconder}
       >
+        {fundo.length > 0 && (
+          <g className="areas-fundo" aria-hidden="true">
+            {fundo.map((f) => (
+              <path key={f.codigo} d={f.d} />
+            ))}
+          </g>
+        )}
         <CamadaAreas
           formas={formas}
           partes={partes}
@@ -715,9 +751,11 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
         />
         {fronteiras && (
           <g className="fronteiras-uf" aria-hidden="true">
-            {fronteiras.map((f) => (
-              <path key={f.codigo} d={f.d} />
-            ))}
+            {fronteiras
+              .filter((f) => !regiao || regiao.includes(CODIGO_UF[f.codigo] ?? ""))
+              .map((f) => (
+                <path key={f.codigo} d={f.d} />
+              ))}
           </g>
         )}
         {formaAberta && (
@@ -836,20 +874,21 @@ export function Mapa({ malha, nivel, partes, municipio, onSelecionar, onPrevisua
         </div>
       )}
       {modo === "mudanca" && contextoMudanca && (
-        <div className="legenda" aria-label="Legenda do mapa">
+        <div className="legenda escala-lideres" aria-label="Legenda do mapa: quem cresceu mais do 1º para o 2º turno">
+          {[contextoMudanca.a, contextoMudanca.b].map((f) => (
+            <span key={f.numero} className="legenda-item">
+              {FAIXAS_MUDANCA.map((x) => (
+                <span key={x.rotulo} className="amostra-cor" title={x.rotulo}
+                  style={{ background: misturar(varCor(f.cor), x.forca) }} />
+              ))}
+              {f.nome} cresceu mais
+            </span>
+          ))}
           <span className="legenda-item">
-            <span className="amostra-cor" style={{ background: varCor(contextoMudanca.a.cor) }} />
-            {contextoMudanca.a.nome} cresceu mais
-          </span>
-          <span className="legenda-item">
-            <span className="amostra-cor" style={{ background: varCor(contextoMudanca.b.cor) }} />
-            {contextoMudanca.b.nome} cresceu mais
+            Quanto um cresceu a mais que o outro, em pontos percentuais dos válidos:{" "}
+            {FAIXAS_MUDANCA.map((x) => x.rotulo).join(" · ")}
           </span>
         </div>
-      )}
-      {modo === "mudanca" && (
-        <Escala titulo="Diferença entre o crescimento dos dois, do 1º para o 2º turno" faixas={FAIXAS_MUDANCA}
-          cor="var(--texto-2)" />
       )}
       {modo === "abstencao" && <Escala titulo="Abstenção sobre o eleitorado" faixas={FAIXAS_ABSTENCAO} cor="var(--texto)" />}
       {fora.length > 0 && nivel === "uf" && (

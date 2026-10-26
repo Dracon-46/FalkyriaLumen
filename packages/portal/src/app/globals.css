@@ -676,6 +676,14 @@ h2 {
   stroke-width: 0.25;
 }
 
+/* Filtro de região: o resto do país fica ao fundo, sem cor nem clique. */
+.mapa .areas-fundo path {
+  fill: var(--superficie-2);
+  stroke: var(--borda);
+  cursor: default;
+  pointer-events: none;
+}
+
 .mapa .fronteiras-uf path,
 .mapa svg.mapa-municipios .fronteiras-uf path {
   fill: none;

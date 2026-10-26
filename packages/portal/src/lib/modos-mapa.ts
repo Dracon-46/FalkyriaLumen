@@ -9,7 +9,7 @@
  */
 
 import { varCor, varCorMapa } from "./cores";
-import type { Parte } from "./tipos";
+import type { Feed, Parte } from "./tipos";
 
 /** O que a cor de cada área mostra. */
 export type ModoCor = "vencedor" | "intensidade" | "mudanca" | "abstencao";
@@ -129,4 +129,23 @@ export function modoDisponivel(modo: ModoCor, partes: Parte[], ctx: ContextoMuda
   if (modo === "abstencao") return partes.some((p) => p.pct_abstencao != null);
   if (modo === "mudanca") return !!ctx && partes.some((p) => mudancaNaParte(p, ctx.primeiro.get(p.codigo), ctx) !== null);
   return true;
+}
+
+/**
+ * Partes de UF (o mapa do Brasil por estado) com `pcts` e `pct_abstencao` tirados dos feeds das próprias UFs,
+ * que trazem todos os candidatos e o comparecimento: assim Mudança e Abstenção funcionam por estado também
+ * nos feeds gravados antes de as partes terem esses campos. A parte que já os tem fica como está.
+ */
+export function completarComFeedsDasUfs(partes: Parte[], feeds: Feed[]): Parte[] {
+  const porUf = new Map(feeds.map((f) => [f.abrangencia.codigo, f] as const));
+  return partes.map((p) => {
+    const f = porUf.get(p.codigo);
+    if (!f || f.tipo !== "resultado") return p;
+    const mais = f.candidatos.filter((c) => c.valido && c.votos > 0).slice(0, 4);
+    return {
+      ...p,
+      pcts: p.pcts ?? Object.fromEntries(mais.map((c) => [c.numero, c.pct])),
+      pct_abstencao: p.pct_abstencao ?? f.comparecimento.pct_abstencao,
+    };
+  });
 }

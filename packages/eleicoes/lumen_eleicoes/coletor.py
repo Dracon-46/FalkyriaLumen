@@ -56,6 +56,7 @@ from .feeds import (
     parte_json,
     proporcional,
     ranking_partidos,
+    recolorir,
 )
 from .modelo import AndamentoAbrangencia, Cargo, Eleicao, Nivel, ResultadoAbrangencia
 from .municipios import CadastroMunicipios, Municipio, nome_legivel
@@ -542,7 +543,7 @@ class ColetorAoVivo:
             if chave not in self.sujos:
                 continue
             cores = self.estado.cores.get(self._chave_cores(cargo, abr), {})
-            partes = sorted(self.estado.partes.get(chave, {}).values(), key=lambda p: p["codigo"])
+            partes = recolorir(sorted(self.estado.partes.get(chave, {}).values(), key=lambda p: p["codigo"]), cores)
             self.escritor.gravar(self.e.id, cargo.slug, abr, feed_resultado(
                 eleicao=self.e, cargo=cargo, abr=abr, resultado=r, cores=cores, origem=origem, partes=partes,
                 fotos=self._fotos(cargo, uf, r, baixar=False), ao_vivo=not r.totalizacao.finalizada))

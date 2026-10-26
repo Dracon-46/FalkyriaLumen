@@ -166,6 +166,25 @@ def cores_dos_candidatos(r: ResultadoAbrangencia, anteriores: Mapping[str, int] 
                           partidos={c.numero: c.partido for c in r.candidatos})
 
 
+def recolorir(partes: Iterable[dict], cores: Mapping[str, int]) -> list[dict]:
+    """Partes guardadas de uma leitura anterior com a cor atual de quem lidera em cada uma.
+
+    A coleta ao vivo guarda a parte de cada município e só a refaz quando o município é baixado de novo; sem
+    isto, o feed da UF regravado no meio de uma coleta levaria a cor da regra anterior (o Lula na posição do
+    azul, 26/10/2026). Quem lidera é o número (ou, nos proporcionais, a sigla) e tem a cor em ``cores``; fora
+    dela, vale a cor fixa do partido e, por fim, a que a parte já tinha.
+    """
+    saida = []
+    for p in partes:
+        lider, partido = p.get("lider"), p.get("partido") or ""
+        if not lider:
+            saida.append(p)
+            continue
+        cor = cores.get(lider, cores.get(partido, CORES_DOS_PARTIDOS.get(partido, p.get("cor", SEM_COR))))
+        saida.append({**p, "cor": cor})
+    return saida
+
+
 def ranking_partidos(r: ResultadoAbrangencia) -> list[tuple[str, int]]:
     """Partidos em ordem de votação: a total publicada pela fonte, ou a nominal somada.
 

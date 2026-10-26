@@ -18,7 +18,10 @@ describe("feeds gravados antes do ADR-052", () => {
   it("o 2º turno de 2026 como foi publicado: Lula na posição 0, Flávio na 1", () => {
     const atual = validarFeed(lerJson(`${AMOSTRA}/1989-2t-geral/presidente/br.json`)) as FeedResultado;
     expect(atual.paleta).toBe(2);
-    expect(naRegraAtual(atual)).toBe(atual);
+    expect(naRegraAtual(atual)).toEqual(atual);
+    // Feed atual com parte de uma leitura anterior (a coleta regravou a UF antes do município): PT e PL conferidos
+    const misto: FeedResultado = { ...atual, partes: [{ ...atual.partes[0]!, lider: "13", partido: "PT", cor: 0 }] };
+    expect(naRegraAtual(misto).partes[0]!.cor).toBe(1);
     // O mesmo feed sem `paleta`, com as cores da regra anterior
     const antigo: FeedResultado = {
       ...atual,
