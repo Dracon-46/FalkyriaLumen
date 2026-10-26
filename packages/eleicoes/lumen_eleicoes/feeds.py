@@ -206,13 +206,16 @@ def _comparecimento(r: ResultadoAbrangencia) -> dict:
     """Bloco ``comparecimento``: eleitorado, comparecimento, abstenção e os percentuais."""
     c = r.comparecimento
     return {"eleitorado": c.eleitorado, "comparecimento": c.comparecimento, "abstencao": c.abstencao,
-            "pct_comparecimento": _r(c.pct_comparecimento), "pct_abstencao": _r(c.pct_abstencao)}
+            "pct_comparecimento": _r(c.pct_comparecimento), "pct_abstencao": _r(c.pct_abstencao),
+            "eleitorado_secoes_nao_instaladas": c.eleitorado_secoes_nao_instaladas}
 
 
 def _votos(r: ResultadoAbrangencia) -> dict:
-    """Bloco ``votos``: válidos, brancos, nulos, anulados, de legenda e os percentuais."""
+    """Bloco ``votos``: válidos, brancos, nulos (o total, com os técnicos à parte), anulados, de legenda e os
+    percentuais."""
     v = r.votos
-    return {"validos": v.validos, "brancos": v.brancos, "nulos": v.nulos, "anulados": v.anulados,
+    return {"validos": v.validos, "brancos": v.brancos, "nulos": v.nulos, "nulos_tecnicos": v.nulos_tecnicos,
+            "anulados": v.anulados,
             "legenda": v.legenda, "pct_validos": _r(v.pct_validos), "pct_brancos": _r(v.pct_brancos),
             "pct_nulos": _r(v.pct_nulos)}
 

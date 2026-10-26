@@ -119,6 +119,12 @@ def inteiro(texto: Any) -> int | None:
         return None
 
 
+def _soma(*valores: int | None) -> int | None:
+    """Soma das parcelas publicadas; None só quando a fonte não publica nenhuma."""
+    presentes = [v for v in valores if v is not None]
+    return sum(presentes) if presentes else None
+
+
 def data_br(texto: str | None) -> date | None:
     """``"dd/mm/aaaa"`` → ``date``; vazio ou inválido vira None."""
     if not texto:
@@ -289,10 +295,15 @@ def ler_resultado(conteudo: bytes | str | dict) -> ResultadoAbrangencia:
             eleitorado=inteiro(e.get("te")), comparecimento=inteiro(e.get("c")),
             abstencao=inteiro(e.get("a")), pct_comparecimento=numero(e.get("pcn") or e.get("pc")),
             pct_abstencao=numero(e.get("pan") or e.get("pa")),
+            eleitorado_secoes_nao_instaladas=inteiro(e.get("esni")),
         ),
+        # "tvn" é o total de nulos (os "vn" mais os técnicos, "vnt"), o mesmo de "ptvn" e dos dados abertos;
+        # os anulados somam os sub judice, também como nos dados abertos
         votos=Votos(
-            validos=inteiro(v.get("vv")), brancos=inteiro(v.get("vb")), nulos=inteiro(v.get("vn")),
-            anulados=inteiro(v.get("van")), legenda=inteiro(v.get("vl")),
+            validos=inteiro(v.get("vv")), brancos=inteiro(v.get("vb")),
+            nulos=inteiro(v.get("tvn")) if v.get("tvn") is not None else inteiro(v.get("vn")),
+            nulos_tecnicos=inteiro(v.get("vnt")),
+            anulados=_soma(inteiro(v.get("van")), inteiro(v.get("vansj"))), legenda=inteiro(v.get("vl")),
             pct_validos=numero(v.get("pvvcn") or v.get("pvvc")),
             pct_brancos=numero(v.get("pvbn") or v.get("pvb")),
             pct_nulos=numero(v.get("ptvnn") or v.get("ptvn")),

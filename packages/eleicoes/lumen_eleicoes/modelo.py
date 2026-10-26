@@ -170,20 +170,26 @@ class Totalizacao:
 
 @dataclass
 class Comparecimento:
-    """Eleitorado, comparecimento e abstenção de uma abrangência, em números absolutos e percentuais."""
+    """Eleitorado, comparecimento e abstenção de uma abrangência, em números absolutos e percentuais.
+
+    ``eleitorado_secoes_nao_instaladas`` são os eleitores das seções que não funcionaram: contam no eleitorado,
+    mas nem no comparecimento nem na abstenção (o sistema de resultados publica; os dados abertos, não).
+    """
 
     eleitorado: int | None
     comparecimento: int | None
     abstencao: int | None
     pct_comparecimento: float | None
     pct_abstencao: float | None
+    eleitorado_secoes_nao_instaladas: int | None = None
 
 
 @dataclass
 class Votos:
     """Votos válidos, brancos, nulos e anulados de uma abrangência, com os percentuais.
 
-    ``legenda`` são os votos dados só ao partido, nos cargos proporcionais.
+    ``legenda`` são os votos dados só ao partido, nos cargos proporcionais. ``nulos`` é o total de nulos, e
+    ``nulos_tecnicos`` a parte dele que o TSE separa como nulo técnico, quando a fonte publica.
     """
 
     validos: int | None
@@ -194,6 +200,7 @@ class Votos:
     pct_validos: float | None = None
     pct_brancos: float | None = None
     pct_nulos: float | None = None
+    nulos_tecnicos: int | None = None
 
 
 @dataclass

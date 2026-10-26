@@ -25,6 +25,12 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 - 2º turno: quadro "Comparação com o 1º turno", com os votos de cada
   finalista nos dois turnos, os dos demais candidatos, válidos, brancos, nulos,
   comparecimento e abstenção, e a conta de onde vieram os votos a mais.
+- Comparecimento e votos: no sistema de resultados, "Nulos" passa a ser o
+  total de nulos (`tvn`), como nos dados abertos e como o percentual já era; os
+  nulos técnicos aparecem à parte (5.246 no 1º turno de 2026, que faltavam
+  para válidos, brancos e nulos fecharem o comparecimento). Os anulados somam
+  os sub judice, e o quadro mostra os eleitores das seções não instaladas (423
+  em 2026), que não entram nem no comparecimento nem na abstenção.
 - Mapa das zonas: os traços das fronteiras e do destaque têm espessura em
   unidades do mapa (com aceleração de vídeo, o Chrome desenhava faixas pretas e
   brancas largas sobre as zonas); sem resultado por zona na fonte, as zonas

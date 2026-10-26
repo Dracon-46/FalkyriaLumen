@@ -28,10 +28,21 @@ export function Totais({ feed }: { feed: FeedResultado }) {
         <Bloco rotulo="Abstenção" valor={numero(c.abstencao)} detalhe={percentual(c.pct_abstencao)} />
         <Bloco rotulo="Válidos" valor={numero(v.validos)} detalhe={percentual(v.pct_validos)} />
         <Bloco rotulo="Brancos" valor={numero(v.brancos)} detalhe={percentual(v.pct_brancos)} />
-        <Bloco rotulo="Nulos" valor={numero(v.nulos)} detalhe={percentual(v.pct_nulos)} />
+        <Bloco rotulo="Nulos" valor={numero(v.nulos)}
+          detalhe={`${percentual(v.pct_nulos)}${v.nulos_tecnicos ? ` · ${numero(v.nulos_tecnicos)} técnicos` : ""}`} />
         {!!v.anulados && <Bloco rotulo="Anulados" valor={numero(v.anulados)} />}
         {!!v.legenda && <Bloco rotulo="De legenda" valor={numero(v.legenda)} />}
+        {!!c.eleitorado_secoes_nao_instaladas && (
+          <Bloco rotulo="Em seções não instaladas" valor={numero(c.eleitorado_secoes_nao_instaladas)}
+            detalhe="eleitores, fora do comparecimento e da abstenção" />
+        )}
       </div>
+      {!!v.nulos_tecnicos && (
+        <p className="candidato-detalhe">
+          O TSE publica os nulos em duas parcelas, nulos e nulos técnicos; o número acima é o total, e com ele
+          válidos, brancos e nulos somam o comparecimento.
+        </p>
+      )}
     </section>
   );
 }

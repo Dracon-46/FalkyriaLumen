@@ -136,13 +136,18 @@ export interface Comparecimento {
   abstencao: number | null;
   pct_comparecimento: number | null;
   pct_abstencao: number | null;
+  /** Eleitores das seções que não funcionaram: no eleitorado, mas nem no comparecimento nem na abstenção. */
+  eleitorado_secoes_nao_instaladas?: number | null;
 }
 
 /** Destino dos votos na abrangência: válidos, brancos, nulos, anulados e de legenda. */
 export interface Votos {
   validos: number | null;
   brancos: number | null;
+  /** Total de nulos, com os técnicos (os feeds ao vivo gravados antes de 26/10/2026 traziam só os comuns). */
   nulos: number | null;
+  /** Parte dos nulos que o TSE separa como nulo técnico, quando a fonte publica. */
+  nulos_tecnicos?: number | null;
   /** Votos anulados, inclusive os sub judice; não entram nos válidos. */
   anulados: number | null;
   /** Proporcionais: votos dados só ao número do partido. */

@@ -636,6 +636,7 @@ class AgregadorVotacao:
                 pct_comparecimento=pct(totais.comparecimento, totais.aptos),
                 pct_abstencao=pct(totais.abstencoes, totais.aptos)),
             votos=Votos(validos=totais.validos or soma_validos, brancos=totais.brancos, nulos=totais.nulos,
+                        nulos_tecnicos=totais.nulos_tecnicos or None,
                         anulados=totais.anulados + totais.anulados_subjudice, legenda=totais.legenda_validos,
                         pct_validos=pct(totais.validos, votos_total), pct_brancos=pct(totais.brancos, votos_total),
                         pct_nulos=pct(totais.nulos, votos_total)),

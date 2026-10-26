@@ -155,7 +155,10 @@ def test_presidente_brasil_primeiro_turno_2026():
     assert r.votos.validos == 119300788
     assert sum(c.votos for c in r.candidatos) == r.votos.validos
     assert r.votos.brancos == 2300798
-    assert r.votos.nulos == 3669003
+    # O total de nulos ("tvn"), com os técnicos à parte: válidos + brancos + nulos fecham o comparecimento
+    assert r.votos.nulos == 3674249 and r.votos.nulos_tecnicos == 5246
+    assert r.votos.validos + r.votos.brancos + r.votos.nulos == r.comparecimento.comparecimento
+    assert r.comparecimento.eleitorado_secoes_nao_instaladas == 423
     assert r.comparecimento.eleitorado == 158745502
     assert r.comparecimento.pct_abstencao == pytest.approx(21.083641906)
     assert r.totalizacao.secoes == r.totalizacao.secoes_totalizadas == 499248
