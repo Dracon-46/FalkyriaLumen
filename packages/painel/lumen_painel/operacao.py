@@ -35,7 +35,7 @@ HORAS_CONFORMIDADE = 24 + TOLERANCIA_HORAS
 FLUXOS: dict[str, tuple[str, int | None]] = {
     "eleicoes-carga": ("Carga das eleições", 24),
     "paineis": ("Painéis: contratações, conformidade, economia e preços", 24),
-    "deteccao-sancoes": ("Regra J-01, em modo silencioso", 24),
+    "deteccao-sancoes": ("Regra J-01 à mão (a do dia roda na publicação dos painéis, ADR-047)", None),
     "contrato-de-fontes": ("Testes de contrato das fontes", 24),
     "cnpj": ("Base de CNPJ da Receita, dos fornecedores", 168),
     "tce": ("Contratos nos tribunais de contas (TCE-RS, pelo intermediário em São Paulo, TCE-PR e TCE-PE)", 24),

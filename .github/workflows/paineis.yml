@@ -246,3 +246,4 @@ jobs:
       pages: write
       id-token: write
     uses: ./.github/workflows/paineis-site.yml
+    secrets: inherit   # contato da coleta da CGU e chaves do bucket privado (J-01, ADR-047)

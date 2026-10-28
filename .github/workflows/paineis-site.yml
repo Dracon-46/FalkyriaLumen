@@ -7,9 +7,13 @@
 # GitHub Pages, de onde o portal lê:
 # https://dracon-46.github.io/FalkyriaLumen/
 #
-# Chamado no fim de paineis.yml, de paineis-carga.yml e de deteccao-sancoes.yml
-# (os avisos da J-01 saem no mesmo dia); pode ser disparado à
-# mão para refazer o site (a avaliação da conformidade usa a data do dia: um
+# Chamado no fim de paineis.yml e de paineis-carga.yml; pode ser disparado à
+# mão para refazer o site. A regra J-01 (sanções da CGU × contratos) roda aqui
+# mesmo, com os dias já baixados, para os avisos saírem no mesmo dia sem uma
+# segunda publicação: em 22 a 27/10/2026, a publicação refeita pelo
+# deteccao-sancoes logo depois da diária esgotou o limite de 1.000 chamadas
+# por hora da API do GitHub ao baixar de novo os mais de 2 mil arquivos do
+# estado (ADR-047, adendo). Se a CGU não responder, vale o relatório guardado (a avaliação da conformidade usa a data do dia: um
 # prazo que vence muda o resultado sem coleta nova).
 #
 # Configuração, uma vez: Settings → Pages → Build and deployment → Source:
@@ -44,6 +48,16 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       TAG: painel-estado
       PYTHONUNBUFFERED: "1"
+      # A coleta da CGU se identifica (RF-CO-09); quem chama passa os segredos (secrets: inherit)
+      LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO || 'https://github.com/Dracon-46/FalkyriaLumen' }}
+      LUMEN_DADOS: dados
+      # Cópia do relatório da J-01 no bucket privado, quando há as chaves (como no eleicoes-carga)
+      LUMEN_PUBLICACAO_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+      LUMEN_PUBLICACAO_BUCKET: ${{ vars.R2_BUCKET_FEEDS }}
+      LUMEN_PUBLICACAO_BUCKET_ESTADO: ${{ vars.R2_BUCKET_ESTADO }}
+      LUMEN_S3_CHAVE_ACESSO: ${{ secrets.R2_CHAVE_ACESSO }}
+      LUMEN_S3_CHAVE_SECRETA: ${{ secrets.R2_CHAVE_SECRETA }}
+      LUMEN_PUBLICACAO_REGIAO: ${{ vars.R2_REGIAO }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -58,6 +72,16 @@ jobs:
             gh release download "$TAG" -D estado --clobber -p '*.json.gz'
           fi
           ferramentas/painel/dias.sh baixar estado
+      - name: Regra J-01 (sanções da CGU × contratos do painel, ADR-031 e ADR-047)
+        run: |
+          set -- j01 --estado estado --resumo "$GITHUB_STEP_SUMMARY" --saida estado/deteccao-j01.json.gz
+          if [ -n "$LUMEN_S3_CHAVE_ACESSO" ] && [ -n "$LUMEN_PUBLICACAO_ENDPOINT" ]; then set -- "$@" --privado; fi
+          if lumen coletar cgu_ceis && lumen coletar cgu_cnep && lumen normalizar --fontes cgu_ceis,cgu_cnep \
+             && lumen deteccao "$@"; then
+            echo "J-01 refeita com o retrato do dia da CGU"
+          else
+            echo "::warning::J-01 não refeita hoje (CGU ou cruzamento): os avisos usam o último relatório guardado."
+          fi
       - name: Contestações dos avisos (issues com o rótulo contestacao, ADR-047)
         run: |
           gh api --paginate "repos/$GITHUB_REPOSITORY/issues?labels=contestacao&state=all&per_page=100" \
