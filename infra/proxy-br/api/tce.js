@@ -1,6 +1,6 @@
 /**
  * Intermediário em São Paulo para os servidores de dados abertos que só respondem a endereços do Brasil (ADR-050,
- * adendo): o do TCE-RS e o do TCE-CE. Roda como função da Vercel na região gru1. O coletor no GitHub Actions pede
+ * adendo): o do TCE-RS, o do TCE-CE e a API de serviços do IBGE. Roda como função da Vercel na região gru1. O coletor no GitHub Actions pede
  * `?url=<endereço original>` com a chave em `x-lumen-chave` e recebe a resposta do tribunal como veio, com `Range`.
  * Só GET e HEAD, só os servidores da lista (também nos redirecionamentos), sem cache. O tamanho e a ETag originais
  * vão também em `x-lumen-tamanho` e `x-lumen-etag`, que a plataforma não reescreve.

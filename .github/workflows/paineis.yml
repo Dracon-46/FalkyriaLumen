@@ -73,6 +73,9 @@ jobs:
       LUMEN_DADOS: dados
       GH_TOKEN: ${{ github.token }}
       ULTIMOS: ${{ inputs.ultimos || '5' }}
+      # os releases do IBGE da Economia: a API de serviços do IBGE só responde do Brasil (ADR-050, adendo)
+      LUMEN_PROXY_BR: ${{ vars.LUMEN_PROXY_BR }}
+      LUMEN_PROXY_CHAVE: ${{ secrets.LUMEN_PROXY_CHAVE }}
       PYTHONUNBUFFERED: "1"
     steps:
       - uses: actions/checkout@v5

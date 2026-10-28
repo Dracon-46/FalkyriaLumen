@@ -22,7 +22,7 @@ from pathlib import Path
 import pytest
 
 from lumen_canonico import VERSAO_LUMEN
-from lumen_ingestao.coleta_http import decodificar_corpo
+from lumen_ingestao.coleta_http import decodificar_corpo, pelo_intermediario
 
 pytestmark = pytest.mark.contrato
 
@@ -35,7 +35,9 @@ ONTEM = (date.today() - timedelta(days=1)).strftime("%Y%m%d")
 
 
 def _obter(url: str):
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
+    # O servidor que só responde do Brasil vai pelo intermediário em São Paulo, como na coleta (ADR-050, adendo)
+    destino, chave = pelo_intermediario(url)
+    req = urllib.request.Request(destino, headers={"User-Agent": UA, "Accept": "application/json", **chave})
     with urllib.request.urlopen(req, timeout=60) as r:
         corpo, _ = decodificar_corpo(r.read(), dict(r.headers.items()))
         return r.status, (json.loads(corpo) if corpo.strip() else None)
@@ -98,7 +100,8 @@ def test_tse_resultados_mantem_esquema():
 # ---------------------------------------------------------------- aba Eleições (TSE e IBGE)
 
 def _obter_bytes(url: str, cabecalhos: dict | None = None) -> bytes:
-    req = urllib.request.Request(url, headers={"User-Agent": UA, **(cabecalhos or {})})
+    destino, chave = pelo_intermediario(url)
+    req = urllib.request.Request(destino, headers={"User-Agent": UA, **(cabecalhos or {}), **chave})
     with urllib.request.urlopen(req, timeout=60) as r:
         return decodificar_corpo(r.read(), dict(r.headers.items()))[0]
 

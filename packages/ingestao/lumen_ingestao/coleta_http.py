@@ -26,6 +26,14 @@ documento descomprimido, o que barra uma resposta pequena que se expande sem
 fim. Corpo que diz estar comprimido e não descomprime fica como veio, com o
 cabeçalho original.
 
+**Servidores que só respondem do Brasil.** Alguns servidores públicos recusam
+endereços de fora do país, e o GitHub Actions roda fora dele. Para os da lista
+``SO_DO_BRASIL``, quando ``LUMEN_PROXY_BR`` e ``LUMEN_PROXY_CHAVE`` estão no
+ambiente, o pedido vai pelo intermediário em São Paulo (``infra/proxy-br``,
+ADR-050, adendo). O artefato guarda o endereço original, e o cabeçalho
+``X-Lumen-Intermediario`` registra a passagem. Fora do GitHub, numa máquina no
+Brasil, sem essas variáveis, nada muda.
+
 Limite de taxa por fonte, espera exponencial entre tentativas e suspensão da
 fonte depois de falhas seguidas ficam em ``cliente_http.ClienteHttp``, que usa
 esta função. Esta função faz uma única requisição, e faz bem.
@@ -33,7 +41,9 @@ esta função. Esta função faz uma única requisição, e faz bem.
 
 from __future__ import annotations
 
+import os
 import urllib.error
+import urllib.parse
 import urllib.request
 import zlib
 from datetime import datetime, timezone
@@ -42,6 +52,9 @@ from .bronze import ArtefatoBruto
 
 LIMITE_PADRAO_BYTES = 256 * 1024 * 1024  # PDFs de portal podem ser grandes
 TIMEOUT_PADRAO_S = 60
+# Servidores que deixaram de responder a endereços de fora do Brasil (o da API de serviços do IBGE, desde
+# 22/10/2026). O intermediário aceita só os que estão também na lista dele (infra/proxy-br/lib/regras.js).
+SO_DO_BRASIL = frozenset({"servicodados.ibge.gov.br"})
 
 
 class ErroColeta(Exception):
@@ -50,6 +63,15 @@ class ErroColeta(Exception):
 
 class ConteudoGrandeDemais(ErroColeta):
     """A resposta excedeu o limite configurado."""
+
+
+def pelo_intermediario(url: str, ambiente=os.environ) -> tuple[str, dict[str, str]]:
+    """O endereço a pedir e os cabeçalhos a mais: o do intermediário em São Paulo, com a chave, quando o servidor
+    está em ``SO_DO_BRASIL`` e ``LUMEN_PROXY_BR`` e ``LUMEN_PROXY_CHAVE`` estão no ambiente; senão, o próprio."""
+    base, chave = ambiente.get("LUMEN_PROXY_BR"), ambiente.get("LUMEN_PROXY_CHAVE")
+    if not base or not chave or urllib.parse.urlsplit(url).hostname not in SO_DO_BRASIL:
+        return url, {}
+    return f"{base}?{urllib.parse.urlencode({'url': url})}", {"X-Lumen-Chave": chave}
 
 
 def user_agent_lumen(versao: str, contato: str) -> str:
@@ -141,9 +163,10 @@ def baixar_http(
     if any(k.lower() == "user-agent" for k in extras):
         raise ValueError("o User-Agent vem de user_agent; não o sobrescreva por cabecalhos")
 
+    destino, chave = pelo_intermediario(url)
     requisicao = urllib.request.Request(
-        url,
-        headers={"User-Agent": user_agent, "Accept": "*/*", **extras},
+        destino,
+        headers={"User-Agent": user_agent, "Accept": "*/*", **extras, **chave},
         method="GET",
     )
     abridor = abridor or urllib.request.build_opener()
@@ -163,7 +186,9 @@ def baixar_http(
         cabecalhos = {k: v for k, v in resposta.headers.items()}
         conteudo, cabecalhos = decodificar_corpo(conteudo, cabecalhos, limite_bytes)
         status = getattr(resposta, "status", None) or resposta.getcode()
-        url_efetiva = resposta.geturl() or url
+        url_efetiva = url if chave else (resposta.geturl() or url)
+        if chave:
+            cabecalhos["X-Lumen-Intermediario"] = destino.split("?", 1)[0]
         tipo_midia = resposta.headers.get_content_type() if resposta.headers else "application/octet-stream"
     finally:
         resposta.close()
