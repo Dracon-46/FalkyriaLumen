@@ -19,6 +19,7 @@ from lumen_ingestao.coleta_http import (
     ErroColeta,
     baixar_http,
     decodificar_corpo,
+    pelo_intermediario,
     user_agent_lumen,
 )
 
@@ -61,6 +62,14 @@ class _Portal(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json;charset=UTF-8")
             self.send_header("Content-Encoding", "gzip")
             self.send_header("Content-Length", str(len(corpo)))
+            self.end_headers()
+            self.wfile.write(corpo)
+        elif self.path.startswith("/intermediario?"):
+            # o intermediário em São Paulo: só com a chave, e devolve o que o servidor respondeu
+            ok = self.headers.get("X-Lumen-Chave") == "k"
+            corpo = self.path.split("?", 1)[1].encode() if ok else b"chave ausente"
+            self.send_response(200 if ok else 401)
+            self.send_header("Content-Type", "text/plain")
             self.end_headers()
             self.wfile.write(corpo)
         elif self.path == "/manutencao":
@@ -180,3 +189,21 @@ def test_deflate_com_e_sem_cabecalho_zlib():
     assert decodificar_corpo(b"", {"Content-Encoding": "gzip"})[0] == b""
     with pytest.raises(ConteudoGrandeDemais):
         decodificar_corpo(zlib.compress(b"0" * 5000), {"Content-Encoding": "deflate"}, limite=4999)
+
+
+def test_servidor_so_do_brasil_vai_pelo_intermediario_com_a_chave():
+    ibge = "https://servicodados.ibge.gov.br/api/v3/noticias/?qtd=1"
+    amb = {"LUMEN_PROXY_BR": "https://proxy.exemplo/api/tce", "LUMEN_PROXY_CHAVE": "k"}
+    destino, extras = pelo_intermediario(ibge, amb)
+    assert destino.startswith("https://proxy.exemplo/api/tce?url=https%3A%2F%2Fservicodados") and extras == {"X-Lumen-Chave": "k"}
+    assert pelo_intermediario(ibge, {}) == (ibge, {})                          # sem as variáveis, direto
+    assert pelo_intermediario("https://apisidra.ibge.gov.br/values", amb)[1] == {}   # fora da lista, direto
+
+
+def test_artefato_pelo_intermediario_guarda_o_endereco_original(portal, sem_proxy, monkeypatch):
+    monkeypatch.setenv("LUMEN_PROXY_BR", f"{portal}/intermediario")
+    monkeypatch.setenv("LUMEN_PROXY_CHAVE", "k")
+    ibge = "https://servicodados.ibge.gov.br/api/v1/localidades/estados"
+    art = baixar_http(ibge, "ibge", user_agent=UA, abridor=sem_proxy)
+    assert art.status_http == 200 and art.url_solicitada == ibge and art.url_efetiva == ibge
+    assert b"servicodados" in art.conteudo and art.cabecalhos["X-Lumen-Intermediario"] == f"{portal}/intermediario"

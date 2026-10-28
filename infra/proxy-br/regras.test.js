@@ -24,9 +24,10 @@ test("só a chave certa passa", () => {
   assert.equal(chaveConfere(null), false);
 });
 
-test("só os dois servidores, por HTTPS, sem porta nem usuário e no caminho aceito", () => {
+test("só os servidores da lista, por HTTPS, sem porta nem usuário e no caminho aceito", () => {
   assert.ok(destinoPermitido("https://dados.tce.rs.gov.br/dados/licitacon/contrato/ano/2024.csv.zip"));
   assert.ok(destinoPermitido("https://api-dados-abertos.tce.ce.gov.br/sim/contratos?ano=2024"));
+  assert.ok(destinoPermitido("https://servicodados.ibge.gov.br/api/v3/noticias/?tipo=release&idproduto=9256&qtd=3"));
   for (const ruim of [
     "http://dados.tce.rs.gov.br/dados/x.csv",
     "https://dados.tce.rs.gov.br/admin",
@@ -34,6 +35,7 @@ test("só os dois servidores, por HTTPS, sem porta nem usuário e no caminho ace
     "https://dados.tce.rs.gov.br:8443/dados/x.csv",
     "https://eu@dados.tce.rs.gov.br/dados/x.csv",
     "https://exemplo.com/dados/x.csv",
+    "https://servicodados.ibge.gov.br/outra/coisa",
     "não é endereço",
   ]) {
     assert.equal(destinoPermitido(ruim), null, ruim);

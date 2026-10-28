@@ -1,8 +1,10 @@
 # Intermediário em São Paulo
 
 Função da Vercel, na região `gru1` (São Paulo), para os servidores de dados abertos que só respondem a endereços do
-Brasil: o do TCE-RS e o do TCE-CE. O GitHub Actions roda fora do Brasil, e o coletor dos tribunais de contas
-(`lumen_painel.tce`) manda os pedidos a esses servidores por aqui. A decisão está na
+Brasil: o do TCE-RS, o do TCE-CE e, desde 22/10/2026, a API de serviços do IBGE (`servicodados.ibge.gov.br`, só em
+`/api/`). O GitHub Actions roda fora do Brasil, e o coletor dos tribunais de contas
+(`lumen_painel.tce`) e a coleta HTTP comum (`lumen_ingestao.coleta_http`, para o IBGE) mandam os pedidos a esses
+servidores por aqui. A decisão está na
 [ADR-050](../../docs/adr/ADR-050.md), no adendo de 22/10/2026.
 
 ## Como funciona

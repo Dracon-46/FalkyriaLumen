@@ -5,6 +5,13 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### IBGE pelo intermediário em São Paulo (ADR-050, adendo)
+
+- A API de serviços do IBGE deixou de responder fora do Brasil em 22/10: os
+  releases do IBGE na Economia pararam em silêncio, e o teste de contrato das
+  fontes falhava todo dia. Os pedidos a esse servidor passam pelo intermediário
+  em São Paulo, o mesmo do TCE-RS.
+
 ### Avisos: a J-01 do dia na publicação dos painéis (ADR-047, adendo)
 
 - A regra J-01 passa a rodar dentro da publicação do site, com os dias que ela

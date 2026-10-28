@@ -14,6 +14,8 @@ export const HASH_DA_CHAVE = "0806acf099d324ee7f208075704a9edee3f47da071b96153cf
 export const DESTINOS = {
   "dados.tce.rs.gov.br": "/dados/",
   "api-dados-abertos.tce.ce.gov.br": "/",
+  // A API de serviços do IBGE (releases da Economia, localidades e malhas): desde 22/10/2026, só do Brasil
+  "servicodados.ibge.gov.br": "/api/",
 };
 
 /** A resposta de uma função da Vercel tem no máximo 4,5 MB; o coletor pede os arquivos grandes em partes de 4 MiB. */

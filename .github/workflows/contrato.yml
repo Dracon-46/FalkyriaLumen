@@ -27,4 +27,7 @@ jobs:
           LUMEN_TESTE_CONTRATO: "1"
           # busca do varejo (ADR-027); vazio quando o segredo não existe
           LUMEN_ML_TOKEN: ${{ secrets.LUMEN_ML_TOKEN }}
+          # a API de serviços do IBGE só responde do Brasil: vai pelo intermediário em São Paulo (ADR-050, adendo)
+          LUMEN_PROXY_BR: ${{ vars.LUMEN_PROXY_BR }}
+          LUMEN_PROXY_CHAVE: ${{ secrets.LUMEN_PROXY_CHAVE }}
         run: python -m pytest -m contrato -q
