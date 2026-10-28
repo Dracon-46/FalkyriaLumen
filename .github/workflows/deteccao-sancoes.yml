@@ -1,23 +1,20 @@
 # Regra J-01: sanções da CGU × contratos do painel — ADR-031 e ADR-047.
 #
-# Roda sozinho toda vez que o painel termina de carregar dias novos do PNCP
-# (paineis, todo dia, e paineis-carga), e à mão. Baixa o retrato do dia do
+# Desde 28/10/2026 a J-01 do dia roda dentro do paineis-site, com os dias que
+# ele já baixa (ADR-047, adendo): este fluxo ficou só para rodar à mão, por
+# exemplo para refazer o relatório sem esperar a próxima publicação. Baixa o retrato do dia do
 # CEIS e do CNEP (arquivos de dados abertos da CGU, sem chave, ADR-030),
 # normaliza, pega os contratos já guardados pelo painel (anexos da versão
 # "painel-estado") e cruza: contrato com fornecedor que constava num cadastro
 # que o impedia de contratar, na data da assinatura.
 #
-# Desde 21/10/2026 (ADR-047) o relatório é publicado como avisos: vai para o
-# estado dos painéis (deteccao-j01.json.gz, na versão "painel-estado") e o
-# site é refeito no fim, para os avisos saírem no mesmo dia. Continua indo
-# também para o bucket privado, se houver os segredos do eleicoes-carga.
+# O relatório vai para o estado dos painéis (deteccao-j01.json.gz, na versão
+# "painel-estado"), de onde a próxima publicação o lê se a CGU não responder
+# naquele dia, e para o bucket privado, se houver os segredos do eleicoes-carga.
 
 name: deteccao-sancoes
 
 on:
-  workflow_run:
-    workflows: [paineis, paineis-carga]
-    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -29,7 +26,6 @@ concurrency:
 
 jobs:
   j01:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion != 'cancelled'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -68,13 +64,3 @@ jobs:
           lumen deteccao "$@"
       - name: Guardar o relatório no estado dos painéis
         run: gh release upload painel-estado estado/deteccao-j01.json.gz --clobber
-
-  site:
-    needs: j01
-    permissions:
-      contents: read
-      actions: read
-      issues: read
-      pages: write
-      id-token: write
-    uses: ./.github/workflows/paineis-site.yml

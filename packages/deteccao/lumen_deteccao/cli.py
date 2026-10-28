@@ -4,7 +4,7 @@
 
 ``j01`` cruza os contratos do painel (``contratacoes-AAAA-MM-DD.json.gz`` em ``--estado``) com as sanções da
 silver (``lumen coletar cgu_ceis`` e ``cgu_cnep``, depois ``lumen normalizar``). Imprime só as contagens.
-O relatório completo, com as coincidências, vai para ``--saida``: no fluxo ``deteccao-sancoes``, o
+O relatório completo, com as coincidências, vai para ``--saida``: no fluxo ``paineis-site``, o
 ``deteccao-j01.json.gz`` do estado dos painéis, de onde saem os avisos do portal (ADR-047). Com ``--privado``,
 vai também para o bucket privado da publicação (``deteccao/j01/ultimo.json.gz``, trocado a cada execução).
 ``--resumo`` acrescenta o resumo, só com contagens, a um arquivo Markdown (o resumo da execução no GitHub).

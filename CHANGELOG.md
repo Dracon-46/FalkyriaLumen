@@ -5,6 +5,14 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Avisos: a J-01 do dia na publicação dos painéis (ADR-047, adendo)
+
+- A regra J-01 passa a rodar dentro da publicação do site, com os dias que ela
+  já baixa. O fluxo `deteccao-sancoes` refazia o site logo depois da
+  publicação diária e falhou em cinco de seis dias, de 22 a 27/10, por
+  esgotar o limite da API do GitHub. Ele fica só para rodar à mão.
+- Se a CGU não responder, os avisos saem com o último relatório guardado.
+
 ### Governos municipais: transferências da União (ADR-054)
 
 - No mandato aberto, "Transferências da União no mandato": o que a União
