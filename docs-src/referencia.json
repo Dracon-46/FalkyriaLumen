@@ -6242,57 +6242,64 @@
   {
    "caminho": "packages/ingestao/lumen_ingestao/coleta_http.py",
    "linguagem": "python",
-   "linhas": 181,
-   "doc": "Coleta HTTP mínima, compartilhada por todos os conectores.\n\nDuas decisões merecem nota.\n\n**Resposta de erro também é artefato.** Um 404 ou 503 não é jogado fora: ele\nvolta como ``ArtefatoBruto`` com o ``status_http`` correspondente e é guardado\nna camada bronze. Pelo princípio P5, um portal que não publica o que a lei\nobriga é um achado — e a resposta de erro datada é a prova desse achado. Quem\ndecide se o erro é temporário ou persistente é o avaliador de conformidade,\nolhando a sequência de coletas, não esta função.\n\nSó falhas em que nada foi recebido (DNS, conexão recusada, tempo esgotado)\nlevantam ``ErroColeta``: nesse caso não existe resposta a preservar.\n\n**Identificação obrigatória.** Não há User-Agent padrão. Todo conector precisa\ndeclarar quem está coletando e como entrar em contato (RF-CO-09, princípio\nP6). Um coletor anônimo é exatamente o tipo de tráfego que o operador de um\nportal público tem razão de bloquear.\n\n**Compressão de transporte é desfeita.** Algumas fontes (a API de serviços do\nIBGE, por exemplo) respondem com ``Content-Encoding: gzip`` mesmo sem o pedido\npedir. A compressão é do transporte, não do documento: o bronze guarda o\ndocumento descomprimido, sem o ``Content-Encoding``, e registra a codificação\nrecebida em ``X-Lumen-Codificacao-Recebida``. O limite de tamanho vale para o\ndocumento descomprimido, o que barra uma resposta pequena que se expande sem\nfim. Corpo que diz estar comprimido e não descomprime fica como veio, com o\ncabeçalho original.\n\nLimite de taxa por fonte, espera exponencial entre tentativas e suspensão da\nfonte depois de falhas seguidas ficam em ``cliente_http.ClienteHttp``, que usa\nesta função. Esta função faz uma única requisição, e faz bem.",
+   "linhas": 206,
+   "doc": "Coleta HTTP mínima, compartilhada por todos os conectores.\n\nDuas decisões merecem nota.\n\n**Resposta de erro também é artefato.** Um 404 ou 503 não é jogado fora: ele\nvolta como ``ArtefatoBruto`` com o ``status_http`` correspondente e é guardado\nna camada bronze. Pelo princípio P5, um portal que não publica o que a lei\nobriga é um achado — e a resposta de erro datada é a prova desse achado. Quem\ndecide se o erro é temporário ou persistente é o avaliador de conformidade,\nolhando a sequência de coletas, não esta função.\n\nSó falhas em que nada foi recebido (DNS, conexão recusada, tempo esgotado)\nlevantam ``ErroColeta``: nesse caso não existe resposta a preservar.\n\n**Identificação obrigatória.** Não há User-Agent padrão. Todo conector precisa\ndeclarar quem está coletando e como entrar em contato (RF-CO-09, princípio\nP6). Um coletor anônimo é exatamente o tipo de tráfego que o operador de um\nportal público tem razão de bloquear.\n\n**Compressão de transporte é desfeita.** Algumas fontes (a API de serviços do\nIBGE, por exemplo) respondem com ``Content-Encoding: gzip`` mesmo sem o pedido\npedir. A compressão é do transporte, não do documento: o bronze guarda o\ndocumento descomprimido, sem o ``Content-Encoding``, e registra a codificação\nrecebida em ``X-Lumen-Codificacao-Recebida``. O limite de tamanho vale para o\ndocumento descomprimido, o que barra uma resposta pequena que se expande sem\nfim. Corpo que diz estar comprimido e não descomprime fica como veio, com o\ncabeçalho original.\n\n**Servidores que só respondem do Brasil.** Alguns servidores públicos recusam\nendereços de fora do país, e o GitHub Actions roda fora dele. Para os da lista\n``SO_DO_BRASIL``, quando ``LUMEN_PROXY_BR`` e ``LUMEN_PROXY_CHAVE`` estão no\nambiente, o pedido vai pelo intermediário em São Paulo (``infra/proxy-br``,\nADR-050, adendo). O artefato guarda o endereço original, e o cabeçalho\n``X-Lumen-Intermediario`` registra a passagem. Fora do GitHub, numa máquina no\nBrasil, sem essas variáveis, nada muda.\n\nLimite de taxa por fonte, espera exponencial entre tentativas e suspensão da\nfonte depois de falhas seguidas ficam em ``cliente_http.ClienteHttp``, que usa\nesta função. Esta função faz uma única requisição, e faz bem.",
    "itens": [
     {
      "tipo": "classe",
      "nome": "ErroColeta",
      "assinatura": "class ErroColeta(Exception)",
      "doc": "Nada foi recebido da fonte: não há resposta a preservar.",
-     "linha": 47
+     "linha": 60
     },
     {
      "tipo": "classe",
      "nome": "ConteudoGrandeDemais",
      "assinatura": "class ConteudoGrandeDemais(ErroColeta)",
      "doc": "A resposta excedeu o limite configurado.",
-     "linha": 51
+     "linha": 64
+    },
+    {
+     "tipo": "funcao",
+     "nome": "pelo_intermediario",
+     "assinatura": "def pelo_intermediario(url: str, ambiente=os.environ) -> tuple[str, dict[str, str]]",
+     "doc": "O endereço a pedir e os cabeçalhos a mais: o do intermediário em São Paulo, com a chave, quando o servidor\nestá em ``SO_DO_BRASIL`` e ``LUMEN_PROXY_BR`` e ``LUMEN_PROXY_CHAVE`` estão no ambiente; senão, o próprio.",
+     "linha": 68
     },
     {
      "tipo": "funcao",
      "nome": "user_agent_lumen",
      "assinatura": "def user_agent_lumen(versao: str, contato: str) -> str",
      "doc": "Monta a identificação exigida pela política de coleta responsável.",
-     "linha": 55
+     "linha": 77
     },
     {
      "tipo": "funcao",
      "nome": "_ler_limitado",
      "assinatura": "def _ler_limitado(resposta, limite: int) -> bytes",
      "doc": "Lê a resposta em blocos de 64 KiB e levanta ``ConteudoGrandeDemais`` ao passar de ``limite``.\n\nLer em blocos interrompe o download assim que o limite é excedido, sem carregar a\nresposta inteira na memória.",
-     "linha": 64
+     "linha": 86
     },
     {
      "tipo": "funcao",
      "nome": "_descomprimir",
      "assinatura": "def _descomprimir(conteudo: bytes, janela: int, limite: int) -> bytes",
      "doc": "Descomprime com a janela dada, levantando ``ConteudoGrandeDemais`` se passar de ``limite``.",
-     "linha": 88
+     "linha": 110
     },
     {
      "tipo": "funcao",
      "nome": "decodificar_corpo",
      "assinatura": "def decodificar_corpo(conteudo: bytes, cabecalhos: dict[str, str], limite: int=LIMITE_PADRAO_BYTES) -> tuple[bytes, dict[str, str]]",
      "doc": "Desfaz ``Content-Encoding`` gzip ou deflate; devolve o corpo e os cabeçalhos ajustados.\n\nSem codificação (ou com uma desconhecida, ou com um corpo que não descomprime), devolve\ntudo como veio.",
-     "linha": 100
+     "linha": 122
     },
     {
      "tipo": "funcao",
      "nome": "baixar_http",
      "assinatura": "def baixar_http(url: str, fonte_id: str, *, user_agent: str, timeout: float=TIMEOUT_PADRAO_S, limite_bytes: int=LIMITE_PADRAO_BYTES, abridor: urllib.request.OpenerDirector | None=None, cabecalhos: dict[str, str] | None=None) -> ArtefatoBruto",
      "doc": "Faz uma requisição GET e devolve o que a fonte respondeu (sem a compressão de transporte).\n\n``cabecalhos`` acrescenta cabeçalhos à requisição (``Accept``,\n``If-None-Match``, ``Range``). Não pode substituir o ``User-Agent``: a\nidentificação é obrigatória e única.",
-     "linha": 122
+     "linha": 144
     }
    ]
   },
@@ -8705,7 +8712,7 @@
   {
    "caminho": "packages/painel/lumen_painel/cnpj.py",
    "linguagem": "python",
-   "linhas": 385,
+   "linhas": 399,
    "doc": "Base pública de CNPJ da Receita Federal: cadastro e quadro societário dos fornecedores do painel (ADR-043).\n\nA Receita publica a base inteira todo mês num compartilhamento do Nextcloud\n(``arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9``), uma pasta por mês (``2026-10``) com ZIPs de\nCSV em ISO-8859-1 separados por ``;``. Em outubro de 2026, perto de 8 GB compactados: Estabelecimentos (5,4 GB),\nEmpresas (1,4 GB), Sócios (0,7 GB), Simples (0,3 GB) e as tabelas de código (CNAE, natureza jurídica,\nqualificação, motivo, município e país). A lista e os arquivos saem pelo WebDAV público do compartilhamento.\n\nSó entram as empresas que aparecem no Lumen: os CNPJs de fornecedor dos contratos guardados no estado do painel\n(minimização, DOC-08). Cada ZIP é baixado, lido em fluxo e apagado, um de cada vez; a linha é filtrada pelo CNPJ\nantes de passar pelo leitor de CSV, que é a parte cara. O que fica, por ADR-043:\n\n- **empresa**: razão social (com o CPF do MEI mascarado), natureza jurídica, porte e capital social;\n- **estabelecimento** (o CNPJ do contrato): matriz ou filial, nome fantasia, situação cadastral, data e motivo,\n  data de início da atividade, CNAE principal e secundários, município e UF, e a situação especial. Fica de fora o\n  endereço de rua, o telefone e o e-mail;\n- **Simples e MEI**: a opção e as datas;\n- **sócios**: pessoa jurídica com CNPJ e nome; pessoa física com nome, qualificação e data de entrada, sem o CPF\n  parcial; estrangeiro com nome e país. Fora a faixa etária e o representante legal.\n\nO estado é ``cnpj-fornecedores.json.gz``, com o mês da base e as tabelas de código usadas. A publicação abre o\nestado em arquivos por prefixo do CNPJ (``cnpj/<3 dígitos>.json.gz``, comprimidos), com os códigos, e os\nnomes dos códigos ficam em ``cnpj/tabelas.json``.",
    "itens": [
     {
@@ -8718,8 +8725,8 @@
     {
      "tipo": "funcao",
      "nome": "listar",
-     "assinatura": "def listar(caminho: str, *, contato: str) -> list[tuple[str, int | None]]",
-     "doc": "Os itens de uma pasta do compartilhamento (``\"\"`` é a raiz): nome e tamanho em bytes (pasta sem tamanho).",
+     "assinatura": "def listar(caminho: str, *, contato: str, tentativas: int=TENTATIVAS, esperar: Callable[[float], None]=time.sleep) -> list[tuple[str, int | None]]",
+     "doc": "Os itens de uma pasta do compartilhamento (``\"\"`` é a raiz): nome e tamanho em bytes (pasta sem tamanho).\n\nResposta vazia ou cortada, e falha de rede, são tentadas de novo: em 26/10/2026 a raiz veio vazia uma vez e\nderrubou a coleta da semana.",
      "linha": 71
     },
     {
@@ -8727,126 +8734,126 @@
      "nome": "mes_mais_recente",
      "assinatura": "def mes_mais_recente(itens: Iterable[tuple[str, int | None]]) -> str | None",
      "doc": "A pasta ``AAAA-MM`` mais recente da raiz do compartilhamento.",
-     "linha": 88
+     "linha": 102
     },
     {
      "tipo": "funcao",
      "nome": "baixar",
      "assinatura": "def baixar(caminho: str, destino: Path, *, contato: str, tentativas: int=TENTATIVAS, esperar: Callable[[float], None]=time.sleep) -> Path",
      "doc": "Baixa um arquivo do compartilhamento para ``destino``, retomando do ponto em que parou (``Range``).",
-     "linha": 94
+     "linha": 108
     },
     {
      "tipo": "funcao",
      "nome": "linhas_do_zip",
      "assinatura": "def linhas_do_zip(arquivo: Path) -> Iterator[str]",
      "doc": "As linhas do CSV (o único arquivo do ZIP), em texto, lidas em fluxo.",
-     "linha": 121
+     "linha": 135
     },
     {
      "tipo": "funcao",
      "nome": "_campos",
      "assinatura": "def _campos(linha: str) -> list[str]",
      "doc": "Os campos de uma linha do CSV da Receita.",
-     "linha": 127
+     "linha": 141
     },
     {
      "tipo": "funcao",
      "nome": "_data",
      "assinatura": "def _data(texto: str) -> str | None",
      "doc": "``20210518`` → ``2021-05-18``; vazio e ``00000000`` viram nulo.",
-     "linha": 134
+     "linha": 148
     },
     {
      "tipo": "funcao",
      "nome": "_numero",
      "assinatura": "def _numero(texto: str) -> float | None",
      "doc": "``120000000000,00`` → 120000000000.0.",
-     "linha": 139
+     "linha": 153
     },
     {
      "tipo": "funcao",
      "nome": "ler_tabela",
      "assinatura": "def ler_tabela(linhas: Iterable[str]) -> dict[str, str]",
      "doc": "Uma tabela de código da Receita (``\"0111301\";\"Cultivo de arroz\"``) como dicionário.",
-     "linha": 147
+     "linha": 161
     },
     {
      "tipo": "funcao",
      "nome": "ler_empresas",
      "assinatura": "def ler_empresas(linhas: Iterable[str], basicos: set[str]) -> dict[str, dict]",
      "doc": "Por CNPJ básico (8 dígitos): razão social com o CPF mascarado, natureza jurídica, porte e capital social.",
-     "linha": 157
+     "linha": 171
     },
     {
      "tipo": "funcao",
      "nome": "ler_estabelecimentos",
      "assinatura": "def ler_estabelecimentos(linhas: Iterable[str], cnpjs: set[str]) -> dict[str, dict]",
      "doc": "Por CNPJ (14 dígitos), o estabelecimento, sem endereço de rua, telefone e e-mail.",
-     "linha": 169
+     "linha": 183
     },
     {
      "tipo": "funcao",
      "nome": "ler_socios",
      "assinatura": "def ler_socios(linhas: Iterable[str], basicos: set[str]) -> dict[str, list[dict]]",
      "doc": "Por CNPJ básico, os sócios: PJ com CNPJ e nome; PF com nome (sem o CPF parcial); estrangeiro com o país.",
-     "linha": 187
+     "linha": 201
     },
     {
      "tipo": "funcao",
      "nome": "ler_simples",
      "assinatura": "def ler_simples(linhas: Iterable[str], basicos: set[str]) -> dict[str, dict]",
      "doc": "Por CNPJ básico, a opção pelo Simples e pelo MEI, com as datas.",
-     "linha": 205
+     "linha": 219
     },
     {
      "tipo": "funcao",
      "nome": "fornecedores_do_estado",
      "assinatura": "def fornecedores_do_estado(estado: Path | str) -> set[str]",
      "doc": "Os CNPJs (14 dígitos) de fornecedor dos contratos guardados no estado do painel.",
-     "linha": 219
+     "linha": 233
     },
     {
      "tipo": "classe",
      "nome": "ResultadoCnpj",
      "assinatura": "class ResultadoCnpj",
      "doc": "O que a coleta fez: o mês da base, quantos CNPJs pedidos e achados, os arquivos lidos e se pulou.",
-     "linha": 237
+     "linha": 251
     },
     {
      "tipo": "metodo",
      "nome": "ResultadoCnpj.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "Resumo para imprimir na linha de comando.",
-     "linha": 246
+     "linha": 260
     },
     {
      "tipo": "funcao",
      "nome": "coletar",
      "assinatura": "def coletar(estado: Path | str, *, contato: str, temporario: Path | None=None, mes: str | None=None, listar_fn=listar, baixar_fn=baixar) -> ResultadoCnpj",
      "doc": "Lê a base do ``mes`` (padrão: o mais recente) para os fornecedores do estado e grava ``ARQUIVO``.\n\nPula quando o estado já é do mesmo mês e tem todos os fornecedores. Arquivo que não baixa interrompe a coleta\nsem gravar nada (o estado anterior continua valendo).",
-     "linha": 252
+     "linha": 266
     },
     {
      "tipo": "funcao",
      "nome": "montar",
      "assinatura": "def montar(cnpjs: set[str], empresas: dict, estabelecimentos: dict, socios: dict, simples: dict, tabelas: dict[str, dict[str, str]], mes: str) -> dict",
      "doc": "O estado: por CNPJ achado, a empresa, o estabelecimento, o Simples e os sócios; só as tabelas usadas.",
-     "linha": 308
+     "linha": 322
     },
     {
      "tipo": "funcao",
      "nome": "para_publicar",
      "assinatura": "def para_publicar(registro: dict) -> dict",
      "doc": "O registro de um CNPJ como vai para o site: os códigos como estão (os nomes ficam em ``cnpj/tabelas.json``)\ne sem os campos vazios, para a base caber no limite do GitHub Pages.",
-     "linha": 344
+     "linha": 358
     },
     {
      "tipo": "funcao",
      "nome": "publicar",
      "assinatura": "def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> dict | None",
      "doc": "Grava ``cnpj/<3 primeiros dígitos>.json.gz`` e ``cnpj/tabelas.json`` a partir do estado; devolve o resumo.",
-     "linha": 366
+     "linha": 380
     }
    ]
   },
@@ -17846,7 +17853,7 @@
   {
    "caminho": "packages/ingestao/testes/test_coleta_http.py",
    "doc": "Testes da coleta HTTP contra um servidor local de verdade.\n\nO servidor sobe em 127.0.0.1 dentro do próprio teste: é uma requisição HTTP\nreal, com redirecionamento, cabeçalhos e códigos de erro reais, sem depender\nde rede externa.",
-   "testes": 14
+   "testes": 16
   },
   {
    "caminho": "packages/ingestao/testes/test_marco_m1.py",
@@ -17961,7 +17968,7 @@
   {
    "caminho": "packages/painel/testes/test_cnpj.py",
    "doc": "Testes da base de CNPJ da Receita: filtro pelos fornecedores, o que entra de cada arquivo e a publicação.",
-   "testes": 3
+   "testes": 4
   },
   {
    "caminho": "packages/painel/testes/test_cobertura.py",

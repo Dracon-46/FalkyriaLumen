@@ -68,13 +68,27 @@ def _cabecalhos(contato: str) -> dict[str, str]:
     return {"User-Agent": f"Lumen (contato: {contato})", "Authorization": f"Basic {credencial}"}
 
 
-def listar(caminho: str, *, contato: str) -> list[tuple[str, int | None]]:
-    """Os itens de uma pasta do compartilhamento (``""`` é a raiz): nome e tamanho em bytes (pasta sem tamanho)."""
+def listar(caminho: str, *, contato: str, tentativas: int = TENTATIVAS,
+           esperar: Callable[[float], None] = time.sleep) -> list[tuple[str, int | None]]:
+    """Os itens de uma pasta do compartilhamento (``""`` é a raiz): nome e tamanho em bytes (pasta sem tamanho).
+
+    Resposta vazia ou cortada, e falha de rede, são tentadas de novo: em 26/10/2026 a raiz veio vazia uma vez e
+    derrubou a coleta da semana."""
     pasta = caminho.strip("/")
-    pedido = urllib.request.Request(f"{WEBDAV}/{pasta}/" if pasta else f"{WEBDAV}/", method="PROPFIND",
-                                    headers={**_cabecalhos(contato), "Depth": "1"})
-    with urllib.request.urlopen(pedido, timeout=120) as resposta:
-        raiz = ElementTree.fromstring(resposta.read())
+    for tentativa in range(tentativas):
+        pedido = urllib.request.Request(f"{WEBDAV}/{pasta}/" if pasta else f"{WEBDAV}/", method="PROPFIND",
+                                        headers={**_cabecalhos(contato), "Depth": "1"})
+        try:
+            with urllib.request.urlopen(pedido, timeout=120) as resposta:
+                raiz = ElementTree.fromstring(resposta.read())
+            break
+        except urllib.error.HTTPError as erro:
+            if erro.code < 500 or tentativa + 1 == tentativas:
+                raise
+        except (urllib.error.URLError, TimeoutError, ConnectionError, ElementTree.ParseError):
+            if tentativa + 1 == tentativas:
+                raise
+        esperar(10 * (tentativa + 1))
     saida = []
     for r in raiz.findall(f"{_DAV}response"):
         href = (r.findtext(f"{_DAV}href") or "").rstrip("/")
