@@ -11,6 +11,9 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   releases do IBGE na Economia pararam em silêncio, e o teste de contrato das
   fontes falhava todo dia. Os pedidos a esse servidor passam pelo intermediário
   em São Paulo, o mesmo do TCE-RS.
+- A listagem do compartilhamento da Receita (base de CNPJ) tenta de novo
+  quando vem vazia ou cortada: em 26/10, uma resposta vazia derrubou a coleta
+  da semana.
 
 ### Avisos: a J-01 do dia na publicação dos painéis (ADR-047, adendo)
 

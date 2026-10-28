@@ -184,3 +184,24 @@ def test_listar_le_o_webdav_e_baixar_retoma(tmp_path, monkeypatch):
     assert destino.read_bytes() == b"comeresto"
     assert pedidos[-1].headers["Range"] == "bytes=4-"
     assert cnpj.mes_mais_recente([("2026-09", None), ("2026-10", None), ("cnpj.tar.gz", 1)]) == "2026-10"
+
+
+def test_listar_tenta_de_novo_quando_a_resposta_vem_vazia(monkeypatch):
+    xml = (b'<?xml version="1.0"?><d:multistatus xmlns:d="DAV:"><d:response><d:href>/public.php/webdav/2026-10/'
+           b'</d:href></d:response></d:multistatus>')
+    respostas = [b"", xml]
+
+    class Resposta(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(cnpj.urllib.request, "urlopen", lambda pedido, timeout: Resposta(respostas.pop(0)))
+    esperas = []
+    assert cnpj.listar("", contato="c@exemplo.org", esperar=esperas.append) == [("2026-10", None)]
+    assert esperas == [10]
+    respostas[:] = [b"", b"", b"", b""]
+    with pytest.raises(cnpj.ElementTree.ParseError):
+        cnpj.listar("", contato="c@exemplo.org", esperar=esperas.append)
