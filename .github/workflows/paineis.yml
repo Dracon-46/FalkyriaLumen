@@ -78,7 +78,7 @@ jobs:
       LUMEN_PROXY_CHAVE: ${{ secrets.LUMEN_PROXY_CHAVE }}
       PYTHONUNBUFFERED: "1"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
@@ -195,7 +195,7 @@ jobs:
       UFS: ${{ matrix.ufs }}
       PYTHONUNBUFFERED: "1"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
