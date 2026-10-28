@@ -59,7 +59,7 @@ jobs:
       LUMEN_S3_CHAVE_SECRETA: ${{ secrets.R2_CHAVE_SECRETA }}
       LUMEN_PUBLICACAO_REGIAO: ${{ vars.R2_REGIAO }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
