@@ -14,6 +14,8 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 - A listagem do compartilhamento da Receita (base de CNPJ) tenta de novo
   quando vem vazia ou cortada: em 26/10, uma resposta vazia derrubou a coleta
   da semana.
+- O intermediário em São Paulo volta a ser publicado na Vercel: o passo que
+  decide se a pasta mudou falhava e barrava o deploy.
 
 ### Avisos: a J-01 do dia na publicação dos painéis (ADR-047, adendo)
 
