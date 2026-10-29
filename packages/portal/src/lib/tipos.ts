@@ -20,6 +20,8 @@ export const VERSAO_FEED = 1;
 export const VERSAO_ZONAS = 1;
 /** Versão dos arquivos do eleitorado (`eleitorado-<ano>/`, ADR-055). */
 export const VERSAO_ELEITORADO = 1;
+/** Versão dos arquivos dos horários das urnas (ADR-056). */
+export const VERSAO_HORARIOS = 1;
 
 /** Majoritário (vence quem tem mais votos) ou proporcional (vagas repartidas pelo quociente eleitoral). */
 export type TipoCargo = "majoritario" | "proporcional";
@@ -488,6 +490,61 @@ export interface ArquivoEleitorado {
   zonas?: ZonaEleitorado[];
   secoes?: [string, number, string, number][];
   locais?: Record<string, string>;
+}
+
+/** Contagem por faixa de `passo` minutos a partir de `inicio` (minutos desde a meia-noite), com o que fica fora. */
+export interface HistogramaHorarios {
+  inicio: number;
+  passo: number;
+  contagens: number[];
+  antes: number;
+  depois: number;
+}
+
+/**
+ * Os horários de um lugar num turno: seções, aptos, comparecimento, quantas fecharam depois das 17h30 e
+ * `[mediana, 90%, último]` do encerramento e do recebimento (minutos desde a meia-noite; passa de 1.440 no dia
+ * seguinte). No lugar do arquivo, também os histogramas e os tipos de urna.
+ */
+export interface ResumoHorarios {
+  secoes: number;
+  aptos: number;
+  comparecimento: number;
+  depois_17h30: number;
+  encerramento: [number | null, number | null, number | null];
+  recebido: [number | null, number | null, number | null];
+  histogramas?: {
+    abertura: HistogramaHorarios;
+    encerramento: HistogramaHorarios;
+    /** `null` antes de 2020: o TSE não publicava o recebimento. */
+    recebido: HistogramaHorarios | null;
+  };
+  tipos_urna?: Record<string, number>;
+}
+
+/**
+ * Uma seção nos horários: `[turno, zona, seção, local, aptos, comparecimento, tipo de urna, abertura,
+ * encerramento, emissão do boletim, boletim recebido]`, os horários como `"HH:MM"` (`"+1 HH:MM"` no dia seguinte).
+ */
+export type SecaoHorarios = [number, string, number, string, number, number, string, string | null, string | null,
+  string | null, string | null];
+
+/**
+ * Arquivo `horarios/<ano>/{br,uf-<sigla>}.json` ou um município de `mu/<grupo>.json` (ADR-056): quando as urnas
+ * abriram e fecharam e quando os boletins chegaram ao TSE. `horario` diz se abertura, encerramento e emissão estão
+ * no horário de Brasília (de 2022 em diante) ou no local de cada seção; o recebido é sempre o de Brasília.
+ */
+export interface ArquivoHorarios {
+  versao: number;
+  tipo: "horarios";
+  ano: number;
+  horario: "brasilia" | "local";
+  nivel: "br" | "uf" | "municipio";
+  origem: Record<string, unknown>;
+  lugar: { chave: string; nome: string; uf?: string; turnos: Record<string, ResumoHorarios> };
+  partes?: Record<string, { nome: string; turnos: Record<string, ResumoHorarios> }>;
+  zonas?: { zona: string; turnos: Record<string, ResumoHorarios> }[];
+  secoes?: SecaoHorarios[];
 }
 
 /** Arquivo `geo/zonas-<ano>/indice.json`: código IBGE → número de zonas, dos municípios com mais de uma. */

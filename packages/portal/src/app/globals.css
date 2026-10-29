@@ -2381,6 +2381,25 @@ table.tabela {
   color: var(--destaque);
 }
 
+.horarios {
+  margin-top: 16px;
+}
+
+.horarios-escolhas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+}
+
+.horarios-escolhas .eleitorado-abas {
+  margin: 0 0 10px;
+}
+
+.horarios-graficos .grafico-tabela {
+  margin-bottom: 4px;
+}
+
 .eleitorado-coluna-barra {
   min-width: 160px;
   white-space: nowrap;

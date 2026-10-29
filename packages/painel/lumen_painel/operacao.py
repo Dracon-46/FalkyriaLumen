@@ -39,6 +39,7 @@ FLUXOS: dict[str, tuple[str, int | None]] = {
     "contrato-de-fontes": ("Testes de contrato das fontes", 24),
     "cnpj": ("Base de CNPJ da Receita, dos fornecedores", 168),
     "eleitorado": ("Eleitorado: perfil e comparecimento por perfil (TSE)", 168),
+    "horarios": ("Horários das urnas: abertura, encerramento e boletim recebido (TSE)", 168),
     "tce": ("Contratos nos tribunais de contas (TCE-RS e TCE-CE, pelo intermediário em São Paulo, TCE-PR e TCE-PE)", 24),
     "eleicoes-ao-vivo": ("Apuração ao vivo", None),
     "paineis-carga": ("Carga das contratações por período", None),

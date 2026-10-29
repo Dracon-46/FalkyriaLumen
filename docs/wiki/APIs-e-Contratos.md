@@ -243,6 +243,7 @@ transparencia` lê o ciclo mais recente todo dia e publica `transparencia/uf-<si
 |---|---|
 | `https://resultados.tse.jus.br/oficial` | Sistema de divulgação de resultados: catálogo (`/comum/config/ele-c.json`), municípios, resultado por cargo e abrangência, andamento da totalização e fotos. Responde 304 a `If-Modified-Since` |
 | `https://dadosabertos.tse.jus.br/api/3/action/package_show` | Portal de Dados Abertos (CKAN): pacote `resultados-<ano>` |
+| `https://dadosabertos.tse.jus.br/api/3/action/package_show?id=resultados-<ano>-boletim-de-urna` | Catálogo dos boletins de urna em tabela (`bweb_<turno>t_<UF>_<data>.zip`, em `cdn.tse.jus.br`), um por UF e turno, de 2018 em diante ([ADR-056](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-056.md)) |
 | `https://cdn.tse.jus.br/estatistica/sead/odsele` | ZIPs dos dados abertos (votação, detalhe da apuração, locais de votação `eleitorado_local_votacao_<ano>.zip`) |
 | `https://cdn.tse.jus.br/estatistica/sead/eleicoes` | Evolução da totalização do Presidente (2018 em diante) |
 
@@ -325,6 +326,8 @@ e espelhado em [`tipos.ts`](https://github.com/Dracon-46/FalkyriaLumen/blob/main
 | `geo/zonas-<ano>/mu-<ibge>.json` | `zonas` | Zonas e locais de votação de um município |
 | `eleitorado/<ano>/br.json.gz`, `uf-<sigla>.json.gz` (no site dos painéis) | `eleitorado` | O perfil do eleitorado (faixa etária, gênero, escolaridade, estado civil, biometria) e o comparecimento por turno e por perfil do lugar, com o resumo dos lugares abaixo ([ADR-055](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-055.md)) |
 | `eleitorado/<ano>/mu/<grupo>.json.gz` (no site dos painéis) | `eleitorado-grupo` | Os municípios do grupo (3º a 5º dígitos do IBGE; `zz`, o exterior), cada um com as zonas e as seções `[zona, seção, local, eleitores]` |
+| `horarios/<ano>/br.json.gz`, `uf-<sigla>.json.gz` (no site dos painéis) | `horarios` | Os horários das urnas do lugar por turno: seções, quantas fecharam depois das 17h30, mediana, 90% e último encerramento e recebimento do boletim, histogramas de 10 minutos; `horario` diz se é o de Brasília (2022 em diante) ou o local ([ADR-056](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-056.md)) |
+| `horarios/<ano>/mu/<grupo>.json.gz` (no site dos painéis) | `horarios-grupo` | Os municípios do grupo, cada um com as zonas e as seções `[turno, zona, seção, local, aptos, comparecimento, tipo de urna, abertura, encerramento, emissão, recebido]`, os horários em `"HH:MM"` |
 | `fotos/…` | imagem | Fotos dos candidatos (sistema de resultados) |
 
 ### Tipo `resultado`

@@ -10,9 +10,11 @@
 
 import {
   VERSAO_ELEITORADO,
+  VERSAO_HORARIOS,
   VERSAO_FEED,
   VERSAO_ZONAS,
   type ArquivoEleitorado,
+  type ArquivoHorarios,
   type ArquivoZonas,
   type CadastroMunicipios,
   type FeedConferencia,
@@ -185,4 +187,21 @@ export function validarEleitorado(bruto: unknown, onde = "eleitorado"): ArquivoE
     }
   }
   return o as unknown as ArquivoEleitorado;
+}
+
+/** Os horários das urnas de um lugar (ADR-056): versão, tipo, o lugar com os turnos e as seções no formato. */
+export function validarHorarios(bruto: unknown, onde = "horarios"): ArquivoHorarios {
+  const o = objeto(bruto, onde);
+  versao(o, onde, VERSAO_HORARIOS);
+  if (o.tipo !== "horarios") throw new ErroFeed(`${onde}: tipo ${String(o.tipo)} não é dos horários das urnas`);
+  exigir(o, ["ano", "nivel", "horario", "lugar"], onde);
+  const lugar = objeto(o.lugar, `${onde}.lugar`);
+  objeto(lugar.turnos, `${onde}.lugar.turnos`);
+  if (o.secoes !== undefined) {
+    for (const [i, s] of lista(o.secoes, `${onde}.secoes`).entries()) {
+      const secao = lista(s, `${onde}.secoes[${i}]`);
+      if (secao.length !== 11 || typeof secao[0] !== "number") throw new ErroFeed(`${onde}.secoes[${i}] fora do formato`);
+    }
+  }
+  return o as unknown as ArquivoHorarios;
 }

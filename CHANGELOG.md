@@ -5,6 +5,21 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Eleições: os horários das urnas (ADR-056)
+
+- Painel "Horários das urnas" no lugar aberto da aba Eleições, de 2018 em
+  diante: quantas seções fecharam depois das 17h30 (sinal de fila), até que
+  horas metade das urnas fechou e metade dos boletins chegou ao TSE, e os
+  gráficos da abertura, do encerramento e do recebimento de 10 em 10
+  minutos; os estados, os municípios ou as zonas abaixo; no município, cada
+  seção com os horários e o local de votação, com busca. CSV em todas as
+  tabelas.
+- Dados do boletim de urna do TSE. De 2022 em diante, no horário de
+  Brasília (no Acre, a urna abre às 6h locais); antes, no horário local.
+- Fluxo `horarios`: um pacote por ano (perto de 20 MB) no estado dos
+  painéis, um job por ano, desempacotado no site dos painéis. O bucket das
+  eleições não recebe nada.
+
 ### Eleições: o eleitorado do Brasil à seção (ADR-055)
 
 - Painel "Eleitorado" no lugar aberto da aba Eleições, de 2018 em diante:
