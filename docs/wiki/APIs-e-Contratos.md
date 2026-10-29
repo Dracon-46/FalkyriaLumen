@@ -122,7 +122,18 @@ Sem chave.
 | `https://sistemas.tce.pe.gov.br/DadosAbertos/TermoAditivo!json?AnoContrato=AAAA` | Aditivos dos contratos do ano |
 | `https://sistemas.tce.pe.gov.br/DadosAbertos/Municipios!json` | Nome e código IBGE dos municípios, para ligar o contrato ao ente |
 
-Sem chave. O levantamento dos outros tribunais está em [Tribunais de contas](Tribunais-de-Contas).
+Sem chave.
+
+### TCE-CE — API de dados abertos do SIM
+
+| Endereço | Uso |
+|---|---|
+| `https://api-dados-abertos.tce.ce.gov.br/sim/municipios` | Código de três dígitos do tribunal e código IBGE de cada município |
+| `https://api-dados-abertos.tce.ce.gov.br/sim/contratos?codigo_municipio=NNN&data_inicio=AAAA0101&data_fim=AAAA1231&$start_index=N` | Contratos e termos aditivos do município celebrados no período (modalidade `OR`, o original; `AA`, `AP` e `RE`, aditivos; `AR`, redução), até 1.000 por página |
+| `https://api-dados-abertos.tce.ce.gov.br/sim/contratados?codigo_municipio=NNN&data_inicio=AAAA0101&data_fim=AAAA1231&$start_index=N` | Quem assinou cada contrato, pela data e pelo número: o CNPJ, ou o CPF já cifrado pelo tribunal |
+
+Sem chave. Só responde a endereços do Brasil (no GitHub, pelo intermediário em São Paulo). A especificação está em
+`/sim/openapi_prod.yaml`; as datas vão em `AAAAMMDD`. O levantamento dos outros tribunais está em [Tribunais de contas](Tribunais-de-Contas).
 
 ### Receita Federal — base pública de CNPJ
 

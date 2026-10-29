@@ -8529,7 +8529,7 @@
   {
    "caminho": "packages/painel/lumen_painel/cli.py",
    "linguagem": "python",
-   "linhas": 537,
+   "linhas": 539,
    "doc": "``lumen painel``: coleta e publicação dos painéis de contratações e de conformidade (ADR-028).\n\nExemplos::\n\n    lumen painel cadastro --estado estado/                          # cadastro de entes do SICONFI\n    lumen painel contratacoes --estado estado/ --ultimos 3          # dias que faltam entre os 3 últimos\n    lumen painel contratacoes --estado estado/ --de 2026-01-01 --ate 2026-01-31 --limite-minutos 300\n    lumen painel faltando --estado estado/ --de 2026-01-01 --partes 6   # divisão para execuções paralelas\n    lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026\n    lumen painel rcl --estado estado/ --ufs SP,MG                  # RCL do exercício anterior, para os pares\n    lumen painel despesa-funcao --estado estado/ --ufs SP,MG --limite-minutos 30   # DCA por função, pares\n    lumen painel pessoal --estado estado/ --ufs SP,MG --limite-minutos 20          # RGF: pessoal em % da RCL\n    lumen painel cnpj --estado estado/                              # base de CNPJ da Receita, dos fornecedores\n    lumen painel emendas --estado estado/                           # emendas parlamentares (CGU), por ente\n    lumen painel convenios --estado estado/                         # convênios da União (CGU), por ente\n    lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)\n    lumen painel anp --estado estado/                               # preço de revenda da ANP por semana\n    lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado\n\nO estado é um diretório com ``cadastro-entes.json.gz``, um ``contratacoes-<dia>.json.gz`` por dia coletado e\num ``conformidade-<UF>.json.gz`` por UF. No GitHub Actions, ele fica nos anexos de uma versão do repositório\n(``painel-estado``) entre uma execução e outra.",
    "itens": [
     {
@@ -8537,175 +8537,175 @@
      "nome": "_data",
      "assinatura": "def _data(texto: str) -> date",
      "doc": "``AAAA-MM-DD`` → ``date``, como ``type`` do argparse.",
-     "linha": 69
+     "linha": 70
     },
     {
      "tipo": "funcao",
      "nome": "_lista",
      "assinatura": "def _lista(texto: str) -> list[str]",
      "doc": "``SP, mg`` → ``[\"SP\", \"MG\"]``.",
-     "linha": 74
+     "linha": 75
     },
     {
      "tipo": "funcao",
      "nome": "_imprimir",
      "assinatura": "def _imprimir(dados) -> None",
      "doc": "JSON legível na saída padrão.",
-     "linha": 79
+     "linha": 80
     },
     {
      "tipo": "funcao",
      "nome": "_configuracao",
      "assinatura": "def _configuracao(args)",
      "doc": "A configuração do pipeline (contato da coleta e limites de requisições).",
-     "linha": 84
+     "linha": 85
     },
     {
      "tipo": "funcao",
      "nome": "dias_pedidos",
      "assinatura": "def dias_pedidos(estado: Path, *, de: date | None, ate: date | None, ultimos: int | None, hoje: date, refazer: bool=False) -> list[date]",
      "doc": "Os dias a coletar, do mais recente para o mais antigo, sem os que já estão no estado.\n\nSem ``de``, o intervalo é dos ``ultimos`` dias (padrão 3) até ontem; o dia corrente nunca entra, porque\nainda está recebendo publicações.",
-     "linha": 90
+     "linha": 91
     },
     {
      "tipo": "funcao",
      "nome": "partes",
      "assinatura": "def partes(dias: list[date], n: int) -> list[dict]",
      "doc": "Divide os dias (já do mais recente ao mais antigo) em até ``n`` blocos de dias seguidos, para execuções\nparalelas; cada bloco vira ``{\"de\": …, \"ate\": …, \"dias\": …}``.",
-     "linha": 103
+     "linha": 104
     },
     {
      "tipo": "funcao",
      "nome": "cmd_cadastro",
      "assinatura": "def cmd_cadastro(args) -> int",
      "doc": "Coleta o cadastro de entes do SICONFI (uma requisição), normaliza e grava ``cadastro-entes.json.gz``.",
-     "linha": 115
+     "linha": 116
     },
     {
      "tipo": "funcao",
      "nome": "cmd_contratacoes",
      "assinatura": "def cmd_contratacoes(args) -> int",
      "doc": "Coleta os dias pedidos que faltam no estado, do mais recente ao mais antigo, até o prazo.",
-     "linha": 146
+     "linha": 147
     },
     {
      "tipo": "funcao",
      "nome": "cmd_faltando",
      "assinatura": "def cmd_faltando(args) -> int",
      "doc": "Imprime, em JSON, os blocos de dias que faltam no estado (matriz das execuções paralelas).",
-     "linha": 170
+     "linha": 171
     },
     {
      "tipo": "funcao",
      "nome": "cmd_conformidade",
      "assinatura": "def cmd_conformidade(args) -> int",
      "doc": "Coleta o extrato de entregas de cada UF pedida e grava o estado de cada uma.",
-     "linha": 177
+     "linha": 178
     },
     {
      "tipo": "funcao",
      "nome": "cmd_rcl",
      "assinatura": "def cmd_rcl(args) -> int",
      "doc": "Coleta a RCL dos entes pendentes de cada UF pedida (RREO, Anexo 03) e grava o estado de cada uma.\n\nEnte que ainda não publicou não é falha: fica para a próxima tentativa. O código é 1 só quando uma coleta\nfoi interrompida.",
-     "linha": 192
+     "linha": 193
     },
     {
      "tipo": "funcao",
      "nome": "cmd_despesa_funcao",
      "assinatura": "def cmd_despesa_funcao(args) -> int",
      "doc": "Coleta a despesa por função (DCA, Anexo I-E) dos entes pendentes de cada UF pedida e grava o estado.\n\nO ``--limite-minutos`` vale para todas as UFs juntas: passado o tempo, os entes que faltam ficam para a\nexecução seguinte. O código é 1 só quando uma coleta foi interrompida.",
-     "linha": 211
+     "linha": 212
     },
     {
      "tipo": "funcao",
      "nome": "cmd_pessoal",
      "assinatura": "def cmd_pessoal(args) -> int",
      "doc": "Coleta a despesa com pessoal do Executivo (RGF, Anexo 1) dos entes pendentes de cada UF pedida.\n\nComo em ``despesa-funcao``, o ``--limite-minutos`` vale para todas as UFs juntas. O código é 1 só quando uma\ncoleta foi interrompida.",
-     "linha": 233
+     "linha": 234
     },
     {
      "tipo": "funcao",
      "nome": "cmd_cnpj",
      "assinatura": "def cmd_cnpj(args) -> int",
      "doc": "Lê a base pública de CNPJ da Receita para os fornecedores do estado e grava ``cnpj-fornecedores.json.gz``.\n\nPula quando o estado já tem a base do mês para todos os fornecedores (ADR-043).",
-     "linha": 255
+     "linha": 256
     },
     {
      "tipo": "funcao",
      "nome": "cmd_tce",
      "assinatura": "def cmd_tce(args) -> int",
      "doc": "Lê os contratos de um tribunal de contas (``tce-rs``: LicitaCon; ``tce-pr``: SIM-AM; ``tce-pe``: API de dados\nabertos) nos anos que mudaram e grava ``tce-<sigla>.json.gz`` (ADR-050).",
-     "linha": 266
+     "linha": 267
     },
     {
      "tipo": "funcao",
      "nome": "cmd_emendas",
      "assinatura": "def cmd_emendas(args) -> int",
      "doc": "Lê o arquivo de emendas parlamentares da CGU quando ele muda e grava ``emendas.json.gz`` (ADR-044).",
-     "linha": 278
+     "linha": 279
     },
     {
      "tipo": "funcao",
      "nome": "cmd_transferencias",
      "assinatura": "def cmd_transferencias(args) -> int",
      "doc": "Soma os arquivos mensais de transferências da CGU, refazendo só o ano com mês novo ou mudado, e grava\n``transferencias.json.gz`` (ADR-054).",
-     "linha": 286
+     "linha": 287
     },
     {
      "tipo": "funcao",
      "nome": "cmd_convenios",
      "assinatura": "def cmd_convenios(args) -> int",
      "doc": "Lê o arquivo de convênios da CGU quando sai um novo e grava ``convenios.json.gz`` (ADR-045).",
-     "linha": 295
+     "linha": 296
     },
     {
      "tipo": "funcao",
      "nome": "cmd_mascarar",
      "assinatura": "def cmd_mascarar(args) -> int",
      "doc": "Reescreve os arquivos do dia gravados antes da máscara de CPF (ADR-043) e lista os que mudaram.",
-     "linha": 303
+     "linha": 304
     },
     {
      "tipo": "funcao",
      "nome": "cmd_transparencia",
      "assinatura": "def cmd_transparencia(args) -> int",
      "doc": "Lê o ciclo mais recente do PNTP para ``transparencia-pntp.json.gz``; o código é 1 quando falhou.",
-     "linha": 317
+     "linha": 318
     },
     {
      "tipo": "funcao",
      "nome": "cmd_anp",
      "assinatura": "def cmd_anp(args) -> int",
      "doc": "Lê as planilhas semanais da ANP que faltam em ``anp-semanas.json.gz``; o código é 1 quando algo falhou.",
-     "linha": 325
+     "linha": 326
     },
     {
      "tipo": "funcao",
      "nome": "_agrupar",
      "assinatura": "def _agrupar(chaves, grupo) -> list[tuple[str, list[str]]]",
      "doc": "As chaves em grupos (``grupo(chave)``), na ordem dos grupos: um grupo de cada vez vai para a memória.",
-     "linha": 334
+     "linha": 335
     },
     {
      "tipo": "funcao",
      "nome": "cmd_publicar",
      "assinatura": "def cmd_publicar(args) -> int",
      "doc": "Monta o site inteiro a partir do estado: índice, busca, contratações e conformidade.",
-     "linha": 342
+     "linha": 343
     },
     {
      "tipo": "funcao",
      "nome": "construir_parser",
      "assinatura": "def construir_parser() -> argparse.ArgumentParser",
      "doc": "Os subcomandos e as opções de cada um.",
-     "linha": 432
+     "linha": 433
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada de ``lumen painel``; falta de configuração (contato da coleta) vira código 2.",
-     "linha": 526
+     "linha": 528
     }
    ]
   },
@@ -10056,7 +10056,7 @@
    "caminho": "packages/painel/lumen_painel/pessoas_juridicas.py",
    "linguagem": "python",
    "linhas": 194,
-   "doc": "Tudo o que o Lumen tem de uma pessoa jurídica, pelo CNPJ: a visão 360 da empresa ou entidade (ADR-049).\n\nAs contratações, as emendas e os convênios são publicados por ente (quem contrata ou recebe). Aqui, o mesmo dado\né virado para o CNPJ, em ``pj/<grupo>.json.gz`` (comprimido; o grupo é ``comum.grupo_do_cnpj``):\n\n- **contratos:** os contratos publicados no PNCP com ela como fornecedora, por ente contratante e ano\n  (``[ente, ano, contratos, valor]``), da mesma soma do painel de contratações;\n- **emendas:** o recebido de emendas parlamentares como favorecida, por ente e ano (``[ente, ano, valor]``,\n  ADR-044);\n- **convenios:** os convênios com a União como convenente (ADR-045), com o objeto cortado em ``OBJETO``\n  caracteres;\n- **tce:** os contratos registrados nos tribunais de contas (TCE-RS, TCE-PR e TCE-PE, ADR-050), por ente e ano do\n  contrato (``[ente, ano, contratos, valor]``).\n\nO nome é o mais recente das contratações e, sem elas, o dos convênios, das emendas ou do tribunal de contas; as fontes já chegam com o\nCPF do MEI mascarado (ADR-043). A página do portal junta o cartão da Receita (``cnpj/``). Pessoa física não\nentra: o índice é por CNPJ.\n\nA busca pelo nome lê ``pj/busca/<prefixo>.json.gz``: cada palavra do nome com três letras ou mais (fora as de\n``PALAVRAS_FORA``) põe o CNPJ no arquivo das duas primeiras letras dela, com o nome e o peso (a soma dos contratos,\ndas emendas e dos convênios), do maior peso ao menor. O arquivo de duas letras com mais de ``LIMITE_BUSCA`` nomes\n(\"co\", de comércio e construções) se divide pelas três primeiras. ``pj/busca/indice.json`` diz quais se dividiram\ne quantos nomes tem cada arquivo, para o portal ler o menor entre as palavras procuradas. A normalização é a mesma\ndo portal (``busca.ts``).",
+   "doc": "Tudo o que o Lumen tem de uma pessoa jurídica, pelo CNPJ: a visão 360 da empresa ou entidade (ADR-049).\n\nAs contratações, as emendas e os convênios são publicados por ente (quem contrata ou recebe). Aqui, o mesmo dado\né virado para o CNPJ, em ``pj/<grupo>.json.gz`` (comprimido; o grupo é ``comum.grupo_do_cnpj``):\n\n- **contratos:** os contratos publicados no PNCP com ela como fornecedora, por ente contratante e ano\n  (``[ente, ano, contratos, valor]``), da mesma soma do painel de contratações;\n- **emendas:** o recebido de emendas parlamentares como favorecida, por ente e ano (``[ente, ano, valor]``,\n  ADR-044);\n- **convenios:** os convênios com a União como convenente (ADR-045), com o objeto cortado em ``OBJETO``\n  caracteres;\n- **tce:** os contratos registrados nos tribunais de contas (TCE-RS, TCE-PR, TCE-PE e TCE-CE, ADR-050), por ente e ano\n  do contrato (``[ente, ano, contratos, valor]``).\n\nO nome é o mais recente das contratações e, sem elas, o dos convênios, das emendas ou do tribunal de contas; as fontes já chegam com o\nCPF do MEI mascarado (ADR-043). A página do portal junta o cartão da Receita (``cnpj/``). Pessoa física não\nentra: o índice é por CNPJ.\n\nA busca pelo nome lê ``pj/busca/<prefixo>.json.gz``: cada palavra do nome com três letras ou mais (fora as de\n``PALAVRAS_FORA``) põe o CNPJ no arquivo das duas primeiras letras dela, com o nome e o peso (a soma dos contratos,\ndas emendas e dos convênios), do maior peso ao menor. O arquivo de duas letras com mais de ``LIMITE_BUSCA`` nomes\n(\"co\", de comércio e construções) se divide pelas três primeiras. ``pj/busca/indice.json`` diz quais se dividiram\ne quantos nomes tem cada arquivo, para o portal ler o menor entre as palavras procuradas. A normalização é a mesma\ndo portal (``busca.ts``).",
    "itens": [
     {
      "tipo": "funcao",
@@ -10261,8 +10261,8 @@
   {
    "caminho": "packages/painel/lumen_painel/tce.py",
    "linguagem": "python",
-   "linhas": 344,
-   "doc": "O que os coletores dos tribunais de contas têm em comum (ADR-050): a leitura por partes, a regra de quando reler\num ano, a soma de um ano por ente e a publicação.\n\nCada tribunal tem o próprio módulo (``tce_rs``, ``tce_pr``, ``tce_pe``), que lê a fonte dele e grava o estado em\n``tce-<sigla>.json.gz`` no mesmo formato:\n\n- ``anos``: por ano do contrato, a ``etiqueta`` e o ``tamanho`` do que foi lido, quando foi lido e a soma do ano\n  (``SomaAno.para_json``): por ente, as ``COLUNAS_ENTE``; por ente e CNPJ, ``[contratos, valor]``; e o que ficou\n  sem ente (consórcios e associações, que reúnem vários municípios);\n- ``nomes``: o nome de cada CNPJ, com o CPF do MEI mascarado;\n- ``tribunal``, ``sistema``, ``fonte`` e ``primeiro_ano``.\n\nA leitura por partes (``ArquivoRemoto``) é um arquivo que o ``zipfile`` abre e lê em fluxo. O ``zip_remoto`` do\n``lumen_ingestao`` (ADR-032) faz parecido, mas traz o arquivo pedido inteiro para a memória e não lê ZIP64; o\n``pessoas.csv`` do TCE-RS tem 200 MB.\n\nO valor acima do teto de plausibilidade do ente (o mesmo do painel de contratações, ADR-028) conta e fica fora\nda soma. Contrato com pessoa física entra só na soma anônima, sem nome nem documento (DOC-08). A publicação junta\ntodos os tribunais em ``tce/ente/<grupo>.json.gz``: um ente só é fiscalizado por um tribunal.\n\nOs servidores do TCE-RS e do TCE-CE só respondem a endereços do Brasil, e o GitHub Actions roda fora. Com\n``LUMEN_PROXY_BR`` e ``LUMEN_PROXY_CHAVE`` no ambiente, os pedidos a eles passam pelo intermediário em São Paulo\n(``infra/proxy-br``, uma função da Vercel), que devolve a resposta do tribunal como veio (ADR-050, adendo).",
+   "linhas": 347,
+   "doc": "O que os coletores dos tribunais de contas têm em comum (ADR-050): a leitura por partes, a regra de quando reler\num ano, a soma de um ano por ente e a publicação.\n\nCada tribunal tem o próprio módulo (``tce_rs``, ``tce_pr``, ``tce_pe``, ``tce_ce``), que lê a fonte dele e grava o estado em\n``tce-<sigla>.json.gz`` no mesmo formato:\n\n- ``anos``: por ano do contrato, a ``etiqueta`` e o ``tamanho`` do que foi lido, quando foi lido e a soma do ano\n  (``SomaAno.para_json``): por ente, as ``COLUNAS_ENTE``; por ente e CNPJ, ``[contratos, valor]``; e o que ficou\n  sem ente (consórcios e associações, que reúnem vários municípios);\n- ``nomes``: o nome de cada CNPJ, com o CPF do MEI mascarado;\n- ``tribunal``, ``sistema``, ``fonte`` e ``primeiro_ano``.\n\nA leitura por partes (``ArquivoRemoto``) é um arquivo que o ``zipfile`` abre e lê em fluxo. O ``zip_remoto`` do\n``lumen_ingestao`` (ADR-032) faz parecido, mas traz o arquivo pedido inteiro para a memória e não lê ZIP64; o\n``pessoas.csv`` do TCE-RS tem 200 MB.\n\nO valor acima do teto de plausibilidade do ente (o mesmo do painel de contratações, ADR-028) conta e fica fora\nda soma. Contrato com pessoa física entra só na soma anônima, sem nome nem documento (DOC-08). A publicação junta\ntodos os tribunais em ``tce/ente/<grupo>.json.gz``: um ente só é fiscalizado por um tribunal.\n\nOs servidores do TCE-RS e do TCE-CE só respondem a endereços do Brasil, e o GitHub Actions roda fora. Com\n``LUMEN_PROXY_BR`` e ``LUMEN_PROXY_CHAVE`` no ambiente, os pedidos a eles passam pelo intermediário em São Paulo\n(``infra/proxy-br``, uma função da Vercel), que devolve a resposta do tribunal como veio (ADR-050, adendo).",
    "itens": [
     {
      "tipo": "funcao",
@@ -10372,79 +10372,129 @@
     {
      "tipo": "metodo",
      "nome": "SomaAno.contrato",
-     "assinatura": "def contrato(self, ente: str | None, valor: float | None, *, cnpj: str | None=None) -> None",
-     "doc": "Um contrato do ente: com ``cnpj``, na empresa; sem ele, na soma anônima de pessoa física. Sem ente, vai\npara ``sem_ente``.",
+     "assinatura": "def contrato(self, ente: str | None, valor: float | None, *, cnpj: str | None=None, sem_fornecedor: bool=False) -> None",
+     "doc": "Um contrato do ente: com ``cnpj``, na empresa; sem ele, na soma anônima de pessoa física; com\n``sem_fornecedor`` (vários contratados, ou nenhum registrado), só no total do ente. Sem ente, vai para\n``sem_ente``.",
      "linha": 194
     },
     {
      "tipo": "metodo",
      "nome": "SomaAno.aditivo",
-     "assinatura": "def aditivo(self, ente: str | None, valor: float) -> None",
-     "doc": "Um aditivo do ente, com o acréscimo líquido (negativo quando reduz).",
-     "linha": 217
+     "assinatura": "def aditivo(self, ente: str | None, valor: float | None) -> None",
+     "doc": "Um aditivo do ente, com o acréscimo líquido (negativo quando reduz). Sem ``valor`` (a fonte não separa o\nacréscimo do valor do termo), o aditivo conta e o acréscimo do ente fica ``None``.",
+     "linha": 219
     },
     {
      "tipo": "metodo",
      "nome": "SomaAno.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "A soma como vai no estado, em ordem e com os valores em centavos.",
-     "linha": 225
+     "linha": 228
     },
     {
      "tipo": "classe",
      "nome": "ResultadoTce",
      "assinatura": "class ResultadoTce",
      "doc": "O que a coleta de um tribunal fez: os anos lidos, os pulados (sem mudança) e os que não existem.",
-     "linha": 239
+     "linha": 242
     },
     {
      "tipo": "metodo",
      "nome": "ResultadoTce.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "Resumo para imprimir na linha de comando.",
-     "linha": 250
+     "linha": 253
     },
     {
      "tipo": "funcao",
      "nome": "precisa_ler",
      "assinatura": "def precisa_ler(guardado: dict | None, tamanho: int, etiqueta: str, ano: int, hoje: date) -> bool",
      "doc": "O ano tem de ser lido de novo? Nunca lido: sim. Fechado (antes do ano anterior): só se o tamanho mudou,\nporque os tribunais refazem os arquivos sem mudar o conteúdo. Corrente ou anterior: quando mudou e a última\nleitura tem ``DIAS_ENTRE_LEITURAS`` dias ou mais.",
-     "linha": 256
+     "linha": 259
     },
     {
      "tipo": "funcao",
      "nome": "precisa_ler_por_idade",
      "assinatura": "def precisa_ler_por_idade(guardado: dict | None, ano: int, hoje: date) -> bool",
      "doc": "Para a fonte sem cabeçalho de mudança (uma API): nunca lido, sim; fechado, quando a leitura tem\n``DIAS_ANO_FECHADO`` dias ou mais; corrente ou anterior, ``DIAS_ENTRE_LEITURAS``.",
-     "linha": 270
+     "linha": 273
     },
     {
      "tipo": "funcao",
      "nome": "ler_estado",
      "assinatura": "def ler_estado(caminho: Path, *, tribunal: str, sistema: str, fonte: str, primeiro_ano: int) -> dict",
      "doc": "O estado de um tribunal, ou um vazio; versão desconhecida é erro.",
-     "linha": 279
+     "linha": 282
     },
     {
      "tipo": "funcao",
      "nome": "estados",
      "assinatura": "def estados(estado: Path | str) -> list[dict]",
      "doc": "Os estados de todos os tribunais coletados (``tce-*.json.gz``), em ordem de nome.",
-     "linha": 291
+     "linha": 294
     },
     {
      "tipo": "funcao",
      "nome": "entes_do_estado",
      "assinatura": "def entes_do_estado(dados: dict) -> dict[str, dict]",
      "doc": "Por ente: os anos (``COLUNAS_ENTE``) e os fornecedores do maior valor ao menor, cada um com os anos\n(``[CNPJ, nome, [[ano, contratos, valor], ...]]``), até ``FORNECEDORES_PUBLICADOS``.",
-     "linha": 302
+     "linha": 305
     },
     {
      "tipo": "funcao",
      "nome": "publicar",
      "assinatura": "def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> dict | None",
      "doc": "Grava ``tce/ente/<grupo>.json.gz`` (comprimido, ``comum.grupo_do_ente``) com os contratos de cada ente\nregistrados no tribunal de contas dele, e devolve o resumo de cada tribunal para o índice.",
-     "linha": 321
+     "linha": 324
+    }
+   ]
+  },
+  {
+   "caminho": "packages/painel/lumen_painel/tce_ce.py",
+   "linguagem": "python",
+   "linhas": 168,
+   "doc": "Contratos dos municípios cearenses registrados no Tribunal de Contas do Estado, pela API do SIM (ADR-050).\n\nO TCE-CE publica, sem chave, a API de dados abertos do SIM (``api-dados-abertos.tce.ce.gov.br/sim/<método>``), que\nsó responde a endereços do Brasil (no GitHub, os pedidos passam pelo intermediário em São Paulo, ``tce.abrir``). Toda\nconsulta pede o município (o código de três dígitos do tribunal) e o período, em ``AAAAMMDD``, e devolve até 1.000\nregistros por página (``$start_index``):\n\n- ``municipios``: o código do tribunal e o código IBGE de cada município;\n- ``contratos``: os contratos e os termos do município celebrados no período, com a modalidade (``OR``, o original;\n  ``AA``, ``AP``, ``AR`` e ``RE``, os aditivos), o número do contrato original e o valor;\n- ``contratados``: quem assinou cada contrato (pela data e pelo número), com o documento: o CNPJ, ou o CPF já cifrado\n  pelo tribunal.\n\nDesde 2003, só municípios (o SIM não traz o estado nem consórcios). O contrato com um só contratado de CNPJ válido vai\npara a empresa; com contratados só pessoa física, para a soma anônima; com vários contratados de CNPJ (um instrumento\ncom dezenas de credenciados, por exemplo) ou nenhum registrado, só para o total do município, porque o tribunal não\ndiz a parte de cada um. Os aditivos são os assinados no ano, de contratos de qualquer ano, como no TCE-PR, e contam\nsem valor: o valor do termo é o acréscimo em uns municípios e o valor do contrato depois do termo em outros (em\nFortaleza, em 2023, um termo que só troca o CNPJ da contratada vem com os R$ 80 milhões do contrato, e a redução vem\nnegativa; em Abaiara, positiva). Somá-los daria acréscimos que não houve.\n\nUm ano pede ao menos duas consultas por município (184), e Fortaleza passa de 7 mil contratos: os municípios são lidos\n``PEDIDOS_SIMULTANEOS`` de cada vez. Como no TCE-PE, a API não diz se o ano mudou, e a idade da leitura decide\n(``tce.precisa_ler_por_idade``). Ano com algum município que falhou não é gravado: ficaria menor do que é. O estado\n(``tce-ce.json.gz``) segue o formato comum de ``tce``.",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "consultar",
+     "assinatura": "def consultar(metodo: str, *, contato: str, baixar_fn: Callable[..., bytes | None]=tce.baixar, **filtros: str) -> list[dict]",
+     "doc": "Todos os registros de um método da API, página a página.",
+     "linha": 56
+    },
+    {
+     "tipo": "funcao",
+     "nome": "municipios",
+     "assinatura": "def municipios(registros: list[dict]) -> dict[str, str]",
+     "doc": "O código do município no tribunal (``\"057\"``) → código IBGE; fica de fora o que não tem IBGE (o próprio\ntribunal).",
+     "linha": 73
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_municipio",
+     "assinatura": "def ler_municipio(codigo: str, ano: int, *, contato: str, baixar_fn: Callable[..., bytes | None]=tce.baixar) -> tuple[list[dict], list[dict]]",
+     "doc": "Os contratos e os contratados do município (código do tribunal) celebrados no ano.",
+     "linha": 79
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_chave",
+     "assinatura": "def _chave(registro: dict) -> tuple[str, str]",
+     "doc": "O contrato pela data e pelo número, que é como o contratado se liga a ele.",
+     "linha": 87
+    },
+    {
+     "tipo": "funcao",
+     "nome": "somar_ano",
+     "assinatura": "def somar_ano(por_municipio: dict[str, tuple[list[dict], list[dict]]], teto: Callable[[str], float], nomes: dict[str, str]) -> dict",
+     "doc": "A soma de um ano (``tce.SomaAno``), a partir dos contratos e dos contratados de cada município (código IBGE),\ncom os nomes das empresas guardados em ``nomes``.",
+     "linha": 92
+    },
+    {
+     "tipo": "funcao",
+     "nome": "coletar",
+     "assinatura": "def coletar(estado: Path | str, cadastro: Cadastro, *, contato: str, hoje: date | None=None, anos: list[int] | None=None, limite_minutos: float | None=None, baixar_fn: Callable[..., bytes | None]=tce.baixar, relogio: Callable[[], float]=time.monotonic) -> tce.ResultadoTce",
+     "doc": "Lê os anos que passaram da idade de releitura (ou os pedidos) e grava ``ARQUIVO`` depois de cada um.",
+     "linha": 121
     }
    ]
   },
@@ -14647,64 +14697,64 @@
   {
    "caminho": "packages/portal/src/lib/tce.ts",
    "linguagem": "typescript",
-   "linhas": 126,
-   "doc": "Contratos registrados nos tribunais de contas (ADR-050), do arquivo `tce/ente/<grupo>.json.gz` que os painéis\npublicam: por ente e ano do contrato, quantos e quanto, com os aditivos, a soma anônima de pessoa física e os\nfornecedores: o LicitaCon do TCE-RS (desde 2016), o SIM-AM do TCE-PR e a API do TCE-PE (desde 2013).",
+   "linhas": 129,
+   "doc": "Contratos registrados nos tribunais de contas (ADR-050), do arquivo `tce/ente/<grupo>.json.gz` que os painéis\npublicam: por ente e ano do contrato, quantos e quanto, com os aditivos, a soma anônima de pessoa física e os\nfornecedores: o LicitaCon do TCE-RS (desde 2016), o SIM-AM do TCE-PR, a API do TCE-PE (desde 2013) e a do SIM do\nTCE-CE (desde 2003).",
    "itens": [
     {
      "tipo": "tipo",
      "nome": "AnoTce",
-     "assinatura": "export type AnoTce = [number, number, number, number, number, number, number];",
-     "doc": "Um ano do ente, na ordem de `colunas`: contratos, valor somado, contratos fora da soma pelo teto de\nplausibilidade, contratos e valor com pessoa física, aditivos e o acréscimo líquido deles.",
-     "linha": 14
+     "assinatura": "export type AnoTce = [number, number, number, number, number, number, number | null];",
+     "doc": "Um ano do ente, na ordem de `colunas`: contratos, valor somado, contratos fora da soma pelo teto de\nplausibilidade, contratos e valor com pessoa física, aditivos e o acréscimo líquido deles (`null` quando o tribunal\nnão separa o acréscimo do valor do termo, como o TCE-CE).",
+     "linha": 16
     },
     {
      "tipo": "interface",
      "nome": "TceEnte",
      "assinatura": "export interface TceEnte",
      "doc": "Os contratos de um ente no tribunal de contas.",
-     "linha": 17
+     "linha": 19
     },
     {
      "tipo": "interface",
      "nome": "GrupoTce",
      "assinatura": "interface GrupoTce",
      "doc": "Arquivo `tce/ente/<grupo>.json.gz`.",
-     "linha": 30
+     "linha": 32
     },
     {
      "tipo": "funcao",
      "nome": "carregarTce",
      "assinatura": "export async function carregarTce(codigo: string, sinal?: AbortSignal): Promise<TceEnte | null>",
      "doc": "Os contratos do ente no tribunal de contas; `null` quando o tribunal dele ainda não está no Lumen.",
-     "linha": 38
+     "linha": 40
     },
     {
      "tipo": "interface",
      "nome": "TceNoPeriodo",
      "assinatura": "export interface TceNoPeriodo",
      "doc": "Os contratos nos anos pedidos, já convertidos (reais de um ano-base ou por habitante).",
-     "linha": 51
+     "linha": 53
     },
     {
      "tipo": "funcao",
      "nome": "tceNoPeriodo",
      "assinatura": "export function tceNoPeriodo(t: TceEnte, anos: string[], converter: (valor: number, ano: string) => number | null): TceNoPeriodo",
      "doc": "Soma os `anos` do ente; o ano que a conversão não alcança fica de fora.",
-     "linha": 64
+     "linha": 67
     },
     {
      "tipo": "interface",
      "nome": "AnoComPncp",
      "assinatura": "export interface AnoComPncp",
      "doc": "Um ano na comparação com o PNCP: contratos e valor nas duas fontes (`null` quando a fonte não tem o ano).",
-     "linha": 97
+     "linha": 100
     },
     {
      "tipo": "funcao",
      "nome": "anoAAnoComPncp",
      "assinatura": "export function anoAAnoComPncp(t: TceEnte, meses: { mes: string; contratos: number; valor_contratos: number }[]): AnoComPncp[]",
      "doc": "Os anos do ente nas duas fontes, do mais recente ao mais antigo: os meses do PNCP (`AAAA-MM`, ou `AAAA` nos anos\npublicados ano a ano) somados por ano, ao lado do tribunal. As fontes não se somam: de 2021 em diante, muitos\ncontratos estão nas duas.",
-     "linha": 110
+     "linha": 113
     }
    ]
   },
@@ -15801,6 +15851,49 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/componentes/avisos/PainelAvisos.tsx",
+   "linguagem": "typescript",
+   "linhas": 263,
+   "doc": "Avisos (ADR-047): o que aconteceu e o que observar, por local, sem precisar abrir cada painel.\n\nSem local, o Brasil: quantos avisos de cada tipo por UF e os mais recentes. Com `?ente=` (o local do\ncabeçalho), os do ente; num estado, também os dos municípios (`?municipios=1`). Filtros na URL: o tipo\n(`?tipo=a,b`) e, num local, o período (`?de=&ate=`, pela data do aviso). A ordem é sempre pela data, nunca por ente\n(PUB-07). Cada aviso diz a fonte, o que observar e como contestar.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "Estado",
+     "assinatura": "type Estado =",
+     "doc": "Carregando, ou os dados (o panorama, ou a lista do local) e o erro.",
+     "linha": 37
+    },
+    {
+     "tipo": "componente",
+     "nome": "PainelAvisos",
+     "assinatura": "export function PainelAvisos()",
+     "doc": "Página inteira da área.",
+     "linha": 42
+    },
+    {
+     "tipo": "componente",
+     "nome": "Panorama",
+     "assinatura": "function Panorama({ p, onLugar }: { p: PanoramaAvisos; onLugar: (lugar: string) => void })",
+     "doc": "O Brasil: totais por tipo e por UF (em ordem de UF, PUB-07).",
+     "linha": 171
+    },
+    {
+     "tipo": "componente",
+     "nome": "Lista",
+     "assinatura": "function Lista({ avisos, titulo }: { avisos: Aviso[]; titulo: string })",
+     "doc": "A lista de avisos, 20 por página.",
+     "linha": 212
+    },
+    {
+     "tipo": "componente",
+     "nome": "CartaoAviso",
+     "assinatura": "function CartaoAviso({ a }: { a: Aviso })",
+     "doc": "Um aviso: o tipo, a data, o local, o que aconteceu, o detalhe, o que observar, a fonte e a contestação.",
+     "linha": 227
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/componentes/BaixarCsv.tsx",
    "linguagem": "typescript",
    "linhas": 24,
@@ -15855,174 +15948,6 @@
      "assinatura": "function Moldura({ local, caminho = \"/\", params, onEscolher, novidades }:",
      "doc": "A marca, as abas (com o local no endereço), a aba de novidades e o filtro de local.",
      "linha": 117
-    }
-   ]
-  },
-  {
-   "caminho": "packages/portal/src/componentes/Escolha.tsx",
-   "linguagem": "typescript",
-   "linhas": 137,
-   "doc": "Caixa de escolha com busca, no lugar dos `<select>` do portal: mostra a opção escolhida; ao clicar (ou\nfocar e apertar seta para baixo) abre a lista inteira; ao escrever, a lista fica só com o que casa. Setas\npara mover, Enter para escolher, Esc para fechar sem mudar. Segue o padrão ARIA de combobox com listbox.",
-   "itens": [
-    {
-     "tipo": "componente",
-     "nome": "Escolha",
-     "assinatura": "export function Escolha(",
-     "doc": "Caixa de escolha com busca; `onEscolher` recebe o `valor` da opção.",
-     "linha": 13
-    }
-   ]
-  },
-  {
-   "caminho": "packages/portal/src/componentes/FiltroPeriodo.tsx",
-   "linguagem": "typescript",
-   "linhas": 102,
-   "doc": "Filtro de período das abas (Contratações, Economia, Conformidade): do primeiro ao último mês, com atalhos.\nFica na URL (`?de=AAAA-MM&ate=AAAA-MM`, `lerPeriodo`), para compartilhar a consulta.\n\nAs opções vêm do que a aba tem: meses (`AAAA-MM`) ou anos (`AAAA`). Um ano entra como o ano inteiro\n(janeiro no primeiro, dezembro no último): é o caso dos anos antigos das Contratações, publicados ano a ano,\ne das abas que só têm ano (os exercícios da Conformidade, as séries longas da Economia).",
-   "itens": [
-    {
-     "tipo": "interface",
-     "nome": "AtalhoPeriodo",
-     "assinatura": "export interface AtalhoPeriodo",
-     "doc": "Um atalho: o rótulo do botão e o período que ele escolhe.",
-     "linha": 18
-    },
-    {
-     "tipo": "funcao",
-     "nome": "atalhosPadrao",
-     "assinatura": "export function atalhosPadrao(opcoes: string[], anos = true): AtalhoPeriodo[]",
-     "doc": "Os atalhos de sempre: tudo, o último mês e os últimos 3 (se houver mês a mês) e cada ano.",
-     "linha": 29
-    },
-    {
-     "tipo": "componente",
-     "nome": "FiltroPeriodo",
-     "assinatura": "export function FiltroPeriodo(",
-     "doc": "O filtro: primeiro e último período, os atalhos e, com recorte, a nota de como o recorte é feito.",
-     "linha": 46
-    }
-   ]
-  },
-  {
-   "caminho": "packages/portal/src/componentes/Ligacoes.tsx",
-   "linguagem": "typescript",
-   "linhas": 50,
-   "doc": "O mesmo ente nas outras abas (visão 360, ADR-035): de Contratações, Conformidade e Governos municipais, um link\npara cada uma das outras e para o resultado das eleições do lugar. A aba aberta fica de fora.",
-   "itens": [
-    {
-     "tipo": "tipo",
-     "nome": "AbaDoEnte",
-     "assinatura": "export type AbaDoEnte = \"contratacoes\" | \"conformidade\" | \"governos\";",
-     "doc": "As abas que mostram um ente.",
-     "linha": 11
-    },
-    {
-     "tipo": "funcao",
-     "nome": "ligacoesDoEnte",
-     "assinatura": "export function ligacoesDoEnte(codigo: string, atual: AbaDoEnte): { href: string; rotulo: string }[]",
-     "doc": "Os links do ente nas outras abas, na ordem da tela.",
-     "linha": 14
-    },
-    {
-     "tipo": "componente",
-     "nome": "LigacoesDoEnte",
-     "assinatura": "export function LigacoesDoEnte({ codigo, atual }: { codigo: string; atual: AbaDoEnte })",
-     "doc": "A faixa \"Este ente nas outras abas\".",
-     "linha": 34
-    }
-   ]
-  },
-  {
-   "caminho": "packages/portal/src/componentes/MarcarNovidades.tsx",
-   "linguagem": "typescript",
-   "linhas": 31,
-   "doc": "Na página de novidades: diz quantas mudanças entraram desde a última visita e marca todas como vistas, o que\napaga o aviso da aba no cabeçalho.",
-   "itens": [
-    {
-     "tipo": "componente",
-     "nome": "MarcarNovidades",
-     "assinatura": "export function MarcarNovidades({ ids }: { ids: string[] })",
-     "doc": "A frase das novidades desde a última visita; some quando não há nenhuma.",
-     "linha": 12
-    }
-   ]
-  },
-  {
-   "caminho": "packages/portal/src/componentes/Paginacao.tsx",
-   "linguagem": "typescript",
-   "linhas": 72,
-   "doc": "Paginação das listas e tabelas do portal: toda lista com mais de 20 itens mostra 20 por vez, com a\nnavegação embaixo (\"anterior\", os números e \"próxima\") e quantos itens há. A página volta à primeira\nquando a lista muda (outro filtro, outro ente).",
-   "itens": [
-    {
-     "tipo": "funcao",
-     "nome": "usePaginacao",
-     "assinatura": "export function usePaginacao<T>(itens: readonly T[], porPagina = POR_PAGINA)",
-     "doc": "A página atual de `itens` e o que a navegação precisa; volta à primeira quando `itens` muda.",
-     "linha": 14
-    },
-    {
-     "tipo": "componente",
-     "nome": "Paginacao",
-     "assinatura": "export function Paginacao(",
-     "doc": "A navegação entre as páginas; não aparece quando tudo cabe numa página.",
-     "linha": 22
-    }
-   ]
-  },
-  {
-   "caminho": "packages/portal/src/componentes/Rodape.tsx",
-   "linguagem": "typescript",
-   "linhas": 26,
-   "doc": "Rodapé de todas as páginas: de onde vêm os números, o compromisso editorial do projeto e o link da situação das\ncoletas (ADR-039).",
-   "itens": [
-    {
-     "tipo": "componente",
-     "nome": "Rodape",
-     "assinatura": "export function Rodape()",
-     "doc": "Rodapé: de onde vêm os números e o compromisso editorial do projeto.",
-     "linha": 9
-    }
-   ]
-  },
-  {
-   "caminho": "packages/portal/src/componentes/avisos/PainelAvisos.tsx",
-   "linguagem": "typescript",
-   "linhas": 263,
-   "doc": "Avisos (ADR-047): o que aconteceu e o que observar, por local, sem precisar abrir cada painel.\n\nSem local, o Brasil: quantos avisos de cada tipo por UF e os mais recentes. Com `?ente=` (o local do\ncabeçalho), os do ente; num estado, também os dos municípios (`?municipios=1`). Filtros na URL: o tipo\n(`?tipo=a,b`) e, num local, o período (`?de=&ate=`, pela data do aviso). A ordem é sempre pela data, nunca por ente\n(PUB-07). Cada aviso diz a fonte, o que observar e como contestar.",
-   "itens": [
-    {
-     "tipo": "tipo",
-     "nome": "Estado",
-     "assinatura": "type Estado =",
-     "doc": "Carregando, ou os dados (o panorama, ou a lista do local) e o erro.",
-     "linha": 37
-    },
-    {
-     "tipo": "componente",
-     "nome": "PainelAvisos",
-     "assinatura": "export function PainelAvisos()",
-     "doc": "Página inteira da área.",
-     "linha": 42
-    },
-    {
-     "tipo": "componente",
-     "nome": "Panorama",
-     "assinatura": "function Panorama({ p, onLugar }: { p: PanoramaAvisos; onLugar: (lugar: string) => void })",
-     "doc": "O Brasil: totais por tipo e por UF (em ordem de UF, PUB-07).",
-     "linha": 171
-    },
-    {
-     "tipo": "componente",
-     "nome": "Lista",
-     "assinatura": "function Lista({ avisos, titulo }: { avisos: Aviso[]; titulo: string })",
-     "doc": "A lista de avisos, 20 por página.",
-     "linha": 212
-    },
-    {
-     "tipo": "componente",
-     "nome": "CartaoAviso",
-     "assinatura": "function CartaoAviso({ a }: { a: Aviso })",
-     "doc": "Um aviso: o tipo, a data, o local, o que aconteceu, o detalhe, o que observar, a fonte e a contestação.",
-     "linha": 227
     }
    ]
   },
@@ -16413,22 +16338,22 @@
   {
    "caminho": "packages/portal/src/componentes/economia/TceMandato.tsx",
    "linguagem": "typescript",
-   "linhas": 110,
-   "doc": "Contratos registrados no tribunal de contas no mandato aberto em Governos municipais (ADR-050): quantos e\nquanto, pelo ano do contrato, os aditivos, a soma anônima de pessoa física e os fornecedores do mandato, cada\num com o link para a página da empresa (visão 360). Na comparação, o total do outro mandato ao lado. Por\nenquanto, os municípios gaúchos (TCE-RS, desde 2016), paranaenses (TCE-PR) e pernambucanos (TCE-PE, desde 2013).",
+   "linhas": 114,
+   "doc": "Contratos registrados no tribunal de contas no mandato aberto em Governos municipais (ADR-050): quantos e\nquanto, pelo ano do contrato, os aditivos, a soma anônima de pessoa física e os fornecedores do mandato, cada\num com o link para a página da empresa (visão 360). Na comparação, o total do outro mandato ao lado. Por\nenquanto, os municípios gaúchos (TCE-RS, desde 2016), paranaenses (TCE-PR), pernambucanos (TCE-PE, desde 2013) e\ncearenses (TCE-CE, desde 2003).",
    "itens": [
     {
      "tipo": "tipo",
      "nome": "EstadoTce",
      "assinatura": "export type EstadoTce = { fase: \"carregando\" } | { fase: \"pronto\"; tce: TceEnte | null } | { fase: \"erro\" };",
      "doc": "Os contratos do município no tribunal: carregando, sem arquivo (tribunal fora do Lumen), com erro ou lidos.",
-     "linha": 22
+     "linha": 23
     },
     {
      "tipo": "componente",
      "nome": "TceMandato",
      "assinatura": "export function TceMandato({ estado, anos, anosComparado, outroMunicipio = null, rotulos, conv, fmt, unidade }:",
      "doc": "A seção dos contratos no tribunal de contas, no mandato aberto (e no comparado, se houver).",
-     "linha": 25
+     "linha": 26
     }
    ]
   },
@@ -16932,6 +16857,116 @@
      "assinatura": "export function Totais({ feed }: { feed: FeedResultado })",
      "doc": "Comparecimento e destino dos votos, como o TSE publica.",
      "linha": 18
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/Escolha.tsx",
+   "linguagem": "typescript",
+   "linhas": 137,
+   "doc": "Caixa de escolha com busca, no lugar dos `<select>` do portal: mostra a opção escolhida; ao clicar (ou\nfocar e apertar seta para baixo) abre a lista inteira; ao escrever, a lista fica só com o que casa. Setas\npara mover, Enter para escolher, Esc para fechar sem mudar. Segue o padrão ARIA de combobox com listbox.",
+   "itens": [
+    {
+     "tipo": "componente",
+     "nome": "Escolha",
+     "assinatura": "export function Escolha(",
+     "doc": "Caixa de escolha com busca; `onEscolher` recebe o `valor` da opção.",
+     "linha": 13
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/FiltroPeriodo.tsx",
+   "linguagem": "typescript",
+   "linhas": 102,
+   "doc": "Filtro de período das abas (Contratações, Economia, Conformidade): do primeiro ao último mês, com atalhos.\nFica na URL (`?de=AAAA-MM&ate=AAAA-MM`, `lerPeriodo`), para compartilhar a consulta.\n\nAs opções vêm do que a aba tem: meses (`AAAA-MM`) ou anos (`AAAA`). Um ano entra como o ano inteiro\n(janeiro no primeiro, dezembro no último): é o caso dos anos antigos das Contratações, publicados ano a ano,\ne das abas que só têm ano (os exercícios da Conformidade, as séries longas da Economia).",
+   "itens": [
+    {
+     "tipo": "interface",
+     "nome": "AtalhoPeriodo",
+     "assinatura": "export interface AtalhoPeriodo",
+     "doc": "Um atalho: o rótulo do botão e o período que ele escolhe.",
+     "linha": 18
+    },
+    {
+     "tipo": "funcao",
+     "nome": "atalhosPadrao",
+     "assinatura": "export function atalhosPadrao(opcoes: string[], anos = true): AtalhoPeriodo[]",
+     "doc": "Os atalhos de sempre: tudo, o último mês e os últimos 3 (se houver mês a mês) e cada ano.",
+     "linha": 29
+    },
+    {
+     "tipo": "componente",
+     "nome": "FiltroPeriodo",
+     "assinatura": "export function FiltroPeriodo(",
+     "doc": "O filtro: primeiro e último período, os atalhos e, com recorte, a nota de como o recorte é feito.",
+     "linha": 46
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/Ligacoes.tsx",
+   "linguagem": "typescript",
+   "linhas": 50,
+   "doc": "O mesmo ente nas outras abas (visão 360, ADR-035): de Contratações, Conformidade e Governos municipais, um link\npara cada uma das outras e para o resultado das eleições do lugar. A aba aberta fica de fora.",
+   "itens": [
+    {
+     "tipo": "tipo",
+     "nome": "AbaDoEnte",
+     "assinatura": "export type AbaDoEnte = \"contratacoes\" | \"conformidade\" | \"governos\";",
+     "doc": "As abas que mostram um ente.",
+     "linha": 11
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ligacoesDoEnte",
+     "assinatura": "export function ligacoesDoEnte(codigo: string, atual: AbaDoEnte): { href: string; rotulo: string }[]",
+     "doc": "Os links do ente nas outras abas, na ordem da tela.",
+     "linha": 14
+    },
+    {
+     "tipo": "componente",
+     "nome": "LigacoesDoEnte",
+     "assinatura": "export function LigacoesDoEnte({ codigo, atual }: { codigo: string; atual: AbaDoEnte })",
+     "doc": "A faixa \"Este ente nas outras abas\".",
+     "linha": 34
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/MarcarNovidades.tsx",
+   "linguagem": "typescript",
+   "linhas": 31,
+   "doc": "Na página de novidades: diz quantas mudanças entraram desde a última visita e marca todas como vistas, o que\napaga o aviso da aba no cabeçalho.",
+   "itens": [
+    {
+     "tipo": "componente",
+     "nome": "MarcarNovidades",
+     "assinatura": "export function MarcarNovidades({ ids }: { ids: string[] })",
+     "doc": "A frase das novidades desde a última visita; some quando não há nenhuma.",
+     "linha": 12
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/Paginacao.tsx",
+   "linguagem": "typescript",
+   "linhas": 72,
+   "doc": "Paginação das listas e tabelas do portal: toda lista com mais de 20 itens mostra 20 por vez, com a\nnavegação embaixo (\"anterior\", os números e \"próxima\") e quantos itens há. A página volta à primeira\nquando a lista muda (outro filtro, outro ente).",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "usePaginacao",
+     "assinatura": "export function usePaginacao<T>(itens: readonly T[], porPagina = POR_PAGINA)",
+     "doc": "A página atual de `itens` e o que a navegação precisa; volta à primeira quando `itens` muda.",
+     "linha": 14
+    },
+    {
+     "tipo": "componente",
+     "nome": "Paginacao",
+     "assinatura": "export function Paginacao(",
+     "doc": "A navegação entre as páginas; não aparece quando tudo cabe numa página.",
+     "linha": 22
     }
    ]
   },
@@ -17692,6 +17727,21 @@
      "linha": 20
     }
    ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/Rodape.tsx",
+   "linguagem": "typescript",
+   "linhas": 26,
+   "doc": "Rodapé de todas as páginas: de onde vêm os números, o compromisso editorial do projeto e o link da situação das\ncoletas (ADR-039).",
+   "itens": [
+    {
+     "tipo": "componente",
+     "nome": "Rodape",
+     "assinatura": "export function Rodape()",
+     "doc": "Rodapé: de onde vêm os números e o compromisso editorial do projeto.",
+     "linha": 9
+    }
+   ]
   }
  ],
  "testes": [
@@ -18031,6 +18081,11 @@
    "testes": 4
   },
   {
+   "caminho": "packages/painel/testes/test_tce_ce.py",
+   "doc": "Contratos dos municípios cearenses na API do SIM do TCE-CE (ADR-050).",
+   "testes": 6
+  },
+  {
    "caminho": "packages/painel/testes/test_tce_pe.py",
    "doc": "Contratos dos órgãos pernambucanos na API do TCE-PE (ADR-050).",
    "testes": 3
@@ -18213,7 +18268,7 @@
   {
    "caminho": "packages/portal/src/lib/__testes__/tce.test.ts",
    "doc": "",
-   "testes": 4
+   "testes": 5
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/topojson.test.ts",

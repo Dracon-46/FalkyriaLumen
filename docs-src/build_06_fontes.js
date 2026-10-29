@@ -252,7 +252,7 @@ body.push(table(["Situação", "Tribunais", "Municípios"], [3000, 4600, 2000], 
 ], { size: 17 }));
 body.push(p("Ordem de integração: TCE-RS (em uso desde 21/10/2026: contratos de 2016 em diante, lidos por partes " +
   "no servidor), TCE-SP, TCE-PR (em uso desde 21/10/2026: contratos de 2013 em diante, município a município), " +
-  "TCE-PE (em uso desde 21/10/2026: contratos de 2013 em diante, pela API) e TCE-CE, perto de 1.900 municípios. Para os cinco atrás de captcha ou " +
+  "TCE-PE (em uso desde 21/10/2026: contratos de 2013 em diante, pela API) e TCE-CE (em uso desde 29/10/2026: contratos de 2003 em diante, pela API do SIM), perto de 1.900 municípios. Para os cinco atrás de captcha ou " +
   "token, pedido formal de acesso automatizado ou pela Lei de Acesso à Informação; o do TCE-MT antes de 2027, " +
   "quando 2021 sai da janela de seis anos do Radar."));
 

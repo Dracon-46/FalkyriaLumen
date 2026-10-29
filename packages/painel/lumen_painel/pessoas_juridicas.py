@@ -9,8 +9,8 @@ As contratações, as emendas e os convênios são publicados por ente (quem con
   ADR-044);
 - **convenios:** os convênios com a União como convenente (ADR-045), com o objeto cortado em ``OBJETO``
   caracteres;
-- **tce:** os contratos registrados nos tribunais de contas (TCE-RS, TCE-PR e TCE-PE, ADR-050), por ente e ano do
-  contrato (``[ente, ano, contratos, valor]``).
+- **tce:** os contratos registrados nos tribunais de contas (TCE-RS, TCE-PR, TCE-PE e TCE-CE, ADR-050), por ente e ano
+  do contrato (``[ente, ano, contratos, valor]``).
 
 O nome é o mais recente das contratações e, sem elas, o dos convênios, das emendas ou do tribunal de contas; as fontes já chegam com o
 CPF do MEI mascarado (ADR-043). A página do portal junta o cartão da Receita (``cnpj/``). Pessoa física não

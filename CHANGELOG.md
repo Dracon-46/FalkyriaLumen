@@ -5,6 +5,20 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Tribunais de contas: o TCE-CE (ADR-050, adendo)
+
+- Os 184 municípios cearenses ganham os contratos registrados no SIM do TCE-CE, de 2003 em diante, no mandato
+  aberto de Governos municipais ("Contratos registrados no tribunal de contas") e na página da empresa. Os
+  mandatos de 2005 a 2024 ficam inteiros.
+- Coleta nova, `lumen painel tce-ce`, no fluxo `tce`, pelo intermediário em São Paulo (a API só responde do
+  Brasil): contratos e contratados de cada município, página a página, quatro municípios de cada vez. Como no
+  TCE-PE, o ano fechado é relido uma vez por mês. A primeira carga leva uns quatro dias.
+- Contrato com vários contratados (um credenciamento com dezenas de pessoas, por exemplo) ou sem contratado
+  registrado conta no total do município, mas não vai para nenhum fornecedor: o tribunal não diz a parte de cada
+  um.
+- Os aditivos do TCE-CE aparecem só em número: o valor do termo é ora o acréscimo, ora o valor total do contrato
+  depois do termo, e somá-lo inventaria acréscimos. O cartão "Aditivos" diz isso no lugar do acréscimo líquido.
+
 ### IBGE pelo intermediário em São Paulo (ADR-050, adendo)
 
 - A API de serviços do IBGE deixou de responder fora do Brasil em 22/10: os

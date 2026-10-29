@@ -1,7 +1,7 @@
 """O que os coletores dos tribunais de contas têm em comum (ADR-050): a leitura por partes, a regra de quando reler
 um ano, a soma de um ano por ente e a publicação.
 
-Cada tribunal tem o próprio módulo (``tce_rs``, ``tce_pr``, ``tce_pe``), que lê a fonte dele e grava o estado em
+Cada tribunal tem o próprio módulo (``tce_rs``, ``tce_pr``, ``tce_pe``, ``tce_ce``), que lê a fonte dele e grava o estado em
 ``tce-<sigla>.json.gz`` no mesmo formato:
 
 - ``anos``: por ano do contrato, a ``etiqueta`` e o ``tamanho`` do que foi lido, quando foi lido e a soma do ano
@@ -191,9 +191,11 @@ class SomaAno:
         """A linha do ente (``COLUNAS_ENTE``), criada zerada na primeira vez."""
         return self.entes.setdefault(ente, [0, 0.0, 0, 0, 0.0, 0, 0.0])
 
-    def contrato(self, ente: str | None, valor: float | None, *, cnpj: str | None = None) -> None:
-        """Um contrato do ente: com ``cnpj``, na empresa; sem ele, na soma anônima de pessoa física. Sem ente, vai
-        para ``sem_ente``."""
+    def contrato(self, ente: str | None, valor: float | None, *, cnpj: str | None = None,
+                 sem_fornecedor: bool = False) -> None:
+        """Um contrato do ente: com ``cnpj``, na empresa; sem ele, na soma anônima de pessoa física; com
+        ``sem_fornecedor`` (vários contratados, ou nenhum registrado), só no total do ente. Sem ente, vai para
+        ``sem_ente``."""
         if ente is None:
             self.sem_ente[0] += 1
             self.sem_ente[1] += valor or 0.0
@@ -210,21 +212,22 @@ class SomaAno:
             f = self.fornecedores.setdefault(ente, {}).setdefault(cnpj, [0, 0.0])
             f[0] += 1
             f[1] += soma
-        else:
+        elif not sem_fornecedor:
             x[3] += 1
             x[4] += soma
 
-    def aditivo(self, ente: str | None, valor: float) -> None:
-        """Um aditivo do ente, com o acréscimo líquido (negativo quando reduz)."""
+    def aditivo(self, ente: str | None, valor: float | None) -> None:
+        """Um aditivo do ente, com o acréscimo líquido (negativo quando reduz). Sem ``valor`` (a fonte não separa o
+        acréscimo do valor do termo), o aditivo conta e o acréscimo do ente fica ``None``."""
         if ente is None:
             return
         x = self._linha(ente)
         x[5] += 1
-        x[6] += valor
+        x[6] = None if valor is None or x[6] is None else x[6] + valor
 
     def para_json(self) -> dict:
         """A soma como vai no estado, em ordem e com os valores em centavos."""
-        r = lambda v: round(v, 2)  # noqa: E731
+        r = lambda v: None if v is None else round(v, 2)  # noqa: E731
         return {
             "entes": {e: [x[0], r(x[1]), x[2], x[3], r(x[4]), x[5], r(x[6])] for e, x in sorted(self.entes.items())},
             "fornecedores": {e: {c: [n, r(v)] for c, (n, v) in sorted(fs.items())}

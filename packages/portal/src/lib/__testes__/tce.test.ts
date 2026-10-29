@@ -20,6 +20,11 @@ describe("contratos no tribunal de contas", () => {
                                     { cnpj: "11111111000191", nome: "11111111000191", contratos: 1, valor: 100 }]);
   });
 
+  it("conta os aditivos sem valor quando o tribunal não separa o acréscimo (TCE-CE)", () => {
+    const ce: TceEnte = { ...sepe, tribunal: "TCE-CE", anos: { "2019": [10, 1000, 0, 0, 0, 3, null], "2020": [5, 500, 0, 0, 0, 2, 0] } };
+    expect(tceNoPeriodo(ce, ["2019", "2020"], (v) => v)).toMatchObject({ aditivos: 5, aditivosValor: null });
+  });
+
   it("deixa de fora o ano que a conversão não alcança", () => {
     const r = tceNoPeriodo(sepe, ["2019", "2023"], (v, ano) => (ano === "2023" ? null : v * 2));
     expect(r.anos).toEqual(["2019"]);

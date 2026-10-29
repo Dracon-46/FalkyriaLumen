@@ -1,21 +1,24 @@
 # Contratos registrados nos tribunais de contas (ADR-050): o LicitaCon do
 # TCE-RS (órgãos gaúchos desde 2016), o SIM-AM do TCE-PR (municípios
-# paranaenses desde 2013) e a API do TCE-PE (órgãos pernambucanos desde
-# 2013), um job por tribunal.
+# paranaenses desde 2013), a API do TCE-PE (órgãos pernambucanos desde
+# 2013) e a API do SIM do TCE-CE (municípios cearenses desde 2003), um
+# job por tribunal.
 #
 # Todo dia e à mão. Confere o cabeçalho do arquivo de cada ano e só lê o que
 # mudou: um ano fechado, quando o tamanho muda; o corrente e o anterior, uma
 # vez por semana. No RS, o ZIP do ano é lido por partes (Range), uns 5 MB por
 # ano; no PR, são 399 arquivos pequenos por ano (perto de 80 s); em PE, a API
-# não diz se o ano mudou, e o ano fechado é relido uma vez por mês. Grava
+# não diz se o ano mudou, e o ano fechado é relido uma vez por mês; no CE
+# também, com duas consultas paginadas por município e ano. Grava
 # tce-<sigla>.json.gz na versão "painel-estado"; o site sai na publicação
 # seguinte dos painéis (paineis-site), às 05:17 de Brasília.
 #
-# O servidor do TCE-RS só responde a endereços do Brasil, e as máquinas do
-# GitHub estão fora: os pedidos a ele passam pelo intermediário em São Paulo
-# (infra/proxy-br, função da Vercel), com o endereço na variável
-# LUMEN_PROXY_BR e a chave no segredo LUMEN_PROXY_CHAVE (ADR-050, adendo).
-# Sem a variável ou sem o segredo, o job do RS só avisa.
+# Os servidores do TCE-RS e do TCE-CE só respondem a endereços do Brasil, e
+# as máquinas do GitHub estão fora: os pedidos a eles passam pelo
+# intermediário em São Paulo (infra/proxy-br, função da Vercel), com o
+# endereço na variável LUMEN_PROXY_BR e a chave no segredo
+# LUMEN_PROXY_CHAVE (ADR-050, adendo).
+# Sem a variável ou sem o segredo, os jobs do RS e do CE só avisam.
 #
 # Usa o segredo LUMEN_CONTATO (User-Agent). Repositório público: os minutos
 # não são cobrados.
@@ -28,7 +31,7 @@ on:
   workflow_dispatch:
     inputs:
       anos:
-        description: "Só estes anos, separados por vírgula (vazio: de 2016 ao corrente)"
+        description: "Só estes anos, separados por vírgula (vazio: do primeiro de cada tribunal ao corrente)"
         default: ""
 
 permissions:
@@ -46,7 +49,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tribunal: [rs, pr, pe]
+        tribunal: [rs, pr, pe, ce]
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
@@ -72,8 +75,8 @@ jobs:
       - name: Contratos do tribunal
         shell: bash               # com pipefail: a falha do lumen não some atrás do tee
         run: |
-          if [ "${{ matrix.tribunal }}" = rs ] && { [ -z "$LUMEN_PROXY_BR" ] || [ -z "$LUMEN_PROXY_CHAVE" ]; }; then
-            echo "::warning::Sem LUMEN_PROXY_BR ou LUMEN_PROXY_CHAVE: o TCE-RS só responde do Brasil e fica para quando o intermediário estiver configurado."
+          if { [ "${{ matrix.tribunal }}" = rs ] || [ "${{ matrix.tribunal }}" = ce ]; } && { [ -z "$LUMEN_PROXY_BR" ] || [ -z "$LUMEN_PROXY_CHAVE" ]; }; then
+            echo "::warning::Sem LUMEN_PROXY_BR ou LUMEN_PROXY_CHAVE: o TCE-RS e o TCE-CE só respondem do Brasil e ficam para quando o intermediário estiver configurado."
             exit 0
           fi
           lumen painel tce-${{ matrix.tribunal }} --estado estado --limite-minutos 90 ${ANOS:+--anos "$ANOS"} | tee tce.json

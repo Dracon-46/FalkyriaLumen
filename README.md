@@ -431,13 +431,12 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
   operacional está no portal, em "Situação das coletas" (ADR-039), com a cobertura por ente e UF
   (ADR-048) do critério de saída da fase; falta a carga desde 2021 terminar (ADR-046).
 - Fase 3 (iniciada): os 32 tribunais de contas foram levantados (ADR-050, wiki "Tribunais de contas"). O TCE-RS
-  (contratos de 2016 em diante), o TCE-PR e o TCE-PE (de 2013 em diante) estão integrados; seguem TCE-SP e TCE-CE,
-  e um pedido formal de acesso a TCE-MG, TCM-BA, TCE-SC, TCM-GO e TCE-MT. O TCE-RS e o TCE-CE só respondem a
+  (contratos de 2016 em diante), o TCE-PR e o TCE-PE (de 2013 em diante) e o TCE-CE (de 2003 em diante) estão
+  integrados; segue o TCE-SP, e um pedido formal de acesso a TCE-MG, TCM-BA, TCE-SC, TCM-GO e TCE-MT. O TCE-RS e o TCE-CE só respondem a
   endereços do Brasil: o fluxo diário chega a eles por um intermediário em São Paulo (`infra/proxy-br`, na Vercel).
   Os cadastros de sanções da CGU (CEIS, CNEP e CEPIM) já são coletados e normalizados (ADR-030); o
-  cruzamento com as contratações é a regra J-01 da Fase 2. As emendas parlamentares (ADR-044) e os convênios
-  (ADR-045) entram pelos arquivos de dados abertos, sem chave; as transferências da União seguem pelo mesmo
-  caminho, como próximo passo.
+  cruzamento com as contratações é a regra J-01 da Fase 2. As emendas parlamentares (ADR-044), os convênios
+  (ADR-045) e as transferências da União (ADR-054) entram pelos arquivos de dados abertos, sem chave.
 
 ### Definições pendentes antes da publicação, conforme DOC-10
 

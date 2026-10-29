@@ -3,8 +3,8 @@
 O que cada tribunal de contas publica sobre os municípios em dado aberto. Levantado em 21/10/2026, com as APIs e os
 downloads testados de fato. A ordem de integração está na
 [ADR-050](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-050.md). Já integrados, no fluxo diário: TCE-RS,
-TCE-PR e TCE-PE. O servidor do TCE-RS só responde a endereços do Brasil, e o fluxo chega a ele por um intermediário
-em São Paulo (`infra/proxy-br`, na Vercel), que já aceita também o TCE-CE.
+TCE-PR, TCE-PE e TCE-CE. Os servidores do TCE-RS e do TCE-CE só respondem a endereços do Brasil, e o fluxo chega a
+eles por um intermediário em São Paulo (`infra/proxy-br`, na Vercel).
 
 ## Resumo
 
@@ -23,7 +23,7 @@ em São Paulo (`infra/proxy-br`, na Vercel), que já aceita também o TCE-CE.
 | TCE-RS | 497 | LicitaCon: licitação, lote, item, licitante, proposta; contratos com aditivos e itens. SIAPC: empenhos, liquidações e pagamentos | CSV zipado por ano, sem chave (`dados.tce.rs.gov.br/dados/licitacon/contrato/ano/AAAA.csv.zip`); CKAN | Completo desde 2016; empenhos desde 2004 | **Integrado** (ADR-050). Só aceita IP do Brasil; aceita `Range`; cada ZIP repete a tabela de pessoas |
 | TCE-PR | 399 | SIM-AM em XML: licitação (participantes e vencedores), contrato (aditivos, rescisão), despesa (empenho, liquidação, nota fiscal, pagamento), obra, convênio, receita e os vínculos entre eles | Zip do estado por ano (`pit.tce.pr.gov.br/Arquivos/{AAAA}_PIT_TodosArquivos.zip`, 1,3 a 1,9 GB) ou por município | 2013 | **Integrado** (contratos, ADR-050). Uso livre; geração semanal |
 | TCE-PE | 184 | Contratos e aditivos (com PDF), convênios, licitações com licitantes, empenhos e pagamentos, receitas, fornecedores e sanções, obras, servidores | API sem chave (`sistemas.tce.pe.gov.br/DadosAbertos/{Metodo}!json`, até 100 mil registros); bases completas em RAR | Execução desde 2011; contratos desde 2013 | **Integrado** (contratos e aditivos, ADR-050). Atualização diária; "podem ser livremente utilizados" |
-| TCE-CE | 184 | SIM inteiro: licitações, licitantes, itens, contratos e aditivos, empenhos, liquidações, pagamentos, notas fiscais, receitas, obras, folha | API REST (`api-dados-abertos.tce.ce.gov.br/sim/<método>`), GET sem credencial | Licitações desde cerca de 2003 | Só aceita IP do Brasil; até 1.000 registros por chamada; o contrato traz o id do PNCP |
+| TCE-CE | 184 | SIM inteiro: licitações, licitantes, itens, contratos e aditivos, empenhos, liquidações, pagamentos, notas fiscais, receitas, obras, folha | API REST (`api-dados-abertos.tce.ce.gov.br/sim/<método>`), GET sem credencial | Licitações desde cerca de 2003 | **Integrado** (contratos, aditivos e contratados, ADR-050). Só aceita IP do Brasil; até 1.000 registros por página; o contrato traz o id do PNCP; o CPF do contratado vem cifrado |
 | TCE-RJ | 91 (menos a capital) | Licitações, licitantes, contratos (CNPJ, empenhado, liquidado e pago), compras diretas, empenhos, receitas, pessoal, obras paralisadas | API sem chave (`dados.tcerj.tc.br/api/v1/`), JSON ou CSV, paginada | 2020 | Licença ODbL |
 | TCE-ES | 78 | Contratações (com nº PNCP), contratos com CNPJ, aditivos, itens, atas, obras, empenhos, despesas, receitas, pessoal | CSV no CKAN do estado (`dados.es.gov.br`, organização TCE-ES) | Contratações desde 2022 | Licença CC-BY; não cobre 2021 |
 | TCE-MA | 217 | SACOP (até 2021): licitações, contratos, alterações. SINC (2022 em diante): contratações, licitantes, contratos, empenhos, pagamentos, receitas, folha | API (`tce-api.apps.tcema.tc.br`); o SACOP só por uma API interna do mural | SACOP de cerca de 2014 a 2021; SINC desde 2022 | Datas sujas (ex.: ano 9202) |

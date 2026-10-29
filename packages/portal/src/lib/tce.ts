@@ -1,7 +1,8 @@
 /**
  * Contratos registrados nos tribunais de contas (ADR-050), do arquivo `tce/ente/<grupo>.json.gz` que os painéis
  * publicam: por ente e ano do contrato, quantos e quanto, com os aditivos, a soma anônima de pessoa física e os
- * fornecedores: o LicitaCon do TCE-RS (desde 2016), o SIM-AM do TCE-PR e a API do TCE-PE (desde 2013).
+ * fornecedores: o LicitaCon do TCE-RS (desde 2016), o SIM-AM do TCE-PR, a API do TCE-PE (desde 2013) e a do SIM do
+ * TCE-CE (desde 2003).
  */
 
 import { obterJsonComprimido } from "./comprimido";
@@ -9,9 +10,10 @@ import { BASE_PAINEL, conferir, grupoDoEnte } from "./paineis";
 
 /**
  * Um ano do ente, na ordem de `colunas`: contratos, valor somado, contratos fora da soma pelo teto de
- * plausibilidade, contratos e valor com pessoa física, aditivos e o acréscimo líquido deles.
+ * plausibilidade, contratos e valor com pessoa física, aditivos e o acréscimo líquido deles (`null` quando o tribunal
+ * não separa o acréscimo do valor do termo, como o TCE-CE).
  */
-export type AnoTce = [number, number, number, number, number, number, number];
+export type AnoTce = [number, number, number, number, number, number, number | null];
 
 /** Os contratos de um ente no tribunal de contas. */
 export interface TceEnte {
@@ -56,7 +58,8 @@ export interface TceNoPeriodo {
   pfContratos: number;
   pfValor: number;
   aditivos: number;
-  aditivosValor: number;
+  /** `null` quando algum ano não tem o acréscimo (o tribunal não o separa do valor do termo). */
+  aditivosValor: number | null;
   fornecedores: { cnpj: string; nome: string; contratos: number; valor: number }[];
 }
 
@@ -76,7 +79,7 @@ export function tceNoPeriodo(t: TceEnte, anos: string[], converter: (valor: numb
     r.pfContratos += a[3];
     r.pfValor += conv(a[4], ano);
     r.aditivos += a[5];
-    r.aditivosValor += conv(a[6], ano);
+    r.aditivosValor = a[6] === null || r.aditivosValor === null ? null : r.aditivosValor + conv(a[6], ano);
   }
   const dentro = new Set(usados);
   for (const [cnpj, nome, porAno] of t.fornecedores) {

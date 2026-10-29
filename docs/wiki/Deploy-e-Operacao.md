@@ -120,7 +120,7 @@ publicação para com erro e o índice não sobe. Falha passageira de envio (408
 | [`paineis-carga.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/paineis-carga.yml) | À mão | Meses anteriores do PNCP em blocos de dias, no máximo quatro máquinas ao mesmo tempo; publica no fim | `LUMEN_CONTATO` |
 | [`paineis-site.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/paineis-site.yml) | Chamado pelos dois acima, e à mão | Baixa o estado, roda a regra J-01 com o retrato do dia da CGU, lê as contestações, roda `lumen painel publicar` e publica no GitHub Pages | `LUMEN_CONTATO` e os do bucket privado, herdados de quem chama |
 | [`deteccao-sancoes.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/deteccao-sancoes.yml) | À mão | Regra J-01 (sanções da CGU × contratos do painel) fora da publicação, com o relatório guardado em `painel-estado`. A do dia roda dentro do `paineis-site`, antes de montar o site ([ADR-047](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-047.md), adendo) | `LUMEN_CONTATO`; segredos do bucket privado, opcionais |
-| [`tce.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/tce.yml) | Todo dia, 03:30 em Brasília, e à mão | Contratos nos tribunais de contas (TCE-RS, TCE-PR e TCE-PE), só os anos que mudaram (ADR-050); o TCE-RS pelo intermediário em São Paulo | `LUMEN_CONTATO`, `LUMEN_PROXY_CHAVE` e a variável `LUMEN_PROXY_BR` |
+| [`tce.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/tce.yml) | Todo dia, 03:30 em Brasília, e à mão | Contratos nos tribunais de contas (TCE-RS, TCE-PR, TCE-PE e TCE-CE), só os anos que mudaram (ADR-050); o TCE-RS pelo intermediário em São Paulo | `LUMEN_CONTATO`, `LUMEN_PROXY_CHAVE` e a variável `LUMEN_PROXY_BR` |
 | [`mercado-referencia.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/mercado-referencia.yml) | À mão | Regra A-05 com dados reais, em modo silencioso: PNCP, itens, ANP e o relatório como artefato de sete dias | `LUMEN_CONTATO` |
 
 Repositório: [`wiki.yml`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/.github/workflows/wiki.yml)
@@ -195,6 +195,9 @@ um job por tribunal, e grava `tce-<sigla>.json.gz` na versão `painel-estado`:
   leva perto de 18 minutos.
 - **TCE-PE:** cada ano são duas consultas à API do tribunal (contratos e aditivos, perto de 35 segundos). Como a API
   não diz se o ano mudou, o ano fechado é relido uma vez por mês.
+- **TCE-CE:** cada ano são ao menos duas consultas por município (contratos e contratados, 1.000 registros por
+  página), quatro municípios de cada vez, pelo intermediário em São Paulo: perto de 12 minutos por ano. A carga de
+  2003 em diante leva umas quatro execuções; depois, como no TCE-PE, o ano fechado é relido uma vez por mês.
 
 Um ano fechado só é relido quando o arquivo muda de tamanho, e o corrente e o anterior, uma vez por semana. Na
 maioria dos dias, o fluxo só confere os cabeçalhos. À mão, o campo `anos` relê só os anos pedidos.

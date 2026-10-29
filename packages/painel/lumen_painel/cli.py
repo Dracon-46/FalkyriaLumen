@@ -45,6 +45,7 @@ from . import (
     pessoas_juridicas,
     rcl,
     tce,
+    tce_ce,
     tce_pe,
     tce_pr,
     tce_rs,
@@ -269,7 +270,7 @@ def cmd_tce(args) -> int:
     cfg = _configuracao(args)
     cadastro = Cadastro.ler(Path(args.estado) / ARQUIVO_CADASTRO)
     anos = [int(a) for a in _lista(args.anos)] if args.anos else None
-    modulo = {"tce-rs": tce_rs, "tce-pr": tce_pr, "tce-pe": tce_pe}[args.comando]
+    modulo = {"tce-rs": tce_rs, "tce-pr": tce_pr, "tce-pe": tce_pe, "tce-ce": tce_ce}[args.comando]
     r = modulo.coletar(Path(args.estado), cadastro, contato=cfg.contato, anos=anos, limite_minutos=args.limite_minutos)
     _imprimir(r.para_json())
     return 0
@@ -482,7 +483,8 @@ def construir_parser() -> argparse.ArgumentParser:
 
     for nome, ajuda, desde in (("tce-rs", "contratos dos órgãos gaúchos no LicitaCon do TCE-RS", tce_rs.PRIMEIRO_ANO),
                                ("tce-pr", "contratos dos municípios paranaenses no SIM-AM do TCE-PR", tce_pr.PRIMEIRO_ANO),
-                               ("tce-pe", "contratos dos órgãos pernambucanos na API do TCE-PE", tce_pe.PRIMEIRO_ANO)):
+                               ("tce-pe", "contratos dos órgãos pernambucanos na API do TCE-PE", tce_pe.PRIMEIRO_ANO),
+                               ("tce-ce", "contratos dos municípios cearenses na API do SIM do TCE-CE", tce_ce.PRIMEIRO_ANO)):
         c = sub.add_parser(nome, help=f"{ajuda}, por ente e ano")
         c.add_argument("--estado", required=True)
         c.add_argument("--anos", help=f"só estes anos, separados por vírgula (padrão: de {desde} ao corrente)")
@@ -518,7 +520,7 @@ def construir_parser() -> argparse.ArgumentParser:
 
 COMANDOS = {"cadastro": cmd_cadastro, "contratacoes": cmd_contratacoes, "faltando": cmd_faltando,
             "conformidade": cmd_conformidade, "rcl": cmd_rcl, "despesa-funcao": cmd_despesa_funcao, "pessoal": cmd_pessoal,
-            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "tce-rs": cmd_tce, "tce-pr": cmd_tce, "tce-pe": cmd_tce, "emendas": cmd_emendas, "convenios": cmd_convenios, "transferencias": cmd_transferencias,
+            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "tce-rs": cmd_tce, "tce-pr": cmd_tce, "tce-pe": cmd_tce, "tce-ce": cmd_tce, "emendas": cmd_emendas, "convenios": cmd_convenios, "transferencias": cmd_transferencias,
             "transparencia": cmd_transparencia, "anp": cmd_anp,
             "publicar": cmd_publicar}
 

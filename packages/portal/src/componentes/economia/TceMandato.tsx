@@ -4,7 +4,8 @@
  * Contratos registrados no tribunal de contas no mandato aberto em Governos municipais (ADR-050): quantos e
  * quanto, pelo ano do contrato, os aditivos, a soma anônima de pessoa física e os fornecedores do mandato, cada
  * um com o link para a página da empresa (visão 360). Na comparação, o total do outro mandato ao lado. Por
- * enquanto, os municípios gaúchos (TCE-RS, desde 2016), paranaenses (TCE-PR) e pernambucanos (TCE-PE, desde 2013).
+ * enquanto, os municípios gaúchos (TCE-RS, desde 2016), paranaenses (TCE-PR), pernambucanos (TCE-PE, desde 2013) e
+ * cearenses (TCE-CE, desde 2003).
  */
 
 import Link from "next/link";
@@ -56,7 +57,10 @@ export function TceMandato({ estado, anos, anosComparado, outroMunicipio = null,
             detalhe={`${detalhe(vizinho)} (${outroMunicipio.tce.tribunal})`} />
         )}
         {r.aditivos > 0 && (
-          <Numero rotulo="Aditivos" valor={numero(r.aditivos)} detalhe={`acréscimo líquido de ${fmt(r.aditivosValor)}`} />
+          <Numero rotulo="Aditivos" valor={numero(r.aditivos)}
+            detalhe={r.aditivosValor === null
+              ? `o ${t.tribunal} não separa o acréscimo do valor do termo`
+              : `acréscimo líquido de ${fmt(r.aditivosValor)}`} />
         )}
       </div>
       {r.fornecedores.length > 0 && (
