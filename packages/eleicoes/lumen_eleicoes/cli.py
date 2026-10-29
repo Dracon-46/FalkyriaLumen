@@ -11,6 +11,7 @@ Exemplos::
     lumen eleicoes mapas --contornos                # contornos finos dos municípios do mapa das zonas
     lumen eleicoes zonas --anos 2026,2024           # locais de votação: mapa das zonas eleitorais
     lumen eleicoes eleitorado --anos 2026           # perfil, comparecimento por perfil e seções
+    lumen eleicoes horarios --anos 2026             # abertura, encerramento e boletim de cada urna
     lumen eleicoes ao-vivo --eleicao 2026-1t-geral  # noite da apuração
     lumen eleicoes historico baixar --anos 2022,2018,1950
     lumen eleicoes historico processar --anos 2022,2018,1950
@@ -36,7 +37,7 @@ from pathlib import Path
 from lumen_ingestao.bronze import ArmazemBronzeLocal
 from lumen_ingestao.cliente_http import ClienteHttp
 
-from . import antigas, carga, conferencia, eleitorado, geo, medicao, referencias, tse, zonas
+from . import antigas, carga, conferencia, eleitorado, geo, horarios, medicao, referencias, tse, zonas
 from . import dados_abertos as da
 from .coletor import FONTE_ID, ColetorAoVivo, ResumoPassada, plano_padrao
 from .configuracao import ConfiguracaoAusente, ConfiguracaoEleicoes, carregar, carregar_publicacao
@@ -45,6 +46,7 @@ from .municipios import CadastroMunicipios, nomes_do_ibge
 from .preparacao import OpcoesPreparacao, Preparacao
 from .publicacao import LimiteDoArmazenamento, Nuvem
 from .simulacao import Cenario, ServidorSimulado, gerar_amostra
+from .transferencia import baixar_arquivo
 from .verificacao import verificar_diretorio
 
 # ``ao-vivo --limite-minutos``: o prazo venceu com a apuração em andamento. O fluxo do GitHub Actions dispara
@@ -98,6 +100,17 @@ def _anos_eleitorado(texto: str) -> list[int]:
     fora = [a for a in anos if a not in eleitorado.ANOS_ELEITORADO]
     if fora:
         raise argparse.ArgumentTypeError(f"anos sem o perfil do eleitorado tratado pelo Lumen: {fora}")
+    return anos
+
+
+def _anos_horarios(texto: str) -> list[int]:
+    """Tipo do argparse para ``horarios --anos``: anos de ``horarios.ANOS_HORARIOS``; ``todos`` são todos eles."""
+    if texto.strip().lower() == "todos":
+        return list(horarios.ANOS_HORARIOS)
+    anos = sorted({int(x) for x in texto.split(",") if x.strip()}, reverse=True)
+    fora = [a for a in anos if a not in horarios.ANOS_HORARIOS]
+    if fora:
+        raise argparse.ArgumentTypeError(f"anos sem boletim de urna nos dados abertos: {fora}")
     return anos
 
 
@@ -433,6 +446,47 @@ def cmd_eleitorado(cfg, args) -> int:
     return 1 if falhou else 0
 
 
+def cmd_horarios(cfg, args) -> int:
+    """Os horários das urnas (ADR-056): baixa o boletim de urna de cada UF e turno do ano, uma UF por vez, guarda
+    uma linha por seção, grava ``horarios/<ano>/`` sob ``--saida`` e, com ``--pacotes``, ``horarios-<ano>.tar``.
+
+    O andamento vai para o stderr; no stdout, o resumo de cada ano em JSON. Devolve 1 se algum ano falhou.
+    """
+    cadastro = _cadastro(cfg)
+    saida = Path(args.saida) if args.saida else cfg.saida
+    resumos, falhou = [], False
+
+    def andamento(msg: str) -> None:
+        print(msg, file=sys.stderr, flush=True)
+    for ano in args.anos:
+        try:
+            urls = horarios.urls_do_ano(ano, user_agent=cfg.user_agent)
+            if not urls:
+                raise RuntimeError("o catálogo do TSE não lista boletins de urna do ano")
+            secoes: dict = {}
+            for turno, uf, url in urls:
+                destino = cfg.arquivos / "horarios" / url.rsplit("/", 1)[-1]
+                andamento(f"{ano} {turno}º turno {uf.upper()}: {url}")
+                baixar_arquivo(url, destino, user_agent=cfg.user_agent, atualizar=args.atualizar,
+                               progresso=carga.progresso_mb(saida=andamento))
+                antes = len(secoes)
+                horarios.ler_zip(destino, secoes)
+                andamento(f"{ano} {turno}º turno {uf.upper()}: {len(secoes) - antes} seções")
+                if args.apagar_zips:
+                    destino.unlink(missing_ok=True)
+            r = horarios.gravar(ano, list(secoes.values()), saida, cadastro, urls=[u for _, _, u in urls])
+            resumo = r.para_json()
+            if args.pacotes:
+                resumo["pacote"] = str(horarios.empacotar(ano, saida, args.pacotes))
+            resumos.append(resumo)
+        except Exception as erro:  # noqa: BLE001 - um ano com erro não impede os outros
+            falhou = True
+            andamento(f"erro nos horários de {ano}: {erro}")
+            resumos.append({"ano": ano, "erro": str(erro)})
+    _imprimir(resumos)
+    return 1 if falhou else 0
+
+
 def cmd_conferir(cfg, args) -> int:
     """Só a conferência seção a seção (ADR-053): soma a votação por seção de Presidente dos anos pedidos e
     compara com o total do sistema de resultados; grava ``<eleição>/presidente/conferencia.json``.
@@ -625,6 +679,14 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--atualizar", action="store_true", help="consulta o servidor mesmo se já baixado")
     c.add_argument("--sem-bronze", action="store_true")
 
+    c = sub.add_parser("horarios", help="horários das urnas: abertura, encerramento e boletim de cada seção (ADR-056)")
+    c.add_argument("--anos", type=_anos_horarios, default=list(horarios.ANOS_HORARIOS),
+                   help="anos separados por vírgula, ou todos (padrão: 2026 a 2018)")
+    c.add_argument("--saida", help="diretório onde gravar horarios/<ano>/ (padrão: o dos feeds)")
+    c.add_argument("--pacotes", help="diretório onde gravar horarios-<ano>.tar, para o site dos painéis")
+    c.add_argument("--apagar-zips", action="store_true", help="apaga cada ZIP do TSE depois de lido")
+    c.add_argument("--atualizar", action="store_true", help="consulta o servidor mesmo se já baixado")
+
     c = sub.add_parser("conferir", help="conferência seção a seção: a votação por seção contra o total (ADR-053)")
     c.add_argument("--anos", type=_anos, default=list(conferencia.ANOS_SECAO),
                    help="anos separados por vírgula (padrão: o em aberto)")
@@ -686,7 +748,7 @@ def construir_parser() -> argparse.ArgumentParser:
     return p
 
 
-COMANDOS = {"preparar": cmd_preparar, "publicar": cmd_publicar, "catalogo": cmd_catalogo, "municipios": cmd_municipios, "mapas": cmd_mapas, "zonas": cmd_zonas, "eleitorado": cmd_eleitorado, "conferir": cmd_conferir, "ao-vivo": cmd_ao_vivo,
+COMANDOS = {"preparar": cmd_preparar, "publicar": cmd_publicar, "catalogo": cmd_catalogo, "municipios": cmd_municipios, "mapas": cmd_mapas, "zonas": cmd_zonas, "eleitorado": cmd_eleitorado, "horarios": cmd_horarios, "conferir": cmd_conferir, "ao-vivo": cmd_ao_vivo,
             "simular": cmd_simular, "amostra": cmd_amostra, "servir": cmd_servir, "verificar": cmd_verificar,
             "medir": cmd_medir}
 
