@@ -9,8 +9,10 @@
  */
 
 import {
+  VERSAO_ELEITORADO,
   VERSAO_FEED,
   VERSAO_ZONAS,
+  type ArquivoEleitorado,
   type ArquivoZonas,
   type CadastroMunicipios,
   type FeedConferencia,
@@ -166,4 +168,21 @@ export function validarZonas(bruto: unknown, onde = "zonas"): ArquivoZonas {
     }
   }
   return o as unknown as ArquivoZonas;
+}
+
+/** Arquivo do eleitorado (ADR-055): versão, tipo, o lugar com o total e, no município, as seções no formato. */
+export function validarEleitorado(bruto: unknown, onde = "eleitorado"): ArquivoEleitorado {
+  const o = objeto(bruto, onde);
+  versao(o, onde, VERSAO_ELEITORADO);
+  if (o.tipo !== "eleitorado") throw new ErroFeed(`${onde}: tipo ${String(o.tipo)} não é do eleitorado`);
+  exigir(o, ["ano", "nivel", "origem", "lugar"], onde);
+  const lugar = objeto(o.lugar, `${onde}.lugar`);
+  if (typeof lugar.eleitores !== "number") throw new ErroFeed(`${onde}.lugar sem o total de eleitores`);
+  if (o.secoes !== undefined) {
+    for (const [i, s] of lista(o.secoes, `${onde}.secoes`).entries()) {
+      const secao = lista(s, `${onde}.secoes[${i}]`);
+      if (secao.length !== 4 || typeof secao[3] !== "number") throw new ErroFeed(`${onde}.secoes[${i}] fora do formato`);
+    }
+  }
+  return o as unknown as ArquivoEleitorado;
 }

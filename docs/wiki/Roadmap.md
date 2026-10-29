@@ -70,7 +70,7 @@ documentação consistente com o código; avaliação da abertura do código; pl
 
 | Trilha | Situação |
 |---|---|
-| Aba Eleições ([ADR-024](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-024.md)) | Pronta: coleta ao vivo do TSE, eleições de 1933 a 2026, mapa com zonas eleitorais, carga num comando, carga e publicação na nuvem |
+| Aba Eleições ([ADR-024](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-024.md)) | Pronta: coleta ao vivo do TSE, eleições de 1933 a 2026, mapa com zonas eleitorais, eleitorado do Brasil à seção com perfil e comparecimento por perfil de 2018 em diante ([ADR-055](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-055.md)), carga num comando, carga e publicação na nuvem. Próximos: os horários das urnas e os votos por hora |
 | Painéis de Contratações e Conformidade ([ADR-028](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-028.md)) | No ar desde 14/10/2026 |
 | Contexto eleitoral nas telas de contratação (família K) | Fase 2 em diante |
 

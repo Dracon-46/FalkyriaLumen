@@ -105,6 +105,16 @@ jobs:
         run: |
           if [ -s estado/economia-sgs.json.gz ]; then lumen economia publicar --estado estado --saida site
           else echo "::notice::Sem estado da economia ainda: a página fica sem dados até a primeira coleta."; fi
+      # O eleitorado (ADR-055) vem pronto, um pacote por ano feito pelo fluxo eleitorado: só desempacota
+      - name: Eleitorado
+        run: |
+          mkdir -p pacotes
+          gh release download "$TAG" -p 'eleitorado-*.tar' -D pacotes --clobber 2>/dev/null || true
+          for f in pacotes/eleitorado-*.tar; do
+            [ -e "$f" ] || continue
+            tar -xf "$f" -C site
+            echo "$f: $(tar -tf "$f" | wc -l) arquivos"
+          done
       - name: Resumo
         run: |
           {

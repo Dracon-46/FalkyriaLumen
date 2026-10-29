@@ -5,6 +5,21 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Eleições: o eleitorado do Brasil à seção (ADR-055)
+
+- Painel "Eleitorado" no lugar aberto da aba Eleições, de 2018 em diante:
+  eleitores, biometria, quem compareceu e quem faltou no turno, e o perfil
+  por faixa etária, gênero, escolaridade e estado civil, com o
+  comparecimento de cada grupo; os estados, os municípios ou as zonas
+  abaixo; no município, a zona e as seções com o local de votação, com
+  busca. CSV em todas as tabelas.
+- Dados do TSE (perfil do eleitorado, comparecimento por perfil e locais de
+  votação), sem as características sensíveis (raça ou cor, deficiência,
+  identidade de gênero e outras), que o DOC-08 manda não publicar.
+- Fluxo semanal `eleitorado`: um pacote por ano (perto de 8 MB) no estado
+  dos painéis, desempacotado no site dos painéis. O bucket das eleições
+  (Supabase gratuito, perto do limite) não recebe nada.
+
 ### Tribunais de contas: o TCE-CE (ADR-050, adendo)
 
 - Os 184 municípios cearenses ganham os contratos registrados no SIM do TCE-CE, de 2003 em diante, no mandato

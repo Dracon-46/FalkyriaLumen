@@ -2349,3 +2349,56 @@ table.tabela {
   background: var(--aviso-fundo);
   font-weight: 600;
 }
+
+/* Eleitorado (ADR-055) */
+.eleitorado .subtitulo-secao {
+  margin: 18px 0 6px;
+  font-size: 0.95rem;
+}
+
+.eleitorado-zona {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.eleitorado-abas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 14px 0 8px;
+}
+
+.eleitorado-abas .botao {
+  min-height: 36px;
+  padding: 4px 10px;
+}
+
+.eleitorado-abas .botao[aria-pressed="true"] {
+  background: var(--destaque-suave);
+  border-color: var(--destaque);
+  color: var(--destaque);
+}
+
+.eleitorado-coluna-barra {
+  min-width: 160px;
+  white-space: nowrap;
+}
+
+.eleitorado-barra {
+  display: inline-block;
+  width: 90px;
+  height: 8px;
+  margin-right: 8px;
+  vertical-align: middle;
+  background: var(--superficie-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.eleitorado-barra > span {
+  display: block;
+  height: 100%;
+  background: var(--destaque);
+}
