@@ -18,6 +18,9 @@ decisões que justificam cada mudança estão nas ADRs citadas.
   um.
 - Os aditivos do TCE-CE aparecem só em número: o valor do termo é ora o acréscimo, ora o valor total do contrato
   depois do termo, e somá-lo inventaria acréscimos. O cartão "Aditivos" diz isso no lugar do acréscimo líquido.
+- O job do TCE-RS falha desde 28/10 com 403 pelo intermediário (o tribunal responde direto do Brasil). O erro 4xx
+  dos tribunais passa a trazer o começo da resposta, para separar a recusa da função ("destino fora da lista") de
+  um bloqueio do tribunal ao endereço da Vercel.
 
 ### IBGE pelo intermediário em São Paulo (ADR-050, adendo)
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import http.client
 import io
+import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
@@ -157,6 +158,20 @@ def test_baixar_de_novo_quando_a_conexao_cai_no_meio_da_leitura(monkeypatch):
     monkeypatch.setattr(tce, "abrir", lambda pedido: Cortada())
     with pytest.raises(http.client.IncompleteRead):
         tce.baixar("https://exemplo.org/a.json", contato="c", esperar=lambda segundos: None)
+
+
+def test_erro_4xx_leva_o_comeco_da_resposta_e_404_sobe_como_veio(monkeypatch):
+    def recusar(codigo, corpo):
+        def urlopen(pedido, timeout):
+            raise urllib.error.HTTPError(pedido.full_url, codigo, "Forbidden", {}, io.BytesIO(corpo))
+        return urlopen
+
+    monkeypatch.setattr(urllib.request, "urlopen", recusar(403, b"destino fora da lista\n"))
+    with pytest.raises(urllib.error.HTTPError, match="Forbidden: destino fora da lista") as erro:
+        tce.abrir(urllib.request.Request("https://exemplo.org/a.csv"))
+    assert erro.value.code == 403
+    monkeypatch.setattr(urllib.request, "urlopen", recusar(404, b"x"))
+    assert tce.baixar("https://exemplo.org/a.csv", contato="c") is None
 
 
 def test_quando_ler_de_novo():

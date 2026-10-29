@@ -72,14 +72,18 @@ def pelo_intermediario(pedido: urllib.request.Request, ambiente=os.environ) -> u
 def abrir(pedido: urllib.request.Request, *, tentativas: int = TENTATIVAS,
           esperar: Callable[[float], None] = time.sleep):
     """``urlopen`` com novas tentativas para falha de rede e erro 5xx; 404 sobe na hora. Passa pelo intermediário
-    em São Paulo quando o servidor só responde do Brasil (``pelo_intermediario``)."""
+    em São Paulo quando o servidor só responde do Brasil (``pelo_intermediario``). O erro leva o começo da resposta:
+    pelo intermediário, um 403 pode ser dele ("destino fora da lista") ou do tribunal."""
     pedido = pelo_intermediario(pedido)
     for tentativa in range(tentativas):
         try:
             return urllib.request.urlopen(pedido, timeout=120)
         except urllib.error.HTTPError as erro:
             if erro.code < 500 or tentativa + 1 == tentativas:
-                raise
+                if erro.code == 404:
+                    raise
+                corpo = erro.read(300).decode("utf-8", "replace").strip()
+                raise urllib.error.HTTPError(erro.url, erro.code, f"{erro.msg}: {corpo}", erro.headers, None) from erro
         except (urllib.error.URLError, TimeoutError, ConnectionError):
             if tentativa + 1 == tentativas:
                 raise

@@ -10261,7 +10261,7 @@
   {
    "caminho": "packages/painel/lumen_painel/tce.py",
    "linguagem": "python",
-   "linhas": 347,
+   "linhas": 351,
    "doc": "O que os coletores dos tribunais de contas têm em comum (ADR-050): a leitura por partes, a regra de quando reler\num ano, a soma de um ano por ente e a publicação.\n\nCada tribunal tem o próprio módulo (``tce_rs``, ``tce_pr``, ``tce_pe``, ``tce_ce``), que lê a fonte dele e grava o estado em\n``tce-<sigla>.json.gz`` no mesmo formato:\n\n- ``anos``: por ano do contrato, a ``etiqueta`` e o ``tamanho`` do que foi lido, quando foi lido e a soma do ano\n  (``SomaAno.para_json``): por ente, as ``COLUNAS_ENTE``; por ente e CNPJ, ``[contratos, valor]``; e o que ficou\n  sem ente (consórcios e associações, que reúnem vários municípios);\n- ``nomes``: o nome de cada CNPJ, com o CPF do MEI mascarado;\n- ``tribunal``, ``sistema``, ``fonte`` e ``primeiro_ano``.\n\nA leitura por partes (``ArquivoRemoto``) é um arquivo que o ``zipfile`` abre e lê em fluxo. O ``zip_remoto`` do\n``lumen_ingestao`` (ADR-032) faz parecido, mas traz o arquivo pedido inteiro para a memória e não lê ZIP64; o\n``pessoas.csv`` do TCE-RS tem 200 MB.\n\nO valor acima do teto de plausibilidade do ente (o mesmo do painel de contratações, ADR-028) conta e fica fora\nda soma. Contrato com pessoa física entra só na soma anônima, sem nome nem documento (DOC-08). A publicação junta\ntodos os tribunais em ``tce/ente/<grupo>.json.gz``: um ente só é fiscalizado por um tribunal.\n\nOs servidores do TCE-RS e do TCE-CE só respondem a endereços do Brasil, e o GitHub Actions roda fora. Com\n``LUMEN_PROXY_BR`` e ``LUMEN_PROXY_CHAVE`` no ambiente, os pedidos a eles passam pelo intermediário em São Paulo\n(``infra/proxy-br``, uma função da Vercel), que devolve a resposta do tribunal como veio (ADR-050, adendo).",
    "itens": [
     {
@@ -10282,7 +10282,7 @@
      "tipo": "funcao",
      "nome": "abrir",
      "assinatura": "def abrir(pedido: urllib.request.Request, *, tentativas: int=TENTATIVAS, esperar: Callable[[float], None]=time.sleep)",
-     "doc": "``urlopen`` com novas tentativas para falha de rede e erro 5xx; 404 sobe na hora. Passa pelo intermediário\nem São Paulo quando o servidor só responde do Brasil (``pelo_intermediario``).",
+     "doc": "``urlopen`` com novas tentativas para falha de rede e erro 5xx; 404 sobe na hora. Passa pelo intermediário\nem São Paulo quando o servidor só responde do Brasil (``pelo_intermediario``). O erro leva o começo da resposta:\npelo intermediário, um 403 pode ser dele (\"destino fora da lista\") ou do tribunal.",
      "linha": 72
     },
     {
@@ -10290,161 +10290,161 @@
      "nome": "cabecalho",
      "assinatura": "def cabecalho(url: str, *, contato: str) -> tuple[int, str] | None",
      "doc": "Tamanho e ETag (ou Last-Modified) do arquivo; ``None`` quando ele não existe (404). Pelo intermediário, os\noriginais vêm em ``X-Lumen-Tamanho`` e ``X-Lumen-Etag``.",
-     "linha": 90
+     "linha": 94
     },
     {
      "tipo": "funcao",
      "nome": "baixar",
      "assinatura": "def baixar(url: str, *, contato: str, tentativas: int=TENTATIVAS, esperar: Callable[[float], None]=time.sleep) -> bytes | None",
      "doc": "Um arquivo inteiro; ``None`` quando ele não existe (404). A conexão que cai no meio da leitura (o TCE-PE\nfechou uma resposta de 30 MB depois de 8,7 MB, em 22/10/2026) faz baixar de novo, do começo.",
-     "linha": 104
+     "linha": 108
     },
     {
      "tipo": "classe",
      "nome": "ArquivoRemoto",
      "assinatura": "class ArquivoRemoto(io.RawIOBase)",
      "doc": "Um arquivo do servidor lido por partes (``Range``), em blocos guardados, para o ``zipfile`` abrir só os\nmembros pedidos sem baixar o resto.",
-     "linha": 123
+     "linha": 127
     },
     {
      "tipo": "metodo",
      "nome": "ArquivoRemoto.__init__",
      "assinatura": "def __init__(self, url: str, tamanho: int, *, contato: str, bloco: int=BLOCO, abrir: Callable[..., Any]=abrir)",
      "doc": "``tamanho`` vem do ``cabecalho``; ``abrir`` é substituível nos testes.",
-     "linha": 127
+     "linha": 131
     },
     {
      "tipo": "metodo",
      "nome": "ArquivoRemoto.readable",
      "assinatura": "def readable(self) -> bool",
      "doc": "Lê.",
-     "linha": 137
+     "linha": 141
     },
     {
      "tipo": "metodo",
      "nome": "ArquivoRemoto.seekable",
      "assinatura": "def seekable(self) -> bool",
      "doc": "Anda para qualquer posição.",
-     "linha": 141
+     "linha": 145
     },
     {
      "tipo": "metodo",
      "nome": "ArquivoRemoto.tell",
      "assinatura": "def tell(self) -> int",
      "doc": "A posição atual.",
-     "linha": 145
+     "linha": 149
     },
     {
      "tipo": "metodo",
      "nome": "ArquivoRemoto.seek",
      "assinatura": "def seek(self, deslocamento: int, de: int=io.SEEK_SET) -> int",
      "doc": "Muda a posição, como ``io``.",
-     "linha": 149
+     "linha": 153
     },
     {
      "tipo": "metodo",
      "nome": "ArquivoRemoto.readinto",
      "assinatura": "def readinto(self, destino) -> int",
      "doc": "Copia o que puder do bloco guardado; fora dele, busca um bloco novo a partir da posição.",
-     "linha": 155
+     "linha": 159
     },
     {
      "tipo": "classe",
      "nome": "SomaAno",
      "assinatura": "class SomaAno",
      "doc": "A soma de um ano: por ente (``COLUNAS_ENTE``), por ente e CNPJ e o que ficou sem ente. ``teto(ente)`` é o\nvalor acima do qual o contrato conta e fica fora da soma.",
-     "linha": 178
+     "linha": 182
     },
     {
      "tipo": "metodo",
      "nome": "SomaAno.__init__",
      "assinatura": "def __init__(self, teto: Callable[[str], float])",
      "doc": "Começa vazia.",
-     "linha": 182
+     "linha": 186
     },
     {
      "tipo": "metodo",
      "nome": "SomaAno._linha",
      "assinatura": "def _linha(self, ente: str) -> list",
      "doc": "A linha do ente (``COLUNAS_ENTE``), criada zerada na primeira vez.",
-     "linha": 190
+     "linha": 194
     },
     {
      "tipo": "metodo",
      "nome": "SomaAno.contrato",
      "assinatura": "def contrato(self, ente: str | None, valor: float | None, *, cnpj: str | None=None, sem_fornecedor: bool=False) -> None",
      "doc": "Um contrato do ente: com ``cnpj``, na empresa; sem ele, na soma anônima de pessoa física; com\n``sem_fornecedor`` (vários contratados, ou nenhum registrado), só no total do ente. Sem ente, vai para\n``sem_ente``.",
-     "linha": 194
+     "linha": 198
     },
     {
      "tipo": "metodo",
      "nome": "SomaAno.aditivo",
      "assinatura": "def aditivo(self, ente: str | None, valor: float | None) -> None",
      "doc": "Um aditivo do ente, com o acréscimo líquido (negativo quando reduz). Sem ``valor`` (a fonte não separa o\nacréscimo do valor do termo), o aditivo conta e o acréscimo do ente fica ``None``.",
-     "linha": 219
+     "linha": 223
     },
     {
      "tipo": "metodo",
      "nome": "SomaAno.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "A soma como vai no estado, em ordem e com os valores em centavos.",
-     "linha": 228
+     "linha": 232
     },
     {
      "tipo": "classe",
      "nome": "ResultadoTce",
      "assinatura": "class ResultadoTce",
      "doc": "O que a coleta de um tribunal fez: os anos lidos, os pulados (sem mudança) e os que não existem.",
-     "linha": 242
+     "linha": 246
     },
     {
      "tipo": "metodo",
      "nome": "ResultadoTce.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "Resumo para imprimir na linha de comando.",
-     "linha": 253
+     "linha": 257
     },
     {
      "tipo": "funcao",
      "nome": "precisa_ler",
      "assinatura": "def precisa_ler(guardado: dict | None, tamanho: int, etiqueta: str, ano: int, hoje: date) -> bool",
      "doc": "O ano tem de ser lido de novo? Nunca lido: sim. Fechado (antes do ano anterior): só se o tamanho mudou,\nporque os tribunais refazem os arquivos sem mudar o conteúdo. Corrente ou anterior: quando mudou e a última\nleitura tem ``DIAS_ENTRE_LEITURAS`` dias ou mais.",
-     "linha": 259
+     "linha": 263
     },
     {
      "tipo": "funcao",
      "nome": "precisa_ler_por_idade",
      "assinatura": "def precisa_ler_por_idade(guardado: dict | None, ano: int, hoje: date) -> bool",
      "doc": "Para a fonte sem cabeçalho de mudança (uma API): nunca lido, sim; fechado, quando a leitura tem\n``DIAS_ANO_FECHADO`` dias ou mais; corrente ou anterior, ``DIAS_ENTRE_LEITURAS``.",
-     "linha": 273
+     "linha": 277
     },
     {
      "tipo": "funcao",
      "nome": "ler_estado",
      "assinatura": "def ler_estado(caminho: Path, *, tribunal: str, sistema: str, fonte: str, primeiro_ano: int) -> dict",
      "doc": "O estado de um tribunal, ou um vazio; versão desconhecida é erro.",
-     "linha": 282
+     "linha": 286
     },
     {
      "tipo": "funcao",
      "nome": "estados",
      "assinatura": "def estados(estado: Path | str) -> list[dict]",
      "doc": "Os estados de todos os tribunais coletados (``tce-*.json.gz``), em ordem de nome.",
-     "linha": 294
+     "linha": 298
     },
     {
      "tipo": "funcao",
      "nome": "entes_do_estado",
      "assinatura": "def entes_do_estado(dados: dict) -> dict[str, dict]",
      "doc": "Por ente: os anos (``COLUNAS_ENTE``) e os fornecedores do maior valor ao menor, cada um com os anos\n(``[CNPJ, nome, [[ano, contratos, valor], ...]]``), até ``FORNECEDORES_PUBLICADOS``.",
-     "linha": 305
+     "linha": 309
     },
     {
      "tipo": "funcao",
      "nome": "publicar",
      "assinatura": "def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> dict | None",
      "doc": "Grava ``tce/ente/<grupo>.json.gz`` (comprimido, ``comum.grupo_do_ente``) com os contratos de cada ente\nregistrados no tribunal de contas dele, e devolve o resumo de cada tribunal para o índice.",
-     "linha": 324
+     "linha": 328
     }
    ]
   },
@@ -18098,7 +18098,7 @@
   {
    "caminho": "packages/painel/testes/test_tce_rs.py",
    "doc": "Contratos dos municípios gaúchos no LicitaCon do TCE-RS (ADR-050).",
-   "testes": 10
+   "testes": 11
   },
   {
    "caminho": "packages/painel/testes/test_transferencias.py",
