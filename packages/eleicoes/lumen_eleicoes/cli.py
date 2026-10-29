@@ -10,6 +10,7 @@ Exemplos::
     lumen eleicoes mapas                            # malhas do IBGE para o mapa
     lumen eleicoes mapas --contornos                # contornos finos dos municípios do mapa das zonas
     lumen eleicoes zonas --anos 2026,2024           # locais de votação: mapa das zonas eleitorais
+    lumen eleicoes eleitorado --anos 2026           # perfil, comparecimento por perfil e seções
     lumen eleicoes ao-vivo --eleicao 2026-1t-geral  # noite da apuração
     lumen eleicoes historico baixar --anos 2022,2018,1950
     lumen eleicoes historico processar --anos 2022,2018,1950
@@ -35,7 +36,7 @@ from pathlib import Path
 from lumen_ingestao.bronze import ArmazemBronzeLocal
 from lumen_ingestao.cliente_http import ClienteHttp
 
-from . import antigas, carga, conferencia, geo, medicao, referencias, tse, zonas
+from . import antigas, carga, conferencia, eleitorado, geo, medicao, referencias, tse, zonas
 from . import dados_abertos as da
 from .coletor import FONTE_ID, ColetorAoVivo, ResumoPassada, plano_padrao
 from .configuracao import ConfiguracaoAusente, ConfiguracaoEleicoes, carregar, carregar_publicacao
@@ -85,6 +86,18 @@ def _anos_locais(texto: str) -> list[int]:
     fora = [a for a in anos if a not in zonas.ANOS_LOCAIS]
     if fora:
         raise argparse.ArgumentTypeError(f"anos sem locais de votação nos dados abertos: {fora}")
+    return anos
+
+
+def _anos_eleitorado(texto: str) -> list[int]:
+    """Tipo do argparse para ``eleitorado --anos``: anos de ``eleitorado.ANOS_ELEITORADO``, do mais recente ao
+    mais antigo; ``todos`` são todos eles."""
+    if texto.strip().lower() == "todos":
+        return list(eleitorado.ANOS_ELEITORADO)
+    anos = sorted({int(x) for x in texto.split(",") if x.strip()}, reverse=True)
+    fora = [a for a in anos if a not in eleitorado.ANOS_ELEITORADO]
+    if fora:
+        raise argparse.ArgumentTypeError(f"anos sem o perfil do eleitorado tratado pelo Lumen: {fora}")
     return anos
 
 
@@ -372,6 +385,54 @@ def cmd_preparar(cfg, args) -> int:
     return 1 if resumo.erros else 0
 
 
+def cmd_eleitorado(cfg, args) -> int:
+    """O eleitorado (ADR-055): baixa o perfil, o comparecimento por perfil e os locais de votação de cada ano,
+    grava ``eleitorado/<ano>/`` (``.json.gz``) sob ``--saida`` e, com ``--pacotes``, junta cada ano num
+    ``eleitorado-<ano>.tar`` para o site dos painéis.
+
+    O andamento vai para o stderr; no stdout, o resumo de cada ano em JSON. Devolve 1 se algum ano falhou (os
+    outros continuam). Só o perfil é obrigatório: sem o comparecimento por perfil ou os locais, o ano sai sem eles.
+    """
+    bronze = None if args.sem_bronze else ArmazemBronzeLocal(cfg.bronze)
+    cadastro = _cadastro(cfg)
+    saida = Path(args.saida) if args.saida else cfg.saida
+    resumos, falhou = [], False
+
+    def andamento(msg: str) -> None:
+        print(msg, file=sys.stderr, flush=True)
+    for ano in args.anos:
+        caminhos, manifestos = {}, {}
+        try:
+            for nome, url in (("perfil", eleitorado.url_perfil(ano)),
+                              ("comparecimento", eleitorado.url_comparecimento(ano)),
+                              ("secoes", zonas.url_locais(ano))):
+                try:
+                    caminhos[nome], manifestos[nome] = eleitorado.baixar(cfg, url, bronze=bronze,
+                                                                         atualizar=args.atualizar, saida=andamento)
+                except Exception as erro:  # noqa: BLE001 - só o perfil é obrigatório
+                    if nome == "perfil":
+                        raise
+                    andamento(f"{ano}: sem {nome} ({erro})")
+            r = eleitorado.gravar_eleitorado(ano, saida, cadastro, perfil=caminhos["perfil"],
+                                             comparecimento=caminhos.get("comparecimento"),
+                                             locais=caminhos.get("secoes"), manifestos=manifestos,
+                                             progresso=andamento)
+            resumo = r.para_json()
+            if args.pacotes:
+                resumo["pacote"] = str(eleitorado.empacotar(ano, saida, args.pacotes))
+            resumos.append(resumo)
+        except Exception as erro:  # noqa: BLE001 - um ano com erro não impede os outros
+            falhou = True
+            andamento(f"erro no eleitorado de {ano}: {erro}")
+            resumos.append({"ano": ano, "erro": str(erro)})
+        finally:
+            if args.apagar_zips:
+                for caminho in caminhos.values():
+                    caminho.unlink(missing_ok=True)
+    _imprimir(resumos)
+    return 1 if falhou else 0
+
+
 def cmd_conferir(cfg, args) -> int:
     """Só a conferência seção a seção (ADR-053): soma a votação por seção de Presidente dos anos pedidos e
     compara com o total do sistema de resultados; grava ``<eleição>/presidente/conferencia.json``.
@@ -555,6 +616,15 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--atualizar", action="store_true", help="consulta o servidor mesmo se já baixado")
     c.add_argument("--sem-bronze", action="store_true")
 
+    c = sub.add_parser("eleitorado", help="perfil do eleitorado, comparecimento por perfil e seções (ADR-055)")
+    c.add_argument("--anos", type=_anos_eleitorado, default=list(eleitorado.ANOS_ELEITORADO),
+                   help="anos separados por vírgula, ou todos (padrão: 2026 a 2018)")
+    c.add_argument("--saida", help="diretório onde gravar eleitorado/<ano>/ (padrão: o dos feeds)")
+    c.add_argument("--pacotes", help="diretório onde gravar eleitorado-<ano>.tar, para o site dos painéis")
+    c.add_argument("--apagar-zips", action="store_true", help="apaga os ZIPs do TSE depois de cada ano")
+    c.add_argument("--atualizar", action="store_true", help="consulta o servidor mesmo se já baixado")
+    c.add_argument("--sem-bronze", action="store_true")
+
     c = sub.add_parser("conferir", help="conferência seção a seção: a votação por seção contra o total (ADR-053)")
     c.add_argument("--anos", type=_anos, default=list(conferencia.ANOS_SECAO),
                    help="anos separados por vírgula (padrão: o em aberto)")
@@ -616,7 +686,7 @@ def construir_parser() -> argparse.ArgumentParser:
     return p
 
 
-COMANDOS = {"preparar": cmd_preparar, "publicar": cmd_publicar, "catalogo": cmd_catalogo, "municipios": cmd_municipios, "mapas": cmd_mapas, "zonas": cmd_zonas, "conferir": cmd_conferir, "ao-vivo": cmd_ao_vivo,
+COMANDOS = {"preparar": cmd_preparar, "publicar": cmd_publicar, "catalogo": cmd_catalogo, "municipios": cmd_municipios, "mapas": cmd_mapas, "zonas": cmd_zonas, "eleitorado": cmd_eleitorado, "conferir": cmd_conferir, "ao-vivo": cmd_ao_vivo,
             "simular": cmd_simular, "amostra": cmd_amostra, "servir": cmd_servir, "verificar": cmd_verificar,
             "medir": cmd_medir}
 

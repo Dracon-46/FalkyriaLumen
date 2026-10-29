@@ -20,6 +20,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Achado, normalizar, UFS } from "@/lib/busca";
 import { indexarPartes } from "@/lib/areas";
 import { compararTurnos, primeiroTurnoDe } from "@/lib/comparacao";
+import { ANO_INICIAL_ELEITORADO, carregarEleitorado } from "@/lib/eleitorado";
 import { escreverSelecao, lerSelecao, ufDaAbrangencia } from "@/lib/estado-url";
 import {
   carregarConferencia,
@@ -37,6 +38,7 @@ import {
 import { dataPorExtenso, haQuanto, instante, percentual } from "@/lib/formato";
 import { cargoNaAbrangencia, escolherCargo, escolherEleicao, gruposDeEleicoes, tipoDeTela } from "@/lib/selecao";
 import type {
+  ArquivoEleitorado,
   ArquivoZonas,
   CargoFeed,
   EleicaoIndice,
@@ -66,6 +68,7 @@ import type { Opcao } from "@/lib/escolha";
 import { Busca } from "./Busca";
 import { ComparacaoTurnos } from "./ComparacaoTurnos";
 import { ConferenciaPendente, ConferenciaSecoes } from "./ConferenciaSecoes";
+import { Eleitorado } from "./Eleitorado";
 import { Faixas, Origem } from "./Faixas";
 import { GraficoEvolucao } from "./GraficoEvolucao";
 import { ListaCandidatos } from "./ListaCandidatos";
@@ -480,6 +483,21 @@ export function PainelEleicoes() {
   }, [chaveConferencia]); // eslint-disable-line react-hooks/exhaustive-deps
   const conferenciaAtual = conferencia?.chave === chaveConferencia ? conferencia : null;
 
+  // Eleitorado do lugar (ADR-055): perfil, comparecimento por perfil e seções, de 2018 em diante
+  const chaveEleitorado = eleicao && eleicao.ano >= ANO_INICIAL_ELEITORADO ? `${eleicao.ano}/${abrangencia}` : null;
+  const [eleitorado, setEleitorado] = useState<{ chave: string; arquivo: ArquivoEleitorado | null } | null>(null);
+  useEffect(() => {
+    if (!chaveEleitorado || !eleicao) return;
+    let vivo = true;
+    carregarEleitorado(eleicao.ano, abrangencia)
+      .catch(() => null)
+      .then((arquivo) => vivo && setEleitorado({ chave: chaveEleitorado, arquivo }));
+    return () => {
+      vivo = false;
+    };
+  }, [chaveEleitorado]); // eslint-disable-line react-hooks/exhaustive-deps
+  const eleitoradoAtual = eleitorado?.chave === chaveEleitorado ? eleitorado.arquivo : null;
+
   // Atalhos: Ctrl+K ou "/" abre a busca; "t" liga o modo TV; Esc sai dele
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
@@ -883,6 +901,10 @@ export function PainelEleicoes() {
             ) : (
               <Panorama feed={ufsRegiao ? { ...feed, partes: feed.partes.filter(dentroDaRegiao) } : feed}
                 rotuloParte={nivelMapa === "uf" ? "estado" : "município"} onSelecionar={selecionarParte} />
+            )}
+            {eleitoradoAtual && !ufsRegiao && (
+              <Eleitorado arquivo={eleitoradoAtual} turno={eleicao.turno} zonaEscolhida={zonaEscolhida}
+                onSelecionar={(abr) => navegar({ abrangencia: abr })} />
             )}
           </div>
         </div>

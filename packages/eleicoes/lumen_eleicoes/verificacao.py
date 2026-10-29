@@ -115,6 +115,33 @@ def verificar_zonas(caminho: Path, dados: dict, rel: Relatorio) -> None:
         rel.problemas.append(f"{caminho}: locais por zona não batem com a lista de locais")
 
 
+def verificar_eleitorado(caminho: Path, dados: dict, rel: Relatorio) -> None:
+    """Confere o conteúdo de um lugar do eleitorado (Brasil, UF ou um município do grupo; ver ``eleitorado.py``).
+
+    O lugar tem o total e as quatro características, cada uma somando o total; no município, cada seção é
+    ``[zona, seção, local, eleitores]`` com uma zona da lista. ``lumen eleicoes eleitorado`` confere tudo o que
+    grava, antes de empacotar.
+    """
+    from .eleitorado import CARACTERISTICAS, VERSAO_ELEITORADO
+    if dados.get("versao") != VERSAO_ELEITORADO:
+        rel.problemas.append(f"{caminho}: versao {dados.get('versao')!r}, esperado {VERSAO_ELEITORADO}")
+        return
+    lugar = dados.get("lugar")
+    if dados.get("tipo") != "eleitorado" or not isinstance(lugar, dict) or not isinstance(lugar.get("eleitores"), int):
+        rel.problemas.append(f"{caminho}: arquivo do eleitorado fora do contrato")
+        return
+    for nome, _, _ in CARACTERISTICAS:
+        lista = lugar.get(nome) or []
+        if lista and sum(v[1] for v in lista) != lugar["eleitores"]:
+            rel.problemas.append(f"{caminho}: {nome} não soma o total de eleitores")
+    if dados.get("nivel") == "municipio":
+        zonas = {z.get("zona") for z in dados.get("zonas") or []}
+        for s in dados.get("secoes") or []:
+            if not (isinstance(s, list) and len(s) == 4 and s[0] in zonas and isinstance(s[3], int)):
+                rel.problemas.append(f"{caminho}: seção fora do formato {s!r}")
+                return
+
+
 def verificar_diretorio(raiz: Path | str) -> Relatorio:
     """Confere o diretório dos feeds: o índice, os arquivos que ele promete e cada feed.
 

@@ -18,6 +18,8 @@ export const VERSAO_FEED = 1;
  * mudar sem o outro.
  */
 export const VERSAO_ZONAS = 1;
+/** Versão dos arquivos do eleitorado (`eleitorado-<ano>/`, ADR-055). */
+export const VERSAO_ELEITORADO = 1;
 
 /** Majoritário (vence quem tem mais votos) ou proporcional (vagas repartidas pelo quociente eleitoral). */
 export type TipoCargo = "majoritario" | "proporcional";
@@ -429,6 +431,63 @@ export interface ArquivoZonas {
   locais: LocalVotacao[];
   /** Locais deixados de fora: sem coordenada, ou com coordenada fora do município. Opcional na leitura. */
   descartados?: { sem_coordenada: number; fora_do_municipio: number };
+}
+
+/** As características do eleitorado publicadas (as sensíveis, como raça ou cor, ficam de fora: ADR-055). */
+export type Caracteristica = "genero" | "faixa_etaria" | "escolaridade" | "estado_civil";
+
+/** Perfil de um lugar: total, com biometria e, em cada característica, `[rótulo, eleitores]`. */
+export interface PerfilEleitorado extends Record<Caracteristica, [string, number][]> {
+  eleitores: number;
+  biometria: number;
+}
+
+/** Um turno num lugar: aptos, comparecimento e abstenção; em cada característica, `[rótulo, aptos, comparecimento]`. */
+export interface TurnoEleitorado extends Record<Caracteristica, [string, number, number][]> {
+  aptos: number;
+  comparecimento: number;
+  abstencao: number;
+}
+
+/** O lugar do arquivo (Brasil, UF ou município), com o perfil e os turnos que o TSE já publicou. */
+export interface LugarEleitorado extends PerfilEleitorado {
+  chave: string;
+  nome: string;
+  uf?: string;
+  turnos: Record<string, TurnoEleitorado>;
+}
+
+/** Resumo de um lugar abaixo (UF no Brasil, município na UF): eleitores, biometria e `[aptos, comparecimento]` por turno. */
+export interface ParteEleitorado {
+  nome: string;
+  eleitores: number;
+  biometria: number;
+  turnos: Record<string, [number, number]>;
+  zonas?: number;
+  secoes?: number;
+}
+
+/** Uma zona no arquivo do município: o perfil e os turnos dela. */
+export interface ZonaEleitorado extends PerfilEleitorado {
+  zona: string;
+  turnos: Record<string, TurnoEleitorado>;
+}
+
+/**
+ * Arquivo `eleitorado-<ano>/{br,uf-<sigla>,mu-<chave>}.json` (ADR-055): o perfil do eleitorado, o
+ * comparecimento por perfil e, no município, as zonas e as seções (`[zona, seção, local, eleitores]`).
+ */
+export interface ArquivoEleitorado {
+  versao: number;
+  tipo: "eleitorado";
+  ano: number;
+  nivel: "br" | "uf" | "municipio";
+  origem: Record<string, Origem>;
+  lugar: LugarEleitorado;
+  partes?: Record<string, ParteEleitorado>;
+  zonas?: ZonaEleitorado[];
+  secoes?: [string, number, string, number][];
+  locais?: Record<string, string>;
 }
 
 /** Arquivo `geo/zonas-<ano>/indice.json`: código IBGE → número de zonas, dos municípios com mais de uma. */

@@ -131,6 +131,7 @@ Aba Eleições: resultados oficiais do TSE, ao vivo e históricos. Não depende 
 | `modelo.py` | Modelo dos resultados, comum às duas fontes do TSE |
 | `municipios.py`, `referencias.py`, `dados/` | Cadastro TSE ↔ IBGE e malhas do IBGE embutidos, com proveniência em `dados/LEIAME.md` |
 | `geo.py` | Malhas do IBGE (API v3) e contornos finos dos municípios com mais de uma zona |
+| `eleitorado.py` | Perfil do eleitorado, comparecimento por perfil e seções, do Brasil à seção, para o site dos painéis ([ADR-055](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-055.md)) |
 | `zonas.py` | Locais de votação de 2018 a 2026 para o mapa das zonas ([ADR-029](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-029.md)) |
 | `transferencia.py` | Download de arquivos grandes com retomada e manifesto ([ADR-021](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-021.md)) |
 | `preparacao.py` | `lumen eleicoes preparar`: a carga inteira num comando, retomável |

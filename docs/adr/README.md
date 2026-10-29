@@ -60,6 +60,7 @@ nunca apagadas: uma ADR substituída continua aqui, marcada como tal.
 | [052](ADR-052.md) | PL azul e PT vermelho, em todas as eleições | **proposta** |
 | [053](ADR-053.md) | Conferência seção a seção: a votação por seção contra o total divulgado | **proposta** |
 | [054](ADR-054.md) | Transferências da União a estados, municípios e entidades, pelo arquivo mensal da CGU | **proposta** |
+| [055](ADR-055.md) | Eleitorado do Brasil à seção, com perfil e comparecimento por perfil, publicado no site dos painéis | **proposta** |
 
 As ADRs 011 a 015 foram tomadas durante a implementação da Fase 0, e as 016 a
 033 durante a Fase 1 e a criação da aba Eleições; todas aguardam revisão. Para aceitar, troque a situação para `aceita`. Para rejeitar, marque

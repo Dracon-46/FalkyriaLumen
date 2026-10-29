@@ -1,0 +1,81 @@
+# Eleitorado — ADR-055.
+#
+# Baixa, ano a ano, o perfil do eleitorado, o comparecimento por perfil e os
+# locais de votação dos dados abertos do TSE (perto de 800 MB por ano), soma do
+# Brasil à seção e grava o resultado comprimido, perto de 9 MB por ano, em
+# eleitorado-<ano>.tar, anexo da versão painel-estado. O paineis-site desempacota
+# cada ano no site dos painéis (GitHub Pages), de onde a aba Eleições o lê. O
+# bucket das eleições (Supabase gratuito, perto do limite) não recebe nada.
+#
+# Toda semana refaz o ano em aberto (o TSE acrescenta o 2º turno ao
+# comparecimento por perfil) e faz os anos encerrados que ainda não têm pacote.
+# À mão, "anos" refaz os anos pedidos (ou "todos").
+
+name: eleitorado
+
+on:
+  schedule:
+    - cron: "41 6 * * 1"     # segunda-feira, 3h41 em Brasília
+  workflow_dispatch:
+    inputs:
+      anos:
+        description: "Anos separados por vírgula, ou todos (vazio: o em aberto e os que faltam)"
+        default: ""
+
+permissions:
+  contents: write     # o pacote de cada ano vai para os anexos da versão painel-estado
+
+concurrency:
+  group: eleitorado
+  cancel-in-progress: false
+
+env:
+  TAG: painel-estado
+
+jobs:
+  eleitorado:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
+      LUMEN_DADOS: dados
+      GH_TOKEN: ${{ github.token }}
+      ANOS: ${{ inputs.anos }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      - name: Anos a fazer
+        id: anos
+        run: |
+          if [ -n "$ANOS" ]; then echo "anos=$ANOS" >> "$GITHUB_OUTPUT"; exit 0; fi
+          existentes=$(gh release view "$TAG" --json assets --jq '.assets[].name' | grep '^eleitorado-' || true)
+          anos=$(python -c "from lumen_eleicoes import eleitorado as el; print(' '.join(map(str, el.ANOS_ELEITORADO)))")
+          em_aberto=$(python -c "from lumen_eleicoes import dados_abertos as da; print(da.ANO_EM_ABERTO)")
+          fazer=""
+          for ano in $anos; do
+            if [ "$ano" = "$em_aberto" ] || ! echo "$existentes" | grep -qx "eleitorado-$ano.tar"; then
+              fazer="${fazer:+$fazer,}$ano"
+            fi
+          done
+          echo "anos=$fazer" >> "$GITHUB_OUTPUT"
+          echo "anos a fazer: ${fazer:-nenhum}"
+      - name: Eleitorado
+        if: steps.anos.outputs.anos != ''
+        shell: bash    # com pipefail: um ano com erro falha a execução, depois de guardar os que deram certo
+        run: |
+          python -m lumen_eleicoes eleitorado --anos "${{ steps.anos.outputs.anos }}" --saida site \
+            --pacotes pacotes --apagar-zips --sem-bronze | tee resumo.json
+      - name: Guardar os pacotes
+        if: always() && steps.anos.outputs.anos != ''
+        run: |
+          ls pacotes/eleitorado-*.tar >/dev/null 2>&1 || { echo "nenhum pacote gravado"; exit 0; }
+          gh release upload "$TAG" pacotes/eleitorado-*.tar --clobber
+      - name: Resumo
+        if: always() && steps.anos.outputs.anos != ''
+        run: |
+          { echo "## Eleitorado"; echo; echo '```json'; cat resumo.json 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

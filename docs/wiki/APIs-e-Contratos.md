@@ -323,6 +323,8 @@ e espelhado em [`tipos.ts`](https://github.com/Dracon-46/FalkyriaLumen/blob/main
 | `<eleição>/<cargo>/historico-<abrangência>.json` | `historico` | Evolução da totalização |
 | `geo/zonas-<ano>/indice.json` | `zonas-indice` | Municípios com mais de uma zona e o número de zonas de cada um |
 | `geo/zonas-<ano>/mu-<ibge>.json` | `zonas` | Zonas e locais de votação de um município |
+| `eleitorado/<ano>/br.json.gz`, `uf-<sigla>.json.gz` (no site dos painéis) | `eleitorado` | O perfil do eleitorado (faixa etária, gênero, escolaridade, estado civil, biometria) e o comparecimento por turno e por perfil do lugar, com o resumo dos lugares abaixo ([ADR-055](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-055.md)) |
+| `eleitorado/<ano>/mu/<grupo>.json.gz` (no site dos painéis) | `eleitorado-grupo` | Os municípios do grupo (3º a 5º dígitos do IBGE; `zz`, o exterior), cada um com as zonas e as seções `[zona, seção, local, eleitores]` |
 | `fotos/…` | imagem | Fotos dos candidatos (sistema de resultados) |
 
 ### Tipo `resultado`
