@@ -21,6 +21,7 @@ import { type Achado, normalizar, UFS } from "@/lib/busca";
 import { indexarPartes } from "@/lib/areas";
 import { compararTurnos, primeiroTurnoDe } from "@/lib/comparacao";
 import { ANO_INICIAL_ELEITORADO, carregarEleitorado } from "@/lib/eleitorado";
+import { ANO_INICIAL_HORARIOS, carregarHorarios } from "@/lib/horarios";
 import { escreverSelecao, lerSelecao, ufDaAbrangencia } from "@/lib/estado-url";
 import {
   carregarConferencia,
@@ -39,6 +40,7 @@ import { dataPorExtenso, haQuanto, instante, percentual } from "@/lib/formato";
 import { cargoNaAbrangencia, escolherCargo, escolherEleicao, gruposDeEleicoes, tipoDeTela } from "@/lib/selecao";
 import type {
   ArquivoEleitorado,
+  ArquivoHorarios,
   ArquivoZonas,
   CargoFeed,
   EleicaoIndice,
@@ -69,6 +71,7 @@ import { Busca } from "./Busca";
 import { ComparacaoTurnos } from "./ComparacaoTurnos";
 import { ConferenciaPendente, ConferenciaSecoes } from "./ConferenciaSecoes";
 import { Eleitorado } from "./Eleitorado";
+import { Horarios } from "./Horarios";
 import { Faixas, Origem } from "./Faixas";
 import { GraficoEvolucao } from "./GraficoEvolucao";
 import { ListaCandidatos } from "./ListaCandidatos";
@@ -498,6 +501,21 @@ export function PainelEleicoes() {
   }, [chaveEleitorado]); // eslint-disable-line react-hooks/exhaustive-deps
   const eleitoradoAtual = eleitorado?.chave === chaveEleitorado ? eleitorado.arquivo : null;
 
+  // Horários das urnas do lugar (ADR-056): abertura, encerramento e boletim recebido, de 2018 em diante
+  const chaveHorarios = eleicao && eleicao.ano >= ANO_INICIAL_HORARIOS ? `${eleicao.ano}/${abrangencia}` : null;
+  const [horarios, setHorarios] = useState<{ chave: string; arquivo: ArquivoHorarios | null } | null>(null);
+  useEffect(() => {
+    if (!chaveHorarios || !eleicao) return;
+    let vivo = true;
+    carregarHorarios(eleicao.ano, abrangencia)
+      .catch(() => null)
+      .then((arquivo) => vivo && setHorarios({ chave: chaveHorarios, arquivo }));
+    return () => {
+      vivo = false;
+    };
+  }, [chaveHorarios]); // eslint-disable-line react-hooks/exhaustive-deps
+  const horariosAtual = horarios?.chave === chaveHorarios ? horarios.arquivo : null;
+
   // Atalhos: Ctrl+K ou "/" abre a busca; "t" liga o modo TV; Esc sai dele
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
@@ -905,6 +923,10 @@ export function PainelEleicoes() {
             {eleitoradoAtual && !ufsRegiao && (
               <Eleitorado arquivo={eleitoradoAtual} turno={eleicao.turno} zonaEscolhida={zonaEscolhida}
                 onSelecionar={(abr) => navegar({ abrangencia: abr })} />
+            )}
+            {horariosAtual && !ufsRegiao && (
+              <Horarios arquivo={horariosAtual} turno={eleicao.turno} zonaEscolhida={zonaEscolhida}
+                locais={eleitoradoAtual?.locais} onSelecionar={(abr) => navegar({ abrangencia: abr })} />
             )}
           </div>
         </div>

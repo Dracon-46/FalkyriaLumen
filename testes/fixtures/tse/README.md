@@ -71,3 +71,17 @@ os ZIPs com elas.
 |---|---|---|
 | `eleitorado_local_votacao_2026_SP_recorte.csv` | cabeçalho; São Caetano do Sul, a primeira seção de cada um dos 31 locais (zonas 166 e 269), mais uma segunda seção de um local e uma linha do 2º turno; duas linhas de Bragança Paulista (zonas 27 e 298) | município pequeno com duas zonas; em 2026 a coordenada vem com vírgula decimal; o mesmo prédio é local das duas zonas; o 2º turno repete as seções |
 | `eleitorado_local_votacao_2024_recorte.csv` | cabeçalho; duas linhas de São Caetano do Sul | até 2024 a coordenada vem com ponto decimal; local sem coordenada (`-1`) |
+
+### Boletins de urna (`horarios/`)
+
+Linhas reais, sem nenhuma alteração (bytes Latin-1 como publicados), dos
+boletins de urna em tabela do 2º turno de 2026
+(`https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes2026/buweb/bweb_2t_<UF>_261020260742.zip`),
+baixados em **29/10/2026**. São todas as linhas (um cargo e um número votado
+por linha) das seções escolhidas; os testes de `horarios.py` as leem direto e
+montam um ZIP com elas.
+
+| Arquivo | Linhas mantidas | Por quê |
+|---|---|---|
+| `bweb_2t_AC_recorte.csv` | cabeçalho; as três primeiras seções de Senador Guiomard (zona 8) | a urna abre às 6h locais (8h de Brasília) e o boletim recebido vem no horário de Brasília |
+| `bweb_2t_DF_recorte.csv` | cabeçalho; duas seções de Brasília (zona 17) | horário local igual ao de Brasília; Presidente e Governador na mesma seção |

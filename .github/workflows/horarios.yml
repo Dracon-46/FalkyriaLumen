@@ -1,0 +1,102 @@
+# Horários das urnas — ADR-056.
+#
+# Baixa, UF por UF, o boletim de urna de cada seção dos dados abertos do TSE
+# (perto de 6 GB por ano, um ZIP por vez, apagado depois de lido), guarda os
+# horários de abertura, encerramento, emissão e recebimento do boletim e grava
+# o resultado comprimido, perto de 20 MB por ano, em horarios-<ano>.tar, anexo
+# da versão painel-estado. O paineis-site desempacota cada ano no site dos
+# painéis (GitHub Pages), de onde a aba Eleições o lê. O bucket das eleições
+# (Supabase gratuito, perto do limite) não recebe nada.
+#
+# O boletim de urna não muda depois da totalização: toda semana só faz os anos
+# que ainda não têm pacote. À mão, "anos" refaz os anos pedidos (ou "todos").
+# Cada ano roda num job à parte (um ano leva perto de uma hora, quase toda de
+# download).
+
+name: horarios
+
+on:
+  schedule:
+    - cron: "17 7 * * 1"     # segunda-feira, 4h17 em Brasília
+  workflow_dispatch:
+    inputs:
+      anos:
+        description: "Anos separados por vírgula, ou todos (vazio: os que ainda não têm pacote)"
+        default: ""
+
+permissions:
+  contents: write     # o pacote de cada ano vai para os anexos da versão painel-estado
+
+concurrency:
+  group: horarios
+  cancel-in-progress: false
+
+env:
+  TAG: painel-estado
+
+jobs:
+  plano:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ANOS: ${{ inputs.anos }}
+    outputs:
+      anos: ${{ steps.anos.outputs.anos }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      - name: Anos a fazer
+        id: anos
+        run: |
+          todos=$(python -c "from lumen_eleicoes import horarios as h; print(' '.join(map(str, h.ANOS_HORARIOS)))")
+          if [ "$ANOS" = "todos" ]; then pedidos="$todos"
+          elif [ -n "$ANOS" ]; then pedidos=$(echo "$ANOS" | tr ',' ' ')
+          else
+            existentes=$(gh release view "$TAG" --json assets --jq '.assets[].name' | grep '^horarios-' || true)
+            pedidos=""
+            for ano in $todos; do
+              echo "$existentes" | grep -qx "horarios-$ano.tar" || pedidos="$pedidos $ano"
+            done
+          fi
+          json=$(python -c "import json, sys; print(json.dumps([int(a) for a in sys.argv[1:]]))" $pedidos)
+          echo "anos=$json" >> "$GITHUB_OUTPUT"
+          echo "anos a fazer: $json"
+
+  horarios:
+    needs: plano
+    if: needs.plano.outputs.anos != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 2      # dois anos por vez: o servidor do TSE é um só
+      matrix:
+        ano: ${{ fromJSON(needs.plano.outputs.anos) }}
+    env:
+      LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
+      LUMEN_DADOS: dados
+      GH_TOKEN: ${{ github.token }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      - name: Horários das urnas
+        shell: bash    # com pipefail: um ano com erro falha o job
+        run: |
+          python -m lumen_eleicoes horarios --anos "${{ matrix.ano }}" --saida site --pacotes pacotes \
+            --apagar-zips | tee resumo.json
+      - name: Guardar o pacote
+        run: gh release upload "$TAG" "pacotes/horarios-${{ matrix.ano }}.tar" --clobber
+      - name: Resumo
+        if: always()
+        run: |
+          { echo "## Horários das urnas ${{ matrix.ano }}"; echo; echo '```json'; cat resumo.json 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
