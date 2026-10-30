@@ -20,7 +20,7 @@ entes monitora.
 | Fase | Período | Objetivo | Critério de saída | Situação |
 |---|---|---|---|---|
 | 0 — Fundação | Mês 1 | Bases técnicas e decisões difíceis de mudar depois | Artefato coletado, armazenado com hash e recuperado pelo identificador | **Concluída** (marco M1 verificado por teste) |
-| 1 — Espinha dorsal nacional | Meses 2 a 4 | Cobertura nacional de contratações e dados fiscais | Carga histórica de ao menos três exercícios, com relatório de cobertura por ente e UF | **Núcleo pronto**; critério de saída em andamento: relatório de cobertura publicado (ADR-048) e carga desde 2021 em curso (ADR-046) |
+| 1 — Espinha dorsal nacional | Meses 2 a 4 | Cobertura nacional de contratações e dados fiscais | Carga histórica de ao menos três exercícios, com relatório de cobertura por ente e UF | **Critério de saída cumprido em 30/10/2026** (marco M2): 1.915 dias do PNCP, de 1º/8/2021 a 28/10/2026, e a conformidade das 27 UFs e dos 5.597 entes nos exercícios de 2021 a 2026, com o relatório de cobertura (ADR-046 e ADR-048); falta só a despesa da CGU (#36) |
 | 2 — Motor de detecção | Meses 5 a 7 | Indícios revisáveis, com evidência completa | Amostra de 100 indícios por família revisada, com falso positivo dentro do limite do DOC-07 | Não iniciada (A-05 antecipada em modo silencioso) |
 | 3 — Camada estadual | Meses 8 e 9 | Profundidade estadual e tribunais de contas | Cadastro de fonte por analista, sem código, validado em ao menos cinco fontes reais | Iniciada: levantamento dos 32 tribunais; TCE-RS, TCE-PR, TCE-PE e TCE-CE integrados (ADR-050); o RS e o CE pelo intermediário em São Paulo |
 | 4 — Cauda longa municipal | Meses 9 a 11 | Lacunas municipais por família de plataforma e extração de documentos | Relatório de cobertura municipal | Não iniciada |
@@ -38,7 +38,7 @@ por um comando. Tudo concluído; ADRs 011 em diante registradas durante a implem
 | Entregável | Situação |
 |---|---|
 | Conector PNCP (contratações, contratos, atas, amparo legal, incremental) | Concluído, com itens e resultados |
-| Conector SICONFI com lista de entes ausentes | Entes e extrato concluídos, com a avaliação da LRF; RREO, RGF e DCA com conector pronto e normalização pendente |
+| Conector SICONFI com lista de entes ausentes | Concluído: entes e extrato, com a avaliação da LRF; RREO, RGF e DCA normalizados para os grupos de pares, a despesa por função e a despesa com pessoal (ADR-038, ADR-041 e ADR-042) |
 | Portal da Transparência (CGU), com CEIS, CNEP e CEPIM | Cadastros de sanções (ADR-030), emendas parlamentares (ADR-044), convênios (ADR-045) e transferências (ADR-054) pelos arquivos de dados abertos, sem chave; despesas pendentes, pelo mesmo caminho |
 | Base pública de CNPJ da Receita Federal | Concluído para os fornecedores dos contratos (ADR-043): cadastro e quadro societário, semanal |
 | Cadastro de entes do IBGE com população e porte | Concluído |
@@ -79,7 +79,7 @@ documentação consistente com o código; avaliação da abertura do código; pl
 | Marco | Quando | Significado |
 |---|---|---|
 | M1 | Fim do mês 1 | Prova preservada: artefato coletado, armazenado com hash e recuperado — **cumprido** |
-| M2 | Fim do mês 4 | Cobertura nacional de contratações e dados fiscais |
+| M2 | Fim do mês 4 | Cobertura nacional de contratações e dados fiscais — **cumprido em 30/10/2026** |
 | M3 | Fim do mês 7 | Detecção validada, com falso positivo aceitável |
 | M4 | Fim do mês 9 | Tribunais de contas integrados |
 | M5 | Fim do mês 11 | Cobertura municipal medida, com lacunas explicitadas |

@@ -5,6 +5,12 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Fase 1: critério de saída cumprido (ADR-046, adendo)
+
+- A carga histórica terminou: 1.915 dias do PNCP (de 1º/8/2021 a 28/10/2026) e a conformidade das 27 UFs e dos
+  5.597 entes de 2021 a 2026. Com o relatório de cobertura por ente e UF, a Fase 1 cumpre o critério de saída do
+  DOC-10, e o marco M2 também. Dos entregáveis, falta a despesa do Portal da Transparência (#36).
+
 ### Marca Falkyria e licença
 
 - O rodapé do portal ganha a assinatura "Um produto Falkyria", com a logo da Falkyria (a versão

@@ -373,7 +373,9 @@ Os limites de dispensa de 2021 a 2026, o fator de consórcios e agências execut
 acréscimos do art. 125 foram conferidos no texto oficial e cadastrados; a migração do domínio
 roda no PostgreSQL; o backend de objetos (S3/MinIO) da camada bronze está implementado.
 
-**Fase 1 — Espinha dorsal nacional: núcleo pronto.** Adaptadores do PNCP (contratações,
+**Fase 1 — Espinha dorsal nacional: critério de saída cumprido em 30/10/2026 (marco M2).** A carga
+histórica guarda 1.915 dias do PNCP, de 1º/8/2021 a 28/10/2026, e a conformidade das 27 UFs e dos 5.597 entes nos exercícios de 2021 a 2026, com o relatório de cobertura por ente e UF
+(ADR-046 e ADR-048). Adaptadores do PNCP (contratações,
 contratos, atas, itens e resultados), do IBGE (localidades e população) e do SICONFI (entes e
 extrato de entregas); normalização com quarentena; silver idempotente reconstruível do bronze;
 avaliação das entregas da LRF com lista de ausentes; pipeline local e testes de contrato
@@ -436,7 +438,8 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
   despesa por função de cada ente aparece ao lado da do grupo (ADR-041, DCA do último exercício), com a
   despesa com pessoal do Executivo em % da RCL e os limites do RGF (ADR-042). O painel
   operacional está no portal, em "Situação das coletas" (ADR-039), com a cobertura por ente e UF
-  (ADR-048) do critério de saída da fase; falta a carga desde 2021 terminar (ADR-046).
+  (ADR-048) do critério de saída da fase, cumprido em 30/10/2026 com a carga desde 2021 (ADR-046). Dos
+  entregáveis, falta só a despesa do Portal da Transparência (#36).
 - Fase 3 (iniciada): os 32 tribunais de contas foram levantados (ADR-050, wiki "Tribunais de contas"). O TCE-RS
   (contratos de 2016 em diante), o TCE-PR e o TCE-PE (de 2013 em diante) e o TCE-CE (de 2003 em diante) estão
   integrados; segue o TCE-SP, e um pedido formal de acesso a TCE-MG, TCM-BA, TCE-SC, TCM-GO e TCE-MT. O TCE-RS e o TCE-CE só respondem a

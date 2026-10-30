@@ -36,9 +36,10 @@ body.push(callout("O marco que muda o projeto de natureza", [
   "institucionais e atenção da imprensa.",
 ], "green"));
 
-body.push(callout("Situação em 6 de outubro de 2026", [
-  "Fase 0 concluída (marco M1 verificado por teste). Fase 1 com o núcleo pronto: PNCP, SICONFI e IBGE " +
-  "coletados, normalizados e reconstruíveis a partir da prova. Aba Eleições pronta como trilha paralela. " +
+body.push(callout("Situação em 30 de outubro de 2026", [
+  "Fase 0 concluída (marco M1 verificado por teste). Fase 1 com o critério de saída cumprido (marco M2): " +
+  "1.915 dias do PNCP, de 1º/8/2021 a 28/10/2026, e a conformidade das 27 UFs e dos 5.597 entes nos exercícios de 2021 a 2026, com o relatório de cobertura por ente e UF. Fase 3 iniciada, com quatro tribunais de contas. " +
+  "Aba Eleições pronta como trilha paralela. " +
   "O detalhamento, com o que falta em cada fase, está na seção 9.",
 ], "blue"));
 
@@ -158,8 +159,8 @@ body.push(...fase({
 body.push(pageBreak());
 body.push(h1("4. Marcos"));
 body.push(table(["Marco", "Quando", "Significado"], [1300, 1900, 6400], [
-  ["M1", "Fim do mês 1", "Prova preservada: um artefato é coletado, armazenado com hash e recuperado"],
-  ["M2", "Fim do mês 4", "Cobertura nacional: contratações e dados fiscais de alcance nacional na base"],
+  ["M1", "Fim do mês 1", "Prova preservada: um artefato é coletado, armazenado com hash e recuperado. Cumprido"],
+  ["M2", "Fim do mês 4", "Cobertura nacional: contratações e dados fiscais de alcance nacional na base. Cumprido em 30/10/2026"],
   ["M3", "Fim do mês 7", "Detecção validada: regras calibradas com taxa de falso positivo aceitável"],
   ["M4", "Fim do mês 9", "Profundidade estadual: tribunais de contas integrados"],
   ["M5", "Fim do mês 11", "Cobertura municipal medida e documentada, com lacunas explicitadas"],
@@ -255,11 +256,11 @@ body.push(table(["Entregável", "Situação"], [5200, 4400], [
   ["Critério de saída (M1)", "Cumprido e verificado por teste: artefato coletado, guardado com hash e recuperado pelo identificador"],
 ], { size: 17 }));
 
-body.push(h2("9.2 Fase 1 — Espinha dorsal nacional: núcleo pronto"));
+body.push(h2("9.2 Fase 1 — Espinha dorsal nacional: critério de saída cumprido"));
 body.push(table(["Entregável", "Situação"], [5200, 4400], [
   ["Conector PNCP (contratações, contratos, atas, amparo legal, incremental)", "Concluído, com coleta por publicação e por atualização; itens e resultados com conector e normalizador prontos"],
   ["Conector SICONFI com lista de entes ausentes", "Entes e extrato de entregas concluídos, com a avaliação da LRF; RREO, RGF e DCA com conector e normalização prontos (LinhaDemonstrativo), e a RCL, a despesa por função e a despesa com pessoal de todos os entes coletadas para os grupos de pares (ADR-038, ADR-041 e ADR-042)"],
-  ["Portal da Transparência (CGU), com CEIS, CNEP e CEPIM", "Cadastros de sanções concluídos: coleta diária pelos arquivos de dados abertos, sem chave, e normalização com CPF mascarado (ADR-030); emendas parlamentares e convênios pelos arquivos de dados abertos, sem chave (ADR-044 e ADR-045); transferências e despesas pendentes, pelo mesmo caminho"],
+  ["Portal da Transparência (CGU), com CEIS, CNEP e CEPIM", "Cadastros de sanções concluídos: coleta diária pelos arquivos de dados abertos, sem chave, e normalização com CPF mascarado (ADR-030); emendas parlamentares e convênios pelos arquivos de dados abertos, sem chave (ADR-044 e ADR-045); transferências da União (ADR-054) também; despesas pendentes, pelo mesmo caminho (#36)"],
   ["Base pública de CNPJ da Receita Federal", "Concluído para os fornecedores dos contratos (ADR-043): cadastro, Simples e quadro societário, semanal, no fornecedor de Contratações"],
   ["Cadastro de entes do IBGE com população e porte", "Concluído"],
   ["Normalização com qualidade e quarentena", "Concluída para PNCP, SICONFI e IBGE; silver idempotente, reconstruível do bronze"],
@@ -270,7 +271,7 @@ body.push(table(["Entregável", "Situação"], [5200, 4400], [
   ["Parâmetros legais verificados", "Concluído além do previsto: limites de dispensa de 2021 a 2026, fator do § 2º e acréscimos do art. 125, conferidos no Planalto"],
   ["Itens e resultados do PNCP no pipeline", "Concluído: coleta sob demanda dos processos da silver por objeto (lumen coletar pncp_itens)"],
   ["Regra A-05: preço comparado com o mercado de fora do governo (antecipada da Fase 2)", "Em modo silencioso (ADR-027): combustível contra a série da ANP; informática contra o varejo pela API oficial, a validar; limiares não calibrados"],
-  ["Critério de saída (três exercícios e relatório de cobertura)", "Em andamento. O relatório de cobertura por ente e UF está publicado na \"Situação das coletas\" (ADR-048), e a carga das contratações e da conformidade desde 2021 está em curso no GitHub Actions (ADR-046)"],
+  ["Critério de saída (três exercícios e relatório de cobertura)", "Cumprido em 30/10/2026: 1.915 dias do PNCP, de 1º/8/2021 a 28/10/2026, e a conformidade das 27 UFs e dos 5.597 entes nos exercícios de 2021 a 2026 (ADR-046), com o relatório de cobertura por ente e UF na \"Situação das coletas\" (ADR-048)"],
 ], { size: 17 }));
 body.push(spacer(80));
 body.push(callout("Antes da Fase 2", [
