@@ -14,6 +14,8 @@ import {
   prefixoDaPalavra,
   recortarPessoa,
   totaisDaPessoa,
+  uniaoPorAno,
+  uniaoPorOrgao,
   urlDaPessoa,
   urlDasContratacoes,
 } from "../pessoaJuridica";
@@ -23,6 +25,7 @@ const pessoa: PessoaJuridica = {
   contratos: [["43", "2026", 1, 1000], ["4319604", "2025", 2, 150], ["4319604", "2026", 1, 0]],
   emendas: [["4319604", "2023", 30], ["4300034", "2022", 50], ["4300034", "2023", 10]],
   convenios: [["4319604", "9", "CONCLUÍDO", "Praça", "Ministério das Cidades", 100, 80, "2021-03-01"]],
+  orgaosUniao: {},
 };
 
 describe("pessoa jurídica pelo CNPJ", () => {
@@ -38,9 +41,24 @@ describe("pessoa jurídica pelo CNPJ", () => {
                                               { ano: "2026", contratos: 2, valor: 1000 }]);
     expect(totaisDaPessoa(pessoa)).toEqual({ contratos: 4, valorContratos: 1150, entesContratantes: 2, emendas: 90,
                                              convenios: 1, valorConvenios: 100, liberado: 80, contratosTce: 0,
-                                             valorTce: 0 });
+                                             valorTce: 0, uniao: 0 });
     expect(totaisDaPessoa({ ...pessoa, tce: [["4319604", "2019", 3, 900], ["4319604", "2020", 1, 50]] }))
       .toMatchObject({ contratosTce: 4, valorTce: 950 });
+  });
+
+  it("soma o recebido da União por órgão superior e por ano, e o período recorta", () => {
+    const comUniao: PessoaJuridica = {
+      ...pessoa, orgaosUniao: { "36000": "Ministério da Saúde" },
+      uniao: [["2024", "36000", 100], ["2025", "26000", 300], ["2025", "36000", 50]],
+    };
+    expect(uniaoPorOrgao(comUniao)).toEqual([
+      { orgao: "26000", nome: "26000", valor: 300, anos: ["2025"] },
+      { orgao: "36000", nome: "Ministério da Saúde", valor: 150, anos: ["2024", "2025"] },
+    ]);
+    expect(uniaoPorAno(comUniao)).toEqual([{ ano: "2024", valor: 100 }, { ano: "2025", valor: 350 }]);
+    expect(totaisDaPessoa(comUniao).uniao).toBe(450);
+    expect(anosDaPessoa(comUniao)).toContain("2024");
+    expect(recortarPessoa(comUniao, "2025", null).uniao).toEqual([["2025", "26000", 300], ["2025", "36000", 50]]);
   });
 
   it("aceita o CNPJ com pontuação e recusa o que não tem 14 dígitos", () => {

@@ -156,6 +156,16 @@ jobs:
           lumen painel transferencias --estado estado || status=1
           if [ -f estado/transferencias.json.gz ]; then gh release upload "$TAG" estado/transferencias.json.gz --clobber; fi
           exit $status
+      # Até 12 meses por execução (perto de 24 MB cada), com a mesma pausa: a primeira carga, de 2014 em diante,
+      # leva umas duas semanas, dos meses mais novos para os mais antigos (ADR-058).
+      - name: Recebimentos da União por favorecido (CGU, arquivo mensal; os meses recentes e os que faltam)
+        continue-on-error: true
+        run: |
+          gh release download "$TAG" -p recebimentos.json.gz -D estado --clobber || true
+          status=0
+          lumen painel recebimentos --estado estado || status=1
+          if [ -f estado/recebimentos.json.gz ]; then gh release upload "$TAG" estado/recebimentos.json.gz --clobber; fi
+          exit $status
       - name: Transparência (portais avaliados pelo PNTP)
         continue-on-error: true
         run: |

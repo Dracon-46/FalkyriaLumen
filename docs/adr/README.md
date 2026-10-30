@@ -63,6 +63,7 @@ nunca apagadas: uma ADR substituída continua aqui, marcada como tal.
 | [055](ADR-055.md) | Eleitorado do Brasil à seção, com perfil e comparecimento por perfil, publicado no site dos painéis | **proposta** |
 | [056](ADR-056.md) | Horários das urnas pelo boletim de urna, publicados no site dos painéis | **proposta** |
 | [057](ADR-057.md) | Votos por hora pelos logs das urnas, lidos por pedaços, publicados no site dos painéis | **proposta** |
+| [058](ADR-058.md) | Pagamentos da União por favorecido, pelo arquivo mensal da CGU, na página da empresa | **proposta** |
 
 As ADRs 011 a 015 foram tomadas durante a implementação da Fase 0, e as 016 a
 033 durante a Fase 1 e a criação da aba Eleições; todas aguardam revisão. Para aceitar, troque a situação para `aceita`. Para rejeitar, marque

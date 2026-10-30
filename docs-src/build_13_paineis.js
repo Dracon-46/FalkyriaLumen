@@ -219,6 +219,13 @@ body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["publicar", "convenios/ente/<grupo>.json.gz (3º a 5º dígitos do município, ou a UF)", "Comprimido e em grupos, como as emendas; lido pelo mandato aberto em Governos municipais"],
 ], { monoCols: [0], size: 17 }));
 
+body.push(h2("4.14b recebimentos.py"));
+body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
+  ["meses_disponiveis, baixar", "Os meses da página de download e o ZIP de recebimentos por favorecido do mês", "Arquivo mensal de dados abertos da CGU, sem chave, de 2014 em diante; verificação humana para a coleta"],
+  ["somar_mes, coletar (lumen painel recebimentos)", "Por CNPJ, ano e órgão superior, o recebido da União; o nome mais recente de cada CNPJ", "Três meses recentes refeitos a cada execução; até 12 meses por execução, com pausa; o que não é CNPJ só contado (ADR-058)"],
+  ["pessoas_juridicas.de_recebimentos", "O recebido entra na página da empresa (uniao: ano, órgão, valor) e no peso da busca", "Quem só recebeu da União também entra no índice"],
+], { monoCols: [0], size: 17 }));
+
 body.push(h2("4.15 cobertura.py"));
 body.push(table(["Nome", "O que faz", "Como e por quê"], [2400, 3300, 3900], [
   ["anos_com_publicacao", "Os anos com ao menos um processo ou um contrato no acumulador do ente", "Mês sem nada não conta"],
@@ -258,6 +265,7 @@ body.push(table(["Arquivo", "Conteúdo", "Colunas"], [2800, 3000, 3800], [
   ["cadastro-entes.json.gz", "Cadastro do SICONFI", "nome, uf, esfera, populacao, capital"],
   ["rcl-UF.json.gz", "Receita corrente líquida de cada ente da UF no exercício anterior (RREO, Anexo 03), ou a data da última tentativa sem dado", "por ente: rcl, demonstrativo, coletado_em ou tentado_em"],
   ["convenios.json.gz", "Convênios da União por ente (ADR-045), com a data do arquivo da CGU", "convenios (por código IBGE: número, situação, objeto, órgão, categoria, cnpj, convenente, valor, liberado, contrapartida, início, fim, última liberação), pessoa_fisica, fora"],
+  ["recebimentos.json.gz", "Recebido da União por CNPJ (ADR-058): os meses fixados somados por ano e os três recentes à parte", "anos e recentes (cnpjs: por CNPJ e órgão superior, o valor; fora: linhas e valor sem CNPJ), fixados, nomes, orgaos"],
   ["emendas.json.gz", "Emendas parlamentares recebidas por ente (ADR-044), com a data do arquivo da CGU", "recebido (por código IBGE: ano, emenda, categoria, cnpj, favorecido, valor), emendas (ano, tipo, autor, número, função, ação), sem_lugar"],
   ["cnpj-fornecedores.json.gz", "Base de CNPJ da Receita dos fornecedores (ADR-043): empresa, estabelecimento, Simples e sócios, com o mês e as tabelas de código usadas", "por CNPJ: empresa, estabelecimento, simples, socios; pedidos (os CNPJs procurados)"],
   ["pessoal-UF.json.gz", "Despesa com pessoal do Executivo de cada ente da UF no último período do exercício anterior (RGF, Anexo 1), ou a data da última tentativa sem dado", "por ente: percentual, dtp, rcl_ajustada, limites (alerta, prudencial, maximo), demonstrativo, periodo, periodicidade, coletado_em ou tentado_em"],

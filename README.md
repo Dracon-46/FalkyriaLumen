@@ -446,7 +446,8 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
   endereços do Brasil: o fluxo diário chega a eles por um intermediário em São Paulo (`infra/proxy-br`, na Vercel).
   Os cadastros de sanções da CGU (CEIS, CNEP e CEPIM) já são coletados e normalizados (ADR-030); o
   cruzamento com as contratações é a regra J-01 da Fase 2. As emendas parlamentares (ADR-044), os convênios
-  (ADR-045) e as transferências da União (ADR-054) entram pelos arquivos de dados abertos, sem chave.
+  (ADR-045), as transferências da União (ADR-054) e os pagamentos da União por favorecido, na página da empresa
+  (ADR-058), entram pelos arquivos de dados abertos, sem chave.
 
 ### Definições pendentes antes da publicação, conforme DOC-10
 

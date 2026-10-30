@@ -2,7 +2,8 @@
 
 /**
  * Visão 360 de uma empresa ou entidade pelo CNPJ (ADR-049): o cadastro na Receita, os contratos publicados no PNCP
- * com cada ente, as emendas parlamentares recebidas e os convênios com a União. São fatos das fontes, como
+ * com cada ente, os contratos nos tribunais de contas, o que a União pagou a ela (ADR-058), as emendas
+ * parlamentares recebidas e os convênios com a União. São fatos das fontes, como
  * publicados; a página não marca nem ordena ninguém por risco. Sem CNPJ, a busca pelo nome (`?busca=`).
  */
 
@@ -27,6 +28,8 @@ import {
   recortarPessoa,
   tcePorEnte,
   totaisDaPessoa,
+  uniaoPorAno,
+  uniaoPorOrgao,
   urlDasContratacoes,
 } from "@/lib/pessoaJuridica";
 import { GraficoBarras, Situacao } from "./Comuns";
@@ -35,6 +38,8 @@ import { EmpresaReceitaCartao } from "./EmpresaReceita";
 const METODO = "https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-049.md";
 /** Convênios listados, do maior valor ao menor. */
 const CONVENIOS_LISTADOS = 100;
+/** Órgãos pagadores da União mostrados antes de "ver todos". */
+const ORGAOS_INICIAIS = 15;
 /** Entes mostrados antes de "ver todos", nas tabelas por ente. */
 const ENTES_INICIAIS = 30;
 
@@ -156,7 +161,7 @@ function Achados({ termo }: { termo: string }) {
         {estado.achados.map((a) => (
           <li key={a.cnpj}>
             <Link href={`/pessoa-juridica/?cnpj=${a.cnpj}`}>{a.nome ?? formatarCnpj(a.cnpj)}</Link>
-            <span className="busca-detalhe"> · {formatarCnpj(a.cnpj)} · {moedaCompacta(a.peso)} em contratos, emendas e convênios</span>
+            <span className="busca-detalhe"> · {formatarCnpj(a.cnpj)} · {moedaCompacta(a.peso)} em contratos, emendas, convênios e pagamentos da União</span>
           </li>
         ))}
       </ul>
@@ -188,8 +193,8 @@ function Pessoa({ cnpj, estado, nomes, de, ate, onPeriodo }: {
       <EmpresaReceitaCartao cnpj={cnpj} />
       {!p ? (
         <Situacao>
-          Nenhum contrato no PNCP ou no tribunal de contas, emenda parlamentar ou convênio com a União com este CNPJ
-          nos dados do Lumen.
+          Nenhum contrato no PNCP ou no tribunal de contas, pagamento da União, emenda parlamentar ou convênio com a
+          União com este CNPJ nos dados do Lumen.
         </Situacao>
       ) : (
         <>
@@ -208,6 +213,7 @@ function Pessoa({ cnpj, estado, nomes, de, ate, onPeriodo }: {
           )}
           <Contratos p={p} nomes={nomes} de={de} ate={ate} />
           <ContratosTce p={p} nomes={nomes} />
+          <RecebidoDaUniao p={p} />
           <Emendas p={p} nomes={nomes} />
           <Convenios p={p} nomes={nomes} />
           <p className="busca-detalhe">
@@ -278,6 +284,62 @@ function ContratosTce({ p, nomes }: { p: PessoaJuridica; nomes: Nomes }) {
       <p className="busca-detalhe">
         Pelo ano do contrato. A partir de 2021, parte destes contratos é a mesma publicada no PNCP, acima: as duas
         fontes ficam lado a lado e não se somam.
+      </p>
+    </section>
+  );
+}
+
+/** O que a União pagou a este CNPJ (ADR-058): o ano a ano e os órgãos pagadores; só aparece quando há algo. */
+function RecebidoDaUniao({ p }: { p: PessoaJuridica }) {
+  const [todos, setTodos] = useState(false);
+  if (!p.uniao?.length) return null;
+  const t = totaisDaPessoa(p);
+  const porAno = uniaoPorAno(p);
+  const orgaos = uniaoPorOrgao(p);
+  const mostrados = todos ? orgaos : orgaos.slice(0, ORGAOS_INICIAIS);
+  return (
+    <section className="cartao cartao-corpo" aria-labelledby="titulo-pj-uniao">
+      <h2 id="titulo-pj-uniao" className="titulo-secao">Pagamentos da União</h2>
+      <p>
+        {moeda(t.uniao)} recebidos do governo federal, de {numero(orgaos.length)} órgão(s) superior(es), em{" "}
+        {porAno.length === 1 ? porAno[0]?.ano : `${porAno[0]?.ano} a ${porAno.at(-1)?.ano}`}.
+      </p>
+      {porAno.length > 1 && (
+        <GraficoBarras titulo="Recebido da União por ano" barras={porAno.map((a) => ({ rotulo: a.ano, valor: a.valor }))}
+          formatar={moeda} formatarEixo={moedaCompacta} />
+      )}
+      <div className="tabela-rolavel">
+        <table className="tabela">
+          <thead>
+            <tr>
+              <th>Órgão superior</th>
+              <th className="n">Valor</th>
+              <th>Anos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {mostrados.map((o) => (
+              <tr key={o.orgao}>
+                <td>{o.nome}</td>
+                <td className="n">{moeda(o.valor)}</td>
+                <td>{o.anos.join(", ")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {orgaos.length > ORGAOS_INICIAIS && (
+        <button type="button" className="botao-link" onClick={() => setTodos(!todos)}>
+          {todos ? `mostrar só os ${ORGAOS_INICIAIS} primeiros` : `ver todos os ${numero(orgaos.length)} órgãos`}
+        </button>
+      )}
+      <BaixarCsv nome="pagamentos-da-uniao" colunas={["Ano", "Código do órgão superior", "Órgão superior", "Valor (R$)"]}
+        linhas={() => (p.uniao ?? []).map(([ano, orgao, valor]) => [ano, orgao, p.orgaosUniao[orgao] ?? orgao, valor])} />
+      <p className="busca-detalhe">
+        Recebimentos por favorecido do Portal da Transparência (CGU), pelo mês do lançamento, de 2014 em diante;
+        coletado em {dataDoArquivo(p.fontes.uniao ?? null)}. Os três meses mais recentes ainda podem ser corrigidos
+        pela CGU. Bancos que pagam benefícios e repasses e fundos de estados e municípios aparecem com o que passa
+        por eles, como a fonte publica.
       </p>
     </section>
   );

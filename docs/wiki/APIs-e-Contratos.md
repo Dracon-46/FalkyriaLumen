@@ -96,6 +96,16 @@ natureza jurídica e o município do favorecido) e `EmendasParlamentares_Conveni
 O município vem pelo nome e pelo código do SIAFI (não o do IBGE); o Lumen cruza pelo nome, com a tabela de
 apelidos das emendas (ADR-045).
 
+### CGU — recebimentos por favorecido (arquivo mensal de dados abertos)
+
+| Endereço | Uso |
+|---|---|
+| `https://portaldatransparencia.gov.br/download-de-dados/despesas-favorecidos` | A página lista os meses publicados (`"ano" : "AAAA", "mes" : "MM"`), de 2014 em diante |
+| `https://portaldatransparencia.gov.br/download-de-dados/despesas-favorecidos/AAAAMM` | Redireciona para `.../saida/despesas-favorecidos/AAAAMM_Despesas.zip` (24 MB em setembro de 2026), com `AAAAMM_RecebimentosRecursosPorFavorecido.csv`: favorecido, UF e município dele, órgão superior, órgão e unidade que pagaram, mês e valor recebido |
+
+Sem pessoa física. O Lumen soma por CNPJ, ano e órgão superior para a página da empresa; os três meses mais recentes
+são baixados de novo a cada execução, até 12 meses por execução, com pausa ([ADR-058](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-058.md)).
+
 ### TCE-RS — LicitaCon (arquivos de dados abertos)
 
 | Endereço | Uso |

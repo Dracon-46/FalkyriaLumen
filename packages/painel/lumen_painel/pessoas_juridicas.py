@@ -10,9 +10,12 @@ As contratações, as emendas e os convênios são publicados por ente (quem con
 - **convenios:** os convênios com a União como convenente (ADR-045), com o objeto cortado em ``OBJETO``
   caracteres;
 - **tce:** os contratos registrados nos tribunais de contas (TCE-RS, TCE-PR, TCE-PE e TCE-CE, ADR-050), por ente e ano
-  do contrato (``[ente, ano, contratos, valor]``).
+  do contrato (``[ente, ano, contratos, valor]``);
+- **uniao:** o que a União pagou a ela, por ano e órgão superior (``[ano, orgao, valor]``, ADR-058), com o nome de
+  cada órgão em ``orgaos_uniao``.
 
-O nome é o mais recente das contratações e, sem elas, o dos convênios, das emendas ou do tribunal de contas; as fontes já chegam com o
+O nome é o mais recente das contratações e, sem elas, o dos convênios, das emendas, do tribunal de contas ou dos
+recebimentos da União; as fontes já chegam com o
 CPF do MEI mascarado (ADR-043). A página do portal junta o cartão da Receita (``cnpj/``). Pessoa física não
 entra: o índice é por CNPJ.
 
@@ -31,7 +34,7 @@ import unicodedata
 from pathlib import Path
 from typing import Any, Callable
 
-from . import convenios, emendas, tce
+from . import convenios, emendas, recebimentos, tce
 from .comum import grupo_do_cnpj, ler_json
 from .contratacoes import Painel
 
@@ -55,7 +58,8 @@ def palavras_da_busca(nome: str | None) -> list[str]:
 
 def _registro(indice: dict[str, dict], cnpj: str) -> dict:
     """O registro do CNPJ no índice, criado vazio na primeira vez."""
-    return indice.setdefault(cnpj, {"nome": None, "contratos": {}, "emendas": {}, "convenios": [], "tce": {}})
+    return indice.setdefault(cnpj, {"nome": None, "contratos": {}, "emendas": {}, "convenios": [], "tce": {},
+                                    "uniao": {}})
 
 
 def de_contratacoes(indice: dict[str, dict], painel: Painel) -> None:
@@ -107,7 +111,8 @@ def montar_busca(indice: dict[str, dict]) -> tuple[dict[str, list], list[str]]:
     busca: dict[str, list] = {}
     for cnpj, registro in indice.items():
         peso = round(sum(v for _, v in registro["contratos"].values()) + sum(registro["emendas"].values())
-                     + sum(c[5] for c in registro["convenios"]) + sum(v for _, v in registro["tce"].values()), 2)
+                     + sum(c[5] for c in registro["convenios"]) + sum(v for _, v in registro["tce"].values())
+                     + sum(registro["uniao"].values()), 2)
         palavras = palavras_da_busca(registro["nome"])
         for prefixo in sorted({p[:2] for p in palavras}):
             busca.setdefault(prefixo, []).append((cnpj, registro["nome"], peso, palavras))
@@ -131,8 +136,19 @@ def de_tce(indice: dict[str, dict], dados: dict) -> None:
                 r["tce"][(ente, ano)] = [n, valor]
 
 
+def de_recebimentos(indice: dict[str, dict], dados: dict) -> None:
+    """O que a União pagou a cada CNPJ, por ano e órgão superior (o estado de ``recebimentos``)."""
+    nomes = dados.get("nomes") or {}
+    for ano, soma in recebimentos.por_ano(dados).items():
+        for cnpj, por_orgao in soma["cnpjs"].items():
+            r = _registro(indice, cnpj)
+            r["nome"] = r["nome"] or nomes.get(cnpj)
+            for orgao, valor in por_orgao.items():
+                r["uniao"][(ano, orgao)] = r["uniao"].get((ano, orgao), 0.0) + valor
+
+
 def _estado(estado: Path, modulo) -> dict | None:
-    """O estado de ``emendas`` ou ``convenios``, se existe e está na versão conhecida."""
+    """O estado de ``emendas``, ``convenios`` ou ``recebimentos``, se existe e está na versão conhecida."""
     caminho = estado / modulo.ARQUIVO
     if not caminho.exists():
         return None
@@ -148,6 +164,7 @@ def para_json(registro: dict) -> dict:
         "emendas": [[ente, ano, round(v, 2)] for (ente, ano), v in sorted(registro["emendas"].items())],
         "convenios": sorted(registro["convenios"], key=lambda c: (c[7] or "", c[0], c[1])),
         "tce": [[ente, ano, n, round(v, 2)] for (ente, ano), (n, v) in sorted(registro["tce"].items())],
+        "uniao": [[ano, orgao, round(v, 2)] for (ano, orgao), v in sorted(registro["uniao"].items())],
     }
 
 
@@ -165,6 +182,9 @@ def publicar(estado: Path | str, painel: Painel, gravar: Callable[[str, Any], An
     estados_tce = tce.estados(estado)
     for dados_tce in estados_tce:
         de_tce(indice, dados_tce)
+    dados_uniao = _estado(estado, recebimentos)
+    if dados_uniao:
+        de_recebimentos(indice, dados_uniao)
     grupos: dict[str, dict[str, dict]] = {}
     for cnpj, registro in indice.items():
         grupos.setdefault(grupo_do_cnpj(cnpj), {})[cnpj] = para_json(registro)
@@ -180,14 +200,18 @@ def publicar(estado: Path | str, painel: Painel, gravar: Callable[[str, Any], An
         gravar(f"pj/{grupo}.json.gz", {
             "versao": 1, "tipo": "pessoas-juridicas", "gerado_em": gerado_em,
             "colunas": {"contratos": ["ente", "ano", "contratos", "valor"], "emendas": ["ente", "ano", "valor"],
-                        "convenios": COLUNAS_CONVENIO, "tce": ["ente", "ano", "contratos", "valor"]},
+                        "convenios": COLUNAS_CONVENIO, "tce": ["ente", "ano", "contratos", "valor"],
+                        "uniao": ["ano", "orgao", "valor"]},
+            "orgaos_uniao": (dados_uniao or {}).get("orgaos") or {},
             "fontes": {"emendas": (dados_emendas or {}).get("data_arquivo"),
                        "convenios": (dados_convenios or {}).get("data_arquivo"),
-                       "tce": {d["tribunal"]: d.get("coletado_em") for d in estados_tce} or None},
+                       "tce": {d["tribunal"]: d.get("coletado_em") for d in estados_tce} or None,
+                       "uniao": (dados_uniao or {}).get("coletado_em")},
             "pessoas": dict(sorted(pessoas.items())),
         })
     return {"pessoas": len(indice), "arquivos": len(grupos), "arquivos_busca": len(busca),
             "com_contratos": sum(1 for r in indice.values() if r["contratos"]),
             "com_emendas": sum(1 for r in indice.values() if r["emendas"]),
             "com_convenios": sum(1 for r in indice.values() if r["convenios"]),
-            "com_tce": sum(1 for r in indice.values() if r["tce"])}
+            "com_tce": sum(1 for r in indice.values() if r["tce"]),
+            "com_uniao": sum(1 for r in indice.values() if r["uniao"])}

@@ -5,6 +5,15 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Página da empresa: pagamentos da União (ADR-058)
+
+- Nova seção "Pagamentos da União" na página de cada CNPJ: o que o governo federal pagou a ela, ano a ano e por
+  órgão superior (ministério), com o CSV. Fonte: recebimentos por favorecido do Portal da Transparência (CGU), de
+  2014 em diante. Quem só recebeu da União também passa a ter página e a aparecer na busca pelo nome.
+- Coleta nova, `lumen painel recebimentos`, no fluxo `paineis`: os três meses recentes a cada execução e até 12
+  meses por execução, com pausa. A primeira carga leva umas duas semanas.
+- Com isso, os entregáveis da Fase 1 do DOC-10 estão completos (#36).
+
 ### Fase 1: critério de saída cumprido (ADR-046, adendo)
 
 - A carga histórica terminou: 1.915 dias do PNCP (de 1º/8/2021 a 28/10/2026) e a conformidade das 27 UFs e dos

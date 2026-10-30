@@ -1,6 +1,7 @@
 /**
  * Visão 360 de uma pessoa jurídica pelo CNPJ (ADR-049): o arquivo `pj/<grupo>.json.gz` traz os contratos no PNCP
- * por ente contratante e ano, as emendas parlamentares recebidas e os convênios com a União. A página junta o
+ * por ente contratante e ano, as emendas parlamentares recebidas, os convênios com a União, os contratos nos tribunais
+ * de contas e o que a União pagou a ela, por ano e órgão superior (ADR-058). A página junta o
  * cartão da Receita (`receita.ts`). A busca pelo nome lê `pj/busca/`, um arquivo por prefixo de palavra.
  */
 
@@ -15,6 +16,8 @@ export type LinhaContratos = [string, string, number, number];
 export type LinhaEmendas = [string, string, number];
 /** Contratos registrados no tribunal de contas com o ente num ano do contrato: `[ente, ano, contratos, valor]`. */
 export type LinhaTce = [string, string, number, number];
+/** O que a União pagou num ano por um órgão superior (ministério): `[ano, código do órgão, valor]`. */
+export type LinhaUniao = [string, string, number];
 /** Um convênio: `[ente, número, situação, objeto, órgão, valor, liberado, início]`. */
 export type LinhaConvenio = [string, string, string, string, string, number, number, string | null];
 
@@ -27,8 +30,12 @@ export interface PessoaJuridica {
   convenios: LinhaConvenio[];
   /** Contratos no tribunal de contas (ADR-050); ausente nos arquivos publicados antes dele. */
   tce?: LinhaTce[];
-  /** Data do arquivo da CGU de onde vieram as emendas e os convênios (`AAAAMMDD`) e a da coleta do tribunal. */
-  fontes: { emendas: string | null; convenios: string | null; tce?: string | null };
+  /** Recebido da União (ADR-058); ausente nos arquivos publicados antes dele. */
+  uniao?: LinhaUniao[];
+  /** O nome de cada órgão superior das linhas de `uniao`. */
+  orgaosUniao: Record<string, string>;
+  /** Data do arquivo da CGU de onde vieram as emendas e os convênios (`AAAAMMDD`) e a das coletas. */
+  fontes: { emendas: string | null; convenios: string | null; tce?: Record<string, string | null> | null; uniao?: string | null };
   gerado_em: string;
 }
 
@@ -38,7 +45,8 @@ interface GrupoPessoasJuridicas {
   tipo: "pessoas-juridicas";
   gerado_em: string;
   fontes: PessoaJuridica["fontes"];
-  pessoas: Record<string, Pick<PessoaJuridica, "nome" | "contratos" | "emendas" | "convenios" | "tce">>;
+  orgaos_uniao?: Record<string, string>;
+  pessoas: Record<string, Pick<PessoaJuridica, "nome" | "contratos" | "emendas" | "convenios" | "tce" | "uniao">>;
 }
 
 /** O CNPJ no índice; `null` quando ele não aparece em nenhuma fonte ou o arquivo não foi publicado. */
@@ -48,7 +56,7 @@ export async function carregarPessoaJuridica(cnpj: string, sinal?: AbortSignal):
   if (bruto === null) return null;
   const grupo = conferir<GrupoPessoasJuridicas>(bruto, "pessoas-juridicas", url);
   const p = grupo.pessoas?.[cnpj];
-  return p ? { cnpj, ...p, fontes: grupo.fontes, gerado_em: grupo.gerado_em } : null;
+  return p ? { cnpj, ...p, orgaosUniao: grupo.orgaos_uniao ?? {}, fontes: grupo.fontes, gerado_em: grupo.gerado_em } : null;
 }
 
 /** Uma soma por ente: contratos (ou zero, nas emendas), valor e os anos em que aparece. */
@@ -88,6 +96,26 @@ export function emendasPorEnte(p: PessoaJuridica): PorEnte[] {
   return somarPorEnte(p.emendas.map(([ente, ano, valor]) => ({ ente, ano, contratos: 0, valor })));
 }
 
+/** O recebido da União por órgão superior, do maior valor ao menor, com os anos em que aparece. */
+export function uniaoPorOrgao(p: PessoaJuridica): { orgao: string; nome: string; valor: number; anos: string[] }[] {
+  const m = new Map<string, { orgao: string; nome: string; valor: number; anos: string[] }>();
+  for (const [ano, orgao, valor] of p.uniao ?? []) {
+    let x = m.get(orgao);
+    if (!x) m.set(orgao, (x = { orgao, nome: p.orgaosUniao[orgao] ?? orgao, valor: 0, anos: [] }));
+    x.valor += valor;
+    if (!x.anos.includes(ano)) x.anos.push(ano);
+  }
+  for (const x of m.values()) x.anos.sort();
+  return [...m.values()].sort((a, b) => b.valor - a.valor || a.orgao.localeCompare(b.orgao));
+}
+
+/** O recebido da União por ano, em ordem. */
+export function uniaoPorAno(p: PessoaJuridica): { ano: string; valor: number }[] {
+  const m = new Map<string, number>();
+  for (const [ano, , valor] of p.uniao ?? []) m.set(ano, (m.get(ano) ?? 0) + valor);
+  return [...m.entries()].map(([ano, valor]) => ({ ano, valor })).sort((a, b) => a.ano.localeCompare(b.ano));
+}
+
 /** Contratos e valor por ano, em ordem. */
 export function contratosPorAno(p: PessoaJuridica): { ano: string; contratos: number; valor: number }[] {
   const m = new Map<string, { ano: string; contratos: number; valor: number }>();
@@ -112,6 +140,7 @@ export function totaisDaPessoa(p: PessoaJuridica) {
     liberado: p.convenios.reduce((s, l) => s + l[6], 0),
     contratosTce: (p.tce ?? []).reduce((s, l) => s + l[2], 0),
     valorTce: (p.tce ?? []).reduce((s, l) => s + l[3], 0),
+    uniao: (p.uniao ?? []).reduce((s, l) => s + l[2], 0),
   };
 }
 
@@ -120,7 +149,7 @@ export function totaisDaPessoa(p: PessoaJuridica) {
 /** Palavras comuns demais para separar uma empresa da outra, como `PALAVRAS_FORA` no Python. */
 const PALAVRAS_FORA = new Set(["ltda", "eireli", "epp", "cia", "dos", "das", "del", "para", "com"]);
 
-/** Um nome achado: o CNPJ, o nome e o peso (contratos, emendas e convênios somados). */
+/** Um nome achado: o CNPJ, o nome e o peso (contratos, emendas, convênios e o recebido da União, somados). */
 export interface AchadoPj {
   cnpj: string;
   nome: string | null;
@@ -205,12 +234,13 @@ export function cnpjDoTexto(texto: string): string | null {
 
 // ------------------------------------------------------------------------------------------ período
 
-/** Os anos que aparecem em alguma fonte do CNPJ (contratos, emendas, tribunal e início dos convênios), em ordem. */
+/** Os anos que aparecem em alguma fonte do CNPJ (contratos, emendas, tribunal, União e início dos convênios), em ordem. */
 export function anosDaPessoa(p: PessoaJuridica): string[] {
   const anos = new Set<string>();
   for (const l of p.contratos) anos.add(l[1]);
   for (const l of p.emendas) anos.add(l[1]);
   for (const l of p.tce ?? []) anos.add(l[1]);
+  for (const l of p.uniao ?? []) anos.add(l[0]);
   for (const c of p.convenios) if (c[7]) anos.add(c[7].slice(0, 4));
   return [...anos].sort();
 }
@@ -224,6 +254,7 @@ export function recortarPessoa(p: PessoaJuridica, de: string | null, ate: string
     contratos: p.contratos.filter((l) => dentro(l[1])),
     emendas: p.emendas.filter((l) => dentro(l[1])),
     tce: p.tce?.filter((l) => dentro(l[1])),
+    uniao: p.uniao?.filter((l) => dentro(l[0])),
     convenios: p.convenios.filter((c) => dentro(c[7]?.slice(0, 4))),
   };
 }

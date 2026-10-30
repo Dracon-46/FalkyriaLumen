@@ -44,6 +44,7 @@ from . import (
     pessoal,
     pessoas_juridicas,
     rcl,
+    recebimentos,
     tce,
     tce_ce,
     tce_pe,
@@ -284,6 +285,14 @@ def cmd_emendas(args) -> int:
     return 0
 
 
+def cmd_recebimentos(args) -> int:
+    """Soma os arquivos mensais de recebimentos por favorecido da CGU, os meses recentes e os que faltam, e grava
+    ``recebimentos.json.gz`` (ADR-058)."""
+    cfg = _configuracao(args)
+    _imprimir(recebimentos.coletar(Path(args.estado), contato=cfg.contato, anos=args.anos).para_json())
+    return 0
+
+
 def cmd_transferencias(args) -> int:
     """Soma os arquivos mensais de transferências da CGU, refazendo só o ano com mês novo ou mudado, e grava
     ``transferencias.json.gz`` (ADR-054)."""
@@ -500,6 +509,10 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--estado", required=True)
     c.add_argument("--anos", type=lambda t: [int(a) for a in t.split(",")], help="só estes anos (vírgula)")
 
+    c = sub.add_parser("recebimentos", help="o que a União pagou a cada pessoa jurídica, por ano e órgão (CGU)")
+    c.add_argument("--estado", required=True)
+    c.add_argument("--anos", type=lambda t: [int(a) for a in t.split(",")], help="só estes anos (vírgula)")
+
     c = sub.add_parser("mascarar", help="mascara o CPF nos textos dos arquivos do dia já gravados (uma vez)")
     c.add_argument("--estado", required=True)
 
@@ -520,7 +533,7 @@ def construir_parser() -> argparse.ArgumentParser:
 
 COMANDOS = {"cadastro": cmd_cadastro, "contratacoes": cmd_contratacoes, "faltando": cmd_faltando,
             "conformidade": cmd_conformidade, "rcl": cmd_rcl, "despesa-funcao": cmd_despesa_funcao, "pessoal": cmd_pessoal,
-            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "tce-rs": cmd_tce, "tce-pr": cmd_tce, "tce-pe": cmd_tce, "tce-ce": cmd_tce, "emendas": cmd_emendas, "convenios": cmd_convenios, "transferencias": cmd_transferencias,
+            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "tce-rs": cmd_tce, "tce-pr": cmd_tce, "tce-pe": cmd_tce, "tce-ce": cmd_tce, "emendas": cmd_emendas, "convenios": cmd_convenios, "transferencias": cmd_transferencias, "recebimentos": cmd_recebimentos,
             "transparencia": cmd_transparencia, "anp": cmd_anp,
             "publicar": cmd_publicar}
 
