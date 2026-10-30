@@ -50,7 +50,9 @@ jobs:
       fail-fast: false
       matrix:
         tribunal: [rs, pr, pe, ce]
-    runs-on: ubuntu-24.04
+    # O TCE-RS recusa os endereços da Vercel desde 28/10/2026 (ADR-050, adendo): com a variável LUMEN_RUNNER_BR, o job
+    # do RS roda no runner próprio no Brasil (infra/runner-br), direto, sem o intermediário.
+    runs-on: ${{ (matrix.tribunal == 'rs' && vars.LUMEN_RUNNER_BR) && fromJSON('["self-hosted", "lumen-br"]') || 'ubuntu-24.04' }}
     timeout-minutes: 120
     env:
       LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
@@ -58,7 +60,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       ANOS: ${{ inputs.anos }}
       PYTHONUNBUFFERED: "1"
-      LUMEN_PROXY_BR: ${{ vars.LUMEN_PROXY_BR }}
+      NO_BRASIL: ${{ (matrix.tribunal == 'rs' && vars.LUMEN_RUNNER_BR) && '1' || '' }}
+      LUMEN_PROXY_BR: ${{ !(matrix.tribunal == 'rs' && vars.LUMEN_RUNNER_BR) && vars.LUMEN_PROXY_BR || '' }}
       LUMEN_PROXY_CHAVE: ${{ secrets.LUMEN_PROXY_CHAVE }}
     steps:
       - uses: actions/checkout@v7
@@ -75,7 +78,7 @@ jobs:
       - name: Contratos do tribunal
         shell: bash               # com pipefail: a falha do lumen não some atrás do tee
         run: |
-          if { [ "${{ matrix.tribunal }}" = rs ] || [ "${{ matrix.tribunal }}" = ce ]; } && { [ -z "$LUMEN_PROXY_BR" ] || [ -z "$LUMEN_PROXY_CHAVE" ]; }; then
+          if [ -z "$NO_BRASIL" ] && { [ "${{ matrix.tribunal }}" = rs ] || [ "${{ matrix.tribunal }}" = ce ]; } && { [ -z "$LUMEN_PROXY_BR" ] || [ -z "$LUMEN_PROXY_CHAVE" ]; }; then
             echo "::warning::Sem LUMEN_PROXY_BR ou LUMEN_PROXY_CHAVE: o TCE-RS e o TCE-CE só respondem do Brasil e ficam para quando o intermediário estiver configurado."
             exit 0
           fi

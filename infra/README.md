@@ -1,5 +1,8 @@
 # Ambiente local
 
+Fora do ambiente local, `infra/proxy-br` é o intermediário em São Paulo (Vercel) e `infra/runner-br`, o runner
+próprio no Brasil para o TCE-RS (ADR-050).
+
 ```bash
 docker compose -f infra/docker-compose.yml up -d
 ```
