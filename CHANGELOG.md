@@ -5,6 +5,15 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### CI: estágio de segurança e o Next.js 16.4.3
+
+- O CI ganha o estágio de segurança do DOC-09 (seção 4.2): `pip-audit` nas dependências Python e `npm audit` nas
+  de produção do portal, barrando severidade alta ou crítica.
+- O portal passa do Next.js 16.4.0 ao 16.4.3, que corrige três falhas (uma crítica, de execução remota pela
+  otimização de imagem com SVG). O portal é exportação estática, sem servidor do Next.js, e não ficava exposto.
+- O DOC-04 (seções 5 e 9) descreve a estrutura e a hospedagem reais: Supabase Storage, versões do GitHub, Vercel,
+  GitHub Pages, o intermediário em São Paulo e o runner no Brasil.
+
 ### Eleições: os votos por hora (ADR-057)
 
 - Painel "Votos por hora" no lugar aberto da aba Eleições, de 2022 em
