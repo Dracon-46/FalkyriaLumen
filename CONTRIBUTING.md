@@ -5,6 +5,13 @@ Obrigado pelo interesse no Falkyria Lumen. O guia completo está na Wiki, na pá
 [DOC-09 Padrões de Código](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/DOC-09_Padroes_de_Codigo.docx).
 Este arquivo é a versão curta.
 
+## Licença das contribuições
+
+O Lumen é software proprietário da Falkyria ([LICENSE](LICENSE)): o código está público só para
+consulta. Pull request de fora só é aceito com um acordo por escrito com a Falkyria que ceda a ela os
+direitos sobre o código contribuído. Sem esse acordo, use as issues: erro, melhoria e dado divergente
+da fonte oficial são bem-vindos.
+
 ## Antes de tudo
 
 O Lumen publica indícios, nunca conclusões. Todo texto que pode chegar ao público (portal, rótulos,

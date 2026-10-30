@@ -153,8 +153,8 @@ Da seção "Pendente" do README:
 | Decisão | Quando | Por que condiciona o desenvolvimento |
 |---|---|---|
 | Nome definitivo | Decidido em 21/10/2026 | O nome fica "Lumen" (ADR-043) |
-| Natureza institucional | Antes da Fase 5 | Projeto pessoal, produto da empresa ou iniciativa sem fins lucrativos; afeta a percepção de imparcialidade |
-| Abertura do código | Antes da Fase 6 | Reforça a credibilidade da metodologia, mas exige disciplina de documentação e governança |
+| Natureza institucional | Decidida em 30/10/2026 | Produto da empresa Falkyria; a imparcialidade fica a cargo da metodologia pública, do vocabulário controlado e da contestação aberta (DOC-08) |
+| Abertura do código | Decidida em 30/10/2026 | Código proprietário da Falkyria, visível apenas para consulta ([LICENSE](https://github.com/Dracon-46/FalkyriaLumen/blob/main/LICENSE)) |
 | Apoio jurídico | Antes da Fase 5 | A revisão da política editorial por advogado é critério de saída da Fase 5 |
 
 O domínio próprio do portal e dos feeds está pendente: o nome está decidido, e falta registrá-lo.

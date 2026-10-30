@@ -449,12 +449,14 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
 
 - **Nome** — decidido em 21/10/2026: fica "Lumen" (ADR-043). Falta o domínio próprio, que tem
   custo.
-- **Natureza institucional** — projeto pessoal, produto da empresa ou iniciativa sem fins
-  lucrativos; afeta a percepção de imparcialidade.
+- **Natureza institucional** — decidido em 30/10/2026: o Lumen é produto da empresa Falkyria. A
+  percepção de imparcialidade fica a cargo da metodologia pública, do vocabulário controlado e da
+  contestação aberta (DOC-08).
 - **Abertura do código** — decidido: o código é proprietário da Falkyria e fica visível apenas
   para consulta (veja [Licença](#licença)). A metodologia continua documentada em público.
 - **Apoio jurídico** — a revisão da política editorial por advogado é critério de saída da
-  Fase 5 e precisa ser contratada com antecedência.
+  Fase 5 e precisa ser contratada com antecedência. Ainda não há advogado; o que depende dele está
+  na issue #18.
 
 ## Aviso
 

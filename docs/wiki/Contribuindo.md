@@ -5,6 +5,10 @@ A versão curta está em [`CONTRIBUTING.md`](https://github.com/Dracon-46/Falkyr
 a conduta esperada, em [`CODE_OF_CONDUCT.md`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/CODE_OF_CONDUCT.md);
 falhas de segurança se relatam como em [`SECURITY.md`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/SECURITY.md).
 
+O Lumen é software proprietário da Falkyria ([`LICENSE`](https://github.com/Dracon-46/FalkyriaLumen/blob/main/LICENSE)):
+pull request de fora só entra com acordo por escrito que ceda à Falkyria os direitos sobre o código contribuído.
+Sem ele, erros, melhorias e dados divergentes vão pelas issues.
+
 ## Fluxo de trabalho
 
 1. **Issue.** Use os formulários do repositório: relato de erro, proposta de melhoria ou número
