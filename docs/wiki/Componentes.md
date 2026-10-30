@@ -132,6 +132,7 @@ Aba Eleições: resultados oficiais do TSE, ao vivo e históricos. Não depende 
 | `municipios.py`, `referencias.py`, `dados/` | Cadastro TSE ↔ IBGE e malhas do IBGE embutidos, com proveniência em `dados/LEIAME.md` |
 | `geo.py` | Malhas do IBGE (API v3) e contornos finos dos municípios com mais de uma zona |
 | `eleitorado.py` | Perfil do eleitorado, comparecimento por perfil e seções, do Brasil à seção, para o site dos painéis ([ADR-055](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-055.md)) |
+| `votos_hora.py` | Votos por hora de cada seção, pelos logs das urnas lidos por pedaços (HTTP `Range`) dos arquivos transmitidos, para o site dos painéis ([ADR-057](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-057.md)) |
 | `horarios.py` | Horários das urnas (abertura, encerramento, emissão e recebimento do boletim) de cada seção, do boletim de urna, para o site dos painéis ([ADR-056](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-056.md)) |
 | `zonas.py` | Locais de votação de 2018 a 2026 para o mapa das zonas ([ADR-029](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-029.md)) |
 | `transferencia.py` | Download de arquivos grandes com retomada e manifesto ([ADR-021](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-021.md)) |

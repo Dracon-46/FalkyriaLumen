@@ -1,0 +1,154 @@
+# Votos por hora — ADR-057.
+#
+# Lê os logs das urnas nos arquivos que elas transmitiram para a totalização
+# (dados abertos do TSE, de 2022 em diante; 2026: 219 GB nos dois turnos) sem
+# baixar os arquivos: só o índice de cada ZIP e o log de cada seção, por
+# pedidos HTTP Range. Conta os votos de 10 em 10 minutos e grava o resultado,
+# perto de 15 MB por ano, em votos-hora-<ano>.tar, anexo da versão
+# painel-estado. O paineis-site desempacota cada ano no site dos painéis. O
+# bucket das eleições (Supabase gratuito) não recebe nada.
+#
+# Cada UF de cada ano roda num job à parte (SP leva perto de meia hora) e grava
+# a parcial dela; o job "montagem" de cada ano junta as parciais. Toda semana
+# faz só os anos sem pacote; à mão, "anos" refaz os anos pedidos (ou "todos").
+
+name: votos-hora
+
+on:
+  schedule:
+    - cron: "53 7 * * 1"     # segunda-feira, 4h53 em Brasília
+  workflow_dispatch:
+    inputs:
+      anos:
+        description: "Anos separados por vírgula, ou todos (vazio: os que ainda não têm pacote)"
+        default: ""
+
+permissions:
+  contents: write     # o pacote de cada ano vai para os anexos da versão painel-estado
+
+concurrency:
+  group: votos-hora
+  cancel-in-progress: false
+
+env:
+  TAG: painel-estado
+
+jobs:
+  plano:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
+      GH_TOKEN: ${{ github.token }}
+      ANOS: ${{ inputs.anos }}
+    outputs:
+      anos: ${{ steps.plano.outputs.anos }}
+      coletas: ${{ steps.plano.outputs.coletas }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      - name: Anos e UFs a fazer
+        id: plano
+        run: |
+          existentes=$(gh release view "$TAG" --json assets --jq '.assets[].name' | grep '^votos-hora-' || true)
+          python - "$ANOS" "$existentes" >> "$GITHUB_OUTPUT" <<'PY'
+          import json, sys
+          from lumen_eleicoes import votos_hora as v
+          from lumen_eleicoes.configuracao import carregar
+          pedido, existentes = sys.argv[1].strip(), sys.argv[2].split()
+          if pedido == "todos":
+              anos = list(v.ANOS_VOTOS)
+          elif pedido:
+              anos = [int(a) for a in pedido.split(",") if a.strip()]
+          else:
+              anos = [a for a in v.ANOS_VOTOS if f"votos-hora-{a}.tar" not in existentes]
+          ua = carregar().user_agent
+          coletas = []
+          for ano in anos:
+              urls = v.urls_do_ano(ano, user_agent=ua, tentativas=5)
+              for uf in sorted({u for _, u, _ in urls}):
+                  coletas.append({"ano": ano, "uf": uf, "turnos": sum(1 for _, u, _ in urls if u == uf)})
+          print(f"anos={json.dumps(anos)}")
+          print(f"coletas={json.dumps(coletas)}")
+          print(f"{len(anos)} ano(s), {len(coletas)} coleta(s)", file=sys.stderr)
+          PY
+
+  coleta:
+    needs: plano
+    if: needs.plano.outputs.coletas != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 8      # o servidor do TSE é um só: oito UFs por vez
+      matrix:
+        include: ${{ fromJSON(needs.plano.outputs.coletas) }}
+    env:
+      LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      - name: Logs das urnas
+        run: |
+          python -m lumen_eleicoes votos-hora --ano "${{ matrix.ano }}" --ufs "${{ matrix.uf }}" \
+            --turnos-esperados "${{ matrix.turnos }}" --parciais parciais
+      - uses: actions/upload-artifact@v6
+        with:
+          name: parcial-${{ matrix.ano }}-${{ matrix.uf }}
+          path: parciais/${{ matrix.uf }}.json.gz
+          retention-days: 7
+          if-no-files-found: error
+
+  montagem:
+    needs: [plano, coleta]
+    if: always() && needs.plano.outputs.anos != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        ano: ${{ fromJSON(needs.plano.outputs.anos) }}
+    env:
+      LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
+      LUMEN_DADOS: dados
+      GH_TOKEN: ${{ github.token }}
+      COLETAS: ${{ needs.plano.outputs.coletas }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      - uses: actions/download-artifact@v6
+        with:
+          pattern: parcial-${{ matrix.ano }}-*
+          path: parciais
+          merge-multiple: true
+      - name: Todas as UFs do ano
+        run: |
+          esperadas=$(python -c "import json, os; print(sum(1 for c in json.loads(os.environ['COLETAS']) if c['ano'] == ${{ matrix.ano }}))")
+          lidas=$(ls parciais/*.json.gz 2>/dev/null | wc -l)
+          echo "parciais: $lidas de $esperadas"
+          # Um ano com UF faltando não é publicado: o Brasil sairia somado pela metade
+          [ "$lidas" -eq "$esperadas" ] || { echo "::error::faltam parciais de ${{ matrix.ano }}"; exit 1; }
+      - name: Montar
+        shell: bash
+        run: |
+          python -m lumen_eleicoes votos-hora --ano "${{ matrix.ano }}" --montar --parciais parciais \
+            --saida site --pacotes pacotes | tee resumo.json
+      - name: Guardar o pacote
+        run: gh release upload "$TAG" "pacotes/votos-hora-${{ matrix.ano }}.tar" --clobber
+      - name: Resumo
+        if: always()
+        run: |
+          { echo "## Votos por hora ${{ matrix.ano }}"; echo; echo '```json'; cat resumo.json 2>/dev/null; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

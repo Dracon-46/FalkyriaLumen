@@ -12,6 +12,7 @@ Exemplos::
     lumen eleicoes zonas --anos 2026,2024           # locais de votação: mapa das zonas eleitorais
     lumen eleicoes eleitorado --anos 2026           # perfil, comparecimento por perfil e seções
     lumen eleicoes horarios --anos 2026             # abertura, encerramento e boletim de cada urna
+    lumen eleicoes votos-hora --ano 2026 --ufs todas --montar   # votos por hora, pelos logs das urnas
     lumen eleicoes ao-vivo --eleicao 2026-1t-geral  # noite da apuração
     lumen eleicoes historico baixar --anos 2022,2018,1950
     lumen eleicoes historico processar --anos 2022,2018,1950
@@ -37,7 +38,7 @@ from pathlib import Path
 from lumen_ingestao.bronze import ArmazemBronzeLocal
 from lumen_ingestao.cliente_http import ClienteHttp
 
-from . import antigas, carga, conferencia, eleitorado, geo, horarios, medicao, referencias, tse, zonas
+from . import antigas, carga, conferencia, eleitorado, geo, horarios, medicao, referencias, tse, votos_hora, zonas
 from . import dados_abertos as da
 from .coletor import FONTE_ID, ColetorAoVivo, ResumoPassada, plano_padrao
 from .configuracao import ConfiguracaoAusente, ConfiguracaoEleicoes, carregar, carregar_publicacao
@@ -487,6 +488,48 @@ def cmd_horarios(cfg, args) -> int:
     return 1 if falhou else 0
 
 
+def cmd_votos_hora(cfg, args) -> int:
+    """Os votos por hora (ADR-057): com ``--ufs``, lê os logs das urnas das UFs pela rede (sem baixar os arquivos)
+    e grava a parcial de cada UF em ``--parciais``; com ``--montar``, junta as parciais do ano, grava
+    ``votos-hora/<ano>/`` sob ``--saida`` e, com ``--pacotes``, ``votos-hora-<ano>.tar``.
+
+    O andamento vai para o stderr; no stdout, o resumo em JSON. Devolve 1 se alguma UF falhou.
+    """
+    def andamento(msg: str) -> None:
+        print(msg, file=sys.stderr, flush=True)
+    parciais = Path(args.parciais)
+    resumo: dict = {"ano": args.ano, "coleta": []}
+    falhou = False
+    urls = votos_hora.urls_do_ano(args.ano, user_agent=cfg.user_agent, tentativas=5)
+    if args.ufs:
+        ufs = sorted({uf for _, uf, _ in urls}) if args.ufs == ["todas"] else args.ufs
+        if not urls:
+            raise SystemExit(f"erro: o catálogo do TSE não lista os arquivos das urnas de {args.ano}")
+        for uf in ufs:
+            try:
+                turnos = sum(1 for _, u, _ in urls if u == uf)
+                if args.turnos_esperados and turnos < args.turnos_esperados:
+                    raise RuntimeError(f"o catálogo do TSE listou {turnos} turno(s) de {uf.upper()}, e não "
+                                       f"{args.turnos_esperados}: respondeu uma versão antiga")
+                r = votos_hora.coletar(uf, urls, parciais, user_agent=cfg.user_agent,
+                                       trabalhadores=args.trabalhadores, progresso=andamento)
+                andamento(f"{uf.upper()}: {r.secoes} seções, {r.votos} votos, {r.megabytes:,.0f} MB")
+                resumo["coleta"].append(r.para_json())
+            except Exception as erro:  # noqa: BLE001 - uma UF com erro não impede as outras
+                falhou = True
+                andamento(f"erro nos votos por hora de {uf.upper()}: {erro}")
+                resumo["coleta"].append({"uf": uf, "erro": str(erro)})
+    if args.montar:
+        secoes = votos_hora.ler_parciais(parciais)
+        saida = Path(args.saida) if args.saida else cfg.saida
+        r = votos_hora.gravar(args.ano, secoes, saida, _cadastro(cfg), urls=[u for _, _, u in urls])
+        resumo["montagem"] = r.para_json()
+        if args.pacotes:
+            resumo["montagem"]["pacote"] = str(votos_hora.empacotar(args.ano, saida, args.pacotes))
+    _imprimir(resumo)
+    return 1 if falhou else 0
+
+
 def cmd_conferir(cfg, args) -> int:
     """Só a conferência seção a seção (ADR-053): soma a votação por seção de Presidente dos anos pedidos e
     compara com o total do sistema de resultados; grava ``<eleição>/presidente/conferencia.json``.
@@ -687,6 +730,18 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--apagar-zips", action="store_true", help="apaga cada ZIP do TSE depois de lido")
     c.add_argument("--atualizar", action="store_true", help="consulta o servidor mesmo se já baixado")
 
+    c = sub.add_parser("votos-hora", help="votos por hora, pelos logs das urnas (ADR-057)")
+    c.add_argument("--ano", type=int, choices=votos_hora.ANOS_VOTOS, required=True)
+    c.add_argument("--ufs", type=lambda s: [u.strip().lower() for u in s.split(",") if u.strip()],
+                   help="UFs a ler, separadas por vírgula, ou todas (zz: o exterior)")
+    c.add_argument("--parciais", default="votos-hora-parciais", help="diretório das parciais de cada UF")
+    c.add_argument("--montar", action="store_true", help="junta as parciais e grava votos-hora/<ano>/")
+    c.add_argument("--saida", help="diretório onde gravar votos-hora/<ano>/ (padrão: o dos feeds)")
+    c.add_argument("--pacotes", help="diretório onde gravar votos-hora-<ano>.tar, para o site dos painéis")
+    c.add_argument("--trabalhadores", type=int, default=24, help="pedidos ao TSE ao mesmo tempo (padrão: 24)")
+    c.add_argument("--turnos-esperados", type=int, default=0,
+                   help="falha se o catálogo listar menos turnos da UF (o catálogo às vezes responde versão antiga)")
+
     c = sub.add_parser("conferir", help="conferência seção a seção: a votação por seção contra o total (ADR-053)")
     c.add_argument("--anos", type=_anos, default=list(conferencia.ANOS_SECAO),
                    help="anos separados por vírgula (padrão: o em aberto)")
@@ -748,7 +803,7 @@ def construir_parser() -> argparse.ArgumentParser:
     return p
 
 
-COMANDOS = {"preparar": cmd_preparar, "publicar": cmd_publicar, "catalogo": cmd_catalogo, "municipios": cmd_municipios, "mapas": cmd_mapas, "zonas": cmd_zonas, "eleitorado": cmd_eleitorado, "horarios": cmd_horarios, "conferir": cmd_conferir, "ao-vivo": cmd_ao_vivo,
+COMANDOS = {"preparar": cmd_preparar, "publicar": cmd_publicar, "catalogo": cmd_catalogo, "municipios": cmd_municipios, "mapas": cmd_mapas, "zonas": cmd_zonas, "eleitorado": cmd_eleitorado, "horarios": cmd_horarios, "votos-hora": cmd_votos_hora, "conferir": cmd_conferir, "ao-vivo": cmd_ao_vivo,
             "simular": cmd_simular, "amostra": cmd_amostra, "servir": cmd_servir, "verificar": cmd_verificar,
             "medir": cmd_medir}
 

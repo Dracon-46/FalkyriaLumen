@@ -173,3 +173,17 @@ def test_urls_do_ano_fica_com_a_resposta_mais_completa():
         return _Resposta(json.dumps({"result": {"resources": next(respostas)}}).encode())
     urls = h.urls_do_ano(2026, user_agent="Lumen/teste", abrir=abrir, esperar=lambda _: None)
     assert urls == [(1, "ac", base + "bweb_1t_AC_091020261755.zip"), (2, "ac", base + "bweb_2t_AC_261020260742.zip")]
+
+
+def test_fica_o_comparecimento_de_presidente_com_o_eleitor_em_transito():
+    # Seção real de Brasília (zona 14, seção 424, 2º turno de 2026): 78 eleitores da seção votaram para Governador
+    # e 372 para Presidente (com os em trânsito); as eleições do dia alternam nas linhas
+    cab = ('"DT_PLEITO";"NR_TURNO";"CD_ELEICAO";"SG_UF";"CD_MUNICIPIO";"NR_ZONA";"NR_SECAO";"NR_LOCAL_VOTACAO";'
+           '"QT_APTOS";"QT_COMPARECIMENTO";"QT_ABSTENCOES";"DS_TIPO_URNA";"DT_ABERTURA";"DT_ENCERRAMENTO"\r\n')
+    linha = ('"2026-10-25 00:00:00";2;{eleicao};"DF";97012;14;424;1040;{aptos};{comp};{abst};"Apurada";'
+             '"2026-10-25 08:00:01";"2026-10-25 17:02:35"\r\n')
+    gov, pres = {"eleicao": 6260, "aptos": 84, "comp": 78, "abst": 6}, {"eleicao": 6258, "aptos": 390, "comp": 372,
+                                                                       "abst": 18}
+    texto = cab + "".join(linha.format(**x) for x in (gov, gov, pres, gov, pres))
+    secoes = h.ler_csv(io.BytesIO(texto.encode("latin-1")))
+    assert secoes[(2, "df", "97012", "14", 424)][6:9] == [390, 372, 18]
