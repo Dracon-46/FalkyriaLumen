@@ -4,7 +4,8 @@ O que cada tribunal de contas publica sobre os municípios em dado aberto. Levan
 downloads testados de fato. A ordem de integração está na
 [ADR-050](https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-050.md). Já integrados, no fluxo diário: TCE-RS,
 TCE-PR, TCE-PE e TCE-CE. Os servidores do TCE-RS e do TCE-CE só respondem a endereços do Brasil, e o fluxo chega a
-eles por um intermediário em São Paulo (`infra/proxy-br`, na Vercel).
+eles por um intermediário em São Paulo (`infra/proxy-br`, na Vercel). Desde 28/10/2026, o TCE-RS recusa o endereço
+do intermediário (403 do próprio servidor), e o RS é coletado à mão de uma máquina no Brasil até haver outro caminho.
 
 ## Resumo
 
