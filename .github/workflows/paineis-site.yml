@@ -105,13 +105,13 @@ jobs:
         run: |
           if [ -s estado/economia-sgs.json.gz ]; then lumen economia publicar --estado estado --saida site
           else echo "::notice::Sem estado da economia ainda: a página fica sem dados até a primeira coleta."; fi
-      # O eleitorado (ADR-055) e os horários das urnas (ADR-056) vêm prontos, um pacote por ano feito pelos fluxos
-      # eleitorado e horarios: só desempacota
-      - name: Eleitorado e horários das urnas
+      # O eleitorado (ADR-055), os horários das urnas (ADR-056) e os votos por hora (ADR-057) vêm prontos, um
+      # pacote por ano feito pelos fluxos eleitorado, horarios e votos-hora: só desempacota
+      - name: Eleitorado, horários das urnas e votos por hora
         run: |
           mkdir -p pacotes
-          gh release download "$TAG" -p 'eleitorado-*.tar' -p 'horarios-*.tar' -D pacotes --clobber 2>/dev/null || true
-          for f in pacotes/eleitorado-*.tar pacotes/horarios-*.tar; do
+          gh release download "$TAG" -p 'eleitorado-*.tar' -p 'horarios-*.tar' -p 'votos-hora-*.tar' -D pacotes --clobber 2>/dev/null || true
+          for f in pacotes/eleitorado-*.tar pacotes/horarios-*.tar pacotes/votos-hora-*.tar; do
             [ -e "$f" ] || continue
             tar -xf "$f" -C site
             echo "$f: $(tar -tf "$f" | wc -l) arquivos"
