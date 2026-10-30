@@ -3,6 +3,7 @@
   "version": "0.9.0",
   "private": true,
   "description": "Portal público do Falkyria Lumen: aba Eleições (resultados oficiais do TSE) e, nas próximas fases, contratações e conformidade.",
+  "author": "Falkyria",
   "license": "UNLICENSED",
   "engines": {
     "node": ">=20.9.0"

@@ -282,6 +282,54 @@ input {
   border-top: 1px solid var(--borda);
 }
 
+/* Assinatura da Falkyria: a ave escura no tema claro e a branca no escuro */
+.rodape-assinatura {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-top: 20px;
+}
+
+.rodape-falkyria {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--texto-2);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.rodape-falkyria:hover {
+  color: var(--texto);
+}
+
+.rodape-falkyria img {
+  display: block;
+}
+
+.falkyria-escuro {
+  display: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-tema="claro"])) .falkyria-claro {
+    display: none !important;
+  }
+
+  :root:where(:not([data-tema="claro"])) .falkyria-escuro {
+    display: block !important;
+  }
+}
+
+:root[data-tema="escuro"] .falkyria-claro {
+  display: none !important;
+}
+
+:root[data-tema="escuro"] .falkyria-escuro {
+  display: block !important;
+}
+
 .cartao {
   background: var(--superficie);
   border: 1px solid var(--borda);

@@ -8,6 +8,8 @@ version = "0.9.0"
 description = "Monitoramento de contratações e despesas públicas do Brasil. Publica indícios para análise, nunca conclusões."
 requires-python = ">=3.11"
 readme = "README.md"
+license = {text = "Proprietary"}
+authors = [{name = "Falkyria"}]
 # Fase 0 usa apenas a biblioteca padrão. Dependência nova precisa de motivo
 # registrado: cada uma é superfície de ataque e custo de manutenção a mais.
 dependencies = []

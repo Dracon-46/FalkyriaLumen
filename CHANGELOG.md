@@ -5,6 +5,13 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Marca Falkyria e licença
+
+- O rodapé do portal ganha a assinatura "Um produto Falkyria", com a logo da Falkyria (a versão
+  escura no tema claro e a branca no escuro), e a linha de direitos autorais.
+- O repositório passa a ter licença proprietária (`LICENSE`): o código fica visível apenas para
+  consulta. Os dados públicos coletados de fontes oficiais continuam públicos.
+
 ### CI: estágio de segurança e o Next.js 16.4.3
 
 - O CI ganha o estágio de segurança do DOC-09 (seção 4.2): `pip-audit` nas dependências Python e `npm audit` nas
