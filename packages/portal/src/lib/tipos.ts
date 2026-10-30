@@ -22,6 +22,8 @@ export const VERSAO_ZONAS = 1;
 export const VERSAO_ELEITORADO = 1;
 /** Versão dos arquivos dos horários das urnas (ADR-056). */
 export const VERSAO_HORARIOS = 1;
+/** Versão dos arquivos dos votos por hora (ADR-057). */
+export const VERSAO_VOTOS_HORA = 1;
 
 /** Majoritário (vence quem tem mais votos) ou proporcional (vagas repartidas pelo quociente eleitoral). */
 export type TipoCargo = "majoritario" | "proporcional";
@@ -545,6 +547,34 @@ export interface ArquivoHorarios {
   partes?: Record<string, { nome: string; turnos: Record<string, ResumoHorarios> }>;
   zonas?: { zona: string; turnos: Record<string, ResumoHorarios> }[];
   secoes?: SecaoHorarios[];
+}
+
+/**
+ * Os votos de um lugar num turno, pelos logs das urnas: total, seções e `[primeira hora, votos nela, na seguinte,
+ * ...]` (horas de Brasília); no lugar do arquivo, também de 10 em 10 minutos (`inicio` em minutos desde a meia-noite).
+ */
+export interface TurnoVotosHora {
+  votos: number;
+  secoes: number;
+  por_hora: number[];
+  por_faixa?: { inicio: number | null; passo: number; contagens: number[] };
+}
+
+/**
+ * Arquivo `votos-hora/<ano>/{br,uf-<sigla>}.json` ou um município de `mu/<grupo>.json` (ADR-057). No município,
+ * as seções são `[turno, zona, seção, primeira hora, votos nela, na seguinte, ...]`.
+ */
+export interface ArquivoVotosHora {
+  versao: number;
+  tipo: "votos-hora";
+  ano: number;
+  horario: "brasilia";
+  nivel: "br" | "uf" | "municipio";
+  origem: Record<string, unknown>;
+  lugar: { chave: string; nome: string; uf?: string; turnos: Record<string, TurnoVotosHora> };
+  partes?: Record<string, { nome: string; turnos: Record<string, TurnoVotosHora> }>;
+  zonas?: { zona: string; turnos: Record<string, TurnoVotosHora> }[];
+  secoes?: (number | string)[][];
 }
 
 /** Arquivo `geo/zonas-<ano>/indice.json`: código IBGE → número de zonas, dos municípios com mais de uma. */

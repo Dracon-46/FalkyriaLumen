@@ -132,11 +132,14 @@ def _numero(linha: list[str], ix: dict[str, int], coluna: str) -> int:
 
 
 def ler_csv(fluxo: io.BufferedIOBase, secoes: dict[tuple, Secao] | None = None) -> dict[tuple, Secao]:
-    """Lê um CSV de boletim de urna e guarda uma entrada por seção e turno (a primeira linha de cada seção).
+    """Lê um CSV de boletim de urna e guarda uma entrada por seção e turno.
 
     As linhas de uma seção vêm juntas: só a primeira de cada seção passa pelo leitor de CSV; as outras são
-    reconhecidas pelo começo da linha (até o número da seção) e puladas, o que deixa a leitura do 1º turno de SP
-    (perto de 15 GB descomprimidos) em minutos.
+    reconhecidas pelo começo da linha (até o número da seção) e só têm lidos aptos, comparecimento e abstenções, o
+    que deixa a leitura do 1º turno de SP (perto de 15 GB descomprimidos) em minutos.
+
+    Aptos e comparecimento mudam de um cargo para o outro na mesma seção: o eleitor em trânsito vota só para
+    Presidente. Fica a linha com o maior comparecimento (a de Presidente, quando há), que conta todos os eleitores.
     """
     secoes = {} if secoes is None else secoes
     texto = io.TextIOWrapper(fluxo, encoding="latin-1", newline="")
@@ -147,12 +150,24 @@ def ler_csv(fluxo: io.BufferedIOBase, secoes: dict[tuple, Secao] | None = None) 
         raise ValueError(f"boletim de urna sem as colunas {', '.join(faltando)}")
     corte = max(ix[c] for c in ("NR_TURNO", "SG_UF", "CD_MUNICIPIO", "NR_ZONA", "NR_SECAO")) + 1
     i_dia = ix.get("DT_PLEITO")
+    i_numeros = (ix["QT_APTOS"], ix["QT_COMPARECIMENTO"], ix["QT_ABSTENCOES"])
+    corte_numeros = max(i_numeros) + 1
     anterior = None
+    atual: Secao | None = None
     for bruta in texto:
         prefixo = bruta.split(";", corte)[:corte]
         if prefixo == anterior:
+            if atual is not None:
+                partes = bruta.split(";", corte_numeros)
+                try:
+                    aptos, comp, abst = (max(0, int(partes[i].strip().strip('"'))) for i in i_numeros)
+                except (ValueError, IndexError):
+                    continue
+                if comp > atual[7]:
+                    atual[6:9] = [aptos, comp, abst]
             continue
         anterior = prefixo
+        atual = None
         linha = next(csv.reader([bruta], delimiter=";"))
         try:
             turno = int(linha[ix["NR_TURNO"]])
@@ -160,16 +175,21 @@ def ler_csv(fluxo: io.BufferedIOBase, secoes: dict[tuple, Secao] | None = None) 
                      str(int(linha[ix["NR_ZONA"]])), int(linha[ix["NR_SECAO"]]))
         except (ValueError, IndexError):
             continue
-        if chave in secoes:
+        if chave in secoes:      # a mesma seção noutra eleição do dia (Presidente e Governador): fica o maior
+            atual = secoes[chave]
+            numeros = [_numero(linha, ix, c) for c in ("QT_APTOS", "QT_COMPARECIMENTO", "QT_ABSTENCOES")]
+            if numeros[1] > atual[7]:
+                atual[6:9] = numeros
             continue
         dia = _dia(linha[i_dia]) if i_dia is not None else None
         dia = dia or _dia(linha[ix["DT_ABERTURA"]])
 
-        secoes[chave] = [*chave, str(_numero(linha, ix, "NR_LOCAL_VOTACAO")), _numero(linha, ix, "QT_APTOS"),
-                         _numero(linha, ix, "QT_COMPARECIMENTO"), _numero(linha, ix, "QT_ABSTENCOES"),
-                         linha[ix["DS_TIPO_URNA"]].strip().capitalize(),
-                         *(minutos(linha[ix[c]], dia) if c in ix else None
-                           for c in ("DT_ABERTURA", "DT_ENCERRAMENTO", "DT_EMISSAO_BU", "DT_BU_RECEBIDO"))]
+        atual = secoes[chave] = [
+            *chave, str(_numero(linha, ix, "NR_LOCAL_VOTACAO")), _numero(linha, ix, "QT_APTOS"),
+            _numero(linha, ix, "QT_COMPARECIMENTO"), _numero(linha, ix, "QT_ABSTENCOES"),
+            linha[ix["DS_TIPO_URNA"]].strip().capitalize(),
+            *(minutos(linha[ix[c]], dia) if c in ix else None
+              for c in ("DT_ABERTURA", "DT_ENCERRAMENTO", "DT_EMISSAO_BU", "DT_BU_RECEBIDO"))]
     return secoes
 
 

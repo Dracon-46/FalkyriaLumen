@@ -22,6 +22,7 @@ import { indexarPartes } from "@/lib/areas";
 import { compararTurnos, primeiroTurnoDe } from "@/lib/comparacao";
 import { ANO_INICIAL_ELEITORADO, carregarEleitorado } from "@/lib/eleitorado";
 import { ANO_INICIAL_HORARIOS, carregarHorarios } from "@/lib/horarios";
+import { ANO_INICIAL_VOTOS_HORA, carregarVotosHora, locaisDasSecoes } from "@/lib/votosHora";
 import { escreverSelecao, lerSelecao, ufDaAbrangencia } from "@/lib/estado-url";
 import {
   carregarConferencia,
@@ -41,6 +42,7 @@ import { cargoNaAbrangencia, escolherCargo, escolherEleicao, gruposDeEleicoes, t
 import type {
   ArquivoEleitorado,
   ArquivoHorarios,
+  ArquivoVotosHora,
   ArquivoZonas,
   CargoFeed,
   EleicaoIndice,
@@ -72,6 +74,7 @@ import { ComparacaoTurnos } from "./ComparacaoTurnos";
 import { ConferenciaPendente, ConferenciaSecoes } from "./ConferenciaSecoes";
 import { Eleitorado } from "./Eleitorado";
 import { Horarios } from "./Horarios";
+import { VotosHora } from "./VotosHora";
 import { Faixas, Origem } from "./Faixas";
 import { GraficoEvolucao } from "./GraficoEvolucao";
 import { ListaCandidatos } from "./ListaCandidatos";
@@ -516,6 +519,23 @@ export function PainelEleicoes() {
   }, [chaveHorarios]); // eslint-disable-line react-hooks/exhaustive-deps
   const horariosAtual = horarios?.chave === chaveHorarios ? horarios.arquivo : null;
 
+  // Votos por hora do lugar (ADR-057): pelos logs das urnas, de 2022 em diante
+  const chaveVotosHora = eleicao && eleicao.ano >= ANO_INICIAL_VOTOS_HORA ? `${eleicao.ano}/${abrangencia}` : null;
+  const [votosHora, setVotosHora] = useState<{ chave: string; arquivo: ArquivoVotosHora | null } | null>(null);
+  useEffect(() => {
+    if (!chaveVotosHora || !eleicao) return;
+    let vivo = true;
+    carregarVotosHora(eleicao.ano, abrangencia)
+      .catch(() => null)
+      .then((arquivo) => vivo && setVotosHora({ chave: chaveVotosHora, arquivo }));
+    return () => {
+      vivo = false;
+    };
+  }, [chaveVotosHora]); // eslint-disable-line react-hooks/exhaustive-deps
+  const votosHoraAtual = votosHora?.chave === chaveVotosHora ? votosHora.arquivo : null;
+  const locaisDasSecoesAtual = useMemo(() => locaisDasSecoes(eleitoradoAtual?.secoes, eleitoradoAtual?.locais),
+    [eleitoradoAtual]);
+
   // Atalhos: Ctrl+K ou "/" abre a busca; "t" liga o modo TV; Esc sai dele
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
@@ -927,6 +947,10 @@ export function PainelEleicoes() {
             {horariosAtual && !ufsRegiao && (
               <Horarios arquivo={horariosAtual} turno={eleicao.turno} zonaEscolhida={zonaEscolhida}
                 locais={eleitoradoAtual?.locais} onSelecionar={(abr) => navegar({ abrangencia: abr })} />
+            )}
+            {votosHoraAtual && !ufsRegiao && (
+              <VotosHora arquivo={votosHoraAtual} turno={eleicao.turno} zonaEscolhida={zonaEscolhida}
+                locais={locaisDasSecoesAtual} onSelecionar={(abr) => navegar({ abrangencia: abr })} />
             )}
           </div>
         </div>

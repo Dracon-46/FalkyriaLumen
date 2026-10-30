@@ -2138,232 +2138,239 @@
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/cli.py",
    "linguagem": "python",
-   "linhas": 785,
-   "doc": "Linha de comando da aba Eleições (``lumen eleicoes ...``).\n\nExemplos::\n\n    lumen eleicoes preparar --servir                # tudo: mapa, 1933 a 2026, portal no navegador\n    lumen eleicoes preparar --nuvem --limite-minutos 280 --apagar-zips   # a mesma carga no GitHub Actions\n    lumen eleicoes publicar                         # envia ao R2 os feeds que mudaram\n    lumen eleicoes catalogo                         # o que o TSE publica agora\n    lumen eleicoes municipios                       # cadastro TSE ↔ IBGE (busca e mapa)\n    lumen eleicoes mapas                            # malhas do IBGE para o mapa\n    lumen eleicoes mapas --contornos                # contornos finos dos municípios do mapa das zonas\n    lumen eleicoes zonas --anos 2026,2024           # locais de votação: mapa das zonas eleitorais\n    lumen eleicoes eleitorado --anos 2026           # perfil, comparecimento por perfil e seções\n    lumen eleicoes horarios --anos 2026             # abertura, encerramento e boletim de cada urna\n    lumen eleicoes ao-vivo --eleicao 2026-1t-geral  # noite da apuração\n    lumen eleicoes historico baixar --anos 2022,2018,1950\n    lumen eleicoes historico processar --anos 2022,2018,1950\n    lumen eleicoes simular                          # apuração fictícia para testar a tela\n    lumen eleicoes servir                           # portal + feeds em http://127.0.0.1:8080\n    lumen eleicoes verificar                        # confere o contrato dos feeds gravados\n    lumen eleicoes medir --resumo resumo.md         # tamanho dos feeds contra os limites gratuitos",
+   "linhas": 840,
+   "doc": "Linha de comando da aba Eleições (``lumen eleicoes ...``).\n\nExemplos::\n\n    lumen eleicoes preparar --servir                # tudo: mapa, 1933 a 2026, portal no navegador\n    lumen eleicoes preparar --nuvem --limite-minutos 280 --apagar-zips   # a mesma carga no GitHub Actions\n    lumen eleicoes publicar                         # envia ao R2 os feeds que mudaram\n    lumen eleicoes catalogo                         # o que o TSE publica agora\n    lumen eleicoes municipios                       # cadastro TSE ↔ IBGE (busca e mapa)\n    lumen eleicoes mapas                            # malhas do IBGE para o mapa\n    lumen eleicoes mapas --contornos                # contornos finos dos municípios do mapa das zonas\n    lumen eleicoes zonas --anos 2026,2024           # locais de votação: mapa das zonas eleitorais\n    lumen eleicoes eleitorado --anos 2026           # perfil, comparecimento por perfil e seções\n    lumen eleicoes horarios --anos 2026             # abertura, encerramento e boletim de cada urna\n    lumen eleicoes votos-hora --ano 2026 --ufs todas --montar   # votos por hora, pelos logs das urnas\n    lumen eleicoes ao-vivo --eleicao 2026-1t-geral  # noite da apuração\n    lumen eleicoes historico baixar --anos 2022,2018,1950\n    lumen eleicoes historico processar --anos 2022,2018,1950\n    lumen eleicoes simular                          # apuração fictícia para testar a tela\n    lumen eleicoes servir                           # portal + feeds em http://127.0.0.1:8080\n    lumen eleicoes verificar                        # confere o contrato dos feeds gravados\n    lumen eleicoes medir --resumo resumo.md         # tamanho dos feeds contra os limites gratuitos",
    "itens": [
     {
      "tipo": "funcao",
      "nome": "_lista",
      "assinatura": "def _lista(texto: str | None) -> list[str] | None",
      "doc": "Converte ``a, b, c`` em lista sem espaços e em minúsculas; texto ausente vira ``None`` (padrão do comando).",
-     "linha": 61
+     "linha": 62
     },
     {
      "tipo": "funcao",
      "nome": "_anos",
      "assinatura": "def _anos(texto: str) -> list[int]",
      "doc": "Tipo do argparse para ``--anos``: anos sem repetição, do mais recente ao mais antigo.\n\n``todos`` são todos os anos dos dados abertos, de 2026 a 1933. Recusa ano sem eleição ordinária nos\ndados abertos (fora de ``carga.anos_disponiveis``).",
-     "linha": 66
+     "linha": 67
     },
     {
      "tipo": "funcao",
      "nome": "_anos_locais",
      "assinatura": "def _anos_locais(texto: str) -> list[int]",
      "doc": "Tipo do argparse para ``zonas --anos``: anos com locais de votação (2018 em diante), do mais recente ao\nmais antigo; ``todos`` são os de ``zonas.ANOS_LOCAIS``.",
-     "linha": 82
+     "linha": 83
     },
     {
      "tipo": "funcao",
      "nome": "_anos_eleitorado",
      "assinatura": "def _anos_eleitorado(texto: str) -> list[int]",
      "doc": "Tipo do argparse para ``eleitorado --anos``: anos de ``eleitorado.ANOS_ELEITORADO``, do mais recente ao\nmais antigo; ``todos`` são todos eles.",
-     "linha": 94
+     "linha": 95
     },
     {
      "tipo": "funcao",
      "nome": "_anos_horarios",
      "assinatura": "def _anos_horarios(texto: str) -> list[int]",
      "doc": "Tipo do argparse para ``horarios --anos``: anos de ``horarios.ANOS_HORARIOS``; ``todos`` são todos eles.",
-     "linha": 106
+     "linha": 107
     },
     {
      "tipo": "funcao",
      "nome": "_cliente",
      "assinatura": "def _cliente(cfg: ConfiguracaoEleicoes, fonte: str, rpm: int) -> ClienteHttp",
      "doc": "Cliente HTTP da fonte, com o User-Agent da configuração e limite de ``rpm`` requisições por minuto.",
-     "linha": 117
+     "linha": 118
     },
     {
      "tipo": "funcao",
      "nome": "_imprimir",
      "assinatura": "def _imprimir(dados) -> None",
      "doc": "Imprime ``dados`` como JSON indentado, com acentos e ``str`` para o que não for serializável.",
-     "linha": 122
+     "linha": 123
     },
     {
      "tipo": "funcao",
      "nome": "_catalogo",
      "assinatura": "def _catalogo(cliente: ClienteHttp, base: str) -> list",
      "doc": "Baixa e lê o catálogo de eleições do sistema de resultados; encerra o programa se não vier HTTP 200.",
-     "linha": 127
+     "linha": 128
     },
     {
      "tipo": "funcao",
      "nome": "_nuvem",
      "assinatura": "def _nuvem(cfg: ConfiguracaoEleicoes, args) -> Nuvem",
      "doc": "Ponte com o armazenamento da nuvem a partir do ``[publicacao]`` e das variáveis de ambiente.\n\nLevanta ``ConfiguracaoAusente`` se faltar endpoint, bucket ou chave; ``main`` transforma isso em\nmensagem e código 2.",
-     "linha": 135
+     "linha": 136
     },
     {
      "tipo": "funcao",
      "nome": "_cadastro",
      "assinatura": "def _cadastro(cfg: ConfiguracaoEleicoes) -> CadastroMunicipios",
      "doc": "Cadastro de municípios do diretório dos feeds; sem ele, o que vem com o pacote (``referencias``).\n\nO do diretório dos feeds é o mais novo: ``lumen eleicoes municipios`` grava ali a versão corrente.",
-     "linha": 145
+     "linha": 146
     },
     {
      "tipo": "funcao",
      "nome": "cmd_catalogo",
      "assinatura": "def cmd_catalogo(cfg, args) -> int",
      "doc": "Imprime as eleições do sistema de resultados (cargos e UFs de cada uma) e os anos dos dados abertos.",
-     "linha": 158
+     "linha": 159
     },
     {
      "tipo": "funcao",
      "nome": "cmd_municipios",
      "assinatura": "def cmd_municipios(cfg, args) -> int",
      "doc": "Grava o ``municipios.json`` (cadastro TSE ↔ IBGE) e imprime o arquivo e as contagens.\n\nUsa o cadastro de municípios de uma eleição do catálogo — por padrão a geral mais recente, que tem\ntodos os municípios e o exterior — e os nomes do IBGE; se o IBGE não responder, ficam os nomes do TSE.",
-     "linha": 171
+     "linha": 172
     },
     {
      "tipo": "funcao",
      "nome": "cmd_mapas",
      "assinatura": "def cmd_mapas(cfg, args) -> int",
      "doc": "Baixa as malhas do IBGE para o mapa (todas as UFs ou as pedidas) e imprime os arquivos gravados.\n\nCom ``--contornos``, baixa em vez disso o contorno fino (qualidade ``maxima``) de cada município listado\nnos índices do mapa das zonas (``geo/zonas-<ano>/indice.json``) do diretório dos feeds.",
-     "linha": 205
+     "linha": 206
     },
     {
      "tipo": "funcao",
      "nome": "cmd_zonas",
      "assinatura": "def cmd_zonas(cfg, args) -> int",
      "doc": "Baixa os locais de votação de cada ano e grava o mapa das zonas eleitorais (``geo/zonas-<ano>/``).\n\nO andamento vai para o stderr; no stdout, só o resumo de cada ano em JSON: municípios com mais de uma\nzona, locais e descartados.",
-     "linha": 227
+     "linha": 228
     },
     {
      "tipo": "funcao",
      "nome": "_aviso_passada",
      "assinatura": "def _aviso_passada(r: ResumoPassada) -> None",
      "doc": "Imprime a linha de acompanhamento de uma passada do coletor e, no stderr, até cinco dos erros dela.",
-     "linha": 247
+     "linha": 248
     },
     {
      "tipo": "funcao",
      "nome": "_instalar_parada",
      "assinatura": "def _instalar_parada() -> list[bool]",
      "doc": "Instala o tratamento de Ctrl+C e devolve a sinalização que o laço do coletor consulta.\n\nO primeiro Ctrl+C só marca ``sinal[0]``, e o coletor para ao fim da passada em curso; o segundo\ninterrompe na hora. É uma lista, e não um ``bool``, para o tratador poder alterá-la.",
-     "linha": 258
+     "linha": 259
     },
     {
      "tipo": "funcao",
      "nome": "cmd_ao_vivo",
      "assinatura": "def cmd_ao_vivo(cfg, args) -> int",
      "doc": "Coleta a apuração em andamento de uma eleição do catálogo, imprimindo uma linha por passada.\n\nRoda até a totalização terminar, até Ctrl+C ou, com ``--uma-vez``, por uma passada só. Devolve 2\nse a eleição não está no sistema de resultados. Com ``--nuvem``, restaura o estado antes, publica\nos feeds a cada passada que gravou algo e sincroniza no fim (ADR-026). Com ``--limite-minutos``, para\nao fim da passada em que o prazo vence e, se a apuração não terminou, devolve ``CODIGO_PRAZO``: a\npróxima execução continua do estado gravado.",
-     "linha": 278
+     "linha": 279
     },
     {
      "tipo": "funcao",
      "nome": "cmd_historico_baixar",
      "assinatura": "def cmd_historico_baixar(cfg, args) -> int",
      "doc": "Baixa os ZIPs dos dados abertos de cada ano e registra o manifesto de cada um no bronze.\n\nImprime, por arquivo, o caminho, o SHA-256 e o tamanho. Até 1990 são os três conjuntos por UF.",
-     "linha": 341
+     "linha": 342
     },
     {
      "tipo": "funcao",
      "nome": "cmd_historico_processar",
      "assinatura": "def cmd_historico_processar(cfg, args) -> int",
      "doc": "Gera os feeds de cada ano a partir dos ZIPs já baixados e imprime um resumo por ano.\n\nDevolve 2 se faltar o ZIP de votação de algum ano; os demais conjuntos são opcionais.",
-     "linha": 357
+     "linha": 358
     },
     {
      "tipo": "funcao",
      "nome": "cmd_preparar",
      "assinatura": "def cmd_preparar(cfg, args) -> int",
      "doc": "Deixa a aba pronta: mapa, portal, 2026 do sistema de resultados e os dados abertos de 1933 a 2026.\n\nRetomável; imprime o andamento e, no fim, o resumo em JSON. Devolve 1 se alguma etapa falhou.",
-     "linha": 377
+     "linha": 378
     },
     {
      "tipo": "funcao",
      "nome": "cmd_eleitorado",
      "assinatura": "def cmd_eleitorado(cfg, args) -> int",
      "doc": "O eleitorado (ADR-055): baixa o perfil, o comparecimento por perfil e os locais de votação de cada ano,\ngrava ``eleitorado/<ano>/`` (``.json.gz``) sob ``--saida`` e, com ``--pacotes``, junta cada ano num\n``eleitorado-<ano>.tar`` para o site dos painéis.\n\nO andamento vai para o stderr; no stdout, o resumo de cada ano em JSON. Devolve 1 se algum ano falhou (os\noutros continuam). Só o perfil é obrigatório: sem o comparecimento por perfil ou os locais, o ano sai sem eles.",
-     "linha": 401
+     "linha": 402
     },
     {
      "tipo": "funcao",
      "nome": "cmd_horarios",
      "assinatura": "def cmd_horarios(cfg, args) -> int",
      "doc": "Os horários das urnas (ADR-056): baixa o boletim de urna de cada UF e turno do ano, uma UF por vez, guarda\numa linha por seção, grava ``horarios/<ano>/`` sob ``--saida`` e, com ``--pacotes``, ``horarios-<ano>.tar``.\n\nO andamento vai para o stderr; no stdout, o resumo de cada ano em JSON. Devolve 1 se algum ano falhou.",
-     "linha": 449
+     "linha": 450
+    },
+    {
+     "tipo": "funcao",
+     "nome": "cmd_votos_hora",
+     "assinatura": "def cmd_votos_hora(cfg, args) -> int",
+     "doc": "Os votos por hora (ADR-057): com ``--ufs``, lê os logs das urnas das UFs pela rede (sem baixar os arquivos)\ne grava a parcial de cada UF em ``--parciais``; com ``--montar``, junta as parciais do ano, grava\n``votos-hora/<ano>/`` sob ``--saida`` e, com ``--pacotes``, ``votos-hora-<ano>.tar``.\n\nO andamento vai para o stderr; no stdout, o resumo em JSON. Devolve 1 se alguma UF falhou.",
+     "linha": 491
     },
     {
      "tipo": "funcao",
      "nome": "cmd_conferir",
      "assinatura": "def cmd_conferir(cfg, args) -> int",
      "doc": "Só a conferência seção a seção (ADR-053): soma a votação por seção de Presidente dos anos pedidos e\ncompara com o total do sistema de resultados; grava ``<eleição>/presidente/conferencia.json``.\n\nO andamento vai para o stderr; no stdout, o resumo em JSON. Devolve 1 se a conferência falhou.",
-     "linha": 490
+     "linha": 533
     },
     {
      "tipo": "funcao",
      "nome": "_rodar_simulacao",
      "assinatura": "def _rodar_simulacao(cfg, arquivos: Path, eleicao_id: str, etapas: int, intervalo: float, ufs: list[str] | None, estado: Path | None) -> int",
      "doc": "Roda o coletor ao vivo contra um servidor local que publica os arquivos finais em ``etapas``.\n\nA cada intervalo entre passadas o cenário avança uma etapa, até ``etapas`` passadas. Por ser\nlocal, o cliente ignora o proxy do ambiente e tem limite de taxa folgado. Devolve 2 se a eleição\nnão está no catálogo da simulação.",
-     "linha": 508
+     "linha": 551
     },
     {
      "tipo": "funcao",
      "nome": "cmd_simular",
      "assinatura": "def cmd_simular(cfg, args) -> int",
      "doc": "Simula uma apuração a partir dos arquivos finais (as fixtures, por padrão), avisando no stderr que\nos números intermediários são fictícios.",
-     "linha": 539
+     "linha": 582
     },
     {
      "tipo": "funcao",
      "nome": "cmd_publicar",
      "assinatura": "def cmd_publicar(cfg, args) -> int",
      "doc": "Envia ao bucket público os feeds novos ou alterados e grava o estado no privado (ADR-026).",
-     "linha": 548
+     "linha": 591
     },
     {
      "tipo": "funcao",
      "nome": "cmd_amostra",
      "assinatura": "def cmd_amostra(cfg, args) -> int",
      "doc": "Feeds a partir dos arquivos reais das fixtures, para desenvolver o portal sem rede, com o mapa e o\ncadastro de municípios que vêm com o pacote.",
-     "linha": 559
+     "linha": 602
     },
     {
      "tipo": "funcao",
      "nome": "cmd_servir",
      "assinatura": "def cmd_servir(cfg, args) -> int",
      "doc": "Serve o portal gerado e os feeds em HTTP local até Ctrl+C; devolve 2 se o portal não foi gerado.",
-     "linha": 569
+     "linha": 612
     },
     {
      "tipo": "funcao",
      "nome": "cmd_verificar",
      "assinatura": "def cmd_verificar(cfg, args) -> int",
      "doc": "Confere o contrato dos feeds gravados; imprime cada problema e o total, e devolve 1 se houver algum.",
-     "linha": 586
+     "linha": 629
     },
     {
      "tipo": "funcao",
      "nome": "cmd_medir",
      "assinatura": "def cmd_medir(cfg, args) -> int",
      "doc": "Mede os feeds gravados contra os limites do R2 e do Supabase gratuitos; imprime JSON.\n\n``--resumo`` também grava o resumo em Markdown (no GitHub Actions, o ``$GITHUB_STEP_SUMMARY``).\nDevolve 1 se não houver nenhum feed para medir.",
-     "linha": 595
+     "linha": 638
     },
     {
      "tipo": "funcao",
      "nome": "construir_parser",
      "assinatura": "def construir_parser() -> argparse.ArgumentParser",
      "doc": "Monta o parser de ``lumen eleicoes``: opções globais e um subcomando por ação.\n\n``historico`` tem os seus próprios subcomandos, ``baixar`` e ``processar``.",
-     "linha": 611
+     "linha": 654
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada: lê argumentos e configuração e despacha para o comando; devolve o código de saída.\n\nOs comandos que não consultam as fontes (``servir``, ``verificar``, ``amostra``, ``publicar``, ``medir``)\ndispensam o contato da coleta. ``--saida`` sobrepõe o diretório dos feeds da configuração. Falta de\nconfiguração da nuvem (``--nuvem``, ``publicar``) vira mensagem e código 2.",
-     "linha": 756
+     "linha": 811
     }
    ]
   },
@@ -3820,7 +3827,7 @@
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/horarios.py",
    "linguagem": "python",
-   "linhas": 417,
+   "linhas": 437,
    "doc": "Horários das urnas: quando cada seção abriu, fechou e quando o boletim chegou ao TSE (ADR-056).\n\nO boletim de urna de cada seção vem dos dados abertos do TSE como tabela (``bweb_<turno>t_<UF>_<data>.zip``, de\n2018 em diante; o conjunto ``resultados-<ano>-boletim-de-urna`` lista os arquivos). Uma linha por seção, cargo e\nnúmero votado; a seção repete, em todas as linhas dela, os dados que interessam aqui:\n\n- ``DT_ABERTURA`` e ``DT_ENCERRAMENTO``: quando a urna abriu e fechou, no horário local da seção;\n- ``DT_EMISSAO_BU``: quando a urna emitiu o boletim, também no horário local (de 2020 em diante);\n- ``DT_BU_RECEBIDO``: quando o boletim chegou ao TSE, no horário de Brasília (de 2020 em diante);\n- ``QT_APTOS``, ``QT_COMPARECIMENTO`` e ``QT_ABSTENCOES`` da seção e o tipo de urna (apurada, votação manual...).\n\nHorário local e de Brasília. Desde 2022 a votação é das 8h às 17h de Brasília no país todo: no Acre a urna abre\nàs 6h locais. A diferença de cada município sai da hora de abertura das seções dele (a mais comum) e os horários\nde abertura, encerramento e emissão passam para o de Brasília, comparáveis entre as UFs. Antes de 2022 a votação\nera das 8h às 17h locais, e os horários ficam como vieram (``horario: \"local\"``). No exterior, sempre locais.\n\nArquivos gravados (JSON comprimido com gzip), no site dos painéis, como o eleitorado (ADR-055)::\n\n    horarios/<ano>/br.json.gz             o Brasil e cada UF, por turno\n    horarios/<ano>/uf-<sigla>.json.gz     a UF e o resumo de cada município\n    horarios/<ano>/mu/<grupo>.json.gz     os municípios do grupo: as zonas e cada seção\n\nOs arquivos do 1º turno são grandes (SP: 1,4 GB comprimido; o país, perto de 5 GB), mas só a primeira linha de\ncada seção é lida inteira (``ler_csv``): MG leva perto de um minuto. ``lumen eleicoes horarios`` baixa uma UF\npor vez, lê e apaga o ZIP antes da próxima.",
    "itens": [
     {
@@ -3855,7 +3862,7 @@
      "tipo": "funcao",
      "nome": "ler_csv",
      "assinatura": "def ler_csv(fluxo: io.BufferedIOBase, secoes: dict[tuple, Secao] | None=None) -> dict[tuple, Secao]",
-     "doc": "Lê um CSV de boletim de urna e guarda uma entrada por seção e turno (a primeira linha de cada seção).\n\nAs linhas de uma seção vêm juntas: só a primeira de cada seção passa pelo leitor de CSV; as outras são\nreconhecidas pelo começo da linha (até o número da seção) e puladas, o que deixa a leitura do 1º turno de SP\n(perto de 15 GB descomprimidos) em minutos.",
+     "doc": "Lê um CSV de boletim de urna e guarda uma entrada por seção e turno.\n\nAs linhas de uma seção vêm juntas: só a primeira de cada seção passa pelo leitor de CSV; as outras são\nreconhecidas pelo começo da linha (até o número da seção) e só têm lidos aptos, comparecimento e abstenções, o\nque deixa a leitura do 1º turno de SP (perto de 15 GB descomprimidos) em minutos.\n\nAptos e comparecimento mudam de um cargo para o outro na mesma seção: o eleitor em trânsito vota só para\nPresidente. Fica a linha com o maior comparecimento (a de Presidente, quando há), que conta todos os eleitores.",
      "linha": 134
     },
     {
@@ -3863,126 +3870,126 @@
      "nome": "ler_zip",
      "assinatura": "def ler_zip(caminho: Path | str, secoes: dict[tuple, Secao] | None=None) -> dict[tuple, Secao]",
      "doc": "Lê o CSV de um ZIP de boletim de urna (o único CSV dele).",
-     "linha": 176
+     "linha": 196
     },
     {
      "tipo": "funcao",
      "nome": "_ordem_secao",
      "assinatura": "def _ordem_secao(s: Secao) -> tuple",
      "doc": "Ordem das seções no arquivo do município: turno, zona (como número) e seção.",
-     "linha": 187
+     "linha": 207
     },
     {
      "tipo": "funcao",
      "nome": "diferencas",
      "assinatura": "def diferencas(secoes: Iterable[Secao], ano: int) -> dict[tuple[int, str, str], int]",
      "doc": "Minutos a somar aos horários locais de cada município para ter o de Brasília, por ``(turno, uf, tse)``.\n\nDe 2022 em diante, a urna abre às 8h de Brasília: a diferença é a hora cheia mais comum entre 8h e a abertura\ndas seções do município (0 em quase todo o país; 60 e 120 no Norte e no Centro-Oeste). Antes, e no exterior,\nos horários ficam locais (diferença 0).",
-     "linha": 194
+     "linha": 214
     },
     {
      "tipo": "funcao",
      "nome": "em_brasilia",
      "assinatura": "def em_brasilia(secoes: list[Secao], ano: int) -> list[Secao]",
      "doc": "As seções com abertura, encerramento e emissão no horário de Brasília (de 2022 em diante; ver\n``diferencas``); o recebido já vem nele.",
-     "linha": 208
+     "linha": 228
     },
     {
      "tipo": "classe",
      "nome": "Histograma",
      "assinatura": "class Histograma",
      "doc": "Contagem por faixa de ``passo`` minutos, de ``inicio`` a ``fim``, com o que fica antes e depois.",
-     "linha": 222
+     "linha": 242
     },
     {
      "tipo": "metodo",
      "nome": "Histograma.__post_init__",
      "assinatura": "def __post_init__(self) -> None",
      "doc": "Sem contagens dadas, uma faixa zerada para cada ``passo`` de ``inicio`` a ``fim``.",
-     "linha": 232
+     "linha": 252
     },
     {
      "tipo": "metodo",
      "nome": "Histograma.contar",
      "assinatura": "def contar(self, valor: int | None) -> None",
      "doc": "Conta um horário (em minutos); ausente não conta.",
-     "linha": 237
+     "linha": 257
     },
     {
      "tipo": "metodo",
      "nome": "Histograma.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "``{inicio, passo, contagens, antes, depois}``.",
-     "linha": 248
+     "linha": 268
     },
     {
      "tipo": "funcao",
      "nome": "_percentil",
      "assinatura": "def _percentil(ordenados: list[int], p: float) -> int | None",
      "doc": "O percentil ``p`` (0 a 1) de valores já ordenados; vazio → None.",
-     "linha": 254
+     "linha": 274
     },
     {
      "tipo": "funcao",
      "nome": "resumo",
      "assinatura": "def resumo(secoes: list[Secao], *, completo: bool) -> dict",
      "doc": "O resumo de um lugar num turno: seções, aptos, comparecimento, quantas fecharam depois das 17h30 e os\npercentis (mediana, 90% e o último) do encerramento e do recebimento. Com ``completo``, também os\nhistogramas da abertura, do encerramento e do recebimento, e os tipos de urna.",
-     "linha": 261
+     "linha": 281
     },
     {
      "tipo": "funcao",
      "nome": "_por_turno",
      "assinatura": "def _por_turno(secoes: list[Secao], *, completo: bool) -> dict",
      "doc": "``{\"1\": resumo, \"2\": resumo}`` das seções.",
-     "linha": 288
+     "linha": 308
     },
     {
      "tipo": "funcao",
      "nome": "_hhmm",
      "assinatura": "def _hhmm(valor: int | None) -> str | None",
      "doc": "Minutos → ``\"17:42\"``; no dia seguinte, ``\"+1 08:10\"``.",
-     "linha": 296
+     "linha": 316
     },
     {
      "tipo": "classe",
      "nome": "ResumoHorarios",
      "assinatura": "class ResumoHorarios",
      "doc": "O que ``gravar`` produziu num ano.",
-     "linha": 306
+     "linha": 326
     },
     {
      "tipo": "metodo",
      "nome": "ResumoHorarios.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "Dicionário para imprimir em JSON.",
-     "linha": 315
+     "linha": 335
     },
     {
      "tipo": "funcao",
      "nome": "montar",
      "assinatura": "def montar(ano: int, secoes: list[Secao], cadastro: CadastroMunicipios, origem: dict) -> tuple[dict[str, dict], ResumoHorarios]",
      "doc": "Os arquivos do ano (caminho relativo, sem o ``.gz`` → conteúdo) e o resumo.",
-     "linha": 321
+     "linha": 341
     },
     {
      "tipo": "funcao",
      "nome": "_gz",
      "assinatura": "def _gz(dados: dict) -> bytes",
      "doc": "JSON compacto comprimido com gzip, sem data no cabeçalho.",
-     "linha": 380
+     "linha": 400
     },
     {
      "tipo": "funcao",
      "nome": "gravar",
      "assinatura": "def gravar(ano: int, secoes: list[Secao], raiz: Path | str, cadastro: CadastroMunicipios, *, urls: Iterable[str]=()) -> ResumoHorarios",
      "doc": "Grava ``horarios/<ano>/`` sob ``raiz`` (``.json.gz``) e apaga o que sobrou de uma gravação anterior.",
-     "linha": 386
+     "linha": 406
     },
     {
      "tipo": "funcao",
      "nome": "empacotar",
      "assinatura": "def empacotar(ano: int, raiz: Path | str, destino: Path | str) -> Path",
      "doc": "Junta ``horarios/<ano>/`` em ``destino/horarios-<ano>.tar`` (como ``eleitorado.empacotar``).",
-     "linha": 404
+     "linha": 424
     }
    ]
   },
@@ -5436,6 +5443,231 @@
      "assinatura": "def verificar_diretorio(raiz: Path | str) -> Relatorio",
      "doc": "Confere o diretório dos feeds: o índice, os arquivos que ele promete e cada feed.\n\nA existência dos arquivos listados no índice só é cobrada nas eleições históricas (``dados_abertos``):\nna coleta ao vivo, uma UF do plano pode ainda não ter sido publicada pelo TSE. Depois, cada\n``<eleição>/<cargo>/*.json`` passa por ``verificar_feed`` e cada arquivo do mapa das zonas\n(``geo/zonas-<ano>/*.json``) por ``verificar_zonas``. As malhas do IBGE em ``geo/`` não são feeds.",
      "linha": 145
+    }
+   ]
+  },
+  {
+   "caminho": "packages/eleicoes/lumen_eleicoes/votos_hora.py",
+   "linguagem": "python",
+   "linhas": 558,
+   "doc": "Votos por hora: quantos eleitores votaram em cada hora, pelos registros (logs) das urnas (ADR-057).\n\nO TSE publica, de 2022 em diante, os arquivos que cada urna transmitiu para a totalização\n(``bu_imgbu_logjez_rdv_vscmr_<ano>_<turno>t_<UF>.zip``, conjunto ``resultados-<ano>-arquivos-transmitidos-para-\ntotalizacao``). Cada seção tem ali o boletim, a imagem do boletim, o registro digital do voto, as assinaturas e o\nlog (``o<pleito><uf><município><zona><seção>-log.jez``, um ZIP com ``logd.dat``). No log, cada voto deixa a linha::\n\n    04/10/2026 14:40:05 INFO    02263093        VOTA    O voto do eleitor foi computado C8059082A7F11D8E\n\ncom a hora do relógio da urna (horário local da seção). O log também traz o título de mesários e outros dados que\nnão interessam aqui: só a contagem de votos por faixa de 10 minutos sai da leitura; nenhuma linha é guardada.\n\nTamanho e leitura. Os arquivos são enormes (2026: 219 GB nos dois turnos; o 2º turno de SP tem 26 GB), mas o log\né perto de metade e cada um é pequeno (perto de 90 KB). ``LeitorRemoto`` lê o índice do ZIP (o diretório central,\nno fim do arquivo) e busca só os logs, um pedido HTTP ``Range`` por seção, em várias conexões ao mesmo tempo: nada\nvai para o disco. O log do 2º turno traz também o do 1º (é o mesmo registro, acumulado): conta só o último dia com\nvotos do log, que é o do turno do arquivo.\n\nHorário de Brasília. Desde 2022 a votação vai das 8h às 17h de Brasília: a diferença de cada seção sai da hora em\nque a urna ficou \"pronta para receber votos\" (6h no Acre, 2 horas de diferença); vale a diferença mais comum entre\nas seções do município, porque uma urna trocada fica pronta mais tarde. No exterior, o horário fica o local.\n\nArquivos gravados (JSON comprimido com gzip), no site dos painéis, como os horários das urnas (ADR-056)::\n\n    votos-hora/<ano>/br.json.gz             o Brasil e cada UF, por turno\n    votos-hora/<ano>/uf-<sigla>.json.gz     a UF e cada município\n    votos-hora/<ano>/mu/<grupo>.json.gz     os municípios do grupo (3º e 4º dígitos do IBGE): zonas e seções\n\nA coleta é por UF (``coletar``, que grava a parcial da UF) e a montagem junta as parciais do ano (``montar``):\nno GitHub Actions, cada UF roda num job à parte.",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "urls_do_ano",
+     "assinatura": "def urls_do_ano(ano: int, *, user_agent: str, tentativas: int=3, abrir: Callable=urllib.request.urlopen, esperar: Callable[[float], None]=time.sleep) -> list[tuple[int, str, str]]",
+     "doc": "Os arquivos transmitidos das urnas no ano, como ``(turno, UF, URL)``, pelo catálogo de dados abertos.\n\nComo em ``horarios.urls_do_ano``, o catálogo às vezes responde uma versão antiga (em 30/10/2026, ora com o 2º\nturno de 2026, ora sem): pergunta ``tentativas`` vezes e fica com a resposta que lista mais arquivos.",
+     "linha": 77
+    },
+    {
+     "tipo": "classe",
+     "nome": "ErroRemoto",
+     "assinatura": "class ErroRemoto(Exception)",
+     "doc": "O servidor não respondeu ao pedido de um pedaço do arquivo depois das tentativas.",
+     "linha": 105
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_proxy_para",
+     "assinatura": "def _proxy_para(host: str) -> tuple[str, int] | None",
+     "doc": "O proxy HTTPS do ambiente (``HTTPS_PROXY``), se o host não está em ``NO_PROXY``.",
+     "linha": 109
+    },
+    {
+     "tipo": "classe",
+     "nome": "LeitorRemoto",
+     "assinatura": "class LeitorRemoto",
+     "doc": "Lê pedaços de um arquivo HTTPS por ``Range``, com uma conexão persistente por thread e novas tentativas.",
+     "linha": 118
+    },
+    {
+     "tipo": "metodo",
+     "nome": "LeitorRemoto.__init__",
+     "assinatura": "def __init__(self, url: str, *, user_agent: str, tentativas: int=5, timeout: float=120, dormir: Callable[[float], None]=time.sleep)",
+     "doc": "Arquivo em ``url``; ``user_agent`` identifica a coleta (obrigatório, princípio P6).",
+     "linha": 121
+    },
+    {
+     "tipo": "metodo",
+     "nome": "LeitorRemoto._conexao",
+     "assinatura": "def _conexao(self) -> http.client.HTTPSConnection",
+     "doc": "A conexão desta thread (aberta na primeira vez, pelo proxy do ambiente quando há).",
+     "linha": 139
+    },
+    {
+     "tipo": "metodo",
+     "nome": "LeitorRemoto._fechar",
+     "assinatura": "def _fechar(self) -> None",
+     "doc": "Fecha a conexão desta thread depois de um erro; o próximo pedido abre outra.",
+     "linha": 153
+    },
+    {
+     "tipo": "metodo",
+     "nome": "LeitorRemoto.ler",
+     "assinatura": "def ler(self, inicio: int, tamanho: int) -> bytes",
+     "doc": "Os ``tamanho`` bytes a partir de ``inicio``; ``inicio`` negativo lê os últimos ``-inicio`` bytes.",
+     "linha": 160
+    },
+    {
+     "tipo": "classe",
+     "nome": "Entrada",
+     "assinatura": "class Entrada",
+     "doc": "Um arquivo dentro do ZIP: nome, método de compressão, tamanho comprimido e onde começa o cabeçalho local.",
+     "linha": 186
+    },
+    {
+     "tipo": "funcao",
+     "nome": "entradas_do_zip",
+     "assinatura": "def entradas_do_zip(ler: Callable[[int, int], bytes]) -> list[Entrada]",
+     "doc": "As entradas do ZIP pelo diretório central, com ZIP64 (arquivos e posições acima de 4 GB).\n\n``ler(inicio, tamanho)`` devolve os bytes; ``inicio`` negativo, os últimos bytes do arquivo.",
+     "linha": 196
+    },
+    {
+     "tipo": "funcao",
+     "nome": "conteudo",
+     "assinatura": "def conteudo(ler: Callable[[int, int], bytes], e: Entrada) -> bytes",
+     "doc": "O conteúdo descomprimido de uma entrada: um pedido com folga para o cabeçalho local; outro, se faltar.",
+     "linha": 242
+    },
+    {
+     "tipo": "classe",
+     "nome": "LogContado",
+     "assinatura": "class LogContado",
+     "doc": "O que sai de um log: o dia contado, a hora local em que a urna ficou pronta e os votos por faixa.",
+     "linha": 263
+    },
+    {
+     "tipo": "funcao",
+     "nome": "contar_log",
+     "assinatura": "def contar_log(jez: bytes) -> LogContado",
+     "doc": "Conta os votos computados do último dia com votos de um ``-log.jez``, por faixa de ``PASSO`` minutos no\nhorário local, e acha a hora em que a urna ficou pronta nesse dia. Nenhuma linha é guardada.",
+     "linha": 271
+    },
+    {
+     "tipo": "funcao",
+     "nome": "diferenca",
+     "assinatura": "def diferenca(pronta: int | None) -> int | None",
+     "doc": "Minutos a somar ao horário local da urna para ter o de Brasília: a hora cheia entre a urna pronta e as 8h\n(0 a 3 horas); sem a hora da urna pronta, None.",
+     "linha": 292
+    },
+    {
+     "tipo": "classe",
+     "nome": "ResumoColeta",
+     "assinatura": "class ResumoColeta",
+     "doc": "O que ``coletar`` leu de uma UF.",
+     "linha": 301
+    },
+    {
+     "tipo": "metodo",
+     "nome": "ResumoColeta.para_json",
+     "assinatura": "def para_json(self) -> dict",
+     "doc": "Dicionário para imprimir em JSON.",
+     "linha": 312
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_arquivo",
+     "assinatura": "def ler_arquivo(turno: int, url: str, *, user_agent: str, trabalhadores: int=24, progresso: Callable[[str], None] | None=None, leitor: LeitorRemoto | None=None) -> Iterator[Secao]",
+     "doc": "As seções de um arquivo transmitido (um turno de uma UF), lendo só os logs pela rede.",
+     "linha": 318
+    },
+    {
+     "tipo": "funcao",
+     "nome": "coletar",
+     "assinatura": "def coletar(uf: str, urls: Iterable[tuple[int, str, str]], destino: Path | str, *, user_agent: str, trabalhadores: int=24, progresso: Callable[[str], None] | None=None, abrir: Callable[[str], LeitorRemoto] | None=None) -> ResumoColeta",
+     "doc": "Lê os arquivos da UF (os dois turnos) e grava a parcial ``destino/<uf>.json.gz``: uma linha por seção.\n\n``abrir(url)`` dá o leitor de cada arquivo (nos testes, um arquivo em memória).",
+     "linha": 338
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_parciais",
+     "assinatura": "def ler_parciais(pasta: Path | str) -> list[Secao]",
+     "doc": "As seções das parciais gravadas por ``coletar`` (``<uf>.json.gz``), com as faixas de volta a números.",
+     "linha": 369
+    },
+    {
+     "tipo": "funcao",
+     "nome": "em_brasilia",
+     "assinatura": "def em_brasilia(secoes: list[Secao]) -> list[Secao]",
+     "doc": "As seções com as faixas no horário de Brasília, pela diferença mais comum entre as seções do município: a\nurna que ficou pronta tarde (trocada, com defeito) não muda o fuso da seção. No exterior, o horário fica o\nlocal.",
+     "linha": 380
+    },
+    {
+     "tipo": "funcao",
+     "nome": "por_hora",
+     "assinatura": "def por_hora(faixas: dict[int, int]) -> list[int]",
+     "doc": "``[primeira hora, votos nela, na seguinte, ...]`` até a última hora com votos; sem votos, ``[]``.",
+     "linha": 396
+    },
+    {
+     "tipo": "funcao",
+     "nome": "por_faixa",
+     "assinatura": "def por_faixa(faixas: dict[int, int]) -> dict",
+     "doc": "``{inicio, passo, contagens}`` de 10 em 10 minutos, da primeira à última faixa com votos.",
+     "linha": 408
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_somar",
+     "assinatura": "def _somar(secoes: Iterable[Secao]) -> Counter",
+     "doc": "Os votos das seções somados por faixa.",
+     "linha": 417
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_turnos",
+     "assinatura": "def _turnos(secoes: list[Secao], *, completo: bool) -> dict",
+     "doc": "``{\"1\": {...}, \"2\": {...}}``: votos, seções e votos por hora; com ``completo``, também de 10 em 10 minutos.",
+     "linha": 425
+    },
+    {
+     "tipo": "funcao",
+     "nome": "grupo",
+     "assinatura": "def grupo(chave: str) -> str",
+     "doc": "O arquivo que leva o município: o 3º e o 4º dígitos do código IBGE (100 arquivos, e não os 750 dos\nhorários: o site dos painéis está perto do limite de arquivos); ``zz`` para as cidades do exterior.",
+     "linha": 440
+    },
+    {
+     "tipo": "classe",
+     "nome": "ResumoVotos",
+     "assinatura": "class ResumoVotos",
+     "doc": "O que ``gravar`` produziu num ano.",
+     "linha": 447
+    },
+    {
+     "tipo": "metodo",
+     "nome": "ResumoVotos.para_json",
+     "assinatura": "def para_json(self) -> dict",
+     "doc": "Dicionário para imprimir em JSON.",
+     "linha": 457
+    },
+    {
+     "tipo": "funcao",
+     "nome": "montar",
+     "assinatura": "def montar(ano: int, secoes: list[Secao], cadastro: CadastroMunicipios, origem: dict) -> tuple[dict[str, dict], ResumoVotos]",
+     "doc": "Os arquivos do ano (caminho relativo, sem o ``.gz`` → conteúdo) e o resumo.",
+     "linha": 463
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_gz",
+     "assinatura": "def _gz(dados: dict) -> bytes",
+     "doc": "JSON compacto comprimido com gzip, sem data no cabeçalho.",
+     "linha": 521
+    },
+    {
+     "tipo": "funcao",
+     "nome": "gravar",
+     "assinatura": "def gravar(ano: int, secoes: list[Secao], raiz: Path | str, cadastro: CadastroMunicipios, *, urls: Iterable[str]=()) -> ResumoVotos",
+     "doc": "Grava ``votos-hora/<ano>/`` sob ``raiz`` (``.json.gz``) e apaga o que sobrou de uma gravação anterior.",
+     "linha": 527
+    },
+    {
+     "tipo": "funcao",
+     "nome": "empacotar",
+     "assinatura": "def empacotar(ano: int, raiz: Path | str, destino: Path | str) -> Path",
+     "doc": "Junta ``votos-hora/<ano>/`` em ``destino/votos-hora-<ano>.tar`` (como ``horarios.empacotar``).",
+     "linha": 546
     }
    ]
   },
@@ -10229,7 +10461,7 @@
   {
    "caminho": "packages/painel/lumen_painel/operacao.py",
    "linguagem": "python",
-   "linhas": 272,
+   "linhas": 273,
    "doc": "Painel operacional (RF-AD-05; DOC-04, seção 8; ADR-039): saúde das coletas, atrasos, falhas e volume.\n\nUm arquivo só, ``operacao.json``, publicado com os painéis, em três partes:\n\n- **Fluxos**: as execuções dos fluxos de dados no GitHub Actions nos últimos ``JANELA_DIAS`` dias. O\n  ``paineis-site`` as grava com ``gh run list`` em ``execucoes.json``, no estado, antes de publicar. Para\n  cada fluxo: quantas execuções, quantas falharam, a última, a última com sucesso e, nos fluxos diários, se\n  essa ficou velha demais (``TOLERANCIA_HORAS`` além da cadência, porque o GitHub atrasa os agendamentos).\n- **Volume das contratações**: processos publicados no PNCP por dia, contra a mediana do mesmo dia da semana\n  nas ``SEMANAS_BASE`` semanas anteriores. Dia útil abaixo de ``FRACAO_MINIMA`` dessa mediana é alerta. É o\n  alarme mais importante do DOC-04: a fonte que responde com sucesso e quase nada. Fim de semana, feriado,\n  ponto facultativo e ponte nacionais ficam de fora; dia não coletado também é alerta.\n- **Conformidade**: há quanto tempo o extrato de cada UF foi coletado e quantos entes ficaram com a coleta\n  malsucedida.\n\nOs limiares são iniciais, não calibrados, e vão no próprio arquivo. Os alertas falam do Lumen e das fontes,\nnunca de um ente.",
    "itens": [
     {
@@ -10237,105 +10469,105 @@
      "nome": "_instante",
      "assinatura": "def _instante(texto: str | None) -> datetime | None",
      "doc": "ISO 8601 com ``Z`` ou fuso → ``datetime`` com fuso; ausente ou vazio → None.",
-     "linha": 51
+     "linha": 52
     },
     {
      "tipo": "funcao",
      "nome": "_iso",
      "assinatura": "def _iso(instante: datetime | None) -> str | None",
      "doc": "``datetime`` → ISO 8601 em UTC, sem frações; None → None.",
-     "linha": 58
+     "linha": 59
     },
     {
      "tipo": "funcao",
      "nome": "_horas",
      "assinatura": "def _horas(desde: datetime | None, agora: datetime) -> float | None",
      "doc": "Horas entre ``desde`` e ``agora``, com uma casa; None sem ``desde``.",
-     "linha": 63
+     "linha": 64
     },
     {
      "tipo": "funcao",
      "nome": "resumir_fluxo",
      "assinatura": "def resumir_fluxo(nome: str, execucoes: Iterable[dict], agora: datetime) -> dict",
      "doc": "Uma linha do quadro dos fluxos, a partir das execuções do ``gh run list`` (todas do mesmo fluxo).\n\nFalha é ``failure``, ``timed_out`` ou ``startup_failure``; cancelada e pulada não contam como falha nem\nentram na taxa. Atrasado: fluxo com cadência cuja última execução com sucesso passou da cadência mais a\ntolerância, ou que não tem nenhuma.",
-     "linha": 70
+     "linha": 71
     },
     {
      "tipo": "funcao",
      "nome": "resumir_fluxos",
      "assinatura": "def resumir_fluxos(execucoes: Iterable[dict], agora: datetime) -> list[dict]",
      "doc": "Uma linha por fluxo acompanhado (``FLUXOS``), na ordem de ``FLUXOS``; os outros fluxos ficam de fora.",
-     "linha": 100
+     "linha": 101
     },
     {
      "tipo": "funcao",
      "nome": "pascoa",
      "assinatura": "def pascoa(ano: int) -> date",
      "doc": "Domingo de Páscoa no calendário gregoriano (algoritmo de Meeus/Jones/Butcher).",
-     "linha": 111
+     "linha": 112
     },
     {
      "tipo": "funcao",
      "nome": "_feriado",
      "assinatura": "def _feriado(dia: date) -> bool",
      "doc": "Feriado nacional ou ponto facultativo nacional de dia inteiro: os do calendário civil (Lei 662/1949, Lei\n6.802/1980 e Lei 14.759/2023), Carnaval, Sexta-feira Santa e Corpus Christi.",
-     "linha": 126
+     "linha": 127
     },
     {
      "tipo": "funcao",
      "nome": "sem_expediente_nacional",
      "assinatura": "def sem_expediente_nacional(dia: date) -> bool",
      "doc": "Dia em que o volume do PNCP cai sem que a fonte tenha problema: feriado ou ponto facultativo nacional,\nQuarta-feira de Cinzas e Quinta-feira Santa (expediente reduzido) e a ponte, a segunda-feira antes de um\nferiado na terça ou a sexta-feira depois de um na quinta. No PNCP de 2026, foram esses os dias úteis com\nmenos da metade do volume usual (ADR-039).",
-     "linha": 135
+     "linha": 136
     },
     {
      "tipo": "funcao",
      "nome": "volume_contratacoes",
      "assinatura": "def volume_contratacoes(volume: dict[str, dict[str, int]], hoje: date) -> dict",
      "doc": "Os ``DIAS_SERIE`` dias até ontem, com processos e contratos, a referência do dia e o alerta.\n\nA referência é a mediana dos processos no mesmo dia da semana nas ``SEMANAS_BASE`` semanas anteriores\n(dias úteis coletados; ao menos ``MINIMO_SEMANAS``). Dia não coletado aparece com ``coletado: false``.",
-     "linha": 149
+     "linha": 150
     },
     {
      "tipo": "funcao",
      "nome": "coleta_conformidade",
      "assinatura": "def coleta_conformidade(coletas: dict[str, str | None], entes: dict[str, dict], agora: datetime, uf_do_ente) -> list[dict]",
      "doc": "Por UF: quando o extrato foi coletado, há quantas horas, quantos entes e quantos com coleta malsucedida.",
-     "linha": 179
+     "linha": 180
     },
     {
      "tipo": "funcao",
      "nome": "_tempo",
      "assinatura": "def _tempo(horas: float) -> str",
      "doc": "Horas em palavras para o alerta: \"30 h\" até dois dias, depois \"4 dias\".",
-     "linha": 201
+     "linha": 202
     },
     {
      "tipo": "funcao",
      "nome": "_data",
      "assinatura": "def _data(iso: str) -> str",
      "doc": "``2026-10-18`` → ``18/10/2026``.",
-     "linha": 206
+     "linha": 207
     },
     {
      "tipo": "funcao",
      "nome": "_lista",
      "assinatura": "def _lista(itens: list[str], maximo: int=5) -> str",
      "doc": "Até ``maximo`` itens separados por vírgula, com reticências se houver mais.",
-     "linha": 211
+     "linha": 212
     },
     {
      "tipo": "funcao",
      "nome": "alertas",
      "assinatura": "def alertas(fluxos: list[dict], volume: dict, conformidade: list[dict]) -> list[dict]",
      "doc": "O que merece atenção, numa lista só, do mais grave ao menos: falha e atraso de fluxo, volume, coleta.\n\nA conformidade atrasada vira um alerta só, com as UFs: quando a coleta não roda, atrasam todas juntas.",
-     "linha": 216
+     "linha": 217
     },
     {
      "tipo": "funcao",
      "nome": "operacao_para_json",
      "assinatura": "def operacao_para_json(*, execucoes: list[dict] | None, volume: dict[str, dict[str, int]], faltando: list[str], coletas: dict[str, str | None], entes: dict[str, dict], uf_do_ente, agora: datetime, hoje: date, gerado_em: str) -> dict",
      "doc": "``operacao.json``: ``agora`` mede os atrasos, ``hoje`` (Brasília) fecha a série de volume, ``faltando``\nsão os dias do PNCP sem coleta desde o primeiro guardado. Sem ``execucoes`` (rodando fora do GitHub\nActions), os fluxos ficam como None.",
-     "linha": 255
+     "linha": 256
     }
    ]
   },
@@ -15381,7 +15613,7 @@
   {
    "caminho": "packages/portal/src/lib/tipos.ts",
    "linguagem": "typescript",
-   "linhas": 565,
+   "linhas": 595,
    "doc": "Tipos do contrato dos feeds da aba Eleições (versão 1).\n\nEspelho de `packages/eleicoes/lumen_eleicoes/feeds.py`. Quem muda um lado\nmuda o outro: os testes de `validacao.test.ts` leem a amostra gerada pelo\nPython (`testes/fixtures/eleicoes_feed`) e falham se os dois divergirem.",
    "itens": [
     {
@@ -15413,298 +15645,319 @@
      "linha": 24
     },
     {
+     "tipo": "constante",
+     "nome": "VERSAO_VOTOS_HORA",
+     "assinatura": "export const VERSAO_VOTOS_HORA = 1;",
+     "doc": "Versão dos arquivos dos votos por hora (ADR-057).",
+     "linha": 26
+    },
+    {
      "tipo": "tipo",
      "nome": "TipoCargo",
      "assinatura": "export type TipoCargo = \"majoritario\" | \"proporcional\";",
      "doc": "Majoritário (vence quem tem mais votos) ou proporcional (vagas repartidas pelo quociente eleitoral).",
-     "linha": 27
+     "linha": 29
     },
     {
      "tipo": "tipo",
      "nome": "Nivel",
      "assinatura": "export type Nivel = \"br\" | \"uf\" | \"mu\";",
      "doc": "Onde o cargo é disputado: Brasil (Presidente), UF (Governador, Senador, deputados) ou município.",
-     "linha": 29
+     "linha": 31
     },
     {
      "tipo": "tipo",
      "nome": "TipoAbrangencia",
      "assinatura": "export type TipoAbrangencia = \"br\" | \"uf\" | \"mu\";",
      "doc": "Recorte geográfico de um arquivo de feed: Brasil, UF ou município.",
-     "linha": 31
+     "linha": 33
     },
     {
      "tipo": "interface",
      "nome": "ResumoEleicao",
      "assinatura": "export interface ResumoEleicao",
      "doc": "Identificação da eleição, repetida em cada feed: um pleito num turno, como o eleitor o reconhece.",
-     "linha": 34
+     "linha": 36
     },
     {
      "tipo": "interface",
      "nome": "CargoFeed",
      "assinatura": "export interface CargoFeed",
      "doc": "Cargo em disputa numa eleição, como aparece no índice e no cabeçalho de cada feed.",
-     "linha": 47
+     "linha": 49
     },
     {
      "tipo": "interface",
      "nome": "EleicaoIndice",
      "assinatura": "export interface EleicaoIndice extends ResumoEleicao",
      "doc": "Linha de uma eleição no `indice.json`: o resumo, de onde vêm os dados e os cargos disponíveis.",
-     "linha": 62
+     "linha": 64
     },
     {
      "tipo": "interface",
      "nome": "Indice",
      "assinatura": "export interface Indice",
      "doc": "Conteúdo de `indice.json`: as eleições publicadas no servidor. É o primeiro arquivo que a aba lê.",
-     "linha": 83
+     "linha": 85
     },
     {
      "tipo": "interface",
      "nome": "AbrangenciaFeed",
      "assinatura": "export interface AbrangenciaFeed",
      "doc": "Recorte de um feed (Brasil, UF ou município), com os códigos que o ligam ao cadastro e à malha.",
-     "linha": 90
+     "linha": 92
     },
     {
      "tipo": "interface",
      "nome": "Origem",
      "assinatura": "export interface Origem",
      "doc": "De onde vieram os números do feed. A tela mostra a fonte, o link para o\narquivo original e o SHA-256 da cópia guardada: qualquer pessoa pode\nconferir o número contra o documento oficial.",
-     "linha": 108
+     "linha": 110
     },
     {
      "tipo": "interface",
      "nome": "Totalizacao",
      "assinatura": "export interface Totalizacao",
      "doc": "Andamento da totalização na abrangência, como o TSE publica.",
-     "linha": 126
+     "linha": 128
     },
     {
      "tipo": "interface",
      "nome": "Comparecimento",
      "assinatura": "export interface Comparecimento",
      "doc": "Eleitorado apto, quem compareceu e quem se absteve, com os percentuais.",
-     "linha": 137
+     "linha": 139
     },
     {
      "tipo": "interface",
      "nome": "Votos",
      "assinatura": "export interface Votos",
      "doc": "Destino dos votos na abrangência: válidos, brancos, nulos, anulados e de legenda.",
-     "linha": 148
+     "linha": 150
     },
     {
      "tipo": "interface",
      "nome": "Candidato",
      "assinatura": "export interface Candidato",
      "doc": "Um candidato no resultado; o feed traz a lista dos mais votados para os menos votados.",
-     "linha": 165
+     "linha": 167
     },
     {
      "tipo": "interface",
      "nome": "Agremiacao",
      "assinatura": "export interface Agremiacao",
      "doc": "Votação de partido isolado, coligação ou federação nos proporcionais, com as vagas obtidas.",
-     "linha": 205
+     "linha": 207
     },
     {
      "tipo": "interface",
      "nome": "Parte",
      "assinatura": "export interface Parte",
      "doc": "Linha de uma abrangência filha (UF no Brasil, município na UF, zona\neleitoral no município), para o mapa e a tabela. Na zona, `codigo` é o\nnúmero da zona e `ibge` é null.",
-     "linha": 219
+     "linha": 221
     },
     {
      "tipo": "interface",
      "nome": "FeedResultado",
      "assinatura": "export interface FeedResultado",
      "doc": "Arquivo de resultado (`br.json`, `uf-<sigla>.json`, `mu-<chave>.json`):\ncandidatos com votos, comparecimento e destino dos votos de uma\nabrangência, mais as `partes` filhas que pintam o mapa.",
-     "linha": 253
+     "linha": 255
     },
     {
      "tipo": "interface",
      "nome": "PlacarPartido",
      "assinatura": "export interface PlacarPartido",
      "doc": "Linha do placar por partido num panorama; o feed ordena por eleitos, depois partes lideradas e votos.",
-     "linha": 284
+     "linha": 286
     },
     {
      "tipo": "interface",
      "nome": "FeedPanorama",
      "assinatura": "export interface FeedPanorama",
      "doc": "Arquivo de panorama: o cargo visto de cima, onde não existe resultado\núnico (cargo municipal na UF ou no Brasil, cargo estadual no Brasil).\nTraz o placar por partido e o líder de cada parte, em vez de candidatos.",
-     "linha": 299
+     "linha": 301
     },
     {
      "tipo": "interface",
      "nome": "PontoEvolucao",
      "assinatura": "export interface PontoEvolucao",
      "doc": "Uma leitura da apuração no histórico: instante, seções totalizadas e votos por número de candidato.",
-     "linha": 318
+     "linha": 320
     },
     {
      "tipo": "interface",
      "nome": "FeedHistorico",
      "assinatura": "export interface FeedHistorico",
      "doc": "Arquivo `historico-<abrangência>.json`: a sequência de leituras que desenha o gráfico de evolução.",
-     "linha": 327
+     "linha": 329
     },
     {
      "tipo": "interface",
      "nome": "LinhaConferencia",
      "assinatura": "export interface LinhaConferencia",
      "doc": "Uma linha da conferência seção a seção: um número votado (ou brancos, nulos, nulos técnicos).",
-     "linha": 342
+     "linha": 344
     },
     {
      "tipo": "interface",
      "nome": "AbrangenciaConferida",
      "assinatura": "export interface AbrangenciaConferida",
      "doc": "Uma abrangência conferida: as linhas e se todas batem.",
-     "linha": 356
+     "linha": 358
     },
     {
      "tipo": "interface",
      "nome": "FeedConferencia",
      "assinatura": "export interface FeedConferencia",
      "doc": "Arquivo `<eleição>/presidente/conferencia.json` (ADR-053): a votação por\nseção dos dados abertos, somada, contra o total do sistema de resultados,\nno Brasil e em cada UF (com o exterior).",
-     "linha": 367
+     "linha": 369
     },
     {
      "tipo": "tipo",
      "nome": "Feed",
      "assinatura": "export type Feed = FeedResultado | FeedPanorama;",
      "doc": "Os dois tipos de arquivo que a tela principal exibe; o campo `tipo` os distingue.",
-     "linha": 382
+     "linha": 384
     },
     {
      "tipo": "interface",
      "nome": "Municipio",
      "assinatura": "export interface Municipio",
      "doc": "Município no cadastro TSE ↔ IBGE, usado pela busca.",
-     "linha": 385
+     "linha": 387
     },
     {
      "tipo": "interface",
      "nome": "CadastroMunicipios",
      "assinatura": "export interface CadastroMunicipios",
      "doc": "Conteúdo de `municipios.json`: o cadastro completo, baixado só quando a busca abre.",
-     "linha": 400
+     "linha": 402
     },
     {
      "tipo": "tipo",
      "nome": "LocalVotacao",
      "assinatura": "export type LocalVotacao = [number, number, string, number, string];",
      "doc": "Um local de votação no arquivo das zonas: longitude, latitude, número da\nzona, eleitores (soma das seções do local) e nome, como o TSE publica.",
-     "linha": 409
+     "linha": 411
     },
     {
      "tipo": "interface",
      "nome": "ZonaDoMunicipio",
      "assinatura": "export interface ZonaDoMunicipio",
      "doc": "Uma zona eleitoral do município no arquivo das zonas.",
-     "linha": 412
+     "linha": 414
     },
     {
      "tipo": "interface",
      "nome": "ArquivoZonas",
      "assinatura": "export interface ArquivoZonas",
      "doc": "Arquivo `geo/zonas-<ano>/mu-<ibge>.json`: as zonas de um município com mais\nde uma e os locais de votação de cada uma (ADR-029). Gravado por\n`lumen eleicoes zonas` a partir dos dados abertos do TSE.",
-     "linha": 426
+     "linha": 428
     },
     {
      "tipo": "tipo",
      "nome": "Caracteristica",
      "assinatura": "export type Caracteristica = \"genero\" | \"faixa_etaria\" | \"escolaridade\" | \"estado_civil\";",
      "doc": "As características do eleitorado publicadas (as sensíveis, como raça ou cor, ficam de fora: ADR-055).",
-     "linha": 439
+     "linha": 441
     },
     {
      "tipo": "interface",
      "nome": "PerfilEleitorado",
      "assinatura": "export interface PerfilEleitorado extends Record<Caracteristica, [string, number][]>",
      "doc": "Perfil de um lugar: total, com biometria e, em cada característica, `[rótulo, eleitores]`.",
-     "linha": 442
+     "linha": 444
     },
     {
      "tipo": "interface",
      "nome": "TurnoEleitorado",
      "assinatura": "export interface TurnoEleitorado extends Record<Caracteristica, [string, number, number][]>",
      "doc": "Um turno num lugar: aptos, comparecimento e abstenção; em cada característica, `[rótulo, aptos, comparecimento]`.",
-     "linha": 448
+     "linha": 450
     },
     {
      "tipo": "interface",
      "nome": "LugarEleitorado",
      "assinatura": "export interface LugarEleitorado extends PerfilEleitorado",
      "doc": "O lugar do arquivo (Brasil, UF ou município), com o perfil e os turnos que o TSE já publicou.",
-     "linha": 455
+     "linha": 457
     },
     {
      "tipo": "interface",
      "nome": "ParteEleitorado",
      "assinatura": "export interface ParteEleitorado",
      "doc": "Resumo de um lugar abaixo (UF no Brasil, município na UF): eleitores, biometria e `[aptos, comparecimento]` por turno.",
-     "linha": 463
+     "linha": 465
     },
     {
      "tipo": "interface",
      "nome": "ZonaEleitorado",
      "assinatura": "export interface ZonaEleitorado extends PerfilEleitorado",
      "doc": "Uma zona no arquivo do município: o perfil e os turnos dela.",
-     "linha": 473
+     "linha": 475
     },
     {
      "tipo": "interface",
      "nome": "ArquivoEleitorado",
      "assinatura": "export interface ArquivoEleitorado",
      "doc": "Arquivo `eleitorado-<ano>/{br,uf-<sigla>,mu-<chave>}.json` (ADR-055): o perfil do eleitorado, o\ncomparecimento por perfil e, no município, as zonas e as seções (`[zona, seção, local, eleitores]`).",
-     "linha": 482
+     "linha": 484
     },
     {
      "tipo": "interface",
      "nome": "HistogramaHorarios",
      "assinatura": "export interface HistogramaHorarios",
      "doc": "Contagem por faixa de `passo` minutos a partir de `inicio` (minutos desde a meia-noite), com o que fica fora.",
-     "linha": 496
+     "linha": 498
     },
     {
      "tipo": "interface",
      "nome": "ResumoHorarios",
      "assinatura": "export interface ResumoHorarios",
      "doc": "Os horários de um lugar num turno: seções, aptos, comparecimento, quantas fecharam depois das 17h30 e\n`[mediana, 90%, último]` do encerramento e do recebimento (minutos desde a meia-noite; passa de 1.440 no dia\nseguinte). No lugar do arquivo, também os histogramas e os tipos de urna.",
-     "linha": 509
+     "linha": 511
     },
     {
      "tipo": "tipo",
      "nome": "SecaoHorarios",
      "assinatura": "export type SecaoHorarios = [number, string, number, string, number, number, string, string | null, string | null,",
      "doc": "Uma seção nos horários: `[turno, zona, seção, local, aptos, comparecimento, tipo de urna, abertura,\nencerramento, emissão do boletim, boletim recebido]`, os horários como `\"HH:MM\"` (`\"+1 HH:MM\"` no dia seguinte).",
-     "linha": 529
+     "linha": 531
     },
     {
      "tipo": "interface",
      "nome": "ArquivoHorarios",
      "assinatura": "export interface ArquivoHorarios",
      "doc": "Arquivo `horarios/<ano>/{br,uf-<sigla>}.json` ou um município de `mu/<grupo>.json` (ADR-056): quando as urnas\nabriram e fecharam e quando os boletins chegaram ao TSE. `horario` diz se abertura, encerramento e emissão estão\nno horário de Brasília (de 2022 em diante) ou no local de cada seção; o recebido é sempre o de Brasília.",
-     "linha": 537
+     "linha": 539
+    },
+    {
+     "tipo": "interface",
+     "nome": "TurnoVotosHora",
+     "assinatura": "export interface TurnoVotosHora",
+     "doc": "Os votos de um lugar num turno, pelos logs das urnas: total, seções e `[primeira hora, votos nela, na seguinte,\n...]` (horas de Brasília); no lugar do arquivo, também de 10 em 10 minutos (`inicio` em minutos desde a meia-noite).",
+     "linha": 556
+    },
+    {
+     "tipo": "interface",
+     "nome": "ArquivoVotosHora",
+     "assinatura": "export interface ArquivoVotosHora",
+     "doc": "Arquivo `votos-hora/<ano>/{br,uf-<sigla>}.json` ou um município de `mu/<grupo>.json` (ADR-057). No município,\nas seções são `[turno, zona, seção, primeira hora, votos nela, na seguinte, ...]`.",
+     "linha": 567
     },
     {
      "tipo": "interface",
      "nome": "IndiceZonas",
      "assinatura": "export interface IndiceZonas",
      "doc": "Arquivo `geo/zonas-<ano>/indice.json`: código IBGE → número de zonas, dos municípios com mais de uma.",
-     "linha": 551
+     "linha": 581
     },
     {
      "tipo": "interface",
      "nome": "Selecao",
      "assinatura": "export interface Selecao",
      "doc": "O que está selecionado na tela; vai para a URL (ver `estado-url.ts`).",
-     "linha": 559
+     "linha": 589
     }
    ]
   },
@@ -15924,7 +16177,7 @@
   {
    "caminho": "packages/portal/src/lib/validacao.ts",
    "linguagem": "typescript",
-   "linhas": 207,
+   "linhas": 226,
    "doc": "Conferência dos feeds na chegada.\n\nO portal recusa o que não reconhece em vez de exibir número errado: versão\ndiferente da esperada, tipo desconhecido ou campo obrigatório ausente viram\n`ErroFeed`, que a tela mostra como \"dados indisponíveis\". A conferência é\nestrutural e barata — o feed tem dezenas de KB e chega a cada 15 segundos\nna noite da apuração.",
    "itens": [
     {
@@ -15932,105 +16185,112 @@
      "nome": "ErroFeed",
      "assinatura": "export class ErroFeed extends Error",
      "doc": "Feed fora do contrato ou inacessível (sem resposta, HTTP de erro, conteúdo\nque não é JSON). A mensagem diz onde está o problema e é a que a tela\nmostra no aviso de dados indisponíveis.",
-     "linha": 33
+     "linha": 35
     },
     {
      "tipo": "tipo",
      "nome": "Objeto",
      "assinatura": "type Objeto = Record<string, unknown>;",
      "doc": "Objeto JSON ainda não conferido.",
-     "linha": 41
+     "linha": 43
     },
     {
      "tipo": "funcao",
      "nome": "objeto",
      "assinatura": "function objeto(valor: unknown, onde: string): Objeto",
      "doc": "Exige um objeto JSON (não lista, não null); `onde` entra na mensagem de erro.",
-     "linha": 44
+     "linha": 46
     },
     {
      "tipo": "funcao",
      "nome": "lista",
      "assinatura": "function lista(valor: unknown, onde: string): unknown[]",
      "doc": "Exige uma lista JSON.",
-     "linha": 52
+     "linha": 54
     },
     {
      "tipo": "funcao",
      "nome": "exigir",
      "assinatura": "function exigir(o: Objeto, campos: string[], onde: string): void",
      "doc": "Exige a presença dos campos (o valor pode ser null); a mensagem lista todos os ausentes de uma vez.",
-     "linha": 58
+     "linha": 60
     },
     {
      "tipo": "funcao",
      "nome": "versao",
      "assinatura": "function versao(o: Objeto, onde: string, esperada: number = VERSAO_FEED): void",
      "doc": "Recusa versão diferente de `VERSAO_FEED`. Igualdade estrita, nem maior nem\nmenor: mudança incompatível no contrato sobe a versão, e o portal não\ntenta adivinhar como ler o que não conhece.",
-     "linha": 68
+     "linha": 70
     },
     {
      "tipo": "funcao",
      "nome": "validarIndice",
      "assinatura": "export function validarIndice(bruto: unknown): Indice",
      "doc": "Confere o `indice.json`: versão, campos de cada eleição e de cada um dos seus cargos.",
-     "linha": 75
+     "linha": 77
     },
     {
      "tipo": "funcao",
      "nome": "validarFeed",
      "assinatura": "export function validarFeed(bruto: unknown, onde = \"feed\"): FeedResultado | FeedPanorama",
      "doc": "Confere um feed de resultado ou de panorama, decidido pelo campo `tipo`.\nNo resultado, cada candidato precisa ter `votos` numérico — é o número\nque a tela soma e compara. Tipo desconhecido é recusado.",
-     "linha": 95
+     "linha": 97
     },
     {
      "tipo": "funcao",
      "nome": "validarHistorico",
      "assinatura": "export function validarHistorico(bruto: unknown, onde = \"historico\"): FeedHistorico",
      "doc": "Confere o feed de evolução da apuração (`tipo: \"historico\"`).",
-     "linha": 118
+     "linha": 120
     },
     {
      "tipo": "funcao",
      "nome": "validarConferencia",
      "assinatura": "export function validarConferencia(bruto: unknown, onde = \"conferencia\"): FeedConferencia",
      "doc": "Confere o feed da conferência seção a seção (`tipo: \"conferencia\"`).",
-     "linha": 128
+     "linha": 130
     },
     {
      "tipo": "funcao",
      "nome": "validarMunicipios",
      "assinatura": "export function validarMunicipios(bruto: unknown): CadastroMunicipios",
      "doc": "Confere o cadastro de municípios usado pela busca.",
-     "linha": 139
+     "linha": 141
     },
     {
      "tipo": "funcao",
      "nome": "validarIndiceZonas",
      "assinatura": "export function validarIndiceZonas(bruto: unknown, onde = \"zonas/indice\"): IndiceZonas",
      "doc": "Confere o índice das zonas de um ano (`geo/zonas-<ano>/indice.json`).",
-     "linha": 147
+     "linha": 149
     },
     {
      "tipo": "funcao",
      "nome": "validarZonas",
      "assinatura": "export function validarZonas(bruto: unknown, onde = \"zonas\"): ArquivoZonas",
      "doc": "Confere o arquivo das zonas de um município. Cada local precisa de\nlongitude e latitude numéricas e de uma zona da lista: é o que vira ponto\ne área no mapa.",
-     "linha": 160
+     "linha": 162
     },
     {
      "tipo": "funcao",
      "nome": "validarEleitorado",
      "assinatura": "export function validarEleitorado(bruto: unknown, onde = \"eleitorado\"): ArquivoEleitorado",
      "doc": "Arquivo do eleitorado (ADR-055): versão, tipo, o lugar com o total e, no município, as seções no formato.",
-     "linha": 176
+     "linha": 178
     },
     {
      "tipo": "funcao",
      "nome": "validarHorarios",
      "assinatura": "export function validarHorarios(bruto: unknown, onde = \"horarios\"): ArquivoHorarios",
      "doc": "Os horários das urnas de um lugar (ADR-056): versão, tipo, o lugar com os turnos e as seções no formato.",
-     "linha": 193
+     "linha": 195
+    },
+    {
+     "tipo": "funcao",
+     "nome": "validarVotosHora",
+     "assinatura": "export function validarVotosHora(bruto: unknown, onde = \"votos-hora\"): ArquivoVotosHora",
+     "doc": "Os votos por hora de um lugar (ADR-057): versão, tipo, o lugar com os turnos e as seções no formato.",
+     "linha": 212
     }
    ]
   },
@@ -16088,6 +16348,126 @@
      "assinatura": "export function celulasVoronoi(pontos: Ponto[], caixa: Caixa): (Celula | null)[]",
      "doc": "Células de Voronoi dos `pontos`, cortadas pela `caixa`. Pontos repetidos\n(mesma coordenada) não formam célula própria: o primeiro fica com a área,\nos demais ficam sem célula (`null` na posição deles).",
      "linha": 100
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/lib/votosHora.ts",
+   "linguagem": "typescript",
+   "linhas": 146,
+   "doc": "Os votos por hora (ADR-057): a leitura dos arquivos e as contas do painel (a hora de mais votos, quantos votaram\ndepois das 17h, até que horas metade votou, os lugares abaixo e as seções).\n\nOs arquivos ficam no site dos painéis, comprimidos: `votos-hora/<ano>/br.json.gz`, `uf-<sigla>.json.gz` e\n`mu/<grupo>.json.gz`, com os municípios do grupo (o 3º e o 4º dígitos do código IBGE; `zz` para o exterior).",
+   "itens": [
+    {
+     "tipo": "constante",
+     "nome": "ANO_INICIAL_VOTOS_HORA",
+     "assinatura": "export const ANO_INICIAL_VOTOS_HORA = 2022;",
+     "doc": "Primeiro ano com os logs das urnas nos dados abertos do TSE.",
+     "linha": 16
+    },
+    {
+     "tipo": "constante",
+     "nome": "FIM_DA_VOTACAO",
+     "assinatura": "export const FIM_DA_VOTACAO = 17;",
+     "doc": "A hora em que a votação termina: quem vota depois estava na fila.",
+     "linha": 19
+    },
+    {
+     "tipo": "funcao",
+     "nome": "horas",
+     "assinatura": "export function horas(porHora: number[]): { hora: number; votos: number }[]",
+     "doc": "As horas e os votos de `[primeira hora, votos nela, ...]`.",
+     "linha": 22
+    },
+    {
+     "tipo": "funcao",
+     "nome": "horaDePico",
+     "assinatura": "export function horaDePico(porHora: number[]): { hora: number; votos: number } | null",
+     "doc": "A hora com mais votos (a primeira, no empate); sem votos, `null`.",
+     "linha": 28
+    },
+    {
+     "tipo": "funcao",
+     "nome": "depoisDoFim",
+     "assinatura": "export function depoisDoFim(porHora: number[]): number",
+     "doc": "Votos dados a partir das 17h (na fila do encerramento).",
+     "linha": 34
+    },
+    {
+     "tipo": "funcao",
+     "nome": "metadeAte",
+     "assinatura": "export function metadeAte(t: TurnoVotosHora): number | null",
+     "doc": "A faixa de 10 minutos em que se chega à metade dos votos (minutos desde a meia-noite); sem faixas, `null`.",
+     "linha": 39
+    },
+    {
+     "tipo": "funcao",
+     "nome": "turnoDosVotos",
+     "assinatura": "export function turnoDosVotos(turnos: Record<string, unknown>, turnoEleicao: number | null | undefined): string | null",
+     "doc": "O turno a mostrar: o da eleição aberta, se o arquivo o tem; senão, o mais recente.",
+     "linha": 51
+    },
+    {
+     "tipo": "interface",
+     "nome": "LinhaLugarVotos",
+     "assinatura": "export interface LinhaLugarVotos",
+     "doc": "Um lugar abaixo (UF, município ou zona) no turno, com a abrangência para abri-lo (a zona abre no município).",
+     "linha": 58
+    },
+    {
+     "tipo": "funcao",
+     "nome": "lugaresDosVotos",
+     "assinatura": "export function lugaresDosVotos(arquivo: ArquivoVotosHora, turno: string): LinhaLugarVotos[]",
+     "doc": "As UFs no Brasil, os municípios na UF, as zonas no município; em ordem de nome (zona: número).",
+     "linha": 66
+    },
+    {
+     "tipo": "interface",
+     "nome": "LinhaSecaoVotos",
+     "assinatura": "export interface LinhaSecaoVotos",
+     "doc": "Uma seção do município no turno: votos por hora e o nome do local de votação, quando o eleitorado o traz.",
+     "linha": 83
+    },
+    {
+     "tipo": "funcao",
+     "nome": "secoesDosVotos",
+     "assinatura": "export function secoesDosVotos(arquivo: ArquivoVotosHora, turno: string, zona: string | null, termo: string,",
+     "doc": "As seções do município no turno, de uma zona (ou todas, com `null`), filtradas pelo local (sem acento e caixa) ou\npelo número. `locais` (`\"<zona>-<seção>\"` → nome do local) vem do eleitorado do mesmo ano, quando carregado.",
+     "linha": 95
+    },
+    {
+     "tipo": "funcao",
+     "nome": "locaisDasSecoes",
+     "assinatura": "export function locaisDasSecoes(secoes?: [string, number, string, number][],",
+     "doc": "O nome do local de cada seção (`\"<zona>-<seção>\"`), das seções e dos locais do arquivo do eleitorado.",
+     "linha": 110
+    },
+    {
+     "tipo": "constante",
+     "nome": "rotuloHora",
+     "assinatura": "export const rotuloHora = (h: number) => `${h}h`;",
+     "doc": "A hora como rótulo: `\"8h\"`.",
+     "linha": 117
+    },
+    {
+     "tipo": "funcao",
+     "nome": "grupoDosVotos",
+     "assinatura": "export function grupoDosVotos(chave: string): string",
+     "doc": "O arquivo do grupo do município: o 3º e o 4º dígitos do código IBGE; `zz` para as cidades do exterior.",
+     "linha": 120
+    },
+    {
+     "tipo": "funcao",
+     "nome": "urlVotosHora",
+     "assinatura": "export function urlVotosHora(ano: number, abrangencia: string): string | null",
+     "doc": "Endereço do arquivo que leva o lugar (`br`, `uf-<sigla>` ou `mu-<chave>`, como a abrangência dos feeds).",
+     "linha": 125
+    },
+    {
+     "tipo": "funcao",
+     "nome": "carregarVotosHora",
+     "assinatura": "export async function carregarVotosHora(ano: number, abrangencia: string): Promise<ArquivoVotosHora | null>",
+     "doc": "Os votos por hora de um lugar num ano; `null` quando o ano ou o lugar não tem o arquivo.",
+     "linha": 137
     }
    ]
   },
@@ -17655,7 +18035,7 @@
   {
    "caminho": "packages/portal/src/componentes/eleicoes/PainelEleicoes.tsx",
    "linguagem": "typescript",
-   "linhas": 1040,
+   "linhas": 1064,
    "doc": "Painel da aba Eleições: lê a seleção da URL, carrega índice e feeds e monta\na tela (mapa, gráfico de evolução, totais, candidatos ou panorama). O\nportal nunca fala com o TSE: tudo vem dos arquivos que o coletor grava.\nAo vivo, o feed é relido a cada 15 s enquanto a aba do navegador está\nvisível — sem WebSocket, só revalidação HTTP (ver `feeds.ts`).\n\nNavegação sem piscar: enquanto o feed novo chega, a tela mantém o anterior\nesmaecido; o mapa da UF de um município é pedido junto com o feed dele (a\nUF sai do código na URL); os feeds de eleições encerradas ficam em memória\ne o cursor parado numa área do mapa já os pré-carrega. No município com\nmais de uma zona eleitoral, o mapa aproxima até ele e mostra as zonas, e a\ntabela das zonas fica ligada ao mapa (ADR-029).",
    "itens": [
     {
@@ -17663,84 +18043,84 @@
      "nome": "EstadoFeed",
      "assinatura": "interface EstadoFeed",
      "doc": "Última leitura de um feed. A `chave` (\"eleição/cargo/abrangência\") diz a\nque seleção os dados pertencem, para a tela não exibir números de outra.",
-     "linha": 88
+     "linha": 91
     },
     {
      "tipo": "funcao",
      "nome": "useRelogio",
      "assinatura": "function useRelogio(ativo: boolean, intervalo: number): number",
      "doc": "Contador que avança a cada `intervalo` ms enquanto `ativo`; os efeitos que\ndependem dele releem os dados. Com a aba do navegador em segundo plano o\ncontador não avança, e nada é baixado sem ninguém olhando.",
-     "linha": 100
+     "linha": 103
     },
     {
      "tipo": "funcao",
      "nome": "useFeed",
      "assinatura": "function useFeed(chave: string | null, carregar: (sinal: AbortSignal) => Promise<Feed | null>, tique: number)",
      "doc": "Carrega um feed por chave, mantendo o anterior na tela enquanto o novo chega. A resposta de uma chave\nque já saiu da tela (o feed guardado em memória não é cancelado) é descartada.",
-     "linha": 116
+     "linha": 119
     },
     {
      "tipo": "funcao",
      "nome": "useFeedsDasUfs",
      "assinatura": "function useFeedsDasUfs(eleicao: string | null, cargo: string | null, ufs: readonly string[], guardar: boolean,",
      "doc": "Os feeds de várias UFs de um cargo: para o mapa do Brasil por município (as partes de todas) e para o\nresultado somado de uma região. Null enquanto carregam; a UF cujo feed falha fica de fora da lista.",
-     "linha": 150
+     "linha": 153
     },
     {
      "tipo": "funcao",
      "nome": "finalistasDe",
      "assinatura": "function finalistasDe(feed: Feed | null): Pick<ContextoMudanca, \"a\" | \"b\"> | null",
      "doc": "Os dois primeiros válidos de um resultado como finalistas do modo Mudança, ou null se não há dois.",
-     "linha": 169
+     "linha": 172
     },
     {
      "tipo": "funcao",
      "nome": "nomeAbrangencia",
      "assinatura": "function nomeAbrangencia(abr: string, feed: Feed | null, partesDaUf: Parte[] = []): string",
      "doc": "Nome para o título: \"Brasil\", o nome que o feed traz ou, antes de ele chegar, o da UF (pela sigla) ou o\ndo município na lista do mapa da UF; sem nada disso, o código em maiúsculas.",
-     "linha": 183
+     "linha": 186
     },
     {
      "tipo": "interface",
      "nome": "ZonasCarregadas",
      "assinatura": "interface ZonasCarregadas",
      "doc": "Zonas do município aberto, da chave \"ano/IBGE\": o arquivo dos locais e o contorno fino.",
-     "linha": 192
+     "linha": 195
     },
     {
      "tipo": "funcao",
      "nome": "zonasDoMunicipio",
      "assinatura": "async function zonasDoMunicipio(ano: number, ibge: string): Promise<Omit<ZonasCarregadas, \"chave\">>",
      "doc": "Arquivo das zonas e contorno fino de um município, se o índice das zonas do ano o lista.",
-     "linha": 199
+     "linha": 202
     },
     {
      "tipo": "componente",
      "nome": "PainelEleicoes",
      "assinatura": "export function PainelEleicoes()",
      "doc": "A URL é o estado: toda navegação (eleição, cargo, abrangência, modo TV)\ntroca os parâmetros com `router.replace`, e a tela se recalcula a partir\ndeles. No município, o mapa é o da UF, lido do feed da UF. Atalhos:\nCtrl+K ou \"/\" abre a busca; \"t\" alterna o modo TV (tema escuro e rodízio\nde cargos a cada 30 s); Esc sai dele.",
-     "linha": 216
+     "linha": 219
     },
     {
      "tipo": "componente",
      "nome": "Esqueleto",
      "assinatura": "function Esqueleto()",
      "doc": "Lugar dos números enquanto a primeira leitura não chega: blocos cinza no formato da tela.",
-     "linha": 952
+     "linha": 976
     },
     {
      "tipo": "funcao",
      "nome": "opcoesDeEleicoes",
      "assinatura": "function opcoesDeEleicoes(eleicoes: EleicaoIndice[]): Opcao[]",
      "doc": "As eleições como opções da caixa de escolha, nos grupos do índice e com a marca de ao vivo.",
-     "linha": 968
+     "linha": 992
     },
     {
      "tipo": "componente",
      "nome": "TabelaPartes",
      "assinatura": "function TabelaPartes(",
      "doc": "Tabela das partes: a alternativa ao mapa para quem não usa o mapa (ou leitor de tela).",
-     "linha": 979
+     "linha": 1003
     }
    ]
   },
@@ -17807,6 +18187,49 @@
      "assinatura": "export function Totais({ feed }: { feed: FeedResultado })",
      "doc": "Comparecimento e destino dos votos, como o TSE publica.",
      "linha": 18
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/eleicoes/VotosHora.tsx",
+   "linguagem": "typescript",
+   "linhas": 232,
+   "doc": "Votos por hora do lugar aberto (ADR-057): quantos eleitores votaram em cada hora, a hora de mais votos, até que\nhoras metade votou e quantos votaram depois das 17h (na fila); abaixo, as UFs, os municípios ou as zonas, e no\nmunicípio cada seção. Dados do TSE: os logs das urnas (cada voto computado tem a hora do relógio da urna).",
+   "itens": [
+    {
+     "tipo": "interface",
+     "nome": "Props",
+     "assinatura": "interface Props",
+     "doc": "Entrada do painel: o arquivo do lugar, o turno da eleição aberta, a zona escolhida e a navegação.",
+     "linha": 30
+    },
+    {
+     "tipo": "componente",
+     "nome": "Bloco",
+     "assinatura": "function Bloco({ rotulo, valor, detalhe }: { rotulo: string; valor: string; detalhe?: string })",
+     "doc": "Um número com rótulo e, quando há, o detalhe logo abaixo (como no painel do eleitorado).",
+     "linha": 43
+    },
+    {
+     "tipo": "componente",
+     "nome": "VotosHora",
+     "assinatura": "export function VotosHora({ arquivo, turno, zonaEscolhida, locais, onSelecionar }: Props)",
+     "doc": "O painel inteiro dos votos por hora do lugar.",
+     "linha": 56
+    },
+    {
+     "tipo": "componente",
+     "nome": "Lugares",
+     "assinatura": "function Lugares({ arquivo, turno, onSelecionar, onZona }: { arquivo: ArquivoVotosHora; turno: string;",
+     "doc": "As UFs, os municípios ou as zonas do lugar, 20 por página, com o link para abrir cada um.",
+     "linha": 129
+    },
+    {
+     "tipo": "componente",
+     "nome": "Secoes",
+     "assinatura": "function Secoes({ arquivo, turno, zona, locais }: { arquivo: ArquivoVotosHora; turno: string; zona: string | null;",
+     "doc": "As seções do município no turno (ou da zona escolhida), com busca pelo local de votação, 20 por página.",
+     "linha": 182
     }
    ]
   },
@@ -18668,7 +19091,7 @@
   {
    "caminho": "packages/eleicoes/testes/test_horarios.py",
    "doc": "Horários das urnas (ADR-056): do boletim de urna do TSE aos arquivos do site dos painéis.\n\nOs recortes em ``testes/fixtures/tse/horarios`` são linhas reais, sem alteração, dos boletins de urna do 2º turno\nde 2026 (``bweb_2t_<UF>_261020260742.csv``): três seções de Senador Guiomard (AC, zona 8), onde a urna abre às 6h\nlocais (8h de Brasília), e duas de Brasília (DF, zona 17). O formato de 2018 (``\"SG_ UF\"``, datas\n``dd/mm/aaaa`` e sem os horários do boletim) é montado no teste.",
-   "testes": 11
+   "testes": 12
   },
   {
    "caminho": "packages/eleicoes/testes/test_medicao.py",
@@ -18699,6 +19122,11 @@
    "caminho": "packages/eleicoes/testes/test_tse.py",
    "doc": "Leitura do sistema de divulgação de resultados do TSE, com arquivos reais.",
    "testes": 21
+  },
+  {
+   "caminho": "packages/eleicoes/testes/test_votos_hora.py",
+   "doc": "Votos por hora (ADR-057): dos logs das urnas, lidos por pedaços do ZIP do TSE, às contagens publicadas.\n\nOs logs dos testes são montados aqui, com o formato real (data e hora, nível, número da urna, aplicação,\nmensagem e código de controle, separados por tabulação), sem nenhuma linha de log real: os logs do TSE trazem o\ntítulo de eleitor de mesários.",
+   "testes": 12
   },
   {
    "caminho": "packages/eleicoes/testes/test_zonas.py",
@@ -19134,6 +19562,11 @@
    "caminho": "packages/portal/src/lib/__testes__/validacao.test.ts",
    "doc": "Contrato entre o Python (que grava) e o portal (que lê): a amostra em\ntestes/fixtures/eleicoes_feed é gerada por `lumen eleicoes amostra` e\nconferida byte a byte do lado Python. Se um lado mudar sem o outro, um dos\ndois conjuntos de testes quebra.",
    "testes": 10
+  },
+  {
+   "caminho": "packages/portal/src/lib/__testes__/votosHora.test.ts",
+   "doc": "",
+   "testes": 8
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/zonas.test.ts",

@@ -5,6 +5,22 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Eleições: os votos por hora (ADR-057)
+
+- Painel "Votos por hora" no lugar aberto da aba Eleições, de 2022 em
+  diante: votos registrados, a hora com mais votos, até que horas metade
+  tinha votado e quantos votaram depois das 17h (na fila); o gráfico de
+  cada hora; os estados, os municípios ou as zonas abaixo; no município,
+  cada seção com o local de votação, com busca. CSV com uma coluna por hora.
+- Dados dos logs das urnas (dados abertos do TSE; 2018 e 2020 não têm),
+  lidos por pedaços pela rede: só o índice dos ZIPs e o log de cada seção,
+  sem baixar os 219 GB de 2026. Só a contagem fica; nenhuma linha do log é
+  guardada.
+- Fluxo `votos-hora`: um job por UF e ano e um pacote por ano (perto de
+  12 MB) no estado dos painéis, desempacotado no site dos painéis.
+- Horários das urnas: o comparecimento da seção passa a ser o de Presidente,
+  que conta o eleitor em trânsito (antes, no DF, saía o de Governador).
+
 ### Eleições: os horários das urnas (ADR-056)
 
 - Painel "Horários das urnas" no lugar aberto da aba Eleições, de 2018 em
