@@ -500,7 +500,8 @@ def cmd_votos_hora(cfg, args) -> int:
     parciais = Path(args.parciais)
     resumo: dict = {"ano": args.ano, "coleta": []}
     falhou = False
-    urls = votos_hora.urls_do_ano(args.ano, user_agent=cfg.user_agent, tentativas=5)
+    urls = votos_hora.urls_do_ano(args.ano, user_agent=cfg.user_agent, tentativas=5,
+                                  turnos=range(1, args.turnos_esperados + 1))
     if args.ufs:
         ufs = sorted({uf for _, uf, _ in urls}) if args.ufs == ["todas"] else args.ufs
         if not urls:

@@ -69,7 +69,8 @@ jobs:
           ua = carregar().user_agent
           coletas = []
           for ano in anos:
-              urls = v.urls_do_ano(ano, user_agent=ua, tentativas=5)
+              # O 1º e o 2º turno procurados também no servidor: o catálogo às vezes esquece o 2º
+              urls = v.urls_do_ano(ano, user_agent=ua, tentativas=5, turnos=(1, 2))
               for uf in sorted({u for _, u, _ in urls}):
                   coletas.append({"ano": ano, "uf": uf, "turnos": sum(1 for _, u, _ in urls if u == uf)})
           print(f"anos={json.dumps(anos)}")

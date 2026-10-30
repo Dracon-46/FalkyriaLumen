@@ -76,11 +76,14 @@ Secao = list
 
 def urls_do_ano(ano: int, *, user_agent: str, tentativas: int = 3,
                 abrir: Callable = urllib.request.urlopen, esperar: Callable[[float], None] = time.sleep,
-                ) -> list[tuple[int, str, str]]:
+                existe: Callable[[str], bool] | None = None, turnos: Iterable[int] = ()) -> list[tuple[int, str, str]]:
     """Os arquivos transmitidos das urnas no ano, como ``(turno, UF, URL)``, pelo catálogo de dados abertos.
 
     Como em ``horarios.urls_do_ano``, o catálogo às vezes responde uma versão antiga (em 30/10/2026, ora com o 2º
-    turno de 2026, ora sem): pergunta ``tentativas`` vezes e fica com a resposta que lista mais arquivos.
+    turno de 2026, ora sem): pergunta ``tentativas`` vezes e fica com a resposta que lista mais arquivos. Mesmo
+    assim pode faltar o turno de uma UF, ou o turno inteiro: os nomes seguem um padrão, e o turno que falta (dos
+    listados em alguma UF e dos ``turnos`` esperados) é procurado no servidor (``existe(url)``, um HEAD) pelo nome
+    que teria.
     """
     melhor: list[tuple[int, str, str]] = []
     for i in range(tentativas):
@@ -97,7 +100,38 @@ def urls_do_ano(ano: int, *, user_agent: str, tentativas: int = 3,
             melhor = achados
         if i + 1 < tentativas:
             esperar(2)
-    return sorted(set(melhor))
+    existe = existe or (lambda url: _existe(url, user_agent))
+    return completar(sorted(set(melhor)), existe, turnos)
+
+
+def completar(urls: list[tuple[int, str, str]], existe: Callable[[str], bool],
+              turnos: Iterable[int] = ()) -> list[tuple[int, str, str]]:
+    """Acrescenta os turnos que o catálogo não listou (os de outra UF e os ``turnos`` esperados), se o arquivo
+    existe no servidor: o endereço é o de um arquivo listado com o turno e a sigla trocados."""
+    achados = set(urls)
+    modelo = next((url for _, _, url in urls if re.search(r"_\dt_[A-Za-z]{2}\.zip$", url)), None)
+    if modelo is None:
+        return sorted(achados)
+    m = re.search(r"_(\d)t_([A-Za-z]{2})\.zip$", modelo)
+    assert m is not None
+    for t in sorted({t for t, _, _ in urls} | set(turnos)):
+        for uf in sorted({u for _, u, _ in urls}):
+            if any(x[0] == t and x[1] == uf for x in achados):
+                continue
+            url = f"{modelo[:m.start(1)]}{t}t_{uf.upper()}{modelo[m.end(2):]}"
+            if existe(url):
+                achados.add((t, uf, url))
+    return sorted(achados)
+
+
+def _existe(url: str, user_agent: str) -> bool:
+    """O servidor tem o arquivo (HEAD com resposta 200)?"""
+    try:
+        pedido = urllib.request.Request(url, method="HEAD", headers={"User-Agent": user_agent})
+        with urllib.request.urlopen(pedido, timeout=60) as resposta:
+            return resposta.status == 200
+    except OSError:
+        return False
 
 
 # ---------------------------------------------------------------- ZIP remoto

@@ -197,7 +197,8 @@ def test_urls_do_ano_fica_com_a_resposta_mais_completa():
 
     def abrir(pedido, timeout):
         return _Resposta(json.dumps({"result": {"resources": next(respostas)}}).encode())
-    assert v.urls_do_ano(2026, user_agent="Lumen/teste", abrir=abrir, esperar=lambda _: None) == [
+    assert v.urls_do_ano(2026, user_agent="Lumen/teste", abrir=abrir, esperar=lambda _: None,
+                         existe=lambda _: False) == [
         (1, "ac", base + "bu_imgbu_logjez_rdv_vscmr_2026_1t_AC.zip"),
         (2, "zz", base + "bu_imgbu_logjez_rdv_vscmr_2026_2t_ZZ.zip")]
 
@@ -205,3 +206,26 @@ def test_urls_do_ano_fica_com_a_resposta_mais_completa():
 def test_leitor_exige_identificacao():
     with pytest.raises(ValueError, match="user_agent"):
         v.LeitorRemoto("https://exemplo/a.zip", user_agent=" ")
+
+
+def test_completar_o_turno_que_o_catalogo_nao_listou():
+    base = "https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes2026/arqurnatot/"
+    urls = [(1, "ac", base + "bu_imgbu_logjez_rdv_vscmr_2026_1t_AC.zip"),
+            (1, "df", base + "bu_imgbu_logjez_rdv_vscmr_2026_1t_DF.zip"),
+            (2, "ac", base + "bu_imgbu_logjez_rdv_vscmr_2026_2t_AC.zip")]
+    perguntados = []
+
+    def existe(url):
+        perguntados.append(url)
+        return url.endswith("_2t_DF.zip")
+    assert v.completar(urls, existe)[-1] == (2, "df", base + "bu_imgbu_logjez_rdv_vscmr_2026_2t_DF.zip")
+    assert perguntados == [base + "bu_imgbu_logjez_rdv_vscmr_2026_2t_DF.zip"]
+    assert v.completar(urls, lambda _: False) == urls        # o servidor não tem: fica como o catálogo listou
+
+
+def test_completar_o_turno_inteiro_que_o_catalogo_nao_listou():
+    base = "https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes2026/arqurnatot/"
+    urls = [(1, "ac", base + "bu_imgbu_logjez_rdv_vscmr_2026_1t_AC.zip")]
+    assert v.completar(urls, lambda u: True, turnos=range(1, 3)) == [
+        *urls, (2, "ac", base + "bu_imgbu_logjez_rdv_vscmr_2026_2t_AC.zip")]
+    assert v.completar([], lambda u: True, turnos=[2]) == []

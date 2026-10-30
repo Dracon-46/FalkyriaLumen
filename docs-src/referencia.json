@@ -2138,7 +2138,7 @@
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/cli.py",
    "linguagem": "python",
-   "linhas": 840,
+   "linhas": 841,
    "doc": "Linha de comando da aba Eleições (``lumen eleicoes ...``).\n\nExemplos::\n\n    lumen eleicoes preparar --servir                # tudo: mapa, 1933 a 2026, portal no navegador\n    lumen eleicoes preparar --nuvem --limite-minutos 280 --apagar-zips   # a mesma carga no GitHub Actions\n    lumen eleicoes publicar                         # envia ao R2 os feeds que mudaram\n    lumen eleicoes catalogo                         # o que o TSE publica agora\n    lumen eleicoes municipios                       # cadastro TSE ↔ IBGE (busca e mapa)\n    lumen eleicoes mapas                            # malhas do IBGE para o mapa\n    lumen eleicoes mapas --contornos                # contornos finos dos municípios do mapa das zonas\n    lumen eleicoes zonas --anos 2026,2024           # locais de votação: mapa das zonas eleitorais\n    lumen eleicoes eleitorado --anos 2026           # perfil, comparecimento por perfil e seções\n    lumen eleicoes horarios --anos 2026             # abertura, encerramento e boletim de cada urna\n    lumen eleicoes votos-hora --ano 2026 --ufs todas --montar   # votos por hora, pelos logs das urnas\n    lumen eleicoes ao-vivo --eleicao 2026-1t-geral  # noite da apuração\n    lumen eleicoes historico baixar --anos 2022,2018,1950\n    lumen eleicoes historico processar --anos 2022,2018,1950\n    lumen eleicoes simular                          # apuração fictícia para testar a tela\n    lumen eleicoes servir                           # portal + feeds em http://127.0.0.1:8080\n    lumen eleicoes verificar                        # confere o contrato dos feeds gravados\n    lumen eleicoes medir --resumo resumo.md         # tamanho dos feeds contra os limites gratuitos",
    "itens": [
     {
@@ -2307,70 +2307,70 @@
      "nome": "cmd_conferir",
      "assinatura": "def cmd_conferir(cfg, args) -> int",
      "doc": "Só a conferência seção a seção (ADR-053): soma a votação por seção de Presidente dos anos pedidos e\ncompara com o total do sistema de resultados; grava ``<eleição>/presidente/conferencia.json``.\n\nO andamento vai para o stderr; no stdout, o resumo em JSON. Devolve 1 se a conferência falhou.",
-     "linha": 533
+     "linha": 534
     },
     {
      "tipo": "funcao",
      "nome": "_rodar_simulacao",
      "assinatura": "def _rodar_simulacao(cfg, arquivos: Path, eleicao_id: str, etapas: int, intervalo: float, ufs: list[str] | None, estado: Path | None) -> int",
      "doc": "Roda o coletor ao vivo contra um servidor local que publica os arquivos finais em ``etapas``.\n\nA cada intervalo entre passadas o cenário avança uma etapa, até ``etapas`` passadas. Por ser\nlocal, o cliente ignora o proxy do ambiente e tem limite de taxa folgado. Devolve 2 se a eleição\nnão está no catálogo da simulação.",
-     "linha": 551
+     "linha": 552
     },
     {
      "tipo": "funcao",
      "nome": "cmd_simular",
      "assinatura": "def cmd_simular(cfg, args) -> int",
      "doc": "Simula uma apuração a partir dos arquivos finais (as fixtures, por padrão), avisando no stderr que\nos números intermediários são fictícios.",
-     "linha": 582
+     "linha": 583
     },
     {
      "tipo": "funcao",
      "nome": "cmd_publicar",
      "assinatura": "def cmd_publicar(cfg, args) -> int",
      "doc": "Envia ao bucket público os feeds novos ou alterados e grava o estado no privado (ADR-026).",
-     "linha": 591
+     "linha": 592
     },
     {
      "tipo": "funcao",
      "nome": "cmd_amostra",
      "assinatura": "def cmd_amostra(cfg, args) -> int",
      "doc": "Feeds a partir dos arquivos reais das fixtures, para desenvolver o portal sem rede, com o mapa e o\ncadastro de municípios que vêm com o pacote.",
-     "linha": 602
+     "linha": 603
     },
     {
      "tipo": "funcao",
      "nome": "cmd_servir",
      "assinatura": "def cmd_servir(cfg, args) -> int",
      "doc": "Serve o portal gerado e os feeds em HTTP local até Ctrl+C; devolve 2 se o portal não foi gerado.",
-     "linha": 612
+     "linha": 613
     },
     {
      "tipo": "funcao",
      "nome": "cmd_verificar",
      "assinatura": "def cmd_verificar(cfg, args) -> int",
      "doc": "Confere o contrato dos feeds gravados; imprime cada problema e o total, e devolve 1 se houver algum.",
-     "linha": 629
+     "linha": 630
     },
     {
      "tipo": "funcao",
      "nome": "cmd_medir",
      "assinatura": "def cmd_medir(cfg, args) -> int",
      "doc": "Mede os feeds gravados contra os limites do R2 e do Supabase gratuitos; imprime JSON.\n\n``--resumo`` também grava o resumo em Markdown (no GitHub Actions, o ``$GITHUB_STEP_SUMMARY``).\nDevolve 1 se não houver nenhum feed para medir.",
-     "linha": 638
+     "linha": 639
     },
     {
      "tipo": "funcao",
      "nome": "construir_parser",
      "assinatura": "def construir_parser() -> argparse.ArgumentParser",
      "doc": "Monta o parser de ``lumen eleicoes``: opções globais e um subcomando por ação.\n\n``historico`` tem os seus próprios subcomandos, ``baixar`` e ``processar``.",
-     "linha": 654
+     "linha": 655
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada: lê argumentos e configuração e despacha para o comando; devolve o código de saída.\n\nOs comandos que não consultam as fontes (``servir``, ``verificar``, ``amostra``, ``publicar``, ``medir``)\ndispensam o contato da coleta. ``--saida`` sobrepõe o diretório dos feeds da configuração. Falta de\nconfiguração da nuvem (``--nuvem``, ``publicar``) vira mensagem e código 2.",
-     "linha": 811
+     "linha": 812
     }
    ]
   },
@@ -5449,225 +5449,239 @@
   {
    "caminho": "packages/eleicoes/lumen_eleicoes/votos_hora.py",
    "linguagem": "python",
-   "linhas": 558,
+   "linhas": 592,
    "doc": "Votos por hora: quantos eleitores votaram em cada hora, pelos registros (logs) das urnas (ADR-057).\n\nO TSE publica, de 2022 em diante, os arquivos que cada urna transmitiu para a totalização\n(``bu_imgbu_logjez_rdv_vscmr_<ano>_<turno>t_<UF>.zip``, conjunto ``resultados-<ano>-arquivos-transmitidos-para-\ntotalizacao``). Cada seção tem ali o boletim, a imagem do boletim, o registro digital do voto, as assinaturas e o\nlog (``o<pleito><uf><município><zona><seção>-log.jez``, um ZIP com ``logd.dat``). No log, cada voto deixa a linha::\n\n    04/10/2026 14:40:05 INFO    02263093        VOTA    O voto do eleitor foi computado C8059082A7F11D8E\n\ncom a hora do relógio da urna (horário local da seção). O log também traz o título de mesários e outros dados que\nnão interessam aqui: só a contagem de votos por faixa de 10 minutos sai da leitura; nenhuma linha é guardada.\n\nTamanho e leitura. Os arquivos são enormes (2026: 219 GB nos dois turnos; o 2º turno de SP tem 26 GB), mas o log\né perto de metade e cada um é pequeno (perto de 90 KB). ``LeitorRemoto`` lê o índice do ZIP (o diretório central,\nno fim do arquivo) e busca só os logs, um pedido HTTP ``Range`` por seção, em várias conexões ao mesmo tempo: nada\nvai para o disco. O log do 2º turno traz também o do 1º (é o mesmo registro, acumulado): conta só o último dia com\nvotos do log, que é o do turno do arquivo.\n\nHorário de Brasília. Desde 2022 a votação vai das 8h às 17h de Brasília: a diferença de cada seção sai da hora em\nque a urna ficou \"pronta para receber votos\" (6h no Acre, 2 horas de diferença); vale a diferença mais comum entre\nas seções do município, porque uma urna trocada fica pronta mais tarde. No exterior, o horário fica o local.\n\nArquivos gravados (JSON comprimido com gzip), no site dos painéis, como os horários das urnas (ADR-056)::\n\n    votos-hora/<ano>/br.json.gz             o Brasil e cada UF, por turno\n    votos-hora/<ano>/uf-<sigla>.json.gz     a UF e cada município\n    votos-hora/<ano>/mu/<grupo>.json.gz     os municípios do grupo (3º e 4º dígitos do IBGE): zonas e seções\n\nA coleta é por UF (``coletar``, que grava a parcial da UF) e a montagem junta as parciais do ano (``montar``):\nno GitHub Actions, cada UF roda num job à parte.",
    "itens": [
     {
      "tipo": "funcao",
      "nome": "urls_do_ano",
-     "assinatura": "def urls_do_ano(ano: int, *, user_agent: str, tentativas: int=3, abrir: Callable=urllib.request.urlopen, esperar: Callable[[float], None]=time.sleep) -> list[tuple[int, str, str]]",
-     "doc": "Os arquivos transmitidos das urnas no ano, como ``(turno, UF, URL)``, pelo catálogo de dados abertos.\n\nComo em ``horarios.urls_do_ano``, o catálogo às vezes responde uma versão antiga (em 30/10/2026, ora com o 2º\nturno de 2026, ora sem): pergunta ``tentativas`` vezes e fica com a resposta que lista mais arquivos.",
+     "assinatura": "def urls_do_ano(ano: int, *, user_agent: str, tentativas: int=3, abrir: Callable=urllib.request.urlopen, esperar: Callable[[float], None]=time.sleep, existe: Callable[[str], bool] | None=None, turnos: Iterable[int]=()) -> list[tuple[int, str, str]]",
+     "doc": "Os arquivos transmitidos das urnas no ano, como ``(turno, UF, URL)``, pelo catálogo de dados abertos.\n\nComo em ``horarios.urls_do_ano``, o catálogo às vezes responde uma versão antiga (em 30/10/2026, ora com o 2º\nturno de 2026, ora sem): pergunta ``tentativas`` vezes e fica com a resposta que lista mais arquivos. Mesmo\nassim pode faltar o turno de uma UF, ou o turno inteiro: os nomes seguem um padrão, e o turno que falta (dos\nlistados em alguma UF e dos ``turnos`` esperados) é procurado no servidor (``existe(url)``, um HEAD) pelo nome\nque teria.",
      "linha": 77
+    },
+    {
+     "tipo": "funcao",
+     "nome": "completar",
+     "assinatura": "def completar(urls: list[tuple[int, str, str]], existe: Callable[[str], bool], turnos: Iterable[int]=()) -> list[tuple[int, str, str]]",
+     "doc": "Acrescenta os turnos que o catálogo não listou (os de outra UF e os ``turnos`` esperados), se o arquivo\nexiste no servidor: o endereço é o de um arquivo listado com o turno e a sigla trocados.",
+     "linha": 107
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_existe",
+     "assinatura": "def _existe(url: str, user_agent: str) -> bool",
+     "doc": "O servidor tem o arquivo (HEAD com resposta 200)?",
+     "linha": 127
     },
     {
      "tipo": "classe",
      "nome": "ErroRemoto",
      "assinatura": "class ErroRemoto(Exception)",
      "doc": "O servidor não respondeu ao pedido de um pedaço do arquivo depois das tentativas.",
-     "linha": 105
+     "linha": 139
     },
     {
      "tipo": "funcao",
      "nome": "_proxy_para",
      "assinatura": "def _proxy_para(host: str) -> tuple[str, int] | None",
      "doc": "O proxy HTTPS do ambiente (``HTTPS_PROXY``), se o host não está em ``NO_PROXY``.",
-     "linha": 109
+     "linha": 143
     },
     {
      "tipo": "classe",
      "nome": "LeitorRemoto",
      "assinatura": "class LeitorRemoto",
      "doc": "Lê pedaços de um arquivo HTTPS por ``Range``, com uma conexão persistente por thread e novas tentativas.",
-     "linha": 118
+     "linha": 152
     },
     {
      "tipo": "metodo",
      "nome": "LeitorRemoto.__init__",
      "assinatura": "def __init__(self, url: str, *, user_agent: str, tentativas: int=5, timeout: float=120, dormir: Callable[[float], None]=time.sleep)",
      "doc": "Arquivo em ``url``; ``user_agent`` identifica a coleta (obrigatório, princípio P6).",
-     "linha": 121
+     "linha": 155
     },
     {
      "tipo": "metodo",
      "nome": "LeitorRemoto._conexao",
      "assinatura": "def _conexao(self) -> http.client.HTTPSConnection",
      "doc": "A conexão desta thread (aberta na primeira vez, pelo proxy do ambiente quando há).",
-     "linha": 139
+     "linha": 173
     },
     {
      "tipo": "metodo",
      "nome": "LeitorRemoto._fechar",
      "assinatura": "def _fechar(self) -> None",
      "doc": "Fecha a conexão desta thread depois de um erro; o próximo pedido abre outra.",
-     "linha": 153
+     "linha": 187
     },
     {
      "tipo": "metodo",
      "nome": "LeitorRemoto.ler",
      "assinatura": "def ler(self, inicio: int, tamanho: int) -> bytes",
      "doc": "Os ``tamanho`` bytes a partir de ``inicio``; ``inicio`` negativo lê os últimos ``-inicio`` bytes.",
-     "linha": 160
+     "linha": 194
     },
     {
      "tipo": "classe",
      "nome": "Entrada",
      "assinatura": "class Entrada",
      "doc": "Um arquivo dentro do ZIP: nome, método de compressão, tamanho comprimido e onde começa o cabeçalho local.",
-     "linha": 186
+     "linha": 220
     },
     {
      "tipo": "funcao",
      "nome": "entradas_do_zip",
      "assinatura": "def entradas_do_zip(ler: Callable[[int, int], bytes]) -> list[Entrada]",
      "doc": "As entradas do ZIP pelo diretório central, com ZIP64 (arquivos e posições acima de 4 GB).\n\n``ler(inicio, tamanho)`` devolve os bytes; ``inicio`` negativo, os últimos bytes do arquivo.",
-     "linha": 196
+     "linha": 230
     },
     {
      "tipo": "funcao",
      "nome": "conteudo",
      "assinatura": "def conteudo(ler: Callable[[int, int], bytes], e: Entrada) -> bytes",
      "doc": "O conteúdo descomprimido de uma entrada: um pedido com folga para o cabeçalho local; outro, se faltar.",
-     "linha": 242
+     "linha": 276
     },
     {
      "tipo": "classe",
      "nome": "LogContado",
      "assinatura": "class LogContado",
      "doc": "O que sai de um log: o dia contado, a hora local em que a urna ficou pronta e os votos por faixa.",
-     "linha": 263
+     "linha": 297
     },
     {
      "tipo": "funcao",
      "nome": "contar_log",
      "assinatura": "def contar_log(jez: bytes) -> LogContado",
      "doc": "Conta os votos computados do último dia com votos de um ``-log.jez``, por faixa de ``PASSO`` minutos no\nhorário local, e acha a hora em que a urna ficou pronta nesse dia. Nenhuma linha é guardada.",
-     "linha": 271
+     "linha": 305
     },
     {
      "tipo": "funcao",
      "nome": "diferenca",
      "assinatura": "def diferenca(pronta: int | None) -> int | None",
      "doc": "Minutos a somar ao horário local da urna para ter o de Brasília: a hora cheia entre a urna pronta e as 8h\n(0 a 3 horas); sem a hora da urna pronta, None.",
-     "linha": 292
+     "linha": 326
     },
     {
      "tipo": "classe",
      "nome": "ResumoColeta",
      "assinatura": "class ResumoColeta",
      "doc": "O que ``coletar`` leu de uma UF.",
-     "linha": 301
+     "linha": 335
     },
     {
      "tipo": "metodo",
      "nome": "ResumoColeta.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "Dicionário para imprimir em JSON.",
-     "linha": 312
+     "linha": 346
     },
     {
      "tipo": "funcao",
      "nome": "ler_arquivo",
      "assinatura": "def ler_arquivo(turno: int, url: str, *, user_agent: str, trabalhadores: int=24, progresso: Callable[[str], None] | None=None, leitor: LeitorRemoto | None=None) -> Iterator[Secao]",
      "doc": "As seções de um arquivo transmitido (um turno de uma UF), lendo só os logs pela rede.",
-     "linha": 318
+     "linha": 352
     },
     {
      "tipo": "funcao",
      "nome": "coletar",
      "assinatura": "def coletar(uf: str, urls: Iterable[tuple[int, str, str]], destino: Path | str, *, user_agent: str, trabalhadores: int=24, progresso: Callable[[str], None] | None=None, abrir: Callable[[str], LeitorRemoto] | None=None) -> ResumoColeta",
      "doc": "Lê os arquivos da UF (os dois turnos) e grava a parcial ``destino/<uf>.json.gz``: uma linha por seção.\n\n``abrir(url)`` dá o leitor de cada arquivo (nos testes, um arquivo em memória).",
-     "linha": 338
+     "linha": 372
     },
     {
      "tipo": "funcao",
      "nome": "ler_parciais",
      "assinatura": "def ler_parciais(pasta: Path | str) -> list[Secao]",
      "doc": "As seções das parciais gravadas por ``coletar`` (``<uf>.json.gz``), com as faixas de volta a números.",
-     "linha": 369
+     "linha": 403
     },
     {
      "tipo": "funcao",
      "nome": "em_brasilia",
      "assinatura": "def em_brasilia(secoes: list[Secao]) -> list[Secao]",
      "doc": "As seções com as faixas no horário de Brasília, pela diferença mais comum entre as seções do município: a\nurna que ficou pronta tarde (trocada, com defeito) não muda o fuso da seção. No exterior, o horário fica o\nlocal.",
-     "linha": 380
+     "linha": 414
     },
     {
      "tipo": "funcao",
      "nome": "por_hora",
      "assinatura": "def por_hora(faixas: dict[int, int]) -> list[int]",
      "doc": "``[primeira hora, votos nela, na seguinte, ...]`` até a última hora com votos; sem votos, ``[]``.",
-     "linha": 396
+     "linha": 430
     },
     {
      "tipo": "funcao",
      "nome": "por_faixa",
      "assinatura": "def por_faixa(faixas: dict[int, int]) -> dict",
      "doc": "``{inicio, passo, contagens}`` de 10 em 10 minutos, da primeira à última faixa com votos.",
-     "linha": 408
+     "linha": 442
     },
     {
      "tipo": "funcao",
      "nome": "_somar",
      "assinatura": "def _somar(secoes: Iterable[Secao]) -> Counter",
      "doc": "Os votos das seções somados por faixa.",
-     "linha": 417
+     "linha": 451
     },
     {
      "tipo": "funcao",
      "nome": "_turnos",
      "assinatura": "def _turnos(secoes: list[Secao], *, completo: bool) -> dict",
      "doc": "``{\"1\": {...}, \"2\": {...}}``: votos, seções e votos por hora; com ``completo``, também de 10 em 10 minutos.",
-     "linha": 425
+     "linha": 459
     },
     {
      "tipo": "funcao",
      "nome": "grupo",
      "assinatura": "def grupo(chave: str) -> str",
      "doc": "O arquivo que leva o município: o 3º e o 4º dígitos do código IBGE (100 arquivos, e não os 750 dos\nhorários: o site dos painéis está perto do limite de arquivos); ``zz`` para as cidades do exterior.",
-     "linha": 440
+     "linha": 474
     },
     {
      "tipo": "classe",
      "nome": "ResumoVotos",
      "assinatura": "class ResumoVotos",
      "doc": "O que ``gravar`` produziu num ano.",
-     "linha": 447
+     "linha": 481
     },
     {
      "tipo": "metodo",
      "nome": "ResumoVotos.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "Dicionário para imprimir em JSON.",
-     "linha": 457
+     "linha": 491
     },
     {
      "tipo": "funcao",
      "nome": "montar",
      "assinatura": "def montar(ano: int, secoes: list[Secao], cadastro: CadastroMunicipios, origem: dict) -> tuple[dict[str, dict], ResumoVotos]",
      "doc": "Os arquivos do ano (caminho relativo, sem o ``.gz`` → conteúdo) e o resumo.",
-     "linha": 463
+     "linha": 497
     },
     {
      "tipo": "funcao",
      "nome": "_gz",
      "assinatura": "def _gz(dados: dict) -> bytes",
      "doc": "JSON compacto comprimido com gzip, sem data no cabeçalho.",
-     "linha": 521
+     "linha": 555
     },
     {
      "tipo": "funcao",
      "nome": "gravar",
      "assinatura": "def gravar(ano: int, secoes: list[Secao], raiz: Path | str, cadastro: CadastroMunicipios, *, urls: Iterable[str]=()) -> ResumoVotos",
      "doc": "Grava ``votos-hora/<ano>/`` sob ``raiz`` (``.json.gz``) e apaga o que sobrou de uma gravação anterior.",
-     "linha": 527
+     "linha": 561
     },
     {
      "tipo": "funcao",
      "nome": "empacotar",
      "assinatura": "def empacotar(ano: int, raiz: Path | str, destino: Path | str) -> Path",
      "doc": "Junta ``votos-hora/<ano>/`` em ``destino/votos-hora-<ano>.tar`` (como ``horarios.empacotar``).",
-     "linha": 546
+     "linha": 580
     }
    ]
   },
@@ -19126,7 +19140,7 @@
   {
    "caminho": "packages/eleicoes/testes/test_votos_hora.py",
    "doc": "Votos por hora (ADR-057): dos logs das urnas, lidos por pedaços do ZIP do TSE, às contagens publicadas.\n\nOs logs dos testes são montados aqui, com o formato real (data e hora, nível, número da urna, aplicação,\nmensagem e código de controle, separados por tabulação), sem nenhuma linha de log real: os logs do TSE trazem o\ntítulo de eleitor de mesários.",
-   "testes": 12
+   "testes": 14
   },
   {
    "caminho": "packages/eleicoes/testes/test_zonas.py",
