@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   description:
     "Falkyria Lumen: dados públicos do Brasil, com a fonte de cada número. Resultados oficiais das eleições, " +
     "contratações públicas e conformidade fiscal.",
+  authors: [{ name: "Falkyria", url: "https://dracon-46.github.io/Portifolio/#falkyria" }],
+  creator: "Falkyria",
+  publisher: "Falkyria",
   icons: { icon: "/icone.svg" },
 };
 

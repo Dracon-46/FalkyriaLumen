@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/marca/falkyria-marca-branca.svg">
+    <img src=".github/marca/falkyria-marca.svg" alt="Falkyria" width="220">
+  </picture>
+</p>
+
 # Falkyria Lumen
 
 Sistema de monitoramento de contratações e despesas públicas do Brasil.
@@ -444,8 +451,8 @@ Cobertura de 97% no Python. Todo módulo, classe e função tem documentação (
   custo.
 - **Natureza institucional** — projeto pessoal, produto da empresa ou iniciativa sem fins
   lucrativos; afeta a percepção de imparcialidade.
-- **Abertura do código** — reforça a credibilidade da metodologia, mas exige disciplina
-  adicional de documentação e governança.
+- **Abertura do código** — decidido: o código é proprietário da Falkyria e fica visível apenas
+  para consulta (veja [Licença](#licença)). A metodologia continua documentada em público.
 - **Apoio jurídico** — a revisão da política editorial por advogado é critério de saída da
   Fase 5 e precisa ser contratada com antecedência.
 
@@ -455,3 +462,9 @@ A documentação deste repositório consolida a política interna do projeto e o
 fundamenta suas escolhas de desenho. Não constitui parecer jurídico. Valores legais, limites e
 endpoints citados foram verificados em fontes oficiais entre setembro e outubro de 2026 e são atualizados
 periodicamente por decreto — reconfira antes de implementar.
+
+## Licença
+
+Lumen é software proprietário da Falkyria. Todos os direitos reservados. O código está visível
+apenas para consulta; veja [LICENSE](LICENSE). Os dados públicos coletados de fontes oficiais
+continuam públicos e seguem as condições de uso de cada fonte.
