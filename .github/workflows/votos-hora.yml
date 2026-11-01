@@ -101,7 +101,7 @@ jobs:
         run: |
           python -m lumen_eleicoes votos-hora --ano "${{ matrix.ano }}" --ufs "${{ matrix.uf }}" \
             --turnos-esperados "${{ matrix.turnos }}" --parciais parciais
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: parcial-${{ matrix.ano }}-${{ matrix.uf }}
           path: parciais/${{ matrix.uf }}.json.gz
