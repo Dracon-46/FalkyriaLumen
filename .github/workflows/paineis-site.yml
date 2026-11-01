@@ -125,7 +125,7 @@ jobs:
             cat resumo.json
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
       # A implantação demora com o número de arquivos (perto de 30 mil em outubro de 2026): o padrão de 10
