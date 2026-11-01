@@ -46,7 +46,7 @@ jobs:
       coletas: ${{ steps.plano.outputs.coletas }}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Instalar o Lumen
@@ -92,7 +92,7 @@ jobs:
       PYTHONUNBUFFERED: "1"
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Instalar o Lumen
@@ -124,7 +124,7 @@ jobs:
       COLETAS: ${{ needs.plano.outputs.coletas }}
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Instalar o Lumen
