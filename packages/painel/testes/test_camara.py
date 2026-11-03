@@ -28,10 +28,10 @@ def _pasta(pasta: Path) -> Path:
          [["10-1", "2025-03-01", "PLEN", "1", "300", "100", "2", "Aprovado o projeto."],
           ["10-2", "2025-03-02", "CCJC", "1", "30", "10", "0", "Aprovado o parecer."],
           ["10-3", "2025-04-01", "PLEN", "", "0", "0", "0", "Sem votos nominais."]])
-    _csv(pasta / "votacoesVotos.csv", ["idVotacao", "voto", "deputado_id"],
-         [["10-1", "Sim", "1"], ["10-1", "Não", "2"], ["10-1", "Sim", "99"], ["10-2", "Sim", "1"]])
-    _csv(pasta / "votacoesProposicoes.csv", ["idVotacao", "proposicao_titulo", "proposicao_ementa"],
-         [["10-1", "PL 759/2015", "Cria a Zona Franca de Rosário."], ["10-1", "PL 1/2016", "Outro."]])
+    _csv(pasta / "votacoesVotos.csv", ["idVotacao", "voto", "deputado_id", "deputado_siglaPartido"],
+         [["10-1", "Sim", "1", "PSD"], ["10-1", "Não", "2", "PT"], ["10-1", "Sim", "99", "X"], ["10-2", "Sim", "1", "PSD"]])
+    _csv(pasta / "votacoesProposicoes.csv", ["idVotacao", "proposicao_titulo", "proposicao_ementa", "proposicao_id"],
+         [["10-1", "PL 759/2015", "Cria a Zona Franca de Rosário.", "1029018"], ["10-1", "PL 1/2016", "Outro.", "9"]])
     _csv(pasta / "votacoesOrientacoes.csv", ["idVotacao", "siglaBancada", "orientacao"],
          [["10-1", "Governo", "Sim"], ["10-1", "Oposição", "Não"]])
     _csv(pasta / "eventos.csv", ["id", "dataHoraInicio", "descricaoTipo", "situacao"],
@@ -62,8 +62,9 @@ def test_ano_com_votos_presenca_autoria_e_cota(tmp_path):
     a = camara.ler_ano(_pasta(tmp_path / "ano"), 2025, DEPUTADOS)
     assert list(a["votacoes"]) == ["10-1"]                           # só o Plenário com voto nominal
     assert a["votacoes"]["10-1"] == ["2025-03-01", "PL 759/2015", "Cria a Zona Franca de Rosário.",
-                                     "Aprovado o projeto.", 1, 300, 100, 2, "Sim"]
+                                     "Aprovado o projeto.", 1, 300, 100, 2, "Sim", "1029018"]
     assert a["votos"] == {"1": {"10-1": "S"}, "2": {"10-1": "N"}}    # o 99 não está no cadastro
+    assert a["partidos"] == {"10-1": {"1": "PSD", "2": "PT"}}        # o partido no dia do voto
     assert a["sessoes"] == {"E1": "2025-02-10", "E2": "2025-06-10"}  # cancelada e de comissão ficam de fora
     assert a["presencas"] == {"1": ["E1", "E2"], "2": ["E2"]}
     assert a["autoria"] == {"1": [["P1", "PL", "12", "2025", "Dá nome a uma ponte.", "2025-05-01",
@@ -88,6 +89,7 @@ def test_periodos_em_exercicio():
     assert camara.em_exercicio("2026-01-01", p)
     assert camara.no_mandato("2023-01-31", [56]) and not camara.no_mandato("2023-02-01", [56])
     assert camara.no_mandato("2027-01-31", [57]) and not camara.no_mandato("2019-01-31", [56, 57])
+    assert camara.no_mandato("2003-02-01", [52]) and camara.no_mandato("2019-01-31", [55])
 
 
 class _Resposta(io.BytesIO):
@@ -159,6 +161,7 @@ def test_coleta_e_publicacao(tmp_path):
     assert indice["deputados"][1][10] == {"2024": [1, 1, 1, 1, 0], "2025": [1, 1, 1, 1, 180.5]}
     assert indice["legislaturas"]["57"] == [2023, 2026]
     assert gravados["parlamentares/camara/votacoes-2025.json.gz"]["votacoes"]["10-1"][1] == "PL 759/2015"
+    assert gravados["parlamentares/camara/votos-2025.json.gz"]["votos"]["10-1"] == [["1", "S", "PSD"], ["2", "N", "PT"]]
     # Sem anos pedidos, o tamanho decide: 2025 é o corrente e foi lido agora, e não volta
     r2 = camara.coletar(estado, contato="c", hoje=date(2025, 7, 2), baixar_fn=baixar,
                         cabecalho_fn=lambda url, contato: (10, "e"), cadastro_fn=lambda contato: DEPUTADOS,
@@ -170,5 +173,5 @@ def test_cadastro_sem_legislatura_repetida():
     respostas = {56: [{"id": 2, "nome": "Beltrano", "siglaPartido": "PSB", "siglaUf": "SP"}],
                  57: [{"id": 2, "nome": "Beltrano", "siglaPartido": "PSB", "siglaUf": "SP"},
                       {"id": 2, "nome": "Beltrano", "siglaPartido": "PT", "siglaUf": "SP"}]}
-    ler = lambda url: json.dumps({"dados": respostas[int(url.split("idLegislatura=")[1].split("&")[0])]}).encode()  # noqa: E731
+    ler = lambda url: json.dumps({"dados": respostas.get(int(url.split("idLegislatura=")[1].split("&")[0]), [])}).encode()  # noqa: E731,E501
     assert camara.cadastro(contato="c", ler_fn=ler) == {"2": ["Beltrano", "PT", "SP", [56, 57]]}

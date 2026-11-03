@@ -74,8 +74,22 @@ export interface Deputado {
   anos: Record<string, AnoDeputado>;
 }
 
-/** Uma votação: `[data, proposição, ementa, descrição, aprovação (1, 0 ou null), sim, não, outros, orientação do Governo]`. */
-export type Votacao = [string, string, string, string, number | null, number, number, number, string | null];
+/**
+ * Uma votação: `[data, proposição, ementa, descrição, aprovação (1, 0 ou null), sim, não, outros, orientação do
+ * Governo, id da proposição]`; o id falta nos arquivos publicados antes da página da votação.
+ */
+export type Votacao = [string, string, string, string, number | null, number, number, number, string | null, (string | null)?];
+
+/** O voto de um deputado numa votação: `[id do deputado, voto, partido no dia do voto]`. */
+export type VotoNaVotacao = [string, string, string];
+
+/** Arquivo `parlamentares/camara/votos-<ano>.json.gz`: quem votou em cada votação nominal do ano. */
+interface VotosAno {
+  versao: 1;
+  tipo: "camara-votos";
+  ano: string;
+  votos: Record<string, VotoNaVotacao[]>;
+}
 
 /** Arquivo `parlamentares/camara/votacoes-<ano>.json.gz`. */
 interface VotacoesAno {
@@ -108,6 +122,48 @@ export async function carregarVotacoes(ano: string, sinal?: AbortSignal): Promis
   const bruto = await obterJsonComprimido(url, sinal);
   return bruto === null ? {} : conferir<VotacoesAno>(bruto, "camara-votacoes", url).votacoes;
 }
+
+/** Os votos de cada votação nominal do ano (vazio quando o arquivo não existe). */
+export async function carregarVotosDoAno(ano: string, sinal?: AbortSignal): Promise<Record<string, VotoNaVotacao[]>> {
+  const url = `${BASE}/votos-${ano}.json.gz`;
+  const bruto = await obterJsonComprimido(url, sinal);
+  return bruto === null ? {} : conferir<VotosAno>(bruto, "camara-votos", url).votos;
+}
+
+/** O placar de um partido numa votação. */
+export interface PlacarPartido {
+  partido: string;
+  sim: number;
+  nao: number;
+  abstencao: number;
+  obstrucao: number;
+  outros: number;
+  total: number;
+}
+
+/** O placar de cada partido numa votação, do partido com mais votos ao com menos. */
+export function placarPorPartido(votos: VotoNaVotacao[]): PlacarPartido[] {
+  const m = new Map<string, PlacarPartido>();
+  for (const [, voto, partido] of votos) {
+    const p = m.get(partido) ?? { partido, sim: 0, nao: 0, abstencao: 0, obstrucao: 0, outros: 0, total: 0 };
+    if (voto === "S") p.sim++;
+    else if (voto === "N") p.nao++;
+    else if (voto === "A") p.abstencao++;
+    else if (voto === "O") p.obstrucao++;
+    else p.outros++;
+    p.total++;
+    m.set(partido, p);
+  }
+  return [...m.values()].sort((a, b) => b.total - a.total || a.partido.localeCompare(b.partido));
+}
+
+/** O tipo da proposição pelo título ("PEC 45/2019" → "PEC"); sem título, "Outras". */
+export function tipoDaProposicao(titulo: string): string {
+  return /^([A-Z]{2,5})\b/.exec(titulo.trim())?.[1] ?? "Outras";
+}
+
+/** A página da votação no Lumen. */
+export const urlDaVotacao = (ano: string, id: string) => `/parlamentares/votacoes/?ano=${ano}&id=${encodeURIComponent(id)}`;
 
 /** A foto oficial do deputado no site da Câmara. */
 export const fotoDoDeputado = (id: string) => `https://www.camara.leg.br/internet/deputado/bandep/${id}.jpg`;

@@ -5,6 +5,7 @@
 
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { NavParlamentares } from "@/componentes/parlamentares/NavParlamentares";
 import { PainelParlamentares } from "@/componentes/parlamentares/PainelParlamentares";
 
 /** Título e descrição da página, usados pelo navegador e nas prévias de link. */
@@ -21,6 +22,7 @@ export default function Parlamentares() {
     <div className="painel">
       <div className="painel-topo">
         <h1>Parlamentares</h1>
+        <NavParlamentares atual="deputados" />
       </div>
       <Suspense fallback={<p>Carregando…</p>}>
         <PainelParlamentares />

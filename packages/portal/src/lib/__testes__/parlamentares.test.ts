@@ -71,3 +71,14 @@ describe("parlamentares", () => {
     expect(votoPorExtenso("O")).toBe("Obstrução");
   });
 });
+
+describe("votações", () => {
+  it("soma o placar de cada partido, do maior ao menor", async () => {
+    const { placarPorPartido, tipoDaProposicao } = await import("../parlamentares");
+    expect(placarPorPartido([["1", "S", "PL"], ["2", "N", "PT"], ["3", "S", "PL"], ["4", "O", "PT"], ["5", "-", "PL"]]))
+      .toEqual([{ partido: "PL", sim: 2, nao: 0, abstencao: 0, obstrucao: 0, outros: 1, total: 3 },
+                { partido: "PT", sim: 0, nao: 1, abstencao: 0, obstrucao: 1, outros: 0, total: 2 }]);
+    expect(tipoDaProposicao("PEC 45/2019")).toBe("PEC");
+    expect(tipoDaProposicao("")).toBe("Outras");
+  });
+});

@@ -26,6 +26,7 @@ import {
   paginaNaCamara,
   proposicaoNaCamara,
   totaisDoDeputado,
+  urlDaVotacao,
   type Votacao,
   votoPorExtenso,
   votosComVotacoes,
@@ -196,11 +197,12 @@ function Votos({ d, ano, votacoes }: { d: Deputado; ano: string | null; votacoes
             </tr>
           </thead>
           <tbody>
-            {mostradas.map(({ id, voto, votacao: v }) => (
+            {mostradas.map(({ id, ano: anoDoVoto, voto, votacao: v }) => (
               <tr key={id}>
                 <td>{v ? dataCurta(v[0]) : "—"}</td>
                 <td>
-                  {v?.[1] || "Votação"} {v?.[2] && <span className="busca-detalhe">· {v[2]}</span>}
+                  <Link href={urlDaVotacao(anoDoVoto, id)}>{v?.[1] || "Votação"}</Link>{" "}
+                  {v?.[2] && <span className="busca-detalhe">· {v[2]}</span>}
                   {v?.[3] && <div className="busca-detalhe">{v[3]}</div>}
                 </td>
                 <td>{votoPorExtenso(voto)}</td>

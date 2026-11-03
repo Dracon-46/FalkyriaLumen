@@ -5,6 +5,12 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Parlamentares: desde 2003 e as votações (ADR-060, adendo)
+
+- Os deputados federais desde 2003 (52ª a 57ª legislatura); a cota parlamentar, desde 2009.
+- Nova página "Votações": as votações nominais do Plenário de cada ano, com busca e filtros, e cada votação com o
+  placar, como votou cada partido e como votou cada deputado. Os votos na página do deputado levam à votação.
+
 ### Portal repaginado (ADR-061)
 
 - Visual novo e sóbrio, sem degradê: a fonte Inter, neutros novos no tema claro e um azul-marinho no escuro, o azul

@@ -1,12 +1,13 @@
 # Parlamentares (ADR-060): os deputados federais pelos arquivos de dados abertos
 # da Câmara (votos nominais do Plenário, proposições, presença nas sessões
-# deliberativas e cota parlamentar), de 2019 em diante.
+# deliberativas e cota parlamentar), de 2003 em diante (a cota, de 2009).
 #
 # Todo dia e à mão. Confere o tamanho do arquivo de votos de cada ano e só lê o
 # que mudou: um ano fechado, quando o tamanho muda; o corrente e o anterior,
 # uma vez por semana. Cada ano baixa perto de 250 MB, um arquivo de cada vez
 # (o servidor da Câmara corta downloads simultâneos), e retoma o que cair no
-# meio. A primeira carga, de 2019 em diante, leva perto de 30 minutos. Grava
+# meio. A primeira carga, de 2003 em diante, leva umas duas execuções (o
+# histórico de exercício pede um pedido à API por deputado). Grava
 # camara.json.gz na versão "painel-estado"; o site sai na publicação seguinte
 # dos painéis (paineis-site), às 05:17 de Brasília.
 #
@@ -21,7 +22,7 @@ on:
   workflow_dispatch:
     inputs:
       anos:
-        description: "Só estes anos, separados por vírgula (vazio: de 2019 ao corrente)"
+        description: "Só estes anos, separados por vírgula (vazio: de 2003 ao corrente)"
         default: ""
 
 permissions:

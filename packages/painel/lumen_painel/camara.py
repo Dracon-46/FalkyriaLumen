@@ -53,8 +53,9 @@ API_DEPUTADOS = "https://dadosabertos.camara.leg.br/api/v2/deputados?idLegislatu
 FONTE = "Câmara dos Deputados, dados abertos (dadosabertos.camara.leg.br) e cota parlamentar (camara.leg.br/cotas)"
 ARQUIVO = "camara.json.gz"
 VERSAO_ESTADO = 1
-PRIMEIRO_ANO = 2019                 # a 56ª legislatura, para comparar com a 57ª (2023-2027)
-LEGISLATURAS = {56: (2019, 2022), 57: (2023, 2026)}
+PRIMEIRO_ANO = 2003                 # a 52ª legislatura; os votos nominais em arquivo começam em 2001, e a cota em 2009
+LEGISLATURAS = {52: (2003, 2006), 53: (2007, 2010), 54: (2011, 2014), 55: (2015, 2018), 56: (2019, 2022),
+                57: (2023, 2026)}
 CONJUNTOS = ("votacoes", "votacoesVotos", "votacoesProposicoes", "votacoesOrientacoes", "eventos",
              "eventosPresencaDeputados", "proposicoes", "proposicoesAutores")
 TIPOS_LISTADOS = frozenset({"PL", "PLP", "PEC", "PDL", "PRC"})
@@ -187,25 +188,28 @@ def ler_ano(pasta: Path, ano: int, deputados: dict[str, list]) -> dict[str, Any]
     arquivo = lambda nome: pasta / f"{nome}.csv"  # noqa: E731
     plenario = {r["id"]: r for r in _csv(arquivo("votacoes")) if r.get("siglaOrgao") == "PLEN"}
     votos: dict[str, dict[str, str]] = {}
+    partidos: dict[str, dict[str, str]] = {}
     nominais: set[str] = set()
     for r in _csv(arquivo("votacoesVotos")):
         if r["idVotacao"] in plenario and r["deputado_id"] in quem:
             votos.setdefault(r["deputado_id"], {})[r["idVotacao"]] = VOTOS.get(r["voto"], r["voto"] or "-")
+            partidos.setdefault(r["idVotacao"], {})[r["deputado_id"]] = r.get("deputado_siglaPartido") or ""
             nominais.add(r["idVotacao"])
-    proposicao: dict[str, tuple[str, str]] = {}
+    proposicao: dict[str, tuple[str, str, str]] = {}
     for r in _csv(arquivo("votacoesProposicoes")):
         if r["idVotacao"] in nominais and r["idVotacao"] not in proposicao:
-            proposicao[r["idVotacao"]] = (r["proposicao_titulo"], (r["proposicao_ementa"] or "")[:EMENTA])
+            proposicao[r["idVotacao"]] = (r["proposicao_titulo"], (r["proposicao_ementa"] or "")[:EMENTA],
+                                          r.get("proposicao_id") or "")
     governo = {r["idVotacao"]: r["orientacao"] for r in _csv(arquivo("votacoesOrientacoes"))
                if r["idVotacao"] in nominais and r["siglaBancada"] == "Governo"}
     votacoes = {}
     for vid in sorted(nominais):
         v = plenario[vid]
-        titulo, ementa = proposicao.get(vid, ("", ""))
+        titulo, ementa, proposicao_id = proposicao.get(vid, ("", "", ""))
         aprovacao = {"1": 1, "0": 0}.get(v.get("aprovacao") or "")
         votacoes[vid] = [v["data"], titulo, ementa, (v.get("descricao") or "")[:EMENTA], aprovacao,
                          int(v.get("votosSim") or 0), int(v.get("votosNao") or 0), int(v.get("votosOutros") or 0),
-                         governo.get(vid)]
+                         governo.get(vid), proposicao_id or None]
     sessoes = {r["id"]: r["dataHoraInicio"][:10] for r in _csv(arquivo("eventos"))
                if r.get("descricaoTipo") == "Sessão Deliberativa" and "Encerrada" in (r.get("situacao") or "")}
     presencas: dict[str, list[str]] = {}
@@ -230,6 +234,7 @@ def ler_ano(pasta: Path, ano: int, deputados: dict[str, list]) -> dict[str, Any]
     return {
         "votacoes": votacoes,
         "votos": {d: dict(sorted(v.items())) for d, v in sorted(votos.items())},
+        "partidos": {v: dict(sorted(p.items())) for v, p in sorted(partidos.items())},
         "sessoes": dict(sorted(sessoes.items())),
         "presencas": {d: sorted(set(e)) for d, e in sorted(presencas.items())},
         "autoria": {d: sorted(a, key=lambda x: (x[5], x[0])) for d, a in sorted(autoria.items())},
@@ -308,7 +313,10 @@ def coletar(estado: Path | str, *, contato: str, hoje: date | None = None, anos:
                 resultado.ausentes.append(ano)
                 continue
             tamanho, etiqueta = sinal
-            if not anos and not tce.precisa_ler(estado_novo["anos"].get(str(ano)), tamanho, etiqueta, ano, hoje):
+            guardado = estado_novo["anos"].get(str(ano))
+            if guardado is not None and "partidos" not in guardado:
+                guardado = None                 # lido antes do partido no dia do voto: lê de novo
+            if not anos and not tce.precisa_ler(guardado, tamanho, etiqueta, ano, hoje):
                 resultado.pulados.append(ano)
                 continue
             for nome in CONJUNTOS:
@@ -350,8 +358,19 @@ def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em
     for ano, a in sorted(dados["anos"].items()):
         gravar(f"parlamentares/camara/votacoes-{ano}.json.gz", {
             "versao": 1, "tipo": "camara-votacoes", "gerado_em": gerado_em, "ano": ano,
-            "colunas": ["data", "proposicao", "ementa", "descricao", "aprovacao", "sim", "nao", "outros", "governo"],
+            "colunas": ["data", "proposicao", "ementa", "descricao", "aprovacao", "sim", "nao", "outros", "governo",
+                        "proposicao_id"],
             "votacoes": a["votacoes"]})
+        # Quem votou em cada votação, com o partido no dia do voto: a página da votação mostra o voto de cada um
+        por_votacao: dict[str, list] = {}
+        for dep, votos_dep in a["votos"].items():
+            for vid, voto in votos_dep.items():
+                partido = (a.get("partidos") or {}).get(vid, {}).get(dep) or deputados.get(dep, [None, ""])[1]
+                por_votacao.setdefault(vid, []).append([dep, voto, partido])
+        gravar(f"parlamentares/camara/votos-{ano}.json.gz", {
+            "versao": 1, "tipo": "camara-votos", "gerado_em": gerado_em, "ano": ano,
+            "colunas": ["deputado", "voto", "partido"],
+            "votos": {v: sorted(linhas) for v, linhas in sorted(por_votacao.items())}})
         for dep in deputados:
             sessoes = [e for e, dia in a["sessoes"].items()
                        if em_exercicio(dia, periodos.get(dep, [])) and no_mandato(dia, deputados[dep][3])]

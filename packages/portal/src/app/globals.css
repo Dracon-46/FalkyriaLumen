@@ -2767,3 +2767,31 @@ th[aria-sort="descending"] .th-ordem-seta {
 .escolha.escolha-larga {
   min-width: 260px;
 }
+
+/* Navegação dentro de uma aba (Parlamentares: deputados e votações) */
+.nav-secao {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.nav-secao a {
+  padding: 6px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  color: var(--texto-2);
+  text-decoration: none;
+  font-weight: 550;
+  background: var(--superficie);
+}
+
+.nav-secao a:hover {
+  color: var(--texto);
+  border-color: var(--borda-forte);
+}
+
+.nav-secao a[aria-current="page"] {
+  color: var(--superficie);
+  background: var(--destaque);
+  border-color: var(--destaque);
+}
