@@ -18,7 +18,7 @@ export interface Local {
 }
 
 /** As áreas do portal que o local filtra. */
-export type Area = "eleicoes" | "contratacoes" | "conformidade" | "economia" | "estatais" | "avisos";
+export type Area = "eleicoes" | "contratacoes" | "conformidade" | "economia" | "estatais" | "avisos" | "parlamentares";
 
 const CHAVE_MEMORIA = "lumen.local";
 const CODIGO = /^(1|\d{2}|\d{7})$/;
@@ -39,7 +39,8 @@ export function codigoDaUf(sigla: string): string | null {
  */
 export function hrefDaArea(area: Area, local: Local | null, atual?: URLSearchParams): string {
   const base = { eleicoes: "/eleicoes/", contratacoes: "/contratacoes/", conformidade: "/conformidade/",
-                 economia: "/economia/", estatais: "/economia/estatais/", avisos: "/avisos/" }[area];
+                 economia: "/economia/", estatais: "/economia/estatais/", avisos: "/avisos/",
+                 parlamentares: "/parlamentares/" }[area];
   if (!local || !CODIGO.test(local.codigo)) return base;
   const tipo = tipoDoCodigo(local.codigo);
   if (area === "eleicoes") {
@@ -54,6 +55,10 @@ export function hrefDaArea(area: Area, local: Local | null, atual?: URLSearchPar
     return q ? `${base}?${q}` : base;
   }
   if (area === "economia") return base;
+  if (area === "parlamentares") {
+    const uf = tipo === "uniao" ? null : siglaDaUf(local.codigo);
+    return uf ? `${base}?uf=${uf.toUpperCase()}` : base;
+  }
   if (area === "conformidade" && tipo === "uniao") return base;
   return `${base}?ente=${local.codigo}`;
 }

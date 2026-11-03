@@ -25,6 +25,7 @@ const ABAS: { area: Area; rotulo: string; prefixo: string }[] = [
   { area: "contratacoes", rotulo: "Contratações", prefixo: "/contratacoes" },
   { area: "conformidade", rotulo: "Conformidade", prefixo: "/conformidade" },
   { area: "economia", rotulo: "Economia", prefixo: "/economia" },
+  { area: "parlamentares", rotulo: "Parlamentares", prefixo: "/parlamentares" },
   { area: "avisos", rotulo: "Avisos", prefixo: "/avisos" },
 ];
 

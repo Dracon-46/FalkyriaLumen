@@ -2469,3 +2469,19 @@ table.tabela {
   height: 100%;
   background: var(--destaque);
 }
+
+/* Parlamentares (ADR-060): a foto oficial ao lado do nome, na página do deputado */
+.deputado-topo {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.deputado-foto {
+  width: 90px;
+  height: 120px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--superficie-2);
+  flex-shrink: 0;
+}

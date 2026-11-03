@@ -64,6 +64,8 @@ nunca apagadas: uma ADR substituída continua aqui, marcada como tal.
 | [056](ADR-056.md) | Horários das urnas pelo boletim de urna, publicados no site dos painéis | **proposta** |
 | [057](ADR-057.md) | Votos por hora pelos logs das urnas, lidos por pedaços, publicados no site dos painéis | **proposta** |
 | [058](ADR-058.md) | Pagamentos da União por favorecido, pelo arquivo mensal da CGU, na página da empresa | **proposta** |
+| [059](ADR-059.md) | Quem praticou o ato: o órgão primeiro, o nome quando a fonte oficial o liga ao ato | **proposta** |
+| [060](ADR-060.md) | Aba Parlamentares, pelos dados abertos das casas legislativas; primeiro, os deputados federais | **proposta** |
 
 As ADRs 011 a 015 foram tomadas durante a implementação da Fase 0, e as 016 a
 033 durante a Fase 1 e a criação da aba Eleições; todas aguardam revisão. Para aceitar, troque a situação para `aceita`. Para rejeitar, marque

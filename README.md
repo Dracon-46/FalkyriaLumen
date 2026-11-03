@@ -389,6 +389,11 @@ mapa abre o município e, nos 190 com mais de uma zona eleitoral, mostra as zona
 em cada uma e uma tabela ligada ao mapa; o contorno das zonas é aproximado pelos locais de votação,
 e a tela diz isso (ADR-029).
 
+**Aba Parlamentares (ADR-060): deputados federais.** Os votos nominais no Plenário com a orientação do Governo, a
+presença nas sessões deliberativas enquanto em exercício, as proposições apresentadas e a cota parlamentar com os
+fornecedores, de 2019 em diante, pelos dados abertos da Câmara. Seguem os senadores, os deputados estaduais e os
+vereadores.
+
 **Painéis de Contratações e Conformidade: no ar desde 14/10/2026.** Para o Brasil, cada ente e
 cada órgão (inclusive autarquias e empresas públicas municipais), o que foi publicado no PNCP; para
 cada estado e município, as entregas da LRF ao Tesouro contra o prazo legal, com o grupo de pares e a

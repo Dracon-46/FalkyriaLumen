@@ -1,0 +1,66 @@
+# Parlamentares (ADR-060): os deputados federais pelos arquivos de dados abertos
+# da Câmara (votos nominais do Plenário, proposições, presença nas sessões
+# deliberativas e cota parlamentar), de 2019 em diante.
+#
+# Todo dia e à mão. Confere o tamanho do arquivo de votos de cada ano e só lê o
+# que mudou: um ano fechado, quando o tamanho muda; o corrente e o anterior,
+# uma vez por semana. Cada ano baixa perto de 250 MB, um arquivo de cada vez
+# (o servidor da Câmara corta downloads simultâneos), e retoma o que cair no
+# meio. A primeira carga, de 2019 em diante, leva perto de 30 minutos. Grava
+# camara.json.gz na versão "painel-estado"; o site sai na publicação seguinte
+# dos painéis (paineis-site), às 05:17 de Brasília.
+#
+# Usa o segredo LUMEN_CONTATO (User-Agent). Repositório público: os minutos
+# não são cobrados.
+
+name: parlamentares
+
+on:
+  schedule:
+    - cron: "50 6 * * *"     # 03:50 em Brasília, antes da publicação diária dos painéis
+  workflow_dispatch:
+    inputs:
+      anos:
+        description: "Só estes anos, separados por vírgula (vazio: de 2019 ao corrente)"
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: parlamentares
+  cancel-in-progress: false
+
+env:
+  TAG: painel-estado
+
+jobs:
+  camara:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
+      LUMEN_DADOS: dados
+      GH_TOKEN: ${{ github.token }}
+      ANOS: ${{ inputs.anos }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      - name: O estado anterior
+        run: |
+          mkdir -p estado
+          gh release download "$TAG" -p camara.json.gz -D estado --clobber || true
+      - name: Câmara dos Deputados
+        shell: bash               # com pipefail: a falha do lumen não some atrás do tee
+        run: |
+          lumen painel camara --estado estado --limite-minutos 90 ${ANOS:+--anos "$ANOS"} | tee camara.json
+          if python -c "import json, sys; r = json.load(open('camara.json')); sys.exit(0 if r['lidos'] else 1)"; then
+            gh release upload "$TAG" estado/camara.json.gz --clobber
+          else
+            echo "nada mudou"
+          fi

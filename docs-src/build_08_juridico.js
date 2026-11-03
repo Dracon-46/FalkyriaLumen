@@ -111,8 +111,10 @@ body.push(code([
 ]));
 
 body.push(callout("O caso mais delicado: nomear quem autorizou", [
-  "O projeto registra e exibe o nome do agente público signatário do ato, porque isso é dado público " +
-  "do exercício da função e responde diretamente ao requisito de mostrar quem fez.",
+  "Por padrão, o indício mostra o órgão e a unidade que praticaram o ato, com o CNPJ e o código da unidade, como a " +
+  "fonte publica (ADR-059). O nome do agente público aparece quando uma fonte oficial o liga ao ato, como o gestor do " +
+  "contrato no SIM do TCE-CE: é dado público do exercício da função e responde ao requisito de mostrar quem fez. Nunca " +
+  "se infere o signatário pelo cargo ou pelo período.",
   "A diferença entre informar e acusar está inteiramente na construção da frase. Dizer que o ato foi " +
   "assinado por determinada autoridade, com fundamento em determinado dispositivo, é reproduzir o que o " +
   "próprio ente publicou. Dizer que essa autoridade autorizou irregularmente é conclusão que o Lumen " +
@@ -129,7 +131,7 @@ body.push(table(["Cód.", "Regra"], [1100, 8500], [
   ["PUB-03", "Todo indício exibe pelo menos um documento fonte com link, hash e data de coleta."],
   ["PUB-04", "Nenhum indício é publicado sem que o documento fonte esteja armazenado e íntegro."],
   ["PUB-05", "Avisos são publicados sem revisão humana prévia (ADR-047, decisão do autor): cada um traz a ressalva, a fonte, o que observar e o link de contestação, e a revisão vem depois, quando alguém contesta. Indícios do motor de regras (Fase 2) de severidade alta continuam exigindo dois analistas."],
-  ["PUB-06", "O nome de agente público aparece apenas como signatário do ato, sem adjetivação."],
+  ["PUB-06", "O indício mostra o órgão e a unidade que praticaram o ato. O nome de agente público aparece só quando uma fonte oficial o liga ao ato, como signatário, sem adjetivação (ADR-059)."],
   ["PUB-07", "Não existe ranking público de entes por pontuação de risco; a ordenação pública é por conformidade objetiva."],
   ["PUB-08", "Toda página pública exibe o aviso metodológico e o link para a metodologia completa."],
   ["PUB-09", "Erratas e remoções são publicadas no mesmo canal, no mesmo formato e com o mesmo destaque da publicação original."],
@@ -255,6 +257,6 @@ L.buildDoc({
   subtitulo: "Base legal, vocabulário controlado, proteção de dados e direito de resposta",
   body,
   outFile: "../docs/DOC-08_Politica_Juridica_e_Editorial.docx",
-  meta: { versao: "1.1", data: "21 de outubro de 2026",
-          situacao: "Versão 1.1: CPF dentro de nomes e textos e quadro societário da base de CNPJ (seção 5.2; ADR-043)" },
+  meta: { versao: "1.2", data: "3 de novembro de 2026",
+          situacao: "Versão 1.2: o órgão por padrão e o nome do agente só quando a fonte o liga ao ato (seção 3 e PUB-06; ADR-059)" },
 });

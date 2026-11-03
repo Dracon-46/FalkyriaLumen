@@ -5,6 +5,21 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Aba Parlamentares: os deputados federais (ADR-060)
+
+- Aba nova, "Parlamentares": a lista dos deputados federais desde 2019, com busca pelo nome e filtros de UF e partido
+  (o local escolhido no cabeçalho já filtra a UF), e a página de cada um: os votos nominais no Plenário, com a
+  proposição, o resultado e a orientação do Governo (e um filtro para os votos diferentes dela); a presença nas
+  sessões deliberativas, contada só enquanto ele estava em exercício; as proposições que apresentou; e a cota
+  parlamentar por categoria, mês e fornecedor, com a empresa ligada à página dela. Tudo com CSV.
+- Coleta nova, `lumen painel camara`, no fluxo `parlamentares`, pelos arquivos de dados abertos da Câmara.
+- Próximas etapas: emendas por autor, subsídio e verba de gabinete; senadores; deputados estaduais; vereadores.
+
+### Quem praticou o ato: o órgão primeiro (ADR-059)
+
+- O indício mostra o órgão e a unidade que praticaram o ato; o nome do agente só entra quando uma fonte oficial o
+  liga ao ato (o gestor do contrato no SIM do TCE-CE é a primeira). O DOC-08 (seção 3 e PUB-06) foi revisto (#15).
+
 ### Página da empresa: pagamentos da União (ADR-058)
 
 - Nova seção "Pagamentos da União" na página de cada CNPJ: o que o governo federal pagou a ela, ano a ano e por
