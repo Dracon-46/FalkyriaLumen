@@ -34,6 +34,7 @@ from pathlib import Path
 from . import avisos as av
 from . import (
     camara,
+    camaras,
     cobertura,
     convenios,
     despesa_funcao,
@@ -296,6 +297,14 @@ def cmd_camara(args) -> int:
     return 0
 
 
+def cmd_camaras_sapl(args) -> int:
+    """Testa o SAPL de cada câmara municipal e grava ``camaras-sapl.json.gz`` (ADR-062)."""
+    cfg = _configuracao(args)
+    cadastro = Cadastro.ler(Path(args.estado) / ARQUIVO_CADASTRO)
+    _imprimir(camaras.levantar(Path(args.estado), cadastro, contato=cfg.contato))
+    return 0
+
+
 def cmd_senado(args) -> int:
     """Lê os dados abertos do Senado dos anos que passaram da idade de releitura e grava ``senado.json.gz``
     (ADR-060, adendo)."""
@@ -537,6 +546,9 @@ def construir_parser() -> argparse.ArgumentParser:
     c.add_argument("--anos", help=f"só estes anos, separados por vírgula (padrão: de {camara.PRIMEIRO_ANO} ao corrente)")
     c.add_argument("--limite-minutos", type=float, help="não começa outro ano depois disso")
 
+    c = sub.add_parser("camaras-sapl", help="câmaras municipais com o SAPL e a API aberta (levantamento)")
+    c.add_argument("--estado", required=True)
+
     c = sub.add_parser("senado", help="senadores: votos, presença nas votações, autoria e cota parlamentar (Senado)")
     c.add_argument("--estado", required=True)
     c.add_argument("--anos", help=f"só estes anos, separados por vírgula (padrão: de {senado.PRIMEIRO_ANO} ao corrente)")
@@ -566,7 +578,7 @@ def construir_parser() -> argparse.ArgumentParser:
 
 COMANDOS = {"cadastro": cmd_cadastro, "contratacoes": cmd_contratacoes, "faltando": cmd_faltando,
             "conformidade": cmd_conformidade, "rcl": cmd_rcl, "despesa-funcao": cmd_despesa_funcao, "pessoal": cmd_pessoal,
-            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "tce-rs": cmd_tce, "tce-pr": cmd_tce, "tce-pe": cmd_tce, "tce-ce": cmd_tce, "emendas": cmd_emendas, "convenios": cmd_convenios, "transferencias": cmd_transferencias, "recebimentos": cmd_recebimentos, "camara": cmd_camara, "senado": cmd_senado,
+            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "tce-rs": cmd_tce, "tce-pr": cmd_tce, "tce-pe": cmd_tce, "tce-ce": cmd_tce, "emendas": cmd_emendas, "convenios": cmd_convenios, "transferencias": cmd_transferencias, "recebimentos": cmd_recebimentos, "camara": cmd_camara, "senado": cmd_senado, "camaras-sapl": cmd_camaras_sapl,
             "transparencia": cmd_transparencia, "anp": cmd_anp,
             "publicar": cmd_publicar}
 

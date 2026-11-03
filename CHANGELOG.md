@@ -5,6 +5,12 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Vereadores: o cadastro das câmaras com SAPL (ADR-062)
+
+- Levantamento das câmaras municipais com o SAPL do Interlegis e a API aberta: 1.192 dos 5.570 municípios, 584 com votos
+  nominais registrados. Novo comando `lumen painel camaras-sapl` e fluxo mensal `camaras-sapl`. A coleta dos
+  vereadores (votos, projetos e presença) vem a seguir.
+
 ### Parlamentares: o Senado (ADR-060, adendo)
 
 - Os senadores desde 2003: votos nominais no Plenário, presença nas votações, matérias de autoria e a cota (CEAPS),

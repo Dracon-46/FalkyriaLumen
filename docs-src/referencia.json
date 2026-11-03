@@ -9301,9 +9301,45 @@
    ]
   },
   {
+   "caminho": "packages/painel/lumen_painel/camaras.py",
+   "linguagem": "python",
+   "linhas": 81,
+   "doc": "As câmaras municipais com o SAPL do Interlegis e a API aberta (ADR-062): o cadastro que a coleta dos vereadores usa.\n\nO SAPL (Sistema de Apoio ao Processo Legislativo) do Interlegis guarda, em cada câmara que o usa, os vereadores, os\nmandatos e as filiações, as matérias com os autores, as sessões com a presença e as votações com o voto de cada um, e\ntem uma API REST aberta (``/api/``). As câmaras hospedadas pelo Interlegis ficam em ``sapl.<cidade>.<uf>.leg.br``, com\no nome do município sem acento, sem espaço e sem pontuação.\n\nO levantamento (``levantar``) testa esse endereço para cada município do cadastro, um pedido por câmara, alguns ao\nmesmo tempo (são servidores diferentes), e guarda as que responderam com o número de parlamentares que a câmara tem\nno SAPL. Em 3/11/2026, foram 1.192 das 5.570 (21%): 971 com matérias, 584 com ao menos 100 votos nominais (5,1 milhões\nde votos somados) e 870 com presença. Câmara com o SAPL noutro endereço fica de fora até entrar à mão\n(``ENDERECOS_EXTRAS``).",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "endereco",
+     "assinatura": "def endereco(nome: str, uf: str) -> str",
+     "doc": "O endereço padrão do SAPL hospedado pelo Interlegis (\"São José dos Campos\", \"SP\" →\n``sapl.saojosedoscampos.sp.leg.br``).",
+     "linha": 35
+    },
+    {
+     "tipo": "funcao",
+     "nome": "testar",
+     "assinatura": "def testar(host: str, *, contato: str, abrir: Callable[..., object] | None=None) -> int | None",
+     "doc": "Quantos parlamentares a câmara tem no SAPL, ou ``None`` se o endereço não responde com a API.",
+     "linha": 41
+    },
+    {
+     "tipo": "funcao",
+     "nome": "levantar",
+     "assinatura": "def levantar(estado: Path | str, cadastro: Cadastro, *, contato: str, testar_fn: Callable[..., int | None]=testar) -> dict",
+     "doc": "Testa o SAPL de cada município e grava ``ARQUIVO``: ``{código IBGE: [endereço, parlamentares]}``, com a data.",
+     "linha": 54
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler",
+     "assinatura": "def ler(estado: Path | str) -> dict[str, list]",
+     "doc": "As câmaras do último levantamento (vazio se ainda não houve).",
+     "linha": 74
+    }
+   ]
+  },
+  {
    "caminho": "packages/painel/lumen_painel/cli.py",
    "linguagem": "python",
-   "linhas": 585,
+   "linhas": 597,
    "doc": "``lumen painel``: coleta e publicação dos painéis de contratações e de conformidade (ADR-028).\n\nExemplos::\n\n    lumen painel cadastro --estado estado/                          # cadastro de entes do SICONFI\n    lumen painel contratacoes --estado estado/ --ultimos 3          # dias que faltam entre os 3 últimos\n    lumen painel contratacoes --estado estado/ --de 2026-01-01 --ate 2026-01-31 --limite-minutos 300\n    lumen painel faltando --estado estado/ --de 2026-01-01 --partes 6   # divisão para execuções paralelas\n    lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026\n    lumen painel rcl --estado estado/ --ufs SP,MG                  # RCL do exercício anterior, para os pares\n    lumen painel despesa-funcao --estado estado/ --ufs SP,MG --limite-minutos 30   # DCA por função, pares\n    lumen painel pessoal --estado estado/ --ufs SP,MG --limite-minutos 20          # RGF: pessoal em % da RCL\n    lumen painel cnpj --estado estado/                              # base de CNPJ da Receita, dos fornecedores\n    lumen painel emendas --estado estado/                           # emendas parlamentares (CGU), por ente\n    lumen painel convenios --estado estado/                         # convênios da União (CGU), por ente\n    lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)\n    lumen painel anp --estado estado/                               # preço de revenda da ANP por semana\n    lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado\n\nO estado é um diretório com ``cadastro-entes.json.gz``, um ``contratacoes-<dia>.json.gz`` por dia coletado e\num ``conformidade-<UF>.json.gz`` por UF. No GitHub Actions, ele fica nos anexos de uma versão do repositório\n(``painel-estado``) entre uma execução e outra.",
    "itens": [
     {
@@ -9311,196 +9347,203 @@
      "nome": "_data",
      "assinatura": "def _data(texto: str) -> date",
      "doc": "``AAAA-MM-DD`` → ``date``, como ``type`` do argparse.",
-     "linha": 73
+     "linha": 74
     },
     {
      "tipo": "funcao",
      "nome": "_lista",
      "assinatura": "def _lista(texto: str) -> list[str]",
      "doc": "``SP, mg`` → ``[\"SP\", \"MG\"]``.",
-     "linha": 78
+     "linha": 79
     },
     {
      "tipo": "funcao",
      "nome": "_imprimir",
      "assinatura": "def _imprimir(dados) -> None",
      "doc": "JSON legível na saída padrão.",
-     "linha": 83
+     "linha": 84
     },
     {
      "tipo": "funcao",
      "nome": "_configuracao",
      "assinatura": "def _configuracao(args)",
      "doc": "A configuração do pipeline (contato da coleta e limites de requisições).",
-     "linha": 88
+     "linha": 89
     },
     {
      "tipo": "funcao",
      "nome": "dias_pedidos",
      "assinatura": "def dias_pedidos(estado: Path, *, de: date | None, ate: date | None, ultimos: int | None, hoje: date, refazer: bool=False) -> list[date]",
      "doc": "Os dias a coletar, do mais recente para o mais antigo, sem os que já estão no estado.\n\nSem ``de``, o intervalo é dos ``ultimos`` dias (padrão 3) até ontem; o dia corrente nunca entra, porque\nainda está recebendo publicações.",
-     "linha": 94
+     "linha": 95
     },
     {
      "tipo": "funcao",
      "nome": "partes",
      "assinatura": "def partes(dias: list[date], n: int) -> list[dict]",
      "doc": "Divide os dias (já do mais recente ao mais antigo) em até ``n`` blocos de dias seguidos, para execuções\nparalelas; cada bloco vira ``{\"de\": …, \"ate\": …, \"dias\": …}``.",
-     "linha": 107
+     "linha": 108
     },
     {
      "tipo": "funcao",
      "nome": "cmd_cadastro",
      "assinatura": "def cmd_cadastro(args) -> int",
      "doc": "Coleta o cadastro de entes do SICONFI (uma requisição), normaliza e grava ``cadastro-entes.json.gz``.",
-     "linha": 119
+     "linha": 120
     },
     {
      "tipo": "funcao",
      "nome": "cmd_contratacoes",
      "assinatura": "def cmd_contratacoes(args) -> int",
      "doc": "Coleta os dias pedidos que faltam no estado, do mais recente ao mais antigo, até o prazo.",
-     "linha": 150
+     "linha": 151
     },
     {
      "tipo": "funcao",
      "nome": "cmd_faltando",
      "assinatura": "def cmd_faltando(args) -> int",
      "doc": "Imprime, em JSON, os blocos de dias que faltam no estado (matriz das execuções paralelas).",
-     "linha": 174
+     "linha": 175
     },
     {
      "tipo": "funcao",
      "nome": "cmd_conformidade",
      "assinatura": "def cmd_conformidade(args) -> int",
      "doc": "Coleta o extrato de entregas de cada UF pedida e grava o estado de cada uma.",
-     "linha": 181
+     "linha": 182
     },
     {
      "tipo": "funcao",
      "nome": "cmd_rcl",
      "assinatura": "def cmd_rcl(args) -> int",
      "doc": "Coleta a RCL dos entes pendentes de cada UF pedida (RREO, Anexo 03) e grava o estado de cada uma.\n\nEnte que ainda não publicou não é falha: fica para a próxima tentativa. O código é 1 só quando uma coleta\nfoi interrompida.",
-     "linha": 196
+     "linha": 197
     },
     {
      "tipo": "funcao",
      "nome": "cmd_despesa_funcao",
      "assinatura": "def cmd_despesa_funcao(args) -> int",
      "doc": "Coleta a despesa por função (DCA, Anexo I-E) dos entes pendentes de cada UF pedida e grava o estado.\n\nO ``--limite-minutos`` vale para todas as UFs juntas: passado o tempo, os entes que faltam ficam para a\nexecução seguinte. O código é 1 só quando uma coleta foi interrompida.",
-     "linha": 215
+     "linha": 216
     },
     {
      "tipo": "funcao",
      "nome": "cmd_pessoal",
      "assinatura": "def cmd_pessoal(args) -> int",
      "doc": "Coleta a despesa com pessoal do Executivo (RGF, Anexo 1) dos entes pendentes de cada UF pedida.\n\nComo em ``despesa-funcao``, o ``--limite-minutos`` vale para todas as UFs juntas. O código é 1 só quando uma\ncoleta foi interrompida.",
-     "linha": 237
+     "linha": 238
     },
     {
      "tipo": "funcao",
      "nome": "cmd_cnpj",
      "assinatura": "def cmd_cnpj(args) -> int",
      "doc": "Lê a base pública de CNPJ da Receita para os fornecedores do estado e grava ``cnpj-fornecedores.json.gz``.\n\nPula quando o estado já tem a base do mês para todos os fornecedores (ADR-043).",
-     "linha": 259
+     "linha": 260
     },
     {
      "tipo": "funcao",
      "nome": "cmd_tce",
      "assinatura": "def cmd_tce(args) -> int",
      "doc": "Lê os contratos de um tribunal de contas (``tce-rs``: LicitaCon; ``tce-pr``: SIM-AM; ``tce-pe``: API de dados\nabertos) nos anos que mudaram e grava ``tce-<sigla>.json.gz`` (ADR-050).",
-     "linha": 270
+     "linha": 271
     },
     {
      "tipo": "funcao",
      "nome": "cmd_emendas",
      "assinatura": "def cmd_emendas(args) -> int",
      "doc": "Lê o arquivo de emendas parlamentares da CGU quando ele muda e grava ``emendas.json.gz`` (ADR-044).",
-     "linha": 282
+     "linha": 283
     },
     {
      "tipo": "funcao",
      "nome": "cmd_camara",
      "assinatura": "def cmd_camara(args) -> int",
      "doc": "Lê os arquivos de dados abertos da Câmara dos anos que mudaram e grava ``camara.json.gz`` (ADR-060).",
-     "linha": 290
+     "linha": 291
+    },
+    {
+     "tipo": "funcao",
+     "nome": "cmd_camaras_sapl",
+     "assinatura": "def cmd_camaras_sapl(args) -> int",
+     "doc": "Testa o SAPL de cada câmara municipal e grava ``camaras-sapl.json.gz`` (ADR-062).",
+     "linha": 300
     },
     {
      "tipo": "funcao",
      "nome": "cmd_senado",
      "assinatura": "def cmd_senado(args) -> int",
      "doc": "Lê os dados abertos do Senado dos anos que passaram da idade de releitura e grava ``senado.json.gz``\n(ADR-060, adendo).",
-     "linha": 299
+     "linha": 308
     },
     {
      "tipo": "funcao",
      "nome": "cmd_recebimentos",
      "assinatura": "def cmd_recebimentos(args) -> int",
      "doc": "Soma os arquivos mensais de recebimentos por favorecido da CGU, os meses recentes e os que faltam, e grava\n``recebimentos.json.gz`` (ADR-058).",
-     "linha": 309
+     "linha": 318
     },
     {
      "tipo": "funcao",
      "nome": "cmd_transferencias",
      "assinatura": "def cmd_transferencias(args) -> int",
      "doc": "Soma os arquivos mensais de transferências da CGU, refazendo só o ano com mês novo ou mudado, e grava\n``transferencias.json.gz`` (ADR-054).",
-     "linha": 317
+     "linha": 326
     },
     {
      "tipo": "funcao",
      "nome": "cmd_convenios",
      "assinatura": "def cmd_convenios(args) -> int",
      "doc": "Lê o arquivo de convênios da CGU quando sai um novo e grava ``convenios.json.gz`` (ADR-045).",
-     "linha": 326
+     "linha": 335
     },
     {
      "tipo": "funcao",
      "nome": "cmd_mascarar",
      "assinatura": "def cmd_mascarar(args) -> int",
      "doc": "Reescreve os arquivos do dia gravados antes da máscara de CPF (ADR-043) e lista os que mudaram.",
-     "linha": 334
+     "linha": 343
     },
     {
      "tipo": "funcao",
      "nome": "cmd_transparencia",
      "assinatura": "def cmd_transparencia(args) -> int",
      "doc": "Lê o ciclo mais recente do PNTP para ``transparencia-pntp.json.gz``; o código é 1 quando falhou.",
-     "linha": 348
+     "linha": 357
     },
     {
      "tipo": "funcao",
      "nome": "cmd_anp",
      "assinatura": "def cmd_anp(args) -> int",
      "doc": "Lê as planilhas semanais da ANP que faltam em ``anp-semanas.json.gz``; o código é 1 quando algo falhou.",
-     "linha": 356
+     "linha": 365
     },
     {
      "tipo": "funcao",
      "nome": "_agrupar",
      "assinatura": "def _agrupar(chaves, grupo) -> list[tuple[str, list[str]]]",
      "doc": "As chaves em grupos (``grupo(chave)``), na ordem dos grupos: um grupo de cada vez vai para a memória.",
-     "linha": 365
+     "linha": 374
     },
     {
      "tipo": "funcao",
      "nome": "cmd_publicar",
      "assinatura": "def cmd_publicar(args) -> int",
      "doc": "Monta o site inteiro a partir do estado: índice, busca, contratações e conformidade.",
-     "linha": 373
+     "linha": 382
     },
     {
      "tipo": "funcao",
      "nome": "construir_parser",
      "assinatura": "def construir_parser() -> argparse.ArgumentParser",
      "doc": "Os subcomandos e as opções de cada um.",
-     "linha": 465
+     "linha": 474
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada de ``lumen painel``; falta de configuração (contato da coleta) vira código 2.",
-     "linha": 574
+     "linha": 586
     }
    ]
   },
@@ -20216,6 +20259,11 @@
    "caminho": "packages/painel/testes/test_camara.py",
    "doc": "Os deputados federais pelos arquivos de dados abertos da Câmara (ADR-060).",
    "testes": 6
+  },
+  {
+   "caminho": "packages/painel/testes/test_camaras.py",
+   "doc": "O cadastro das câmaras municipais com o SAPL (ADR-062).",
+   "testes": 3
   },
   {
    "caminho": "packages/painel/testes/test_cli.py",
