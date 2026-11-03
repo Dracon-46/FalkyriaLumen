@@ -5,6 +5,15 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Portal repaginado (ADR-061)
+
+- Visual novo: a fonte Inter, cores neutras novas no tema claro e um azul-marinho no escuro, cantos mais
+  arredondados, cabeçalho fixo em vidro fosco, a aba ativa com o gradiente da marca, números em cartões e linhas de
+  tabela que acendem ao passar o mouse.
+- Página inicial com a "luz": uma rede de pontos animada atrás do título, que acende perto do mouse e fica parada para
+  quem pede menos movimento no sistema. Os cartões das áreas ganharam Parlamentares e Avisos.
+- As cores dos gráficos e dos mapas não mudaram.
+
 ### Aba Parlamentares: os deputados federais (ADR-060)
 
 - Aba nova, "Parlamentares": a lista dos deputados federais desde 2019, com busca pelo nome e filtros de UF e partido

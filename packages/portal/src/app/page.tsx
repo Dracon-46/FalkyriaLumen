@@ -1,16 +1,26 @@
-/** Página inicial do portal: apresenta o Lumen e leva às áreas. */
+/** Página inicial do portal: apresenta o Lumen, com a luz ao fundo (ADR-061), e leva às áreas. */
 
 import Link from "next/link";
+import { Luz } from "@/componentes/Luz";
 
-/** Apresentação e um cartão por área (Eleições, Contratações, Economia, Conformidade, Empresas e entidades). */
+/**
+ * Apresentação e um cartão por área (Eleições, Contratações, Economia, Conformidade, Parlamentares, Empresas e
+ * entidades, Avisos).
+ */
 export default function Inicio() {
   return (
     <>
-      <h1>Dados públicos, com a fonte de cada número</h1>
-      <p className="inicio-intro">
-        O Lumen reúne dados públicos do Brasil em um só lugar e mostra, ao lado de cada informação, o documento oficial
-        de onde ela saiu.
-      </p>
+      <section className="inicio-heroi">
+        <Luz />
+        <span className="inicio-selo">Dados públicos do Brasil, com a fonte de cada número</span>
+        <h1>
+          O dinheiro público, <em>à luz</em> dos documentos oficiais
+        </h1>
+        <p className="inicio-intro">
+          O Lumen reúne dados públicos do Brasil em um só lugar e mostra, ao lado de cada informação, o documento oficial
+          de onde ela saiu.
+        </p>
+      </section>
       <div className="inicio-grade">
         <Link href="/eleicoes/" className="cartao inicio-cartao">
           <h2>Eleições</h2>
@@ -40,11 +50,25 @@ export default function Inicio() {
             que data, contra o prazo da Lei de Responsabilidade Fiscal.
           </p>
         </Link>
+        <Link href="/parlamentares/" className="cartao inicio-cartao">
+          <h2>Parlamentares</h2>
+          <p>
+            Os deputados federais: como votaram no Plenário, a presença nas sessões, as proposições que apresentaram e a
+            cota parlamentar, com os fornecedores, pelos dados abertos da Câmara.
+          </p>
+        </Link>
         <Link href="/pessoa-juridica/" className="cartao inicio-cartao">
           <h2>Empresas e entidades</h2>
           <p>
             Uma empresa ou entidade pelo CNPJ ou pelo nome: o cadastro na Receita, os contratos com a União, os
             estados e os municípios no PNCP, as emendas parlamentares recebidas e os convênios com a União.
+          </p>
+        </Link>
+        <Link href="/avisos/" className="cartao inicio-cartao">
+          <h2>Avisos</h2>
+          <p>
+            O que aconteceu em cada estado e município e merece um olhar, como contrato com empresa sancionada ou
+            relatório fiscal em atraso, com a fonte e um link para contestar.
           </p>
         </Link>
       </div>

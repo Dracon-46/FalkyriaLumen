@@ -9,6 +9,7 @@ import { Cabecalho } from "@/componentes/Cabecalho";
 import { Rodape } from "@/componentes/Rodape";
 import { novidadesDoRepositorio } from "@/lib/changelog";
 import { idsDasNovidades } from "@/lib/novidades";
+import "@fontsource-variable/inter";
 import "./globals.css";
 
 /** Metadados padrão. Cada página define só o `title`, que entra no modelo "%s · Lumen". */
@@ -28,8 +29,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fcfcfb" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1a19" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f6fa" },
+    { media: "(prefers-color-scheme: dark)", color: "#070b14" },
   ],
 };
 

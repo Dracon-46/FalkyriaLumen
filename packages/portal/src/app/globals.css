@@ -1,22 +1,25 @@
 /*
- * Estilo do portal Lumen. Sem framework de CSS e sem fonte externa: o site é
- * estático, abre sem rede além dos próprios arquivos e não depende de CDN de
- * terceiros (nem para fonte). As cores ficam em variáveis, com versão clara
- * e escura escolhidas para cada fundo (não uma inversão automática).
+ * Estilo do portal Lumen. Sem framework de CSS e sem CDN: o site é estático,
+ * abre sem rede além dos próprios arquivos (a fonte Inter vem do pacote
+ * @fontsource-variable/inter, embutida no build). As cores ficam em
+ * variáveis, com versão clara e escura escolhidas para cada fundo (não uma
+ * inversão automática). A repaginação de novembro de 2026 (ADR-061) trocou os
+ * neutros, a fonte e os cantos e acrescentou o vidro do cabeçalho e a luz da
+ * página inicial; as cores das séries, dos mapas e dos estados não mudaram.
  */
 
 :root {
   color-scheme: light;
-  --fundo: #f6f6f4;
-  --superficie: #fcfcfb;
-  --superficie-2: #f0efec;
-  --borda: #dedcd6;
-  --borda-forte: #c7c4bc;
-  --texto: #0b0b0b;
-  --texto-2: #52514e;
-  --texto-3: #6b6964; /* 4,5:1 ou mais sobre todos os fundos claros (WCAG AA) */
-  --destaque: #1c5cab;
-  --destaque-suave: #e3edf9;
+  --fundo: #f4f6fa;
+  --superficie: #ffffff;
+  --superficie-2: #eef1f6;
+  --borda: #e1e5ec;
+  --borda-forte: #c8cfdb;
+  --texto: #0b1220;
+  --texto-2: #454e66;
+  --texto-3: #5b6479; /* 4,5:1 ou mais sobre todos os fundos claros (WCAG AA) */
+  --destaque: #2153d0;
+  --destaque-suave: #e7edfc;
   --vivo: #c62f2f;
   --ok: #006300;
   --aviso-fundo: #fff6dc;
@@ -36,30 +39,40 @@
   --serie-6: #4a3aa7;
   --serie-7: #1baf7a;
   --serie-8: #eb6834;
-  --serie-outros: #b9b7b0;
-  --mapa-sem-lider: #e6e4df;
-  --mapa-borda: #fcfcfb;
-  --zona-neutra: #d9d6ce;
+  --serie-outros: #b3bac7;
+  --mapa-sem-lider: #e3e7ee;
+  --mapa-borda: #ffffff;
+  --zona-neutra: #d3d9e3;
 
-  --raio: 8px;
-  --sombra: 0 1px 2px rgb(0 0 0 / 6%), 0 2px 8px rgb(0 0 0 / 4%);
-  --fonte: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --raio: 12px;
+  --sombra: 0 1px 2px rgb(15 23 42 / 5%), 0 8px 24px -12px rgb(15 23 42 / 12%);
+  --fonte: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --luz: #e8930c;
+  --marca-1: #2153d0;
+  --marca-2: #7c3aed;
+  --vidro: rgb(255 255 255 / 72%);
+  --brilho: rgb(33 83 208 / 10%);
   --fonte-num: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-tema="claro"])) {
     color-scheme: dark;
-    --fundo: #121211;
-    --superficie: #1a1a19;
-    --superficie-2: #24241f;
-    --borda: #34342f;
-    --borda-forte: #4a4a44;
-    --texto: #ffffff;
-    --texto-2: #c3c2b7;
-    --texto-3: #9a998f;
-    --destaque: #86b6ef;
-    --destaque-suave: #1d2a3a;
+    --luz: #ffb547;
+    --marca-1: #7ea8ff;
+    --marca-2: #b48cff;
+    --vidro: rgb(7 11 20 / 70%);
+    --brilho: rgb(126 168 255 / 12%);
+    --fundo: #070b14;
+    --superficie: #0d1320;
+    --superficie-2: #141c2c;
+    --borda: #1e293b;
+    --borda-forte: #2c3a52;
+    --texto: #f3f6fc;
+    --texto-2: #b3bccf;
+    --texto-3: #8c96ac;
+    --destaque: #7ea8ff;
+    --destaque-suave: #15213a;
     --vivo: #ff6b6b;
     --ok: #6fcf6f;
     --aviso-fundo: #2c2510;
@@ -78,26 +91,31 @@
     --serie-6: #9085e9;
     --serie-7: #199e70;
     --serie-8: #d95926;
-    --serie-outros: #5b5a55;
-    --mapa-sem-lider: #2b2b27;
-    --mapa-borda: #1a1a19;
-    --zona-neutra: #3a3a34;
+    --serie-outros: #4b5568;
+    --mapa-sem-lider: #1b2435;
+    --mapa-borda: #0d1320;
+    --zona-neutra: #2a3449;
   }
 }
 
 /* Modo TV: sempre escuro, letra maior */
 :root[data-tema="escuro"] {
   color-scheme: dark;
-  --fundo: #0e0e0d;
-  --superficie: #1a1a19;
-  --superficie-2: #24241f;
-  --borda: #34342f;
-  --borda-forte: #4a4a44;
-  --texto: #ffffff;
-  --texto-2: #c3c2b7;
-  --texto-3: #9a998f;
-  --destaque: #86b6ef;
-  --destaque-suave: #1d2a3a;
+  --luz: #ffb547;
+  --marca-1: #7ea8ff;
+  --marca-2: #b48cff;
+  --vidro: rgb(7 11 20 / 70%);
+  --brilho: rgb(126 168 255 / 12%);
+  --fundo: #05080f;
+  --superficie: #0d1320;
+  --superficie-2: #141c2c;
+  --borda: #1e293b;
+  --borda-forte: #2c3a52;
+  --texto: #f3f6fc;
+  --texto-2: #b3bccf;
+  --texto-3: #8c96ac;
+  --destaque: #7ea8ff;
+  --destaque-suave: #15213a;
   --vivo: #ff6b6b;
   --ok: #6fcf6f;
   --aviso-fundo: #2c2510;
@@ -116,10 +134,10 @@
   --serie-6: #9085e9;
   --serie-7: #199e70;
   --serie-8: #d95926;
-  --serie-outros: #5b5a55;
-  --mapa-sem-lider: #2b2b27;
-  --mapa-borda: #1a1a19;
-  --zona-neutra: #3a3a34;
+  --serie-outros: #4b5568;
+  --mapa-sem-lider: #1b2435;
+  --mapa-borda: #0d1320;
+  --zona-neutra: #2a3449;
 }
 
 *,
@@ -2484,4 +2502,250 @@ table.tabela {
   object-fit: cover;
   background: var(--superficie-2);
   flex-shrink: 0;
+}
+
+/* ------------------------------------------------------------ repaginação (ADR-061) */
+
+body {
+  background:
+    radial-gradient(1200px 520px at 12% -10%, var(--brilho), transparent 70%),
+    radial-gradient(900px 480px at 100% 0%, color-mix(in srgb, var(--marca-2) 8%, transparent), transparent 70%),
+    var(--fundo);
+  background-attachment: fixed;
+  font-feature-settings: "cv11", "ss01";
+  letter-spacing: -0.006em;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--destaque) 25%, transparent);
+}
+
+.cabecalho {
+  position: sticky;
+  top: 0;
+  z-index: 15;               /* acima do mapa (4 a 6), abaixo da busca (20) e do modal (50) */
+  background: var(--vidro);
+  backdrop-filter: saturate(160%) blur(14px);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  border-bottom: 1px solid color-mix(in srgb, var(--borda) 80%, transparent);
+}
+
+.marca-nome {
+  background: linear-gradient(120deg, var(--marca-1), var(--marca-2) 60%, var(--luz));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.aba {
+  position: relative;
+  border-bottom: 0;
+  border-radius: 8px;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.aba:hover {
+  color: var(--texto);
+  background: color-mix(in srgb, var(--texto) 5%, transparent);
+}
+
+.aba[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 4px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--marca-1), var(--marca-2));
+}
+
+h1 {
+  font-size: clamp(26px, 3.2vw, 34px);
+  font-weight: 750;
+  letter-spacing: -0.025em;
+}
+
+.cartao {
+  border-color: color-mix(in srgb, var(--borda) 90%, transparent);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.cartao-corpo {
+  padding: 18px 20px;
+}
+
+.titulo-secao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.titulo-secao::before {
+  content: "";
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--marca-1), var(--marca-2));
+  flex-shrink: 0;
+}
+
+.seletor,
+.botao {
+  transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+}
+
+.seletor:focus,
+.botao:focus-visible {
+  border-color: var(--destaque);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--destaque) 20%, transparent);
+  outline: none;
+}
+
+.botao:hover {
+  border-color: var(--destaque);
+}
+
+.totais > div {
+  padding: 14px 16px;
+  border-radius: var(--raio);
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  box-shadow: var(--sombra);
+}
+
+.total-valor {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.tabela th {
+  background: var(--superficie-2);
+}
+
+.tabela th:first-child {
+  border-top-left-radius: 8px;
+}
+
+.tabela th:last-child {
+  border-top-right-radius: 8px;
+}
+
+.tabela tbody tr {
+  transition: background-color 0.12s;
+}
+
+.tabela tbody tr:hover {
+  background: color-mix(in srgb, var(--destaque) 5%, transparent);
+}
+
+/* Página inicial: a luz (rede de pontos em canvas, componente Luz) atrás do título */
+.inicio-heroi {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin: -20px -16px 28px;
+  padding: 72px 24px 56px;
+  border-bottom: 1px solid var(--borda);
+}
+
+.inicio-heroi canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+
+.inicio-heroi::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, transparent 55%, var(--fundo));
+  pointer-events: none;
+}
+
+.inicio-heroi h1 {
+  max-width: 820px;
+  font-size: clamp(32px, 5vw, 56px);
+  line-height: 1.05;
+}
+
+.inicio-heroi h1 em {
+  font-style: normal;
+  background: linear-gradient(120deg, var(--marca-1), var(--marca-2) 55%, var(--luz));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.inicio-heroi .inicio-intro {
+  font-size: clamp(16px, 1.6vw, 19px);
+  margin-top: 16px;
+}
+
+.inicio-selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 5px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+  background: var(--vidro);
+  backdrop-filter: blur(8px);
+  font-size: 13px;
+  color: var(--texto-2);
+}
+
+.inicio-selo::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--luz);
+  box-shadow: 0 0 10px var(--luz);
+}
+
+.inicio-cartao {
+  position: relative;
+  padding: 22px;
+}
+
+.inicio-cartao h2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 18px;
+}
+
+.inicio-cartao h2::after {
+  content: "→";
+  color: var(--texto-3);
+  transition: transform 0.2s, color 0.2s;
+}
+
+.inicio-cartao:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--destaque) 45%, var(--borda));
+  box-shadow: 0 1px 2px rgb(15 23 42 / 6%), 0 18px 40px -18px color-mix(in srgb, var(--destaque) 45%, transparent);
+}
+
+.inicio-cartao:hover h2::after {
+  transform: translateX(4px);
+  color: var(--destaque);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cartao,
+  .aba,
+  .inicio-cartao h2::after,
+  .tabela tbody tr {
+    transition: none;
+  }
+
+  .inicio-cartao:hover {
+    transform: none;
+  }
 }

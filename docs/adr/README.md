@@ -66,6 +66,7 @@ nunca apagadas: uma ADR substituída continua aqui, marcada como tal.
 | [058](ADR-058.md) | Pagamentos da União por favorecido, pelo arquivo mensal da CGU, na página da empresa | **proposta** |
 | [059](ADR-059.md) | Quem praticou o ato: o órgão primeiro, o nome quando a fonte oficial o liga ao ato | **proposta** |
 | [060](ADR-060.md) | Aba Parlamentares, pelos dados abertos das casas legislativas; primeiro, os deputados federais | **proposta** |
+| [061](ADR-061.md) | Repaginação do visual: Inter, neutros novos, vidro no cabeçalho e a luz da página inicial | **proposta** |
 
 As ADRs 011 a 015 foram tomadas durante a implementação da Fase 0, e as 016 a
 033 durante a Fase 1 e a criação da aba Eleições; todas aguardam revisão. Para aceitar, troque a situação para `aceita`. Para rejeitar, marque
