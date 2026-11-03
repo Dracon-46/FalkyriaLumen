@@ -42,7 +42,7 @@ FLUXOS: dict[str, tuple[str, int | None]] = {
     "horarios": ("Horários das urnas: abertura, encerramento e boletim recebido (TSE)", 168),
     "votos-hora": ("Votos por hora, pelos logs das urnas (TSE)", 168),
     "tce": ("Contratos nos tribunais de contas (TCE-RS e TCE-CE, pelo intermediário em São Paulo, TCE-PR e TCE-PE)", 24),
-    "parlamentares": ("Deputados federais: votos, proposições, presença e cota parlamentar", 24),
+    "parlamentares": ("Deputados federais e senadores: votos, proposições, presença e cota parlamentar", 24),
     "eleicoes-ao-vivo": ("Apuração ao vivo", None),
     "paineis-carga": ("Carga das contratações por período", None),
     "mercado-referencia": ("Referência de mercado (A-05), em modo silencioso", None),

@@ -5,6 +5,11 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
+### Parlamentares: o Senado (ADR-060, adendo)
+
+- Os senadores desde 2003: votos nominais no Plenário, presença nas votações, matérias de autoria e a cota (CEAPS),
+  pela API de dados abertos do Senado. A aba ganha "Senadores", e as votações têm a escolha da casa.
+
 ### Parlamentares: desde 2003 e as votações (ADR-060, adendo)
 
 - Os deputados federais desde 2003 (52ª a 57ª legislatura); a cota parlamentar, desde 2009.

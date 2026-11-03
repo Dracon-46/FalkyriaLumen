@@ -16,14 +16,18 @@ import { ThOrdem } from "@/componentes/ThOrdem";
 import { numero, percentual } from "@/lib/formato";
 import { type Ordem, ordenar } from "@/lib/ordem";
 import { moeda } from "@/lib/paineis";
+import { NavParlamentares } from "./NavParlamentares";
 import {
   apareceNoPeriodo,
+  CASAS,
+  casaDaUrl,
   carregarIndiceCamara,
   filtrarDeputados,
   type IndiceCamara,
   type LinhaDeputado,
   type Numeros,
   numerosNoPeriodo,
+  urlDoParlamentar,
 } from "@/lib/parlamentares";
 import { Situacao } from "../paineis/Comuns";
 
@@ -51,6 +55,7 @@ export function PainelParlamentares() {
   const router = useRouter();
   const [estado, setEstado] = useState<Estado>({ fase: "carregando" });
   const [todos, setTodos] = useState(false);
+  const casa = casaDaUrl(params.get("casa"));
   const uf = params.get("uf")?.toUpperCase() ?? null;
   const partido = params.get("partido");
   const termo = params.get("busca") ?? "";
@@ -62,11 +67,12 @@ export function PainelParlamentares() {
 
   useEffect(() => {
     const c = new AbortController();
-    carregarIndiceCamara(c.signal)
+    setEstado({ fase: "carregando" });
+    carregarIndiceCamara(c.signal, casa)
       .then((indice) => setEstado({ fase: "pronto", indice }))
       .catch((e: Error) => e.name !== "AbortError" && setEstado({ fase: "erro" }));
     return () => c.abort();
-  }, []);
+  }, [casa]);
 
   /** Troca um filtro na URL, sem rolar a página. */
   const mudar = (chave: string, valor: string | null) => {
@@ -94,15 +100,16 @@ export function PainelParlamentares() {
     });
   }, [indice, termo, uf, partido, chaveAnos, colunaOrdem, sentidoOrdem]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (estado.fase === "carregando") return <Situacao>Carregando…</Situacao>;
-  if (estado.fase === "erro") return <Situacao>Não foi possível ler os parlamentares agora.</Situacao>;
-  if (!indice) return <Situacao>Os parlamentares ainda não foram publicados.</Situacao>;
+  const nav = <NavParlamentares atual={casa === "senado" ? "senadores" : "deputados"} />;
+  if (estado.fase === "carregando") return <>{nav}<Situacao>Carregando…</Situacao></>;
+  if (estado.fase === "erro") return <>{nav}<Situacao>Não foi possível ler os parlamentares agora.</Situacao></>;
+  if (!indice) return <>{nav}<Situacao>Os {CASAS[casa].pessoas.toLowerCase()} ainda não foram publicados.</Situacao></>;
   const ufs = [...new Set(indice.deputados.map((d) => d[3]))].sort();
   const partidos = [...new Set(indice.deputados.map((d) => d[2]))].sort();
   const legislaturas = Object.entries(indice.legislaturas ?? {}).sort((a, b) => b[0].localeCompare(a[0]));
   const mostradas = todos ? linhas : linhas.slice(0, INICIAIS);
-  const nomePeriodo = !anos ? `de ${indice.anos[0]} a ${indice.anos[indice.anos.length - 1]}`
-    : anos.length === 1 ? `em ${anos[0]}` : `de ${anos[0]} a ${anos[anos.length - 1]}`;
+  const doPeriodo = anos ?? indice.anos;
+  const nomePeriodo = doPeriodo.length === 1 ? `em ${doPeriodo[0]}` : `de ${doPeriodo[0]} a ${doPeriodo[doPeriodo.length - 1]}`;
   const th = (coluna: string, rotulo: string, opcoes: { className?: string; texto?: boolean } = {}) => (
     <ThOrdem coluna={coluna} ordem={ordem} className={opcoes.className} texto={opcoes.texto}
       onOrdenar={(o) => mudar("ordem", `${o.coluna}-${o.sentido}`)}>{rotulo}</ThOrdem>
@@ -110,6 +117,7 @@ export function PainelParlamentares() {
 
   return (
     <>
+      {nav}
       <form className="cartao cartao-corpo filtro-periodo" aria-label="Filtros"
         onSubmit={(e) => { e.preventDefault(); mudar("busca", texto.trim() || null); }}>
         <Escolha rotulo="Período" className="escolha-larga" valor={periodo} onEscolher={(v) => mudar("periodo", v || null)} opcoes={[
@@ -121,26 +129,28 @@ export function PainelParlamentares() {
           opcoes={[{ valor: "", rotulo: "todas as UFs" }, ...ufs.map((u) => ({ valor: u, rotulo: u }))]} />
         <Escolha rotulo="Partido" className="escolha-larga" valor={partido ?? ""} onEscolher={(v) => mudar("partido", v || null)}
           opcoes={[{ valor: "", rotulo: "todos os partidos" }, ...partidos.map((p) => ({ valor: p, rotulo: p }))]} />
-        <input id="busca-parlamentar" className="seletor" placeholder="nome do deputado" aria-label="Nome do deputado"
+        <input id="busca-parlamentar" className="seletor" placeholder={casa === "senado" ? "nome do senador" : "nome do deputado"}
+          aria-label={casa === "senado" ? "Nome do senador" : "Nome do deputado"}
           value={texto} onChange={(e) => setTexto(e.target.value)} />
         <button type="submit" className="botao">Buscar</button>
         {(periodo || uf || partido || termo || ordem) && (
-          <button type="button" className="botao-link" onClick={() => router.replace("/parlamentares/", { scroll: false })}>
+          <button type="button" className="botao-link"
+            onClick={() => router.replace(casa === "senado" ? "/parlamentares/?casa=senado" : "/parlamentares/", { scroll: false })}>
             limpar filtros
           </button>
         )}
       </form>
       <section className="cartao cartao-corpo" aria-labelledby="titulo-deputados">
-        <h2 id="titulo-deputados" className="titulo-secao">Deputados federais</h2>
+        <h2 id="titulo-deputados" className="titulo-secao">{CASAS[casa].pessoas}</h2>
         <p>
-          {numero(linhas.length)} deputado(s) com mandato {nomePeriodo}. Clique no cabeçalho de uma coluna para ordenar;
+          {numero(linhas.length)} {casa === "senado" ? "senador(es)" : "deputado(s)"} com mandato {nomePeriodo}. Clique no cabeçalho de uma coluna para ordenar;
           clique de novo para inverter. O partido e a UF são os mais recentes.
         </p>
         <div className="tabela-rolavel">
           <table className="tabela">
             <thead>
               <tr>
-                {th("nome", "Deputado", { texto: true })}
+                {th("nome", casa === "senado" ? "Senador" : "Deputado", { texto: true })}
                 {th("partido", "Partido", { texto: true })}
                 {th("uf", "UF", { texto: true })}
                 {th("votos", "Votos no Plenário", { className: "n" })}
@@ -152,7 +162,7 @@ export function PainelParlamentares() {
             <tbody>
               {mostradas.map(({ d: [id, nome, p, u], n, presenca }) => (
                 <tr key={id}>
-                  <td><Link href={`/parlamentares/deputado/?id=${id}${anos?.length === 1 ? `&ano=${anos[0]}` : ""}`}>{nome}</Link></td>
+                  <td><Link href={urlDoParlamentar(id, casa, anos?.length === 1 ? anos[0] : null)}>{nome}</Link></td>
                   <td>{p}</td>
                   <td>{u}</td>
                   <td className="n">{numero(n[0])}</td>
@@ -171,15 +181,21 @@ export function PainelParlamentares() {
             {todos ? `mostrar só os ${INICIAIS} primeiros` : `ver todos os ${numero(linhas.length)}`}
           </button>
         )}
-        <BaixarCsv nome="deputados-federais"
-          colunas={["Id na Câmara", "Deputado", "Partido", "UF", "Votos no Plenário", "Sessões presentes",
+        <BaixarCsv nome={casa === "senado" ? "senadores" : "deputados-federais"}
+          colunas={[casa === "senado" ? "Código no Senado" : "Id na Câmara", casa === "senado" ? "Senador" : "Deputado", "Partido", "UF", "Votos no Plenário", "Sessões presentes",
                     "Sessões em exercício", "Proposições", "Cota parlamentar (R$)"]}
           linhas={() => linhas.map(({ d: [id, nome, p, u], n }) => [id, nome, p, u, n[0], n[2], n[3], n[1], n[4]])} />
         <p className="busca-detalhe">
-          Votos nominais no Plenário, presença nas sessões deliberativas do Plenário enquanto o deputado estava em
-          exercício (passe o mouse para ver quantas), proposições que apresentou (projetos de lei, de lei complementar, de
-          decreto legislativo, de resolução e PECs) e cota parlamentar (CEAP), {nomePeriodo}, dos dados abertos da Câmara
-          dos Deputados. Os números não medem trabalho em comissões, relatorias nem o que não vai a voto nominal.{" "}
+          {casa === "senado"
+            ? <>Votos nominais no Plenário, presença nas votações nominais enquanto o senador estava em exercício (passe o
+                mouse para ver quantas), matérias de que é autor ou coautor (projetos de lei, de lei complementar, de
+                decreto legislativo, de resolução e PECs) e cota parlamentar (CEAPS), {nomePeriodo}, dos dados abertos do
+                Senado Federal. O Senado decide muito por votação simbólica, sem voto por senador.</>
+            : <>Votos nominais no Plenário, presença nas sessões deliberativas do Plenário enquanto o deputado estava em
+                exercício (passe o mouse para ver quantas), proposições que apresentou (projetos de lei, de lei
+                complementar, de decreto legislativo, de resolução e PECs) e cota parlamentar (CEAP), {nomePeriodo}, dos
+                dados abertos da Câmara dos Deputados.</>}{" "}
+          Os números não medem trabalho em comissões, relatorias nem o que não vai a voto nominal.{" "}
           <a href={METODO} target="_blank" rel="noreferrer">como é montado</a>
         </p>
       </section>

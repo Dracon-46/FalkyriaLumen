@@ -60,6 +60,8 @@ CONJUNTOS = ("votacoes", "votacoesVotos", "votacoesProposicoes", "votacoesOrient
              "eventosPresencaDeputados", "proposicoes", "proposicoesAutores")
 TIPOS_LISTADOS = frozenset({"PL", "PLP", "PEC", "PDL", "PRC"})
 VOTOS = {"Sim": "S", "Não": "N", "Abstenção": "A", "Obstrução": "O", "Artigo 17": "17"}
+# Os votos de fato (com o do presidente da sessão, art. 17); ausência, "presente sem votar" e licença não contam
+VOTOS_REGISTRADOS = frozenset({"S", "N", "A", "O", "17"})
 EMENTA = 300
 TENTATIVAS = 6
 
@@ -345,19 +347,29 @@ def coletar(estado: Path | str, *, contato: str, hoje: date | None = None, anos:
 # ------------------------------------------------------------------------------------------ publicação
 
 def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> dict | None:
-    """Grava ``parlamentares/camara/<id>.json.gz`` (um por deputado), ``parlamentares/camara/votacoes-<ano>.json.gz``
-    e ``parlamentares/camara/indice.json``; devolve o resumo para o índice dos painéis."""
+    """Grava ``parlamentares/camara/<id>.json.gz`` (um por deputado), as votações e os votos de cada ano e o índice
+    (``publicar_casa``); devolve o resumo para o índice dos painéis."""
     caminho = Path(estado) / ARQUIVO
     if not caminho.exists():
         return None
     dados = ler_json(caminho)
     if dados.get("versao") != VERSAO_ESTADO:
         raise ValueError(f"{caminho}: versão {dados.get('versao')!r} do estado da Câmara não suportada")
+    return publicar_casa(dados, gravar, gerado_em=gerado_em, casa="camara", pessoa="deputado")
+
+
+def publicar_casa(dados: dict, gravar: Callable[[str, Any], Any], *, gerado_em: str, casa: str,
+                  pessoa: str) -> dict:
+    """A publicação comum à Câmara e ao Senado (``senado.py``), do estado no mesmo formato: ``deputados`` (o cadastro,
+    ``{id: [nome, partido, uf, [legislaturas]]}``, de deputados ou senadores), ``exercicio`` e ``anos``. Grava, em
+    ``parlamentares/<casa>/``, um arquivo por parlamentar (tipo ``<casa>-<pessoa>``), as votações e os votos de cada
+    ano e o índice (``<casa>-indice``)."""
+    base = f"parlamentares/{casa}"
     deputados, periodos = dados["deputados"], dados.get("exercicio") or {}
     pessoas: dict[str, dict] = {}
     for ano, a in sorted(dados["anos"].items()):
-        gravar(f"parlamentares/camara/votacoes-{ano}.json.gz", {
-            "versao": 1, "tipo": "camara-votacoes", "gerado_em": gerado_em, "ano": ano,
+        gravar(f"{base}/votacoes-{ano}.json.gz", {
+            "versao": 1, "tipo": f"{casa}-votacoes", "gerado_em": gerado_em, "ano": ano,
             "colunas": ["data", "proposicao", "ementa", "descricao", "aprovacao", "sim", "nao", "outros", "governo",
                         "proposicao_id"],
             "votacoes": a["votacoes"]})
@@ -367,9 +379,9 @@ def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em
             for vid, voto in votos_dep.items():
                 partido = (a.get("partidos") or {}).get(vid, {}).get(dep) or deputados.get(dep, [None, ""])[1]
                 por_votacao.setdefault(vid, []).append([dep, voto, partido])
-        gravar(f"parlamentares/camara/votos-{ano}.json.gz", {
-            "versao": 1, "tipo": "camara-votos", "gerado_em": gerado_em, "ano": ano,
-            "colunas": ["deputado", "voto", "partido"],
+        gravar(f"{base}/votos-{ano}.json.gz", {
+            "versao": 1, "tipo": f"{casa}-votos", "gerado_em": gerado_em, "ano": ano,
+            "colunas": ["parlamentar", "voto", "partido"],
             "votos": {v: sorted(linhas) for v, linhas in sorted(por_votacao.items())}})
         for dep in deputados:
             sessoes = [e for e, dia in a["sessoes"].items()
@@ -387,19 +399,19 @@ def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em
     indice = []
     for dep, anos in sorted(pessoas.items(), key=lambda x: deputados[x[0]][0]):
         nome, partido, uf, legislaturas = deputados[dep]
-        gravar(f"parlamentares/camara/{dep}.json.gz", {
-            "versao": 1, "tipo": "camara-deputado", "gerado_em": gerado_em, "id": dep, "nome": nome,
+        gravar(f"{base}/{dep}.json.gz", {
+            "versao": 1, "tipo": f"{casa}-{pessoa}", "gerado_em": gerado_em, "id": dep, "nome": nome,
             "partido": partido, "uf": uf, "legislaturas": legislaturas, "exercicio": periodos.get(dep, []),
             "colunas_autoria": ["id", "tipo", "numero", "ano", "ementa", "apresentacao", "situacao"],
             "colunas_fornecedor": ["cnpj", "nome", "documentos", "valor"], "anos": anos})
-        por_ano = {ano: [sum(1 for v in a["votos"].values() if v not in ("-", "")), len(a["autoria"]),
+        por_ano = {ano: [sum(1 for v in a["votos"].values() if v in VOTOS_REGISTRADOS), len(a["autoria"]),
                          a["presenca"][0], a["presenca"][1],
                          round(sum(a.get("ceap", {}).get("categorias", {}).values()), 2)]
                    for ano, a in sorted(anos.items())}
         indice.append([dep, nome, partido, uf, legislaturas, *(round(sum(x[i] for x in por_ano.values()), 2)
                                                                 for i in range(5)), por_ano])
-    gravar("parlamentares/camara/indice.json", {
-        "versao": 1, "tipo": "camara-indice", "gerado_em": gerado_em, "fonte": dados.get("fonte"),
+    gravar(f"{base}/indice.json", {
+        "versao": 1, "tipo": f"{casa}-indice", "gerado_em": gerado_em, "fonte": dados.get("fonte"),
         "coletado_em": dados.get("coletado_em"), "anos": sorted(dados["anos"]),
         "colunas": ["id", "nome", "partido", "uf", "legislaturas", "votos", "proposicoes", "presencas", "sessoes",
                     "ceap", "anos"], "colunas_ano": ["votos", "proposicoes", "presencas", "sessoes", "ceap"],

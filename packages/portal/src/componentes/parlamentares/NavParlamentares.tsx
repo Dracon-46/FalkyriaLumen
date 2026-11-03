@@ -1,14 +1,15 @@
 /**
- * A navegação dentro da aba Parlamentares (ADR-060): a lista dos deputados e as votações do Plenário.
+ * A navegação dentro da aba Parlamentares (ADR-060): os deputados federais, os senadores e as votações.
  */
 
 import Link from "next/link";
 
-/** Os dois links, com o da página aberta marcado. */
-export function NavParlamentares({ atual }: { atual: "deputados" | "votacoes" }) {
+/** Os links, com o da página aberta marcado. */
+export function NavParlamentares({ atual }: { atual: "deputados" | "senadores" | "votacoes" }) {
   return (
     <nav className="nav-secao" aria-label="Parlamentares">
       <Link href="/parlamentares/" aria-current={atual === "deputados" ? "page" : undefined}>Deputados federais</Link>
+      <Link href="/parlamentares/?casa=senado" aria-current={atual === "senadores" ? "page" : undefined}>Senadores</Link>
       <Link href="/parlamentares/votacoes/" aria-current={atual === "votacoes" ? "page" : undefined}>Votações</Link>
     </nav>
   );

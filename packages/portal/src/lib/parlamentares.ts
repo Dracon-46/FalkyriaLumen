@@ -23,7 +23,7 @@ export type LinhaDeputado = [string, string, string, string, number[], number, n
 /** Arquivo `parlamentares/camara/indice.json`. */
 export interface IndiceCamara {
   versao: 1;
-  tipo: "camara-indice";
+  tipo: `${Casa}-indice`;
   gerado_em: string;
   fonte: string | null;
   coletado_em: string | null;
@@ -62,7 +62,7 @@ export interface AnoDeputado {
 /** Arquivo `parlamentares/camara/<id>.json.gz`. */
 export interface Deputado {
   versao: 1;
-  tipo: "camara-deputado";
+  tipo: `${Casa}-${"deputado" | "senador"}`;
   gerado_em: string;
   id: string;
   nome: string;
@@ -86,7 +86,7 @@ export type VotoNaVotacao = [string, string, string];
 /** Arquivo `parlamentares/camara/votos-<ano>.json.gz`: quem votou em cada votação nominal do ano. */
 interface VotosAno {
   versao: 1;
-  tipo: "camara-votos";
+  tipo: `${Casa}-votos`;
   ano: string;
   votos: Record<string, VotoNaVotacao[]>;
 }
@@ -94,40 +94,53 @@ interface VotosAno {
 /** Arquivo `parlamentares/camara/votacoes-<ano>.json.gz`. */
 interface VotacoesAno {
   versao: 1;
-  tipo: "camara-votacoes";
+  tipo: `${Casa}-votacoes`;
   ano: string;
   votacoes: Record<string, Votacao>;
 }
 
-const BASE = `${BASE_PAINEL}/parlamentares/camara`;
+/** A casa legislativa: a Câmara dos Deputados ou o Senado Federal. */
+export type Casa = "camara" | "senado";
 
-/** O índice dos deputados; `null` quando ainda não foi publicado. */
-export async function carregarIndiceCamara(sinal?: AbortSignal): Promise<IndiceCamara | null> {
-  const url = `${BASE}/indice.json`;
+/** A pasta da casa no site dos painéis. */
+const base = (casa: Casa) => `${BASE_PAINEL}/parlamentares/${casa}`;
+
+/** O nome da casa e de quem tem mandato nela, para os textos das páginas. */
+export const CASAS: Record<Casa, { nome: string; pessoa: string; pessoas: string; rota: string }> = {
+  camara: { nome: "Câmara dos Deputados", pessoa: "Deputado(a) federal", pessoas: "Deputados federais", rota: "deputado" },
+  senado: { nome: "Senado Federal", pessoa: "Senador(a)", pessoas: "Senadores", rota: "senador" },
+};
+
+/** A casa pelo parâmetro da URL (`?casa=senado`); qualquer outro valor é a Câmara. */
+export const casaDaUrl = (valor: string | null): Casa => (valor === "senado" ? "senado" : "camara");
+
+/** O índice dos parlamentares da casa; `null` quando ainda não foi publicado. */
+export async function carregarIndiceCamara(sinal?: AbortSignal, casa: Casa = "camara"): Promise<IndiceCamara | null> {
+  const url = `${base(casa)}/indice.json`;
   const bruto = await obterJson(url, { sinal });
-  return bruto === null ? null : conferir<IndiceCamara>(bruto, "camara-indice", url);
+  return bruto === null ? null : conferir<IndiceCamara>(bruto, `${casa}-indice`, url);
 }
 
 /** O arquivo de um deputado; `null` quando ele não está no Lumen. */
-export async function carregarDeputado(id: string, sinal?: AbortSignal): Promise<Deputado | null> {
+export async function carregarDeputado(id: string, sinal?: AbortSignal, casa: Casa = "camara"): Promise<Deputado | null> {
   if (!/^\d+$/.test(id)) return null;
-  const url = `${BASE}/${id}.json.gz`;
+  const url = `${base(casa)}/${id}.json.gz`;
   const bruto = await obterJsonComprimido(url, sinal);
-  return bruto === null ? null : conferir<Deputado>(bruto, "camara-deputado", url);
+  return bruto === null ? null : conferir<Deputado>(bruto, `${casa}-${casa === "senado" ? "senador" : "deputado"}`, url);
 }
 
 /** As votações nominais do Plenário num ano (vazio quando o arquivo não existe). */
-export async function carregarVotacoes(ano: string, sinal?: AbortSignal): Promise<Record<string, Votacao>> {
-  const url = `${BASE}/votacoes-${ano}.json.gz`;
+export async function carregarVotacoes(ano: string, sinal?: AbortSignal, casa: Casa = "camara"): Promise<Record<string, Votacao>> {
+  const url = `${base(casa)}/votacoes-${ano}.json.gz`;
   const bruto = await obterJsonComprimido(url, sinal);
-  return bruto === null ? {} : conferir<VotacoesAno>(bruto, "camara-votacoes", url).votacoes;
+  return bruto === null ? {} : conferir<VotacoesAno>(bruto, `${casa}-votacoes`, url).votacoes;
 }
 
 /** Os votos de cada votação nominal do ano (vazio quando o arquivo não existe). */
-export async function carregarVotosDoAno(ano: string, sinal?: AbortSignal): Promise<Record<string, VotoNaVotacao[]>> {
-  const url = `${BASE}/votos-${ano}.json.gz`;
+export async function carregarVotosDoAno(ano: string, sinal?: AbortSignal, casa: Casa = "camara"): Promise<Record<string, VotoNaVotacao[]>> {
+  const url = `${base(casa)}/votos-${ano}.json.gz`;
   const bruto = await obterJsonComprimido(url, sinal);
-  return bruto === null ? {} : conferir<VotosAno>(bruto, "camara-votos", url).votos;
+  return bruto === null ? {} : conferir<VotosAno>(bruto, `${casa}-votos`, url).votos;
 }
 
 /** O placar de um partido numa votação. */
@@ -163,19 +176,34 @@ export function tipoDaProposicao(titulo: string): string {
 }
 
 /** A página da votação no Lumen. */
-export const urlDaVotacao = (ano: string, id: string) => `/parlamentares/votacoes/?ano=${ano}&id=${encodeURIComponent(id)}`;
+export const urlDaVotacao = (ano: string, id: string, casa: Casa = "camara") =>
+  `/parlamentares/votacoes/?${casa === "senado" ? "casa=senado&" : ""}ano=${ano}&id=${encodeURIComponent(id)}`;
 
-/** A foto oficial do deputado no site da Câmara. */
-export const fotoDoDeputado = (id: string) => `https://www.camara.leg.br/internet/deputado/bandep/${id}.jpg`;
-/** A página do deputado no site da Câmara. */
-export const paginaNaCamara = (id: string) => `https://www.camara.leg.br/deputados/${id}`;
-/** A página da proposição no site da Câmara. */
-export const proposicaoNaCamara = (id: string) =>
-  `https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=${id}`;
+/** A página do parlamentar no Lumen. */
+export const urlDoParlamentar = (id: string, casa: Casa = "camara", ano?: string | null) =>
+  `/parlamentares/${CASAS[casa].rota}/?id=${id}${ano ? `&ano=${ano}` : ""}`;
+
+/** A foto oficial do parlamentar no site da casa. */
+export const fotoDoDeputado = (id: string, casa: Casa = "camara") => casa === "senado"
+  ? `https://www.senado.leg.br/senadores/img/fotos-oficiais/senador${id}.jpg`
+  : `https://www.camara.leg.br/internet/deputado/bandep/${id}.jpg`;
+/** A página do parlamentar no site da casa. */
+export const paginaNaCamara = (id: string, casa: Casa = "camara") => casa === "senado"
+  ? `https://www25.senado.leg.br/web/senadores/senador/-/perfil/${id}`
+  : `https://www.camara.leg.br/deputados/${id}`;
+/** A página da proposição (ou matéria, no Senado) no site da casa. */
+export const proposicaoNaCamara = (id: string, casa: Casa = "camara") => casa === "senado"
+  ? `https://www25.senado.leg.br/web/atividade/materias/-/materia/${id}`
+  : `https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=${id}`;
+
+/** Os votos de fato: sim, não, abstenção, obstrução e o do presidente da sessão na Câmara (art. 17). */
+const VOTOS_DE_FATO = new Set(["S", "N", "A", "O", "17"]);
 
 /** O voto por extenso. */
 export function votoPorExtenso(v: string): string {
-  return { S: "Sim", N: "Não", A: "Abstenção", O: "Obstrução", "17": "Presidiu (art. 17)", "-": "Sem voto" }[v] ?? v;
+  return { S: "Sim", N: "Não", A: "Abstenção", O: "Obstrução", "17": "Presidiu (art. 17)", "-": "Sem voto",
+           "P-NRV": "Presente, não votou", AP: "Ausente (art. 13)", LS: "Licença saúde", LP: "Licença particular",
+           MIS: "Em missão", NCom: "Não compareceu", PR: "Presidiu a sessão (art. 51)", NA: "Não votou" }[v] ?? v;
 }
 
 /** Os deputados que casam com a busca pelo nome (começo das palavras) e com a UF e o partido escolhidos. */
@@ -215,7 +243,7 @@ export function totaisDoDeputado(d: Deputado, ano: string | null) {
   const contagem: Record<string, number> = {};
   for (const a of anos) for (const [tipo, n] of Object.entries(a.contagem)) contagem[tipo] = (contagem[tipo] ?? 0) + n;
   return {
-    votos: votos.filter((v) => v !== "-").length,
+    votos: votos.filter((v) => VOTOS_DE_FATO.has(v)).length,
     sim: votos.filter((v) => v === "S").length,
     nao: votos.filter((v) => v === "N").length,
     presentes: anos.reduce((s, a) => s + a.presenca[0], 0),

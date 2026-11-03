@@ -17,6 +17,8 @@ import { normalizar } from "@/lib/busca";
 import { type Ordem, ordenar } from "@/lib/ordem";
 import { cnpj as formatarCnpj, dataCurta, moeda, moedaCompacta } from "@/lib/paineis";
 import {
+  type Casa,
+  CASAS,
   carregarDeputado,
   carregarVotacoes,
   cotaDoDeputado,
@@ -41,8 +43,8 @@ const INICIAIS = 30;
 /** Carregando, o deputado lido (null quando não está no Lumen) ou o erro. */
 type Estado = { fase: "carregando" } | { fase: "pronto"; deputado: Deputado | null } | { fase: "erro"; erro: string };
 
-/** A página: lê o deputado e as votações dos anos dele. */
-export function PainelDeputado() {
+/** A página: lê o parlamentar (da Câmara ou do Senado) e as votações dos anos dele. */
+export function PainelDeputado({ casa = "camara" }: { casa?: Casa }) {
   const params = useSearchParams();
   const router = useRouter();
   const id = params.get("id") ?? "";
@@ -53,16 +55,16 @@ export function PainelDeputado() {
   useEffect(() => {
     const c = new AbortController();
     setEstado({ fase: "carregando" });
-    carregarDeputado(id, c.signal)
+    carregarDeputado(id, c.signal, casa)
       .then((deputado) => {
         setEstado({ fase: "pronto", deputado });
         for (const ano of Object.keys(deputado?.anos ?? {})) {
-          carregarVotacoes(ano, c.signal).then((v) => setVotacoes((atual) => ({ ...atual, [ano]: v }))).catch(() => undefined);
+          carregarVotacoes(ano, c.signal, casa).then((v) => setVotacoes((atual) => ({ ...atual, [ano]: v }))).catch(() => undefined);
         }
       })
       .catch((e: Error) => e.name !== "AbortError" && setEstado({ fase: "erro", erro: e.message }));
     return () => c.abort();
-  }, [id]);
+  }, [id, casa]);
 
   if (!id) return <Situacao>Escolha um deputado na <Link href="/parlamentares/">lista dos parlamentares</Link>.</Situacao>;
   if (estado.fase === "carregando") return <Situacao>Carregando…</Situacao>;
@@ -76,7 +78,7 @@ export function PainelDeputado() {
     const q = new URLSearchParams(params.toString());
     if (a) q.set("ano", a);
     else q.delete("ano");
-    router.replace(`/parlamentares/deputado/?${q.toString()}`, { scroll: false });
+    router.replace(`/parlamentares/${CASAS[casa].rota}/?${q.toString()}`, { scroll: false });
   };
   const t = totaisDoDeputado(d, ano);
   const periodo = ano ?? (anos.length === 1 ? anos[0] : `${anos[0]} a ${anos[anos.length - 1]}`);
@@ -84,12 +86,12 @@ export function PainelDeputado() {
   return (
     <PrefixoCsv.Provider value={["deputado", d.id, ano].filter(Boolean).join("-")}>
       <section className="cartao cartao-corpo deputado-topo">
-        <img src={fotoDoDeputado(d.id)} alt={`Foto oficial de ${d.nome}`} width={90} height={120} className="deputado-foto" />
+        <img src={fotoDoDeputado(d.id, casa)} alt={`Foto oficial de ${d.nome}`} width={90} height={120} className="deputado-foto" />
         <div>
           <h2 className="painel-ente">{d.nome}</h2>
           <p>
-            Deputado(a) federal · {d.partido}-{d.uf} · legislatura(s) {d.legislaturas.join(" e ")}
-            <span className="busca-detalhe"> · <a href={paginaNaCamara(d.id)} target="_blank" rel="noreferrer">página na Câmara</a></span>
+            {CASAS[casa].pessoa} · {d.partido ? `${d.partido}-` : ""}{d.uf} · legislatura(s) {d.legislaturas.join(" e ")}
+            <span className="busca-detalhe"> · <a href={paginaNaCamara(d.id, casa)} target="_blank" rel="noreferrer">página no {casa === "senado" ? "Senado" : "site da Câmara"}</a></span>
           </p>
           <p className="busca-detalhe">
             Em exercício: {d.exercicio.map(([i, f]) => `${dataCurta(i)} a ${f ? dataCurta(f) : "hoje"}`).join("; ") || "sem registro"}
@@ -105,14 +107,16 @@ export function PainelDeputado() {
       )}
       <div className="totais">
         <Numero rotulo={`Votos no Plenário, ${periodo}`} valor={numero(t.votos)} detalhe={`${numero(t.sim)} Sim · ${numero(t.nao)} Não`} />
-        <Numero rotulo="Presença nas sessões" valor={t.sessoes ? percentual((100 * t.presentes) / t.sessoes) : "—"}
+        <Numero rotulo={casa === "senado" ? "Presença nas votações" : "Presença nas sessões"}
+          valor={t.sessoes ? percentual((100 * t.presentes) / t.sessoes) : "—"}
           detalhe={`${numero(t.presentes)} de ${numero(t.sessoes)} em exercício`} />
-        <Numero rotulo="Proposições apresentadas" valor={numero(t.proposicoes)} detalhe="PL, PLP, PEC, PDL e PRC" />
+        <Numero rotulo={casa === "senado" ? "Matérias de autoria" : "Proposições apresentadas"} valor={numero(t.proposicoes)}
+          detalhe={casa === "senado" ? "PL, PLS, PLP, PEC, PDL e PRS" : "PL, PLP, PEC, PDL e PRC"} />
         <Numero rotulo="Cota parlamentar" valor={moeda(t.cota)} detalhe="valor reembolsado" />
       </div>
       {anos.length > 1 && <AnoAAno d={d} anos={anos} ano={ano} onAno={escolherAno} />}
-      <Votos d={d} ano={ano} votacoes={votacoes} />
-      <Proposicoes d={d} ano={ano} contagem={t.contagem} />
+      <Votos d={d} ano={ano} votacoes={votacoes} casa={casa} />
+      <Proposicoes d={d} ano={ano} contagem={t.contagem} casa={casa} />
       <CotaParlamentar d={d} ano={ano} />
       <p className="busca-detalhe">
         Dados abertos da Câmara dos Deputados: votações nominais do Plenário, presença nas sessões deliberativas do
@@ -159,7 +163,7 @@ function AnoAAno({ d, anos, ano, onAno }: { d: Deputado; anos: string[]; ano: st
 }
 
 /** Os votos nominais no Plenário, com a votação, o resultado e se o voto foi igual à orientação do Governo. */
-function Votos({ d, ano, votacoes }: { d: Deputado; ano: string | null; votacoes: Record<string, Record<string, Votacao>> }) {
+function Votos({ d, ano, votacoes, casa }: { d: Deputado; ano: string | null; votacoes: Record<string, Record<string, Votacao>>; casa: Casa }) {
   const [filtro, setFiltro] = useState("");
   const [busca, setBusca] = useState("");
   const [ordem, setOrdem] = useState<Ordem | null>(null);
@@ -201,7 +205,7 @@ function Votos({ d, ano, votacoes }: { d: Deputado; ano: string | null; votacoes
               <tr key={id}>
                 <td>{v ? dataCurta(v[0]) : "—"}</td>
                 <td>
-                  <Link href={urlDaVotacao(anoDoVoto, id)}>{v?.[1] || "Votação"}</Link>{" "}
+                  <Link href={urlDaVotacao(anoDoVoto, id, casa)}>{v?.[1] || "Votação"}</Link>{" "}
                   {v?.[2] && <span className="busca-detalhe">· {v[2]}</span>}
                   {v?.[3] && <div className="busca-detalhe">{v[3]}</div>}
                 </td>
@@ -231,7 +235,7 @@ function Votos({ d, ano, votacoes }: { d: Deputado; ano: string | null; votacoes
 }
 
 /** As proposições que o deputado apresentou como autor, e a contagem de todas por tipo. */
-function Proposicoes({ d, ano, contagem }: { d: Deputado; ano: string | null; contagem: Record<string, number> }) {
+function Proposicoes({ d, ano, contagem, casa }: { d: Deputado; ano: string | null; contagem: Record<string, number>; casa: Casa }) {
   const [todas, setTodas] = useState(false);
   const [ordem, setOrdem] = useState<Ordem | null>(null);
   const lista = ordenar(Object.entries(d.anos).filter(([a]) => !ano || a === ano).flatMap(([, a]) => a.autoria)
@@ -239,7 +243,7 @@ function Proposicoes({ d, ano, contagem }: { d: Deputado; ano: string | null; co
     proposicao: (p) => `${p[1]} ${p[3]} ${p[2].padStart(6, "0")}`, ementa: (p) => p[4], data: (p) => p[5], situacao: (p) => p[6],
   });
   const mostradas = todas ? lista : lista.slice(0, INICIAIS);
-  const outros = Object.entries(contagem).filter(([tipo]) => !["PL", "PLP", "PEC", "PDL", "PRC"].includes(tipo))
+  const outros = Object.entries(contagem).filter(([tipo]) => !["PL", "PLS", "PLP", "PEC", "PDL", "PRC", "PRS"].includes(tipo))
     .sort((a, b) => b[1] - a[1]);
   if (lista.length === 0 && outros.length === 0) return null;
   return (
@@ -259,7 +263,7 @@ function Proposicoes({ d, ano, contagem }: { d: Deputado; ano: string | null; co
             <tbody>
               {mostradas.map(([pid, tipo, numeroP, anoP, ementa, data, situacao]) => (
                 <tr key={pid}>
-                  <td><a href={proposicaoNaCamara(pid)} target="_blank" rel="noreferrer">{tipo} {numeroP}/{anoP}</a></td>
+                  <td><a href={proposicaoNaCamara(pid, casa)} target="_blank" rel="noreferrer">{tipo} {numeroP}/{anoP}</a></td>
                   <td>{ementa}</td>
                   <td>{dataCurta(data)}</td>
                   <td>{situacao ?? "—"}</td>

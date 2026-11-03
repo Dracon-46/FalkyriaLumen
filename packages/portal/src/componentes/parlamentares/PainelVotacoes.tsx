@@ -16,7 +16,11 @@ import { normalizar } from "@/lib/busca";
 import { numero } from "@/lib/formato";
 import { type Ordem, ordenar } from "@/lib/ordem";
 import { dataCurta } from "@/lib/paineis";
+import { NavParlamentares } from "./NavParlamentares";
 import {
+  type Casa,
+  CASAS,
+  casaDaUrl,
   carregarIndiceCamara,
   carregarVotacoes,
   carregarVotosDoAno,
@@ -27,6 +31,7 @@ import {
   urlDaVotacao,
   type Votacao,
   type VotoNaVotacao,
+  urlDoParlamentar,
   votoPorExtenso,
 } from "@/lib/parlamentares";
 import { Numero, Situacao } from "../paineis/Comuns";
@@ -51,25 +56,27 @@ export function PainelVotacoes() {
   const [indice, setIndice] = useState<IndiceCamara | null | undefined>(undefined);
   const [dados, setDados] = useState<Dados | null>(null);
   const [erro, setErro] = useState(false);
+  const casa = casaDaUrl(params.get("casa"));
   const anos = indice?.anos ?? [];
   const ano = params.get("ano") && anos.includes(params.get("ano")!) ? params.get("ano")! : anos[anos.length - 1] ?? null;
   const id = params.get("id");
 
   useEffect(() => {
     const c = new AbortController();
-    carregarIndiceCamara(c.signal).then(setIndice).catch((e: Error) => e.name !== "AbortError" && setErro(true));
+    setIndice(undefined);
+    carregarIndiceCamara(c.signal, casa).then(setIndice).catch((e: Error) => e.name !== "AbortError" && setErro(true));
     return () => c.abort();
-  }, []);
+  }, [casa]);
 
   useEffect(() => {
     if (!ano || !indice) return;
     const c = new AbortController();
     setDados(null);
-    Promise.all([carregarVotacoes(ano, c.signal), carregarVotosDoAno(ano, c.signal)])
+    Promise.all([carregarVotacoes(ano, c.signal, casa), carregarVotosDoAno(ano, c.signal, casa)])
       .then(([votacoes, votos]) => setDados({ indice, votacoes, votos }))
       .catch((e: Error) => e.name !== "AbortError" && setErro(true));
     return () => c.abort();
-  }, [ano, indice]);
+  }, [ano, indice, casa]);
 
   /** Troca parâmetros na URL, sem rolar a página. */
   const mudar = (novos: Record<string, string | null>) => {
@@ -81,19 +88,20 @@ export function PainelVotacoes() {
     router.replace(`/parlamentares/votacoes/?${q.toString()}`, { scroll: false });
   };
 
-  if (erro) return <Situacao>Não foi possível ler as votações agora.</Situacao>;
-  if (indice === undefined || (ano && !dados)) return <Situacao>Carregando…</Situacao>;
-  if (!indice || !ano || !dados) return <Situacao>As votações ainda não foram publicadas.</Situacao>;
+  const nav = <NavParlamentares atual="votacoes" />;
+  if (erro) return <>{nav}<Situacao>Não foi possível ler as votações agora.</Situacao></>;
+  if (indice === undefined || (ano && !dados)) return <>{nav}<Situacao>Carregando…</Situacao></>;
+  if (!indice || !ano || !dados) return <>{nav}<Situacao>As votações do {CASAS[casa].nome} ainda não foram publicadas.</Situacao></>;
   if (id) {
     const v = dados.votacoes[id];
-    if (!v) return <Situacao>Esta votação não está nos dados de {ano}. <Link href={`/parlamentares/votacoes/?ano=${ano}`}>Ver as votações do ano</Link>.</Situacao>;
-    return <UmaVotacao id={id} ano={ano} v={v} votos={dados.votos[id] ?? []} indice={indice} />;
+    if (!v) return <>{nav}<Situacao>Esta votação não está nos dados de {ano}. <Link href={`/parlamentares/votacoes/?${casa === "senado" ? "casa=senado&" : ""}ano=${ano}`}>Ver as votações do ano</Link>.</Situacao></>;
+    return <>{nav}<UmaVotacao id={id} ano={ano} v={v} votos={dados.votos[id] ?? []} indice={indice} casa={casa} /></>;
   }
-  return <Lista ano={ano} anos={anos} dados={dados} mudar={mudar} />;
+  return <>{nav}<Lista ano={ano} anos={anos} dados={dados} mudar={mudar} casa={casa} /></>;
 }
 
 /** A lista das votações do ano. */
-function Lista({ ano, anos, dados, mudar }: { ano: string; anos: string[]; dados: Dados; mudar: (n: Record<string, string | null>) => void }) {
+function Lista({ ano, anos, dados, mudar, casa }: { ano: string; anos: string[]; dados: Dados; mudar: (n: Record<string, string | null>) => void; casa: Casa }) {
   const [busca, setBusca] = useState("");
   const [tipo, setTipo] = useState("");
   const [res, setRes] = useState("");
@@ -112,6 +120,8 @@ function Lista({ ano, anos, dados, mudar }: { ano: string; anos: string[]; dados
   return (
     <>
       <section className="cartao cartao-corpo filtro-periodo" aria-label="Filtros">
+        <Escolha rotulo="Casa" className="escolha-larga" valor={casa} onEscolher={(v) => mudar({ casa: v === "senado" ? "senado" : null, ano: null, id: null })}
+          opcoes={[{ valor: "camara", rotulo: "Câmara dos Deputados" }, { valor: "senado", rotulo: "Senado Federal" }]} />
         <Escolha rotulo="Ano" valor={ano} onEscolher={(v) => mudar({ ano: v, id: null })}
           opcoes={[...anos].reverse().map((a) => ({ valor: a, rotulo: a }))} />
         <Escolha rotulo="Tipo" valor={tipo} onEscolher={setTipo}
@@ -122,7 +132,7 @@ function Lista({ ano, anos, dados, mudar }: { ano: string; anos: string[]; dados
           value={busca} onChange={(e) => setBusca(e.target.value)} />
       </section>
       <section className="cartao cartao-corpo" aria-labelledby="titulo-votacoes">
-        <h2 id="titulo-votacoes" className="titulo-secao">Votações nominais no Plenário em {ano}</h2>
+        <h2 id="titulo-votacoes" className="titulo-secao">Votações nominais no Plenário {casa === "senado" ? "do Senado" : "da Câmara"} em {ano}</h2>
         <p>
           {numero(linhas.length)} de {numero(todasDoAno.length)} votações. Clique numa para ver como votou cada deputado e
           cada partido; clique no cabeçalho de uma coluna para ordenar.
@@ -144,7 +154,7 @@ function Lista({ ano, anos, dados, mudar }: { ano: string; anos: string[]; dados
                 <tr key={vid}>
                   <td>{dataCurta(v[0])}</td>
                   <td>
-                    <Link href={urlDaVotacao(ano, vid)}>{v[1] || "Votação"}</Link>
+                    <Link href={urlDaVotacao(ano, vid, casa)}>{v[1] || "Votação"}</Link>
                     {v[2] && <span className="busca-detalhe"> · {v[2]}</span>}
                     {v[3] && <div className="busca-detalhe">{v[3]}</div>}
                   </td>
@@ -170,7 +180,7 @@ function Lista({ ano, anos, dados, mudar }: { ano: string; anos: string[]; dados
 }
 
 /** Uma votação: o placar, o voto por partido e o voto de cada deputado. */
-function UmaVotacao({ id, ano, v, votos, indice }: { id: string; ano: string; v: Votacao; votos: VotoNaVotacao[]; indice: IndiceCamara }) {
+function UmaVotacao({ id, ano, v, votos, indice, casa }: { id: string; ano: string; v: Votacao; votos: VotoNaVotacao[]; indice: IndiceCamara; casa: Casa }) {
   const [ordemP, setOrdemP] = useState<Ordem | null>(null);
   const [ordemD, setOrdemD] = useState<Ordem | null>(null);
   const [filtroVoto, setFiltroVoto] = useState("");
@@ -192,9 +202,9 @@ function UmaVotacao({ id, ano, v, votos, indice }: { id: string; ano: string; v:
   return (
     <>
       <section className="cartao cartao-corpo">
-        <p className="busca-detalhe"><Link href={`/parlamentares/votacoes/?ano=${ano}`}>votações de {ano}</Link> · {dataCurta(v[0])}</p>
+        <p className="busca-detalhe"><Link href={`/parlamentares/votacoes/?${casa === "senado" ? "casa=senado&" : ""}ano=${ano}`}>votações {casa === "senado" ? "do Senado" : "da Câmara"} em {ano}</Link> · {dataCurta(v[0])}</p>
         <h2 className="painel-ente">
-          {v[9] ? <a href={proposicaoNaCamara(v[9])} target="_blank" rel="noreferrer">{v[1] || "Votação"}</a> : v[1] || "Votação"}
+          {v[9] ? <a href={proposicaoNaCamara(v[9], casa)} target="_blank" rel="noreferrer">{v[1] || "Votação"}</a> : v[1] || "Votação"}
         </h2>
         {v[2] && <p>{v[2]}</p>}
         {v[3] && <p className="busca-detalhe">{v[3]}</p>}
@@ -236,7 +246,7 @@ function UmaVotacao({ id, ano, v, votos, indice }: { id: string; ano: string; v:
         <p className="busca-detalhe">O partido de cada deputado no dia do voto. Clique num partido para ver só os deputados dele abaixo.</p>
       </section>
       <section className="cartao cartao-corpo" aria-labelledby="titulo-deputados-votacao">
-        <h2 id="titulo-deputados-votacao" className="titulo-secao">Como votou cada deputado</h2>
+        <h2 id="titulo-deputados-votacao" className="titulo-secao">Como votou cada {casa === "senado" ? "senador" : "deputado"}</h2>
         <div className="filtro-periodo">
           <Escolha rotulo="Voto" valor={filtroVoto} onEscolher={setFiltroVoto} opcoes={[
             { valor: "", rotulo: "todos os votos" }, { valor: "S", rotulo: "Sim" }, { valor: "N", rotulo: "Não" },
@@ -251,7 +261,7 @@ function UmaVotacao({ id, ano, v, votos, indice }: { id: string; ano: string; v:
           <table className="tabela">
             <thead>
               <tr>
-                <ThOrdem coluna="nome" ordem={ordemD ?? { coluna: "nome", sentido: "asc" }} onOrdenar={setOrdemD} texto>Deputado</ThOrdem>
+                <ThOrdem coluna="nome" ordem={ordemD ?? { coluna: "nome", sentido: "asc" }} onOrdenar={setOrdemD} texto>{casa === "senado" ? "Senador" : "Deputado"}</ThOrdem>
                 <ThOrdem coluna="partido" ordem={ordemD} onOrdenar={setOrdemD} texto>Partido</ThOrdem>
                 <ThOrdem coluna="uf" ordem={ordemD} onOrdenar={setOrdemD} texto>UF</ThOrdem>
                 <ThOrdem coluna="voto" ordem={ordemD} onOrdenar={setOrdemD} texto>Voto</ThOrdem>
@@ -260,7 +270,7 @@ function UmaVotacao({ id, ano, v, votos, indice }: { id: string; ano: string; v:
             <tbody>
               {deputados.map(([dep, voto, partido]) => (
                 <tr key={dep}>
-                  <td><Link href={`/parlamentares/deputado/?id=${dep}&ano=${ano}`}>{nomes.get(dep)?.nome ?? dep}</Link></td>
+                  <td><Link href={urlDoParlamentar(dep, casa, ano)}>{nomes.get(dep)?.nome ?? dep}</Link></td>
                   <td>{partido}</td>
                   <td>{nomes.get(dep)?.uf ?? "—"}</td>
                   <td>{votoPorExtenso(voto)}</td>

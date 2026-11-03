@@ -5,7 +5,6 @@
 
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { NavParlamentares } from "@/componentes/parlamentares/NavParlamentares";
 import { PainelVotacoes } from "@/componentes/parlamentares/PainelVotacoes";
 
 /** Título e descrição da página, usados pelo navegador e nas prévias de link. */
@@ -16,13 +15,12 @@ export const metadata: Metadata = {
     "Governo e como votou cada partido e cada deputado.",
 };
 
-/** Título, a navegação da aba e o painel, que lê a URL com `useSearchParams` e por isso fica dentro de `Suspense`. */
+/** Título e o painel, que lê a URL com `useSearchParams` e por isso fica dentro de `Suspense`. */
 export default function Votacoes() {
   return (
     <div className="painel">
       <div className="painel-topo">
         <h1>Parlamentares</h1>
-        <NavParlamentares atual="votacoes" />
       </div>
       <Suspense fallback={<p>Carregando…</p>}>
         <PainelVotacoes />
