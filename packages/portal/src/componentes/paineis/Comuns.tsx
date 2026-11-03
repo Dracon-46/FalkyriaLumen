@@ -188,19 +188,25 @@ export interface Barra {
 }
 
 /**
- * Barras verticais finas, uma por mês, com a grade discreta e um rótulo de valor ao passar o mouse (ou o
- * foco do teclado). Abaixo, a mesma série em tabela, recolhida, para leitor de tela e para conferir.
+ * Barras verticais finas, uma por mês, com a grade discreta. Ao passar o mouse (ou com o foco do teclado), a coluna
+ * acende e uma caixa mostra o rótulo e o valor. Com `onEscolher`, clicar na barra (ou Enter) a escolhe, e
+ * `selecionada` fica em destaque: a página usa isso para filtrar pelo ano. Abaixo, a mesma série em tabela, recolhida,
+ * para leitor de tela e para conferir.
  */
 export function GraficoBarras({
   titulo,
   barras,
   formatar,
   formatarEixo,
+  selecionada = null,
+  onEscolher,
 }: {
   titulo: string;
   barras: Barra[];
   formatar: (n: number) => string;
   formatarEixo: (n: number) => string;
+  selecionada?: string | null;
+  onEscolher?: (rotulo: string) => void;
 }) {
   const [ativa, setAtiva] = useState<number | null>(null);
   if (barras.length === 0) return null;
@@ -216,7 +222,7 @@ export function GraficoBarras({
   const marcas = [0, topo / 2, topo];
   const rotuloACada = Math.ceil(barras.length / 12);
   return (
-    <figure className="grafico grafico-barras">
+    <figure className={`grafico grafico-barras${selecionada ? " grafico-com-escolha" : ""}`}>
       <svg viewBox={`0 0 ${L} ${A}`} role="img" aria-label={titulo}>
         {marcas.map((m) => (
           <g key={m}>
@@ -236,16 +242,22 @@ export function GraficoBarras({
             <g
               key={b.rotulo}
               tabIndex={0}
+              className={onEscolher ? "grafico-clicavel" : undefined}
+              role={onEscolher ? "button" : undefined}
+              aria-pressed={onEscolher ? selecionada === b.rotulo : undefined}
               onMouseEnter={() => setAtiva(i)}
               onMouseLeave={() => setAtiva(null)}
               onFocus={() => setAtiva(i)}
               onBlur={() => setAtiva(null)}
+              onClick={onEscolher ? () => onEscolher(b.rotulo) : undefined}
+              onKeyDown={onEscolher ? (e) => (e.key === "Enter" || e.key === " ") && onEscolher(b.rotulo) : undefined}
               aria-label={`${b.rotulo}: ${formatar(b.valor)}`}
             >
-              <rect x={cx - passo / 2} y={margem.topo} width={passo} height={altura} fill="transparent" />
+              <rect className={ativa === i ? "grafico-faixa" : undefined} x={cx - passo / 2} y={margem.topo} width={passo}
+                height={altura} fill="transparent" />
               {h > 0 && (
                 <path
-                  className={`barra-mes${ativa === i ? " barra-ativa" : ""}`}
+                  className={`barra-mes${ativa === i ? " barra-ativa" : ""}${selecionada === b.rotulo ? " barra-escolhida" : ""}`}
                   d={`M${x0},${margem.topo + altura} V${yTopo + raio} Q${x0},${yTopo} ${x0 + raio},${yTopo} H${
                     x0 + grossura - raio
                   } Q${x0 + grossura},${yTopo} ${x0 + grossura},${yTopo + raio} V${margem.topo + altura} Z`}
@@ -256,11 +268,18 @@ export function GraficoBarras({
                   {b.rotulo}
                 </text>
               )}
-              {ativa === i && (
-                <text className="grafico-valor" x={cx} y={Math.max(14, yTopo - 8)} textAnchor="middle">
-                  {formatar(b.valor)}
-                </text>
-              )}
+              {ativa === i && (() => {
+                const rotulo = `${b.rotulo}: ${formatar(b.valor)}`;
+                const w = rotulo.length * 6.6 + 16;
+                const x = Math.min(Math.max(cx - w / 2, margem.esq), L - margem.dir - w);
+                const yc = Math.max(2, yTopo - 30);
+                return (
+                  <g className="grafico-dica" pointerEvents="none">
+                    <rect x={x} y={yc} width={w} height={22} rx={5} />
+                    <text x={x + w / 2} y={yc + 15} textAnchor="middle">{rotulo}</text>
+                  </g>
+                );
+              })()}
             </g>
           );
         })}

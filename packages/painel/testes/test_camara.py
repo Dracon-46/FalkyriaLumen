@@ -86,6 +86,8 @@ def test_periodos_em_exercicio():
     assert p == [["2023-02-01", "2024-06-01"], ["2024-10-01", None]]
     assert camara.em_exercicio("2024-05-31", p) and not camara.em_exercicio("2024-07-01", p)
     assert camara.em_exercicio("2026-01-01", p)
+    assert camara.no_mandato("2023-01-31", [56]) and not camara.no_mandato("2023-02-01", [56])
+    assert camara.no_mandato("2027-01-31", [57]) and not camara.no_mandato("2019-01-31", [56, 57])
 
 
 class _Resposta(io.BytesIO):
@@ -153,7 +155,9 @@ def test_coleta_e_publicacao(tmp_path):
     assert gravados["parlamentares/camara/2.json.gz"]["anos"]["2025"]["presenca"] == [1, 2]
     indice = gravados["parlamentares/camara/indice.json"]
     assert [d[:4] for d in indice["deputados"]] == [["2", "Beltrano", "PT", "SP"], ["1", "Fulana", "PL", "MT"]]
-    assert indice["deputados"][1][5:] == [2, 2, 2, 2, 180.5]       # votos, proposições, presenças, sessões, cota
+    assert indice["deputados"][1][5:10] == [2, 2, 2, 2, 180.5]     # votos, proposições, presenças, sessões, cota
+    assert indice["deputados"][1][10] == {"2024": [1, 1, 1, 1, 0], "2025": [1, 1, 1, 1, 180.5]}
+    assert indice["legislaturas"]["57"] == [2023, 2026]
     assert gravados["parlamentares/camara/votacoes-2025.json.gz"]["votacoes"]["10-1"][1] == "PL 759/2015"
     # Sem anos pedidos, o tamanho decide: 2025 é o corrente e foi lido agora, e não volta
     r2 = camara.coletar(estado, contato="c", hoje=date(2025, 7, 2), baixar_fn=baixar,

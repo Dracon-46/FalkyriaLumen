@@ -166,6 +166,14 @@ def exercicio(deputados: Iterable[str], *, contato: str, ler_fn: Callable[[str],
     return saida
 
 
+def no_mandato(dia: str, legislaturas: Iterable[int]) -> bool:
+    """Se o dia cai numa das legislaturas do deputado (de 1º de fevereiro do primeiro ano a 31 de janeiro depois do
+    último). O histórico da API às vezes não traz o fim de mandato de quem não voltou, e o período em exercício ficaria
+    aberto até hoje."""
+    return any(f"{LEGISLATURAS[n][0]}-02-01" <= dia <= f"{LEGISLATURAS[n][1] + 1}-01-31" for n in legislaturas
+               if n in LEGISLATURAS)
+
+
 def em_exercicio(dia: str, periodos: list[list]) -> bool:
     """Se o deputado estava em exercício no dia (``AAAA-MM-DD``)."""
     return any(inicio <= dia and (fim is None or dia <= fim) for inicio, fim in periodos)
@@ -345,7 +353,8 @@ def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em
             "colunas": ["data", "proposicao", "ementa", "descricao", "aprovacao", "sim", "nao", "outros", "governo"],
             "votacoes": a["votacoes"]})
         for dep in deputados:
-            sessoes = [e for e, dia in a["sessoes"].items() if em_exercicio(dia, periodos.get(dep, []))]
+            sessoes = [e for e, dia in a["sessoes"].items()
+                       if em_exercicio(dia, periodos.get(dep, [])) and no_mandato(dia, deputados[dep][3])]
             presente = len(set(a["presencas"].get(dep, [])) & set(sessoes))
             ceap = a["ceap"].get(dep)
             registro = {"votos": a["votos"].get(dep, {}), "presenca": [presente, len(sessoes)],
@@ -364,15 +373,16 @@ def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em
             "partido": partido, "uf": uf, "legislaturas": legislaturas, "exercicio": periodos.get(dep, []),
             "colunas_autoria": ["id", "tipo", "numero", "ano", "ementa", "apresentacao", "situacao"],
             "colunas_fornecedor": ["cnpj", "nome", "documentos", "valor"], "anos": anos})
-        votos = sum(1 for a in anos.values() for v in a["votos"].values() if v not in ("-", ""))
-        presente = sum(a["presenca"][0] for a in anos.values())
-        sessoes = sum(a["presenca"][1] for a in anos.values())
-        indice.append([dep, nome, partido, uf, legislaturas, votos,
-                       sum(len(a["autoria"]) for a in anos.values()), presente, sessoes,
-                       round(sum(sum(a.get("ceap", {}).get("categorias", {}).values()) for a in anos.values()), 2)])
+        por_ano = {ano: [sum(1 for v in a["votos"].values() if v not in ("-", "")), len(a["autoria"]),
+                         a["presenca"][0], a["presenca"][1],
+                         round(sum(a.get("ceap", {}).get("categorias", {}).values()), 2)]
+                   for ano, a in sorted(anos.items())}
+        indice.append([dep, nome, partido, uf, legislaturas, *(round(sum(x[i] for x in por_ano.values()), 2)
+                                                                for i in range(5)), por_ano])
     gravar("parlamentares/camara/indice.json", {
         "versao": 1, "tipo": "camara-indice", "gerado_em": gerado_em, "fonte": dados.get("fonte"),
         "coletado_em": dados.get("coletado_em"), "anos": sorted(dados["anos"]),
         "colunas": ["id", "nome", "partido", "uf", "legislaturas", "votos", "proposicoes", "presencas", "sessoes",
-                    "ceap"], "deputados": indice})
+                    "ceap", "anos"], "colunas_ano": ["votos", "proposicoes", "presencas", "sessoes", "ceap"],
+        "legislaturas": {str(k): list(v) for k, v in LEGISLATURAS.items()}, "deputados": indice})
     return {"deputados": len(indice), "anos": sorted(dados["anos"])}

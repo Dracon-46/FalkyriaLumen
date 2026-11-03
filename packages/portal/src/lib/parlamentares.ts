@@ -10,8 +10,15 @@ import { obterJsonComprimido } from "./comprimido";
 import { obterJson } from "./feeds";
 import { BASE_PAINEL, conferir } from "./paineis";
 
-/** Uma linha do índice: `[id, nome, partido, uf, legislaturas, votos, proposições, presenças, sessões, cota]`. */
-export type LinhaDeputado = [string, string, string, string, number[], number, number, number, number, number];
+/** Os números de um ano ou período: `[votos, proposições, presenças, sessões, cota]`. */
+export type Numeros = [number, number, number, number, number];
+
+/**
+ * Uma linha do índice: `[id, nome, partido, uf, legislaturas, votos, proposições, presenças, sessões, cota, por ano]`;
+ * `por ano` falta nos índices publicados antes do filtro de período.
+ */
+export type LinhaDeputado = [string, string, string, string, number[], number, number, number, number, number,
+  Record<string, Numeros>?];
 
 /** Arquivo `parlamentares/camara/indice.json`. */
 export interface IndiceCamara {
@@ -21,6 +28,8 @@ export interface IndiceCamara {
   fonte: string | null;
   coletado_em: string | null;
   anos: string[];
+  /** O primeiro e o último ano de cada legislatura (`{"57": [2023, 2026]}`). */
+  legislaturas?: Record<string, [number, number]>;
   deputados: LinhaDeputado[];
 }
 
@@ -122,6 +131,20 @@ export function filtrarDeputados(linhas: LinhaDeputado[], filtro: { termo?: stri
     const doNome = normalizar(nome).split(" ");
     return palavras.every((p) => doNome.some((n) => n.startsWith(p)));
   });
+}
+
+/** Os números do deputado nos anos pedidos (todos quando `anos` é null), somados. */
+export function numerosNoPeriodo(linha: LinhaDeputado, anos: string[] | null): Numeros {
+  const porAno = linha[10];
+  if (!anos || !porAno) return [linha[5], linha[6], linha[7], linha[8], linha[9]];
+  const soma: Numeros = [0, 0, 0, 0, 0];
+  for (const ano of anos) porAno[ano]?.forEach((v, i) => (soma[i] = (soma[i] ?? 0) + v));
+  return soma;
+}
+
+/** Se o deputado tem algo nos anos pedidos: voto, proposição, sessão em exercício ou cota. */
+export function apareceNoPeriodo(linha: LinhaDeputado, anos: string[] | null): boolean {
+  return !anos || !linha[10] || anos.some((a) => linha[10]?.[a] !== undefined);
 }
 
 /** Os anos do deputado escolhidos: um ano, ou todos quando `ano` é null. */

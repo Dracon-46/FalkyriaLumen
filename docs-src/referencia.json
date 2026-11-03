@@ -9197,7 +9197,7 @@
   {
    "caminho": "packages/painel/lumen_painel/camara.py",
    "linguagem": "python",
-   "linhas": 378,
+   "linhas": 389,
    "doc": "Os deputados federais: votos, proposições, presença e cota parlamentar, pelos arquivos de dados abertos da Câmara\n(ADR-060).\n\nA Câmara publica, sem chave, um arquivo CSV por conjunto e ano em ``dadosabertos.camara.leg.br/arquivos``:\n\n- ``votacoes``, ``votacoesVotos``, ``votacoesProposicoes`` e ``votacoesOrientacoes``: as votações, o voto de cada\n  deputado nas nominais, a proposição votada e a orientação de cada bancada. Ficam só as do Plenário com voto\n  nominal (429 em 2025);\n- ``eventos`` e ``eventosPresencaDeputados``: as sessões e quem esteve nelas. A presença conta as sessões\n  deliberativas do Plenário encerradas (129 em 2025);\n- ``proposicoes`` e ``proposicoesAutores``: as proposições apresentadas no ano e quem as assina (``proponente``).\n  São listadas as de ``TIPOS_LISTADOS`` (projetos de lei, de lei complementar, de decreto legislativo, de resolução e\n  propostas de emenda à Constituição); as demais, como requerimentos, são só contadas por tipo;\n- ``www.camara.leg.br/cotas/Ano-AAAA.csv.zip``: as despesas da cota parlamentar (CEAP), uma por documento, com a\n  categoria, o fornecedor e o valor líquido. Fornecedor com CNPJ vai pelo CNPJ (e liga à página da empresa); com CPF,\n  só na soma anônima de pessoa física;\nO cadastro (nome, partido e UF) vem da API (``/deputados?idLegislatura=N``), uma consulta por legislatura, e os\nperíodos em exercício, do histórico de cada deputado na API (``/deputados/<id>/historico``; o arquivo em lote\n``deputadosHistorico`` estava parado em 2024 em 3/11/2026). A presença compara as sessões a que ele foi com as\nrealizadas enquanto ele estava em exercício, para não pesar contra o suplente nem o licenciado. O histórico da\nlegislatura encerrada é lido uma vez; o da atual, a cada coleta que lê algum ano.\n\nOs servidores da Câmara cortam o download no meio quando há vários de uma vez, e às vezes mesmo sozinho (o\n``proposicoes`` de 90 MB parou em 74 MB em 3/11/2026). Os arquivos são baixados um de cada vez, e o corte é retomado\npor ``Range`` até o tamanho do cabeçalho. Um ano fechado só é relido quando o arquivo de votos muda de tamanho; o\ncorrente e o anterior, uma vez por semana (``tce.precisa_ler``).",
    "itens": [
     {
@@ -9240,49 +9240,56 @@
      "nome": "periodos",
      "assinatura": "def periodos(historico: list[dict]) -> list[list]",
      "doc": "Os períodos em exercício (``[[início, fim ou None], ...]``, datas ``AAAA-MM-DD``) a partir do histórico da API:\ncada registro com ``situacao`` abre (``Exercício``) ou fecha (licença, vacância, fim de mandato…) um período; os\nsem situação (troca de nome ou de partido) não mudam nada.",
-     "linha": 137
+     "linha": 138
     },
     {
      "tipo": "funcao",
      "nome": "exercicio",
      "assinatura": "def exercicio(deputados: Iterable[str], *, contato: str, ler_fn: Callable[[str], bytes] | None=None, pausa: float=0.2, dormir: Callable[[float], None]=time.sleep) -> dict[str, list[list]]",
      "doc": "Os períodos em exercício de cada deputado, um pedido à API por deputado.",
-     "linha": 157
+     "linha": 158
+    },
+    {
+     "tipo": "funcao",
+     "nome": "no_mandato",
+     "assinatura": "def no_mandato(dia: str, legislaturas: Iterable[int]) -> bool",
+     "doc": "Se o dia cai numa das legislaturas do deputado (de 1º de fevereiro do primeiro ano a 31 de janeiro depois do\núltimo). O histórico da API às vezes não traz o fim de mandato de quem não voltou, e o período em exercício ficaria\naberto até hoje.",
+     "linha": 169
     },
     {
      "tipo": "funcao",
      "nome": "em_exercicio",
      "assinatura": "def em_exercicio(dia: str, periodos: list[list]) -> bool",
      "doc": "Se o deputado estava em exercício no dia (``AAAA-MM-DD``).",
-     "linha": 168
+     "linha": 177
     },
     {
      "tipo": "funcao",
      "nome": "ler_ano",
      "assinatura": "def ler_ano(pasta: Path, ano: int, deputados: dict[str, list]) -> dict[str, Any]",
      "doc": "O ano a partir dos arquivos baixados em ``pasta`` (``<conjunto>.csv`` e ``cota.zip``).",
-     "linha": 175
+     "linha": 184
     },
     {
      "tipo": "funcao",
      "nome": "ler_cota",
      "assinatura": "def ler_cota(caminho: Path, quem: set[str]) -> tuple[dict[str, dict], dict[str, str]]",
      "doc": "A cota parlamentar do ano por deputado (``categorias``, ``meses``, ``fornecedores`` por CNPJ ``[documentos,\nvalor]``, ``pf`` ``[documentos, valor]``) e o nome de cada CNPJ, com o CPF do MEI mascarado.",
-     "linha": 233
+     "linha": 242
     },
     {
      "tipo": "funcao",
      "nome": "coletar",
      "assinatura": "def coletar(estado: Path | str, *, contato: str, hoje: date | None=None, anos: list[int] | None=None, limite_minutos: float | None=None, temporario: Path | None=None, baixar_fn: Callable[..., int]=baixar_inteiro, cabecalho_fn: Callable[..., Any]=tce.cabecalho, cadastro_fn: Callable[..., dict]=cadastro, exercicio_fn: Callable[..., dict]=exercicio, relogio: Callable[[], float]=time.monotonic) -> tce.ResultadoTce",
      "doc": "Lê os anos que mudaram (ou os pedidos), um de cada vez, e grava ``ARQUIVO`` depois de cada um.",
-     "linha": 268
+     "linha": 277
     },
     {
      "tipo": "funcao",
      "nome": "publicar",
      "assinatura": "def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> dict | None",
      "doc": "Grava ``parlamentares/camara/<id>.json.gz`` (um por deputado), ``parlamentares/camara/votacoes-<ano>.json.gz``\ne ``parlamentares/camara/indice.json``; devolve o resumo para o índice dos painéis.",
-     "linha": 330
+     "linha": 339
     }
    ]
   },
@@ -14575,6 +14582,42 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/lib/ordem.ts",
+   "linguagem": "typescript",
+   "linhas": 38,
+   "doc": "Ordenação das tabelas pelo cabeçalho da coluna (`componentes/ThOrdem`): a coluna escolhida e o sentido, e a função\nque ordena as linhas por ela. Texto em ordem alfabética do português; número do maior para o menor no primeiro clique.",
+   "itens": [
+    {
+     "tipo": "interface",
+     "nome": "Ordem",
+     "assinatura": "export interface Ordem",
+     "doc": "A coluna e o sentido; `null` deixa a ordem que a tabela já tinha.",
+     "linha": 7
+    },
+    {
+     "tipo": "tipo",
+     "nome": "ValorOrdem",
+     "assinatura": "export type ValorOrdem = number | string | null | undefined;",
+     "doc": "Um valor de célula para ordenar: número, texto ou ausente (vai para o fim nos dois sentidos).",
+     "linha": 15
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ordenar",
+     "assinatura": "export function ordenar<T>(linhas: readonly T[], ordem: Ordem | null, valores: Record<string, (linha: T) => ValorOrdem>): T[]",
+     "doc": "As linhas ordenadas pela coluna (`valores[coluna](linha)`), sem mudar a lista recebida.",
+     "linha": 18
+    },
+    {
+     "tipo": "funcao",
+     "nome": "proximaOrdem",
+     "assinatura": "export function proximaOrdem(atual: Ordem | null, coluna: string, padrao: Ordem[\"sentido\"]): Ordem",
+     "doc": "O próximo estado ao clicar numa coluna: na mesma coluna, inverte; noutra, começa pelo sentido padrão dela.",
+     "linha": 35
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/lib/paineis.ts",
    "linguagem": "typescript",
    "linhas": 769,
@@ -15083,169 +15126,190 @@
   {
    "caminho": "packages/portal/src/lib/parlamentares.ts",
    "linguagem": "typescript",
-   "linhas": 203,
+   "linhas": 226,
    "doc": "Parlamentares (ADR-060): os deputados federais pelos arquivos de dados abertos da Câmara, publicados com os\npainéis em `parlamentares/camara/`. O índice lista todos, com os totais; cada deputado tem o próprio arquivo, com os\nvotos nominais do Plenário, a presença nas sessões deliberativas, as proposições que apresentou e a cota\nparlamentar, por ano; as votações (data, proposição, resultado e orientação do Governo) ficam num arquivo por ano.",
    "itens": [
     {
      "tipo": "tipo",
-     "nome": "LinhaDeputado",
-     "assinatura": "export type LinhaDeputado = [string, string, string, string, number[], number, number, number, number, number];",
-     "doc": "Uma linha do índice: `[id, nome, partido, uf, legislaturas, votos, proposições, presenças, sessões, cota]`.",
+     "nome": "Numeros",
+     "assinatura": "export type Numeros = [number, number, number, number, number];",
+     "doc": "Os números de um ano ou período: `[votos, proposições, presenças, sessões, cota]`.",
      "linha": 14
+    },
+    {
+     "tipo": "tipo",
+     "nome": "LinhaDeputado",
+     "assinatura": "export type LinhaDeputado = [string, string, string, string, number[], number, number, number, number, number,",
+     "doc": "Uma linha do índice: `[id, nome, partido, uf, legislaturas, votos, proposições, presenças, sessões, cota, por ano]`;\n`por ano` falta nos índices publicados antes do filtro de período.",
+     "linha": 20
     },
     {
      "tipo": "interface",
      "nome": "IndiceCamara",
      "assinatura": "export interface IndiceCamara",
      "doc": "Arquivo `parlamentares/camara/indice.json`.",
-     "linha": 17
+     "linha": 24
     },
     {
      "tipo": "tipo",
      "nome": "Proposicao",
      "assinatura": "export type Proposicao = [string, string, string, string, string, string, string | null];",
      "doc": "Uma proposição apresentada: `[id, tipo, número, ano, ementa, apresentação, situação]`.",
-     "linha": 28
+     "linha": 37
     },
     {
      "tipo": "tipo",
      "nome": "FornecedorCota",
      "assinatura": "export type FornecedorCota = [string, string | null, number, number];",
      "doc": "Um fornecedor da cota: `[CNPJ, nome, documentos, valor]`.",
-     "linha": 30
+     "linha": 39
     },
     {
      "tipo": "interface",
      "nome": "Cota",
      "assinatura": "export interface Cota",
      "doc": "A cota parlamentar (CEAP) de um ano.",
-     "linha": 33
+     "linha": 42
     },
     {
      "tipo": "interface",
      "nome": "AnoDeputado",
      "assinatura": "export interface AnoDeputado",
      "doc": "Um ano do deputado.",
-     "linha": 42
+     "linha": 51
     },
     {
      "tipo": "interface",
      "nome": "Deputado",
      "assinatura": "export interface Deputado",
      "doc": "Arquivo `parlamentares/camara/<id>.json.gz`.",
-     "linha": 54
+     "linha": 63
     },
     {
      "tipo": "tipo",
      "nome": "Votacao",
      "assinatura": "export type Votacao = [string, string, string, string, number | null, number, number, number, string | null];",
      "doc": "Uma votação: `[data, proposição, ementa, descrição, aprovação (1, 0 ou null), sim, não, outros, orientação do Governo]`.",
-     "linha": 69
+     "linha": 78
     },
     {
      "tipo": "interface",
      "nome": "VotacoesAno",
      "assinatura": "interface VotacoesAno",
      "doc": "Arquivo `parlamentares/camara/votacoes-<ano>.json.gz`.",
-     "linha": 72
+     "linha": 81
     },
     {
      "tipo": "funcao",
      "nome": "carregarIndiceCamara",
      "assinatura": "export async function carregarIndiceCamara(sinal?: AbortSignal): Promise<IndiceCamara | null>",
      "doc": "O índice dos deputados; `null` quando ainda não foi publicado.",
-     "linha": 82
+     "linha": 91
     },
     {
      "tipo": "funcao",
      "nome": "carregarDeputado",
      "assinatura": "export async function carregarDeputado(id: string, sinal?: AbortSignal): Promise<Deputado | null>",
      "doc": "O arquivo de um deputado; `null` quando ele não está no Lumen.",
-     "linha": 89
+     "linha": 98
     },
     {
      "tipo": "funcao",
      "nome": "carregarVotacoes",
      "assinatura": "export async function carregarVotacoes(ano: string, sinal?: AbortSignal): Promise<Record<string, Votacao>>",
      "doc": "As votações nominais do Plenário num ano (vazio quando o arquivo não existe).",
-     "linha": 97
+     "linha": 106
     },
     {
      "tipo": "constante",
      "nome": "fotoDoDeputado",
      "assinatura": "export const fotoDoDeputado = (id: string) => `https://www.camara.leg.br/internet/deputado/bandep/${id}.jpg`;",
      "doc": "A foto oficial do deputado no site da Câmara.",
-     "linha": 104
+     "linha": 113
     },
     {
      "tipo": "constante",
      "nome": "paginaNaCamara",
      "assinatura": "export const paginaNaCamara = (id: string) => `https://www.camara.leg.br/deputados/${id}`;",
      "doc": "A página do deputado no site da Câmara.",
-     "linha": 106
+     "linha": 115
     },
     {
      "tipo": "constante",
      "nome": "proposicaoNaCamara",
      "assinatura": "export const proposicaoNaCamara = (id: string) =>",
      "doc": "A página da proposição no site da Câmara.",
-     "linha": 108
+     "linha": 117
     },
     {
      "tipo": "funcao",
      "nome": "votoPorExtenso",
      "assinatura": "export function votoPorExtenso(v: string): string",
      "doc": "O voto por extenso.",
-     "linha": 112
+     "linha": 121
     },
     {
      "tipo": "funcao",
      "nome": "filtrarDeputados",
      "assinatura": "export function filtrarDeputados(linhas: LinhaDeputado[], filtro: { termo?: string; uf?: string | null; partido?: string | null })",
      "doc": "Os deputados que casam com a busca pelo nome (começo das palavras) e com a UF e o partido escolhidos.",
-     "linha": 117
+     "linha": 126
+    },
+    {
+     "tipo": "funcao",
+     "nome": "numerosNoPeriodo",
+     "assinatura": "export function numerosNoPeriodo(linha: LinhaDeputado, anos: string[] | null): Numeros",
+     "doc": "Os números do deputado nos anos pedidos (todos quando `anos` é null), somados.",
+     "linha": 137
+    },
+    {
+     "tipo": "funcao",
+     "nome": "apareceNoPeriodo",
+     "assinatura": "export function apareceNoPeriodo(linha: LinhaDeputado, anos: string[] | null): boolean",
+     "doc": "Se o deputado tem algo nos anos pedidos: voto, proposição, sessão em exercício ou cota.",
+     "linha": 146
     },
     {
      "tipo": "funcao",
      "nome": "anosEscolhidos",
      "assinatura": "function anosEscolhidos(d: Deputado, ano: string | null): AnoDeputado[]",
      "doc": "Os anos do deputado escolhidos: um ano, ou todos quando `ano` é null.",
-     "linha": 128
+     "linha": 151
     },
     {
      "tipo": "funcao",
      "nome": "totaisDoDeputado",
      "assinatura": "export function totaisDoDeputado(d: Deputado, ano: string | null)",
      "doc": "Os totais do deputado nos anos escolhidos.",
-     "linha": 133
+     "linha": 156
     },
     {
      "tipo": "funcao",
      "nome": "cotaDoDeputado",
      "assinatura": "export function cotaDoDeputado(d: Deputado, ano: string | null)",
      "doc": "A cota somada nos anos escolhidos: por categoria e por fornecedor (do maior valor ao menor), e a pessoa física.",
-     "linha": 151
+     "linha": 174
     },
     {
      "tipo": "funcao",
      "nome": "cotaPorMes",
      "assinatura": "export function cotaPorMes(d: Deputado, ano: string): { mes: string; valor: number }[]",
      "doc": "A cota por mês de um ano, de janeiro a dezembro (os meses sem despesa ficam fora).",
-     "linha": 176
+     "linha": 199
     },
     {
      "tipo": "interface",
      "nome": "VotoComVotacao",
      "assinatura": "export interface VotoComVotacao",
      "doc": "Um voto com a votação: o que a tabela mostra.",
-     "linha": 182
+     "linha": 205
     },
     {
      "tipo": "funcao",
      "nome": "votosComVotacoes",
      "assinatura": "export function votosComVotacoes(d: Deputado, ano: string | null, votacoes: Record<string, Record<string, Votacao>>): VotoComVotacao[]",
      "doc": "Os votos do deputado nos anos escolhidos, com as votações, do mais recente ao mais antigo.",
-     "linha": 192
+     "linha": 215
     }
    ]
   },
@@ -17221,7 +17285,7 @@
   {
    "caminho": "packages/portal/src/app/layout.tsx",
    "linguagem": "typescript",
-   "linhas": 56,
+   "linhas": 57,
    "doc": "Layout raiz do portal: a moldura comum a todas as páginas (cabeçalho, área\nprincipal e rodapé), os metadados padrão e o estilo global.",
    "itens": [
     {
@@ -17229,21 +17293,21 @@
      "nome": "metadata",
      "assinatura": "export const metadata: Metadata =",
      "doc": "Metadados padrão. Cada página define só o `title`, que entra no modelo \"%s · Lumen\".",
-     "linha": 15
+     "linha": 16
     },
     {
      "tipo": "constante",
      "nome": "viewport",
      "assinatura": "export const viewport: Viewport =",
      "doc": "Largura do dispositivo no celular e cor da barra do navegador conforme o tema claro ou escuro do sistema.",
-     "linha": 27
+     "linha": 28
     },
     {
      "tipo": "componente",
      "nome": "Raiz",
      "assinatura": "export default function Raiz({ children }: { children: ReactNode })",
      "doc": "Moldura de todas as páginas. O primeiro elemento é o link \"Ir para o\nconteúdo\", fora da tela, para quem navega por teclado ou leitor de tela\npular direto ao `<main>`.",
-     "linha": 41
+     "linha": 42
     }
    ]
   },
@@ -17330,15 +17394,15 @@
   {
    "caminho": "packages/portal/src/app/page.tsx",
    "linguagem": "typescript",
-   "linhas": 53,
-   "doc": "Página inicial do portal: apresenta o Lumen e leva às áreas.",
+   "linhas": 55,
+   "doc": "Página inicial do portal: apresenta o Lumen, com a luz ao fundo (ADR-061), e leva às áreas.",
    "itens": [
     {
      "tipo": "componente",
      "nome": "Inicio",
      "assinatura": "export default function Inicio()",
-     "doc": "Apresentação e um cartão por área (Eleições, Contratações, Economia, Conformidade, Empresas e entidades).",
-     "linha": 6
+     "doc": "Apresentação e um cartão por área, todos do mesmo tamanho, quatro por linha no computador.",
+     "linha": 7
     }
    ]
   },
@@ -18635,6 +18699,28 @@
    ]
   },
   {
+   "caminho": "packages/portal/src/componentes/Luz.tsx",
+   "linguagem": "typescript",
+   "linhas": 130,
+   "doc": "A luz da página inicial (ADR-061): pontos que se movem devagar e se ligam por linhas quando passam perto, como os\ndados que o Lumen junta. Desenhada em canvas, sem biblioteca, numa cor só e discreta: o cinza do tema\n(`--texto-3`) e, em poucos pontos, o azul de destaque (`--destaque`). O mouse realça as ligações perto dele, e a\nanimação para com a aba escondida. Para quem pede\nmenos movimento no sistema, desenha uma vez, parada. É decorativa (`aria-hidden`).",
+   "itens": [
+    {
+     "tipo": "interface",
+     "nome": "Ponto",
+     "assinatura": "interface Ponto",
+     "doc": "Um ponto: posição, velocidade, raio e qual das três cores usa.",
+     "linha": 14
+    },
+    {
+     "tipo": "componente",
+     "nome": "Luz",
+     "assinatura": "export function Luz()",
+     "doc": "O canvas que cobre o pai (que precisa de `position: relative`).",
+     "linha": 29
+    }
+   ]
+  },
+  {
    "caminho": "packages/portal/src/componentes/MarcarNovidades.tsx",
    "linguagem": "typescript",
    "linhas": 31,
@@ -18845,7 +18931,7 @@
   {
    "caminho": "packages/portal/src/componentes/paineis/Comuns.tsx",
    "linguagem": "typescript",
-   "linhas": 311,
+   "linhas": 330,
    "doc": "Peças comuns aos painéis de contratações e de conformidade: busca de ente,\naviso metodológico (PUB-08), números em destaque, gráfico de barras por mês\ne o selo de resultado da conformidade.",
    "itens": [
     {
@@ -18894,22 +18980,22 @@
      "tipo": "componente",
      "nome": "GraficoBarras",
      "assinatura": "export function GraficoBarras(",
-     "doc": "Barras verticais finas, uma por mês, com a grade discreta e um rótulo de valor ao passar o mouse (ou o\nfoco do teclado). Abaixo, a mesma série em tabela, recolhida, para leitor de tela e para conferir.",
-     "linha": 194
+     "doc": "Barras verticais finas, uma por mês, com a grade discreta. Ao passar o mouse (ou com o foco do teclado), a coluna\nacende e uma caixa mostra o rótulo e o valor. Com `onEscolher`, clicar na barra (ou Enter) a escolhe, e\n`selecionada` fica em destaque: a página usa isso para filtrar pelo ano. Abaixo, a mesma série em tabela, recolhida,\npara leitor de tela e para conferir.",
+     "linha": 196
     },
     {
      "tipo": "componente",
      "nome": "SeloResultado",
      "assinatura": "export function SeloResultado({ resultado, rotulo }: { resultado: Resultado; rotulo: string })",
      "doc": "Selo do resultado de uma obrigação: ícone e texto, nunca só a cor.",
-     "linha": 297
+     "linha": 316
     },
     {
      "tipo": "componente",
      "nome": "Situacao",
      "assinatura": "export function Situacao({ children }: { children: ReactNode })",
      "doc": "Estado de carregamento, erro ou ausência, numa linha.",
-     "linha": 309
+     "linha": 328
     }
    ]
   },
@@ -19296,7 +19382,7 @@
   {
    "caminho": "packages/portal/src/componentes/paineis/PainelPessoaJuridica.tsx",
    "linguagem": "typescript",
-   "linhas": 459,
+   "linhas": 466,
    "doc": "Visão 360 de uma empresa ou entidade pelo CNPJ (ADR-049): o cadastro na Receita, os contratos publicados no PNCP\ncom cada ente, os contratos nos tribunais de contas, o que a União pagou a ela (ADR-058), as emendas\nparlamentares recebidas e os convênios com a União. São fatos das fontes, como\npublicados; a página não marca nem ordena ninguém por risco. Sem CNPJ, a busca pelo nome (`?busca=`).",
    "itens": [
     {
@@ -19304,98 +19390,98 @@
      "nome": "Estado",
      "assinatura": "type Estado = { fase: \"carregando\" } | { fase: \"pronto\"; dados: PessoaJuridica | null } | { fase: \"erro\"; erro: string };",
      "doc": "Carregando, o registro lido (null quando o CNPJ não aparece em nenhuma fonte) ou o erro.",
-     "linha": 47
+     "linha": 49
     },
     {
      "tipo": "tipo",
      "nome": "Nomes",
      "assinatura": "type Nomes = Map<string, { nome: string; uf: string | null }>;",
      "doc": "Nome e UF de cada ente, do cadastro da busca.",
-     "linha": 50
+     "linha": 52
     },
     {
      "tipo": "funcao",
      "nome": "dataDoArquivo",
      "assinatura": "function dataDoArquivo(d: string | null): string",
      "doc": "A data do arquivo da CGU: \"20261009\" (convênios, a data na página de download) ou o `Last-Modified` do servidor\n(emendas) → \"09/10/2026\".",
-     "linha": 56
+     "linha": 58
     },
     {
      "tipo": "tipo",
      "nome": "EstadoBusca",
      "assinatura": "type EstadoBusca = { fase: \"procurando\" } | { fase: \"pronta\"; achados: AchadoPj[] | null } | { fase: \"erro\" };",
      "doc": "A busca pelo nome: procurando, os achados (null quando a busca ainda não foi publicada) ou o erro.",
-     "linha": 64
+     "linha": 66
     },
     {
      "tipo": "componente",
      "nome": "PainelPessoaJuridica",
      "assinatura": "export function PainelPessoaJuridica()",
      "doc": "A página: o campo do CNPJ ou do nome; com um CNPJ na URL, tudo o que o Lumen tem dele; com um nome, os achados.",
-     "linha": 67
+     "linha": 69
     },
     {
      "tipo": "componente",
      "nome": "Achados",
      "assinatura": "function Achados({ termo }: { termo: string })",
      "doc": "Os nomes achados pela busca, cada um com o link para a página do CNPJ.",
-     "linha": 134
+     "linha": 136
     },
     {
      "tipo": "componente",
      "nome": "Pessoa",
      "assinatura": "function Pessoa({ cnpj, estado, nomes, de, ate, onPeriodo }:",
      "doc": "O que há do CNPJ: o cartão da Receita e as três seções das fontes.",
-     "linha": 177
+     "linha": 179
     },
     {
      "tipo": "funcao",
      "nome": "nomeDoEnte",
      "assinatura": "function nomeDoEnte(codigo: string, nomes: Nomes): string",
      "doc": "\"Porto Alegre (RS)\", \"São Paulo (estado)\", \"Distrito Federal\", \"União\" ou o código.",
-     "linha": 233
+     "linha": 235
     },
     {
      "tipo": "componente",
      "nome": "Contratos",
      "assinatura": "function Contratos({ p, nomes, de, ate }: { p: PessoaJuridica; nomes: Nomes; de: string | null; ate: string | null })",
      "doc": "Contratos no PNCP: os totais, o ano a ano e a tabela por ente contratante (que abre as Contratações no mesmo período).",
-     "linha": 242
+     "linha": 244
     },
     {
      "tipo": "componente",
      "nome": "ContratosTce",
      "assinatura": "function ContratosTce({ p, nomes }: { p: PessoaJuridica; nomes: Nomes })",
      "doc": "Contratos registrados no tribunal de contas (ADR-050), por ente; só aparece quando há algum.",
-     "linha": 268
+     "linha": 270
     },
     {
      "tipo": "componente",
      "nome": "RecebidoDaUniao",
      "assinatura": "function RecebidoDaUniao({ p }: { p: PessoaJuridica })",
      "doc": "O que a União pagou a este CNPJ (ADR-058): o ano a ano e os órgãos pagadores; só aparece quando há algo.",
-     "linha": 293
+     "linha": 295
     },
     {
      "tipo": "componente",
      "nome": "Emendas",
      "assinatura": "function Emendas({ p, nomes }: { p: PessoaJuridica; nomes: Nomes })",
      "doc": "Emendas parlamentares recebidas como favorecida, por ente.",
-     "linha": 349
+     "linha": 352
     },
     {
      "tipo": "componente",
      "nome": "TabelaPorEnte",
      "assinatura": "function TabelaPorEnte({ linhas, nomes, contratos = false, href, csv }:",
      "doc": "A tabela de somas por ente, com o link de cada um; as primeiras linhas e, a pedido, todas; o CSV tem todas.",
-     "linha": 363
+     "linha": 366
     },
     {
      "tipo": "componente",
      "nome": "Convenios",
      "assinatura": "function Convenios({ p, nomes }: { p: PessoaJuridica; nomes: Nomes })",
      "doc": "Convênios com a União como convenente, do maior valor ao menor.",
-     "linha": 410
+     "linha": 417
     }
    ]
   },
@@ -19439,7 +19525,7 @@
   {
    "caminho": "packages/portal/src/componentes/parlamentares/PainelDeputado.tsx",
    "linguagem": "typescript",
-   "linhas": 315,
+   "linhas": 367,
    "doc": "A página de um deputado federal (ADR-060), pelo id da Câmara (`?id=`): os totais, os votos nominais no Plenário com\na votação e a orientação do Governo, as proposições que apresentou e a cota parlamentar, num ano (`?ano=`) ou em\ntodos. São os fatos como a Câmara publica: a página não pontua nem ordena ninguém.",
    "itens": [
     {
@@ -19447,57 +19533,85 @@
      "nome": "Estado",
      "assinatura": "type Estado = { fase: \"carregando\" } | { fase: \"pronto\"; deputado: Deputado | null } | { fase: \"erro\"; erro: string };",
      "doc": "Carregando, o deputado lido (null quando não está no Lumen) ou o erro.",
-     "linha": 38
+     "linha": 41
     },
     {
      "tipo": "componente",
      "nome": "PainelDeputado",
      "assinatura": "export function PainelDeputado()",
      "doc": "A página: lê o deputado e as votações dos anos dele.",
-     "linha": 41
+     "linha": 44
+    },
+    {
+     "tipo": "interface",
+     "nome": "Metrica",
+     "assinatura": "interface Metrica",
+     "doc": "Uma medida do gráfico ano a ano: o rótulo, o valor num ano e os formatos.",
+     "linha": 128
+    },
+    {
+     "tipo": "componente",
+     "nome": "AnoAAno",
+     "assinatura": "function AnoAAno({ d, anos, ano, onAno }: { d: Deputado; anos: string[]; ano: string | null; onAno: (a: string | null) => void })",
+     "doc": "O ano a ano de uma medida, à escolha; clicar numa barra filtra a página por aquele ano (clicar de novo volta).",
+     "linha": 145
     },
     {
      "tipo": "componente",
      "nome": "Votos",
      "assinatura": "function Votos({ d, ano, votacoes }: { d: Deputado; ano: string | null; votacoes: Record<string, Record<string, Votacao>> })",
      "doc": "Os votos nominais no Plenário, com a votação, o resultado e se o voto foi igual à orientação do Governo.",
-     "linha": 125
+     "linha": 161
     },
     {
      "tipo": "componente",
      "nome": "Proposicoes",
      "assinatura": "function Proposicoes({ d, ano, contagem }: { d: Deputado; ano: string | null; contagem: Record<string, number> })",
      "doc": "As proposições que o deputado apresentou como autor, e a contagem de todas por tipo.",
-     "linha": 184
+     "linha": 232
     },
     {
      "tipo": "componente",
      "nome": "CotaParlamentar",
-     "assinatura": "function CotaParlamentar({ d, ano, anos }: { d: Deputado; ano: string | null; anos: string[] })",
+     "assinatura": "function CotaParlamentar({ d, ano }: { d: Deputado; ano: string | null })",
      "doc": "A cota parlamentar: por categoria, por mês (num ano) e por fornecedor, com a ligação para a página da empresa.",
-     "linha": 242
+     "linha": 293
     }
    ]
   },
   {
    "caminho": "packages/portal/src/componentes/parlamentares/PainelParlamentares.tsx",
    "linguagem": "typescript",
-   "linhas": 133,
-   "doc": "A lista dos parlamentares (ADR-060): por enquanto, os deputados federais das duas últimas legislaturas, com a busca\npelo nome e os filtros de UF e partido, que ficam na URL (`?uf=`, `?partido=`, `?busca=`). Cada nome abre a página\ndo deputado. A lista mostra os totais como a fonte publica, em ordem alfabética, sem ranking.",
+   "linhas": 188,
+   "doc": "A lista dos parlamentares (ADR-060): por enquanto, os deputados federais das duas últimas legislaturas. Filtros de\nperíodo (um ano ou uma legislatura), nome, UF e partido, que ficam na URL (`?periodo=`, `?busca=`, `?uf=`,\n`?partido=`), e as colunas ordenáveis pelo cabeçalho (`?ordem=coluna-sentido`). Cada nome abre a página do deputado.\nA ordem padrão é a alfabética: a lista não pontua ninguém.",
    "itens": [
     {
      "tipo": "tipo",
      "nome": "Estado",
      "assinatura": "type Estado = { fase: \"carregando\" } | { fase: \"pronto\"; indice: IndiceCamara | null } | { fase: \"erro\" };",
      "doc": "Carregando, o índice lido (null quando ainda não foi publicado) ou o erro.",
-     "linha": 24
+     "linha": 35
+    },
+    {
+     "tipo": "tipo",
+     "nome": "Linha",
+     "assinatura": "type Linha = { d: LinhaDeputado; n: Numeros; presenca: number | null };",
+     "doc": "Uma linha com os números do período escolhido.",
+     "linha": 38
+    },
+    {
+     "tipo": "funcao",
+     "nome": "anosDoPeriodo",
+     "assinatura": "function anosDoPeriodo(periodo: string, indice: IndiceCamara): string[] | null",
+     "doc": "`\"57\"` → os anos da legislatura que estão no índice; `\"2025\"` → só ele; vazio → todos (null).",
+     "linha": 41
     },
     {
      "tipo": "componente",
      "nome": "PainelParlamentares",
      "assinatura": "export function PainelParlamentares()",
      "doc": "A página da lista: os filtros e a tabela dos deputados.",
-     "linha": 27
+     "linha": 49
     }
    ]
   },
@@ -19512,6 +19626,21 @@
      "nome": "Rodape",
      "assinatura": "export function Rodape()",
      "doc": "Rodapé: de onde vêm os números, o compromisso editorial do projeto e a assinatura da Falkyria.",
+     "linha": 12
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/componentes/ThOrdem.tsx",
+   "linguagem": "typescript",
+   "linhas": 30,
+   "doc": "Cabeçalho de coluna que ordena a tabela (`lib/ordem.ts`): um clique ordena pela coluna (números do maior para o\nmenor, textos de A a Z), outro inverte. Marca `aria-sort` para leitor de tela e mostra a seta do sentido.",
+   "itens": [
+    {
+     "tipo": "componente",
+     "nome": "ThOrdem",
+     "assinatura": "export function ThOrdem({ coluna, ordem, onOrdenar, children, className, texto = false }:",
+     "doc": "O `<th>` com o botão de ordenar; `texto` diz se a coluna começa de A a Z em vez do maior para o menor.",
      "linha": 12
     }
    ]
@@ -19801,7 +19930,7 @@
   {
    "caminho": "packages/painel/testes/test_camara.py",
    "doc": "Os deputados federais pelos arquivos de dados abertos da Câmara (ADR-060).",
-   "testes": 5
+   "testes": 6
   },
   {
    "caminho": "packages/painel/testes/test_cli.py",
@@ -20039,6 +20168,11 @@
    "testes": 1
   },
   {
+   "caminho": "packages/portal/src/lib/__testes__/ordem.test.ts",
+   "doc": "",
+   "testes": 3
+  },
+  {
    "caminho": "packages/portal/src/lib/__testes__/paineis.test.ts",
    "doc": "",
    "testes": 20
@@ -20051,7 +20185,7 @@
   {
    "caminho": "packages/portal/src/lib/__testes__/parlamentares.test.ts",
    "doc": "",
-   "testes": 4
+   "testes": 5
   },
   {
    "caminho": "packages/portal/src/lib/__testes__/periodo.test.ts",

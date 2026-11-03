@@ -11,7 +11,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { BaixarCsv, PrefixoCsv } from "@/componentes/BaixarCsv";
 import { Escolha } from "@/componentes/Escolha";
+import { ThOrdem } from "@/componentes/ThOrdem";
 import { numero, percentual } from "@/lib/formato";
+import { normalizar } from "@/lib/busca";
+import { type Ordem, ordenar } from "@/lib/ordem";
 import { cnpj as formatarCnpj, dataCurta, moeda, moedaCompacta } from "@/lib/paineis";
 import {
   carregarDeputado,
@@ -100,16 +103,16 @@ export function PainelDeputado() {
         </section>
       )}
       <div className="totais">
-        <Numero rotulo="Votos no Plenário" valor={numero(t.votos)} detalhe={`${numero(t.sim)} Sim e ${numero(t.nao)} Não, ${periodo}`} />
+        <Numero rotulo={`Votos no Plenário, ${periodo}`} valor={numero(t.votos)} detalhe={`${numero(t.sim)} Sim · ${numero(t.nao)} Não`} />
         <Numero rotulo="Presença nas sessões" valor={t.sessoes ? percentual((100 * t.presentes) / t.sessoes) : "—"}
-          detalhe={`${numero(t.presentes)} de ${numero(t.sessoes)} sessões deliberativas em exercício`} />
-        <Numero rotulo="Proposições apresentadas" valor={numero(t.proposicoes)}
-          detalhe="projetos de lei, de lei complementar, de decreto legislativo, de resolução e PECs" />
-        <Numero rotulo="Cota parlamentar" valor={moeda(t.cota)} detalhe={`reembolsado, ${periodo}`} />
+          detalhe={`${numero(t.presentes)} de ${numero(t.sessoes)} em exercício`} />
+        <Numero rotulo="Proposições apresentadas" valor={numero(t.proposicoes)} detalhe="PL, PLP, PEC, PDL e PRC" />
+        <Numero rotulo="Cota parlamentar" valor={moeda(t.cota)} detalhe="valor reembolsado" />
       </div>
+      {anos.length > 1 && <AnoAAno d={d} anos={anos} ano={ano} onAno={escolherAno} />}
       <Votos d={d} ano={ano} votacoes={votacoes} />
       <Proposicoes d={d} ano={ano} contagem={t.contagem} />
-      <CotaParlamentar d={d} ano={ano} anos={anos} />
+      <CotaParlamentar d={d} ano={ano} />
       <p className="busca-detalhe">
         Dados abertos da Câmara dos Deputados: votações nominais do Plenário, presença nas sessões deliberativas do
         Plenário (a presença conta só as sessões realizadas enquanto o deputado estava em exercício), proposições que ele
@@ -121,12 +124,54 @@ export function PainelDeputado() {
   );
 }
 
+/** Uma medida do gráfico ano a ano: o rótulo, o valor num ano e os formatos. */
+interface Metrica {
+  rotulo: string;
+  valor: (t: ReturnType<typeof totaisDoDeputado>) => number;
+  formatar: (n: number) => string;
+  eixo: (n: number) => string;
+}
+
+/** As medidas que o gráfico ano a ano oferece. */
+const METRICAS: Record<string, Metrica> = {
+  presenca: { rotulo: "Presença nas sessões (%)", valor: (t) => (t.sessoes ? (100 * t.presentes) / t.sessoes : 0),
+              formatar: (n) => percentual(n), eixo: (n) => `${Math.round(n)}%` },
+  votos: { rotulo: "Votos no Plenário", valor: (t) => t.votos, formatar: numero, eixo: numero },
+  proposicoes: { rotulo: "Proposições apresentadas", valor: (t) => t.proposicoes, formatar: numero, eixo: numero },
+  cota: { rotulo: "Cota parlamentar", valor: (t) => t.cota, formatar: moeda, eixo: moedaCompacta },
+};
+
+/** O ano a ano de uma medida, à escolha; clicar numa barra filtra a página por aquele ano (clicar de novo volta). */
+function AnoAAno({ d, anos, ano, onAno }: { d: Deputado; anos: string[]; ano: string | null; onAno: (a: string | null) => void }) {
+  const [metrica, setMetrica] = useState("presenca");
+  const m = METRICAS[metrica] ?? METRICAS.presenca!;
+  return (
+    <section className="cartao cartao-corpo" aria-labelledby="titulo-ano-a-ano">
+      <h2 id="titulo-ano-a-ano" className="titulo-secao">Ano a ano</h2>
+      <Escolha rotulo="Medida" valor={metrica} onEscolher={setMetrica}
+        opcoes={Object.entries(METRICAS).map(([valor, x]) => ({ valor, rotulo: x.rotulo }))} />
+      <GraficoBarras titulo={`${m.rotulo} por ano`} barras={anos.map((a) => ({ rotulo: a, valor: m.valor(totaisDoDeputado(d, a)) }))}
+        formatar={m.formatar} formatarEixo={m.eixo} selecionada={ano} onEscolher={(a) => onAno(a === ano ? null : a)} />
+      <p className="busca-detalhe">Clique num ano para ver só ele na página; clique de novo para ver todos.</p>
+    </section>
+  );
+}
+
 /** Os votos nominais no Plenário, com a votação, o resultado e se o voto foi igual à orientação do Governo. */
 function Votos({ d, ano, votacoes }: { d: Deputado; ano: string | null; votacoes: Record<string, Record<string, Votacao>> }) {
   const [filtro, setFiltro] = useState("");
+  const [busca, setBusca] = useState("");
+  const [ordem, setOrdem] = useState<Ordem | null>(null);
   const [todas, setTodas] = useState(false);
   const linhas = useMemo(() => votosComVotacoes(d, ano, votacoes), [d, ano, votacoes]);
-  const filtradas = linhas.filter((l) => !filtro || (filtro === "governo-contra" ? l.comOGoverno === false : l.voto === filtro));
+  const termos = normalizar(busca).split(" ").filter(Boolean);
+  const passa = (l: (typeof linhas)[number]) =>
+    (!filtro || (filtro === "governo-contra" ? l.comOGoverno === false : l.voto === filtro))
+    && termos.every((p) => normalizar(`${l.votacao?.[1] ?? ""} ${l.votacao?.[2] ?? ""} ${l.votacao?.[3] ?? ""}`).includes(p));
+  const filtradas = ordenar(linhas.filter(passa), ordem, {
+    data: (l) => l.votacao?.[0], proposicao: (l) => l.votacao?.[1], voto: (l) => votoPorExtenso(l.voto),
+    governo: (l) => l.votacao?.[8], resultado: (l) => l.votacao?.[4],
+  });
   const mostradas = todas ? filtradas : filtradas.slice(0, INICIAIS);
   if (linhas.length === 0) return null;
   return (
@@ -136,15 +181,18 @@ function Votos({ d, ano, votacoes }: { d: Deputado; ano: string | null; votacoes
         { valor: "", rotulo: "todos os votos" }, { valor: "S", rotulo: "votou Sim" }, { valor: "N", rotulo: "votou Não" },
         { valor: "A", rotulo: "abstenção" }, { valor: "O", rotulo: "obstrução" },
         { valor: "governo-contra", rotulo: "diferente da orientação do Governo" }]} />
+      <input className="seletor campo-tabela" placeholder="buscar na proposição (ex.: IBS, PEC 45)" aria-label="Buscar na proposição"
+        value={busca} onChange={(e) => setBusca(e.target.value)} />
+      <p className="busca-detalhe">{numero(filtradas.length)} de {numero(linhas.length)} votos.</p>
       <div className="tabela-rolavel">
         <table className="tabela">
           <thead>
             <tr>
-              <th>Data</th>
-              <th>Proposição votada</th>
-              <th>Voto</th>
-              <th>Orientação do Governo</th>
-              <th>Resultado</th>
+              <ThOrdem coluna="data" ordem={ordem} onOrdenar={setOrdem}>Data</ThOrdem>
+              <ThOrdem coluna="proposicao" ordem={ordem} onOrdenar={setOrdem} texto>Proposição votada</ThOrdem>
+              <ThOrdem coluna="voto" ordem={ordem} onOrdenar={setOrdem} texto>Voto</ThOrdem>
+              <ThOrdem coluna="governo" ordem={ordem} onOrdenar={setOrdem} texto>Orientação do Governo</ThOrdem>
+              <ThOrdem coluna="resultado" ordem={ordem} onOrdenar={setOrdem}>Resultado</ThOrdem>
             </tr>
           </thead>
           <tbody>
@@ -183,8 +231,11 @@ function Votos({ d, ano, votacoes }: { d: Deputado; ano: string | null; votacoes
 /** As proposições que o deputado apresentou como autor, e a contagem de todas por tipo. */
 function Proposicoes({ d, ano, contagem }: { d: Deputado; ano: string | null; contagem: Record<string, number> }) {
   const [todas, setTodas] = useState(false);
-  const lista = Object.entries(d.anos).filter(([a]) => !ano || a === ano).flatMap(([, a]) => a.autoria)
-    .sort((x, y) => y[5].localeCompare(x[5]));
+  const [ordem, setOrdem] = useState<Ordem | null>(null);
+  const lista = ordenar(Object.entries(d.anos).filter(([a]) => !ano || a === ano).flatMap(([, a]) => a.autoria)
+    .sort((x, y) => y[5].localeCompare(x[5])), ordem, {
+    proposicao: (p) => `${p[1]} ${p[3]} ${p[2].padStart(6, "0")}`, ementa: (p) => p[4], data: (p) => p[5], situacao: (p) => p[6],
+  });
   const mostradas = todas ? lista : lista.slice(0, INICIAIS);
   const outros = Object.entries(contagem).filter(([tipo]) => !["PL", "PLP", "PEC", "PDL", "PRC"].includes(tipo))
     .sort((a, b) => b[1] - a[1]);
@@ -197,10 +248,10 @@ function Proposicoes({ d, ano, contagem }: { d: Deputado; ano: string | null; co
           <table className="tabela">
             <thead>
               <tr>
-                <th>Proposição</th>
-                <th>Ementa</th>
-                <th>Apresentada em</th>
-                <th>Situação</th>
+                <ThOrdem coluna="proposicao" ordem={ordem} onOrdenar={setOrdem} texto>Proposição</ThOrdem>
+                <ThOrdem coluna="ementa" ordem={ordem} onOrdenar={setOrdem} texto>Ementa</ThOrdem>
+                <ThOrdem coluna="data" ordem={ordem} onOrdenar={setOrdem}>Apresentada em</ThOrdem>
+                <ThOrdem coluna="situacao" ordem={ordem} onOrdenar={setOrdem} texto>Situação</ThOrdem>
               </tr>
             </thead>
             <tbody>
@@ -239,32 +290,33 @@ function Proposicoes({ d, ano, contagem }: { d: Deputado; ano: string | null; co
 }
 
 /** A cota parlamentar: por categoria, por mês (num ano) e por fornecedor, com a ligação para a página da empresa. */
-function CotaParlamentar({ d, ano, anos }: { d: Deputado; ano: string | null; anos: string[] }) {
+function CotaParlamentar({ d, ano }: { d: Deputado; ano: string | null }) {
   const [todos, setTodos] = useState(false);
+  const [ordemCat, setOrdemCat] = useState<Ordem | null>(null);
+  const [ordemForn, setOrdemForn] = useState<Ordem | null>(null);
   const c = cotaDoDeputado(d, ano);
   if (c.categorias.length === 0) return null;
   const meses = ano ? cotaPorMes(d, ano) : [];
-  const porAno = anos.map((a) => ({ rotulo: a, valor: Object.values(d.anos[a]?.ceap?.categorias ?? {}).reduce((x, y) => x + y, 0) }));
-  const mostrados = todos ? c.fornecedores : c.fornecedores.slice(0, INICIAIS);
+  const categorias = ordenar(c.categorias, ordemCat, { categoria: (x) => x[0], valor: (x) => x[1] });
+  const fornecedores = ordenar(c.fornecedores, ordemForn, { nome: (f) => f[1] ?? f[0], documentos: (f) => f[2], valor: (f) => f[3] });
+  const mostrados = todos ? fornecedores : fornecedores.slice(0, INICIAIS);
   return (
     <section className="cartao cartao-corpo" aria-labelledby="titulo-cota">
       <h2 id="titulo-cota" className="titulo-secao">Cota parlamentar (CEAP)</h2>
-      {ano ? (
-        meses.length > 1 && <GraficoBarras titulo={`Reembolsado por mês em ${ano}`}
+      {ano && meses.length > 1 && (
+        <GraficoBarras titulo={`Reembolsado por mês em ${ano}`}
           barras={meses.map((m) => ({ rotulo: MESES[Number(m.mes) - 1] ?? m.mes, valor: m.valor }))} formatar={moeda} formatarEixo={moedaCompacta} />
-      ) : (
-        porAno.length > 1 && <GraficoBarras titulo="Reembolsado por ano" barras={porAno} formatar={moeda} formatarEixo={moedaCompacta} />
       )}
       <div className="tabela-rolavel">
         <table className="tabela">
           <thead>
             <tr>
-              <th>Categoria</th>
-              <th className="n">Valor</th>
+              <ThOrdem coluna="categoria" ordem={ordemCat} onOrdenar={setOrdemCat} texto>Categoria</ThOrdem>
+              <ThOrdem coluna="valor" ordem={ordemCat} onOrdenar={setOrdemCat} className="n">Valor</ThOrdem>
             </tr>
           </thead>
           <tbody>
-            {c.categorias.map(([categoria, valor]) => (
+            {categorias.map(([categoria, valor]) => (
               <tr key={categoria}>
                 <td>{categoria}</td>
                 <td className="n">{moeda(valor)}</td>
@@ -278,9 +330,9 @@ function CotaParlamentar({ d, ano, anos }: { d: Deputado; ano: string | null; an
           <table className="tabela">
             <thead>
               <tr>
-                <th>Fornecedor (pessoa jurídica)</th>
-                <th className="n">Documentos</th>
-                <th className="n">Valor</th>
+                <ThOrdem coluna="nome" ordem={ordemForn} onOrdenar={setOrdemForn} texto>Fornecedor (pessoa jurídica)</ThOrdem>
+                <ThOrdem coluna="documentos" ordem={ordemForn} onOrdenar={setOrdemForn} className="n">Documentos</ThOrdem>
+                <ThOrdem coluna="valor" ordem={ordemForn} onOrdenar={setOrdemForn} className="n">Valor</ThOrdem>
               </tr>
             </thead>
             <tbody>

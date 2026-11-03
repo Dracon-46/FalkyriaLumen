@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  apareceNoPeriodo,
   cotaDoDeputado,
   cotaPorMes,
   type Deputado,
   filtrarDeputados,
   type LinhaDeputado,
+  numerosNoPeriodo,
   totaisDoDeputado,
   votoPorExtenso,
   votosComVotacoes,
@@ -37,6 +39,15 @@ describe("parlamentares", () => {
     expect(filtrarDeputados(linhas, { termo: "tal ful" }).map((l) => l[0])).toEqual(["1"]);
     expect(filtrarDeputados(linhas, { uf: "SP" }).map((l) => l[0])).toEqual(["2"]);
     expect(filtrarDeputados(linhas, { partido: "PL", termo: "bel" })).toEqual([]);
+  });
+
+  it("soma os números do período pedido e diz se o deputado aparece nele", () => {
+    const l: LinhaDeputado = ["1", "Fulana", "PL", "MT", [57], 3, 2, 15, 30, 220,
+                              { "2024": [1, 0, 10, 20, 100], "2025": [2, 2, 5, 10, 120] }];
+    expect(numerosNoPeriodo(l, null)).toEqual([3, 2, 15, 30, 220]);
+    expect(numerosNoPeriodo(l, ["2025", "2026"])).toEqual([2, 2, 5, 10, 120]);
+    expect(apareceNoPeriodo(l, ["2023"])).toBe(false);
+    expect(apareceNoPeriodo(l, ["2023", "2024"])).toBe(true);
   });
 
   it("soma os totais de um ano ou de todos", () => {

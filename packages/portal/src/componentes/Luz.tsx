@@ -2,8 +2,9 @@
 
 /**
  * A luz da página inicial (ADR-061): pontos que se movem devagar e se ligam por linhas quando passam perto, como os
- * dados que o Lumen junta. Desenhada em canvas, sem biblioteca: as cores vêm das variáveis do tema (`--marca-1`,
- * `--marca-2` e `--luz`), o mouse puxa as ligações para perto, e a animação para com a aba escondida. Para quem pede
+ * dados que o Lumen junta. Desenhada em canvas, sem biblioteca, numa cor só e discreta: o cinza do tema
+ * (`--texto-3`) e, em poucos pontos, o azul de destaque (`--destaque`). O mouse realça as ligações perto dele, e a
+ * animação para com a aba escondida. Para quem pede
  * menos movimento no sistema, desenha uma vez, parada. É decorativa (`aria-hidden`).
  */
 
@@ -34,9 +35,7 @@ export function Luz() {
     if (!canvas || !ctx) return;
     const parado = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const estilo = getComputedStyle(document.documentElement);
-    const cores = ["--marca-1", "--marca-2", "--luz"].map((v) => estilo.getPropertyValue(v).trim() || "#7ea8ff");
-    // Sobre o fundo claro, a mesma rede precisa de mais tinta para aparecer
-    const forca = estilo.getPropertyValue("color-scheme").includes("dark") ? 1 : 1.8;
+    const cores = ["--texto-3", "--texto-3", "--destaque"].map((v) => estilo.getPropertyValue(v).trim() || "#8c96ac");
     let pontos: Ponto[] = [];
     let largura = 0;
     let altura = 0;
@@ -56,7 +55,7 @@ export function Luz() {
       pontos = Array.from({ length: n }, () => ({
         x: Math.random() * largura, y: Math.random() * altura,
         vx: (Math.random() - 0.5) * 0.35, vy: (Math.random() - 0.5) * 0.35,
-        r: 1.2 + Math.random() * 1.8, cor: Math.random() < 0.12 ? 2 : Math.random() < 0.5 ? 0 : 1,
+        r: 1 + Math.random() * 1.4, cor: Math.random() < 0.1 ? 2 : 0,
       }));
     };
 
@@ -78,7 +77,7 @@ export function Luz() {
           const d = Math.hypot(a.x - b.x, a.y - b.y);
           if (d > ALCANCE) continue;
           const perto = Math.hypot((a.x + b.x) / 2 - mouse.x, (a.y + b.y) / 2 - mouse.y) < 160 ? 1.8 : 1;
-          ctx.globalAlpha = Math.min(1, (1 - d / ALCANCE) * 0.3 * perto * forca);
+          ctx.globalAlpha = Math.min(1, (1 - d / ALCANCE) * 0.22 * perto);
           ctx.strokeStyle = cores[a.cor]!;
           ctx.lineWidth = 0.8;
           ctx.beginPath();
@@ -88,15 +87,12 @@ export function Luz() {
         }
       }
       for (const p of pontos) {
-        ctx.globalAlpha = Math.min(1, (p.cor === 2 ? 0.95 : 0.7) * forca);
+        ctx.globalAlpha = Math.min(1, (p.cor === 2 ? 0.8 : 0.5));
         ctx.fillStyle = cores[p.cor]!;
-        ctx.shadowColor = cores[p.cor]!;
-        ctx.shadowBlur = p.cor === 2 ? 12 : 6;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fill();
       }
-      ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
       if (!parado && !document.hidden) quadro = requestAnimationFrame(desenhar);
     };

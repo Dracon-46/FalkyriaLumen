@@ -12,7 +12,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 import { BaixarCsv, PrefixoCsv } from "@/componentes/BaixarCsv";
 import { Escolha } from "@/componentes/Escolha";
+import { ThOrdem } from "@/componentes/ThOrdem";
 import { numero } from "@/lib/formato";
+import { type Ordem, ordenar } from "@/lib/ordem";
 import { carregarEntes, cnpj as formatarCnpj, dataCurta, moeda, moedaCompacta, tipoDoCodigo } from "@/lib/paineis";
 import {
   type AchadoPj,
@@ -292,10 +294,11 @@ function ContratosTce({ p, nomes }: { p: PessoaJuridica; nomes: Nomes }) {
 /** O que a União pagou a este CNPJ (ADR-058): o ano a ano e os órgãos pagadores; só aparece quando há algo. */
 function RecebidoDaUniao({ p }: { p: PessoaJuridica }) {
   const [todos, setTodos] = useState(false);
+  const [ordem, setOrdem] = useState<Ordem | null>(null);
   if (!p.uniao?.length) return null;
   const t = totaisDaPessoa(p);
   const porAno = uniaoPorAno(p);
-  const orgaos = uniaoPorOrgao(p);
+  const orgaos = ordenar(uniaoPorOrgao(p), ordem, { orgao: (o) => o.nome, valor: (o) => o.valor, anos: (o) => o.anos.length });
   const mostrados = todos ? orgaos : orgaos.slice(0, ORGAOS_INICIAIS);
   return (
     <section className="cartao cartao-corpo" aria-labelledby="titulo-pj-uniao">
@@ -312,9 +315,9 @@ function RecebidoDaUniao({ p }: { p: PessoaJuridica }) {
         <table className="tabela">
           <thead>
             <tr>
-              <th>Órgão superior</th>
-              <th className="n">Valor</th>
-              <th>Anos</th>
+              <ThOrdem coluna="orgao" ordem={ordem} onOrdenar={setOrdem} texto>Órgão superior</ThOrdem>
+              <ThOrdem coluna="valor" ordem={ordem} onOrdenar={setOrdem} className="n">Valor</ThOrdem>
+              <ThOrdem coluna="anos" ordem={ordem} onOrdenar={setOrdem}>Anos</ThOrdem>
             </tr>
           </thead>
           <tbody>
@@ -364,17 +367,21 @@ function TabelaPorEnte({ linhas, nomes, contratos = false, href, csv }: {
   linhas: PorEnte[]; nomes: Nomes; contratos?: boolean; href: (ente: string) => string | null; csv: string;
 }) {
   const [todas, setTodas] = useState(false);
-  const mostradas = todas ? linhas : linhas.slice(0, ENTES_INICIAIS);
+  const [ordem, setOrdem] = useState<Ordem | null>(null);
+  const ordenadas = ordenar(linhas, ordem, {
+    ente: (l) => nomeDoEnte(l.ente, nomes), contratos: (l) => l.contratos, valor: (l) => l.valor, anos: (l) => l.anos.length,
+  });
+  const mostradas = todas ? ordenadas : ordenadas.slice(0, ENTES_INICIAIS);
   return (
     <>
       <div className="tabela-rolavel">
         <table className="tabela">
           <thead>
             <tr>
-              <th>Ente</th>
-              {contratos && <th className="n">Contratos</th>}
-              <th className="n">Valor</th>
-              <th>Anos</th>
+              <ThOrdem coluna="ente" ordem={ordem} onOrdenar={setOrdem} texto>Ente</ThOrdem>
+              {contratos && <ThOrdem coluna="contratos" ordem={ordem} onOrdenar={setOrdem} className="n">Contratos</ThOrdem>}
+              <ThOrdem coluna="valor" ordem={ordem} onOrdenar={setOrdem} className="n">Valor</ThOrdem>
+              <ThOrdem coluna="anos" ordem={ordem} onOrdenar={setOrdem}>Anos</ThOrdem>
             </tr>
           </thead>
           <tbody>
