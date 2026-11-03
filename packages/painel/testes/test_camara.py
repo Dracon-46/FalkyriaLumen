@@ -160,3 +160,11 @@ def test_coleta_e_publicacao(tmp_path):
                         cabecalho_fn=lambda url, contato: (10, "e"), cadastro_fn=lambda contato: DEPUTADOS,
                         exercicio_fn=lambda deps, contato: {d: exercicio[d] for d in deps})
     assert 2025 in r2.pulados and comum.ler_json(estado / camara.ARQUIVO)["exercicio"]["1"] == exercicio["1"]
+
+
+def test_cadastro_sem_legislatura_repetida():
+    respostas = {56: [{"id": 2, "nome": "Beltrano", "siglaPartido": "PSB", "siglaUf": "SP"}],
+                 57: [{"id": 2, "nome": "Beltrano", "siglaPartido": "PSB", "siglaUf": "SP"},
+                      {"id": 2, "nome": "Beltrano", "siglaPartido": "PT", "siglaUf": "SP"}]}
+    ler = lambda url: json.dumps({"dados": respostas[int(url.split("idLegislatura=")[1].split("&")[0])]}).encode()  # noqa: E731
+    assert camara.cadastro(contato="c", ler_fn=ler) == {"2": ["Beltrano", "PT", "SP", [56, 57]]}

@@ -130,7 +130,8 @@ def cadastro(*, contato: str, ler_fn: Callable[[str], bytes] | None = None) -> d
         for d in json.loads(ler_fn(API_DEPUTADOS.format(legislatura=legislatura)))["dados"]:
             registro = saida.setdefault(str(d["id"]), [d["nome"], d["siglaPartido"], d["siglaUf"], []])
             registro[:3] = [d["nome"], d["siglaPartido"], d["siglaUf"]]
-            registro[3].append(legislatura)
+            if legislatura not in registro[3]:          # a API repete o deputado que trocou de partido
+                registro[3].append(legislatura)
     return saida
 
 
