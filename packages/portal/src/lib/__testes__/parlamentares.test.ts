@@ -82,3 +82,21 @@ describe("votações", () => {
     expect(tipoDaProposicao("")).toBe("Outras");
   });
 });
+
+describe("casas", () => {
+  it("lê a casa da URL e monta os endereços da câmara municipal", async () => {
+    const { casaDaUrl, consultaDaCasa, daCasa, paginaNaCamara, proposicaoNaCamara, urlDaVotacao, urlDoParlamentar } =
+      await import("../parlamentares");
+    expect(casaDaUrl(null)).toBe("camara");
+    expect(casaDaUrl("senado")).toBe("senado");
+    expect(casaDaUrl("3509502")).toBe("municipal/3509502");
+    expect(casaDaUrl("35095")).toBe("camara");
+    expect(consultaDaCasa("municipal/3509502")).toBe("casa=3509502&");
+    expect(daCasa("municipal/3509502").singular).toBe("vereador");
+    expect(urlDoParlamentar("7", "municipal/3509502", "2025")).toBe("/parlamentares/vereador/?casa=3509502&id=7&ano=2025");
+    expect(urlDoParlamentar("7", "senado")).toBe("/parlamentares/senador/?id=7");
+    expect(urlDaVotacao("2025", "9", "municipal/3509502")).toBe("/parlamentares/votacoes/?casa=3509502&ano=2025&id=9");
+    expect(paginaNaCamara("7", "municipal/3509502", "sapl.campinas.sp.leg.br")).toBe("https://sapl.campinas.sp.leg.br/parlamentar/7");
+    expect(proposicaoNaCamara("8", "municipal/3509502", null)).toBeNull();
+  });
+});

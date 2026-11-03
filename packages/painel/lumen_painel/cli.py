@@ -54,6 +54,7 @@ from . import (
     tce_rs,
     transferencias,
     transparencia,
+    vereadores,
 )
 from . import cnpj as base_cnpj
 from . import conformidade as conf
@@ -305,6 +306,18 @@ def cmd_camaras_sapl(args) -> int:
     return 0
 
 
+def cmd_vereadores(args) -> int:
+    """Lê as câmaras municipais com o SAPL que passaram da idade de releitura e grava ``vereadores-<UF>.json.gz``
+    (ADR-062)."""
+    cfg = _configuracao(args)
+    cadastro = Cadastro.ler(Path(args.estado) / ARQUIVO_CADASTRO)
+    _imprimir(vereadores.coletar(Path(args.estado), cadastro, contato=cfg.contato,
+                                 ufs=_lista(args.ufs) if args.ufs else None,
+                                 municipios=_lista(args.municipios) if args.municipios else None,
+                                 limite_minutos=args.limite_minutos))
+    return 0
+
+
 def cmd_senado(args) -> int:
     """Lê os dados abertos do Senado dos anos que passaram da idade de releitura e grava ``senado.json.gz``
     (ADR-060, adendo)."""
@@ -451,6 +464,7 @@ def cmd_publicar(args) -> int:
     pj = pessoas_juridicas.publicar(estado, painel, site.gravar, gerado_em=gerado_em)
     deputados = camara.publicar(estado, site.gravar, gerado_em=gerado_em)
     senadores = senado.publicar(estado, site.gravar, gerado_em=gerado_em)
+    camaras_municipais = vereadores.publicar(estado, cadastro, site.gravar, gerado_em=gerado_em)
 
     entes = {c: [c, e.nome, e.uf, e.esfera, e.populacao] for c, e in cadastro.entes.items()}
     for codigo in set(painel.entes) | set(avaliacao.entes):
@@ -462,7 +476,7 @@ def cmd_publicar(args) -> int:
               "cadastro": {"entes": len(cadastro), "gerado_em": cadastro.gerado_em},
               "contratacoes": {**painel.cobertura(), "entes": len(painel.entes), "orgaos": len(painel.por_orgao)},
               "conformidade": {"entes": len(avaliacao.entes), "ufs": avaliacao.coletas, "pares": grupos},
-              "transparencia": pntp, "anp": precos_anp, "cnpj": receita, "emendas": recebido_de_emendas, "convenios": convenios_dos_entes, "transferencias": transferencias_dos_entes, "tce": contratos_no_tce, "pj": pj, "camara": deputados, "senado": senadores, "operacao": {"alertas": len(situacao["alertas"])},
+              "transparencia": pntp, "anp": precos_anp, "cnpj": receita, "emendas": recebido_de_emendas, "convenios": convenios_dos_entes, "transferencias": transferencias_dos_entes, "tce": contratos_no_tce, "pj": pj, "camara": deputados, "senado": senadores, "vereadores": camaras_municipais, "operacao": {"alertas": len(situacao["alertas"])},
               "avisos": resumo_avisos}
     site.gravar("indice.json", indice)
     site.finalizar()
@@ -549,6 +563,12 @@ def construir_parser() -> argparse.ArgumentParser:
     c = sub.add_parser("camaras-sapl", help="câmaras municipais com o SAPL e a API aberta (levantamento)")
     c.add_argument("--estado", required=True)
 
+    c = sub.add_parser("vereadores", help="vereadores: votos, projetos e presença, pelo SAPL de cada câmara municipal")
+    c.add_argument("--estado", required=True)
+    c.add_argument("--ufs", help="só as câmaras destas UFs, separadas por vírgula")
+    c.add_argument("--municipios", help="só estes municípios (código IBGE), separados por vírgula, mesmo os lidos há pouco")
+    c.add_argument("--limite-minutos", type=float, help="não começa outra câmara depois disso")
+
     c = sub.add_parser("senado", help="senadores: votos, presença nas votações, autoria e cota parlamentar (Senado)")
     c.add_argument("--estado", required=True)
     c.add_argument("--anos", help=f"só estes anos, separados por vírgula (padrão: de {senado.PRIMEIRO_ANO} ao corrente)")
@@ -578,7 +598,7 @@ def construir_parser() -> argparse.ArgumentParser:
 
 COMANDOS = {"cadastro": cmd_cadastro, "contratacoes": cmd_contratacoes, "faltando": cmd_faltando,
             "conformidade": cmd_conformidade, "rcl": cmd_rcl, "despesa-funcao": cmd_despesa_funcao, "pessoal": cmd_pessoal,
-            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "tce-rs": cmd_tce, "tce-pr": cmd_tce, "tce-pe": cmd_tce, "tce-ce": cmd_tce, "emendas": cmd_emendas, "convenios": cmd_convenios, "transferencias": cmd_transferencias, "recebimentos": cmd_recebimentos, "camara": cmd_camara, "senado": cmd_senado, "camaras-sapl": cmd_camaras_sapl,
+            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "tce-rs": cmd_tce, "tce-pr": cmd_tce, "tce-pe": cmd_tce, "tce-ce": cmd_tce, "emendas": cmd_emendas, "convenios": cmd_convenios, "transferencias": cmd_transferencias, "recebimentos": cmd_recebimentos, "camara": cmd_camara, "senado": cmd_senado, "camaras-sapl": cmd_camaras_sapl, "vereadores": cmd_vereadores,
             "transparencia": cmd_transparencia, "anp": cmd_anp,
             "publicar": cmd_publicar}
 

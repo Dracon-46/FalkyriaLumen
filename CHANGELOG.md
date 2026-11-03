@@ -5,11 +5,18 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ## Não lançado
 
-### Vereadores: o cadastro das câmaras com SAPL (ADR-062)
+### Vereadores pelo SAPL das câmaras municipais (ADR-062)
 
 - Levantamento das câmaras municipais com o SAPL do Interlegis e a API aberta: 1.192 dos 5.570 municípios, 584 com votos
-  nominais registrados. Novo comando `lumen painel camaras-sapl` e fluxo mensal `camaras-sapl`. A coleta dos
-  vereadores (votos, projetos e presença) vem a seguir.
+  nominais registrados. Novo comando `lumen painel camaras-sapl` e fluxo mensal `camaras-sapl`.
+- Coleta dos vereadores de 2017 em diante (`lumen painel vereadores`, job `vereadores` do fluxo `parlamentares`): os
+  mandatos e o partido em cada data, os projetos com a ementa e os autores (requerimentos, indicações e moções só
+  contados), a presença nas sessões com presença registrada e o voto de cada vereador nas votações nominais dos
+  projetos. A leitura das votações e da presença continua da página em que parou; cada câmara é relida a cada 6 dias.
+  O estado fica num arquivo por UF (`vereadores-<UF>.json.gz`).
+- A aba Parlamentares ganha "Vereadores": a lista das câmaras publicadas e, em cada uma, os vereadores com a mesma
+  página dos deputados e senadores (`?casa=<IBGE>`), e as votações da câmara. O município escolhido no cabeçalho abre
+  a câmara dele.
 
 ### Parlamentares: o Senado (ADR-060, adendo)
 

@@ -3,7 +3,8 @@
 /**
  * A página de um deputado federal (ADR-060), pelo id da Câmara (`?id=`): os totais, os votos nominais no Plenário com
  * a votação e a orientação do Governo, as proposições que apresentou e a cota parlamentar, num ano (`?ano=`) ou em
- * todos. São os fatos como a Câmara publica: a página não pontua nem ordena ninguém.
+ * todos. São os fatos como a Câmara publica: a página não pontua nem ordena ninguém. A mesma página mostra o senador e
+ * o vereador (ADR-062), com os textos da casa.
  */
 
 import Link from "next/link";
@@ -17,16 +18,20 @@ import { normalizar } from "@/lib/busca";
 import { type Ordem, ordenar } from "@/lib/ordem";
 import { cnpj as formatarCnpj, dataCurta, moeda, moedaCompacta } from "@/lib/paineis";
 import {
+  type CamaraMunicipal,
   type Casa,
-  CASAS,
+  carregarCamaraDaCasa,
   carregarDeputado,
+  casaDaUrl,
   carregarVotacoes,
   cotaDoDeputado,
   cotaPorMes,
+  daCasa,
   type Deputado,
   fotoDoDeputado,
   paginaNaCamara,
   proposicaoNaCamara,
+  tipoDaCasa,
   totaisDoDeputado,
   urlDaVotacao,
   type Votacao,
@@ -43,14 +48,18 @@ const INICIAIS = 30;
 /** Carregando, o deputado lido (null quando não está no Lumen) ou o erro. */
 type Estado = { fase: "carregando" } | { fase: "pronto"; deputado: Deputado | null } | { fase: "erro"; erro: string };
 
-/** A página: lê o parlamentar (da Câmara ou do Senado) e as votações dos anos dele. */
-export function PainelDeputado({ casa = "camara" }: { casa?: Casa }) {
+/** A página: lê o parlamentar (da casa passada ou, sem ela, da casa da URL) e as votações dos anos dele. */
+export function PainelDeputado({ casa: casaFixa }: { casa?: Casa }) {
   const params = useSearchParams();
+  const casa = casaFixa ?? casaDaUrl(params.get("casa"));
   const router = useRouter();
   const id = params.get("id") ?? "";
   const anoNaUrl = params.get("ano");
   const [estado, setEstado] = useState<Estado>({ fase: "carregando" });
   const [votacoes, setVotacoes] = useState<Record<string, Record<string, Votacao>>>({});
+  const [camara, setCamara] = useState<CamaraMunicipal | null>(null);
+  const textos = daCasa(casa);
+  const municipal = tipoDaCasa(casa) === "municipal";
 
   useEffect(() => {
     const c = new AbortController();
@@ -63,14 +72,15 @@ export function PainelDeputado({ casa = "camara" }: { casa?: Casa }) {
         }
       })
       .catch((e: Error) => e.name !== "AbortError" && setEstado({ fase: "erro", erro: e.message }));
+    carregarCamaraDaCasa(casa, c.signal).then(setCamara).catch(() => undefined);
     return () => c.abort();
   }, [id, casa]);
 
-  if (!id) return <Situacao>Escolha um deputado na <Link href="/parlamentares/">lista dos parlamentares</Link>.</Situacao>;
+  if (!id) return <Situacao>Escolha um {textos.singular} na <Link href="/parlamentares/">lista dos parlamentares</Link>.</Situacao>;
   if (estado.fase === "carregando") return <Situacao>Carregando…</Situacao>;
   if (estado.fase === "erro") return <Situacao>Não foi possível ler agora ({estado.erro}).</Situacao>;
   const d = estado.deputado;
-  if (!d) return <Situacao>Este deputado não está nos dados do Lumen.</Situacao>;
+  if (!d) return <Situacao>Este {textos.singular} não está nos dados do Lumen.</Situacao>;
   const anos = Object.keys(d.anos).sort();
   const ano = anoNaUrl && d.anos[anoNaUrl] ? anoNaUrl : null;
   /** Troca o ano na URL, sem rolar a página. */
@@ -78,20 +88,27 @@ export function PainelDeputado({ casa = "camara" }: { casa?: Casa }) {
     const q = new URLSearchParams(params.toString());
     if (a) q.set("ano", a);
     else q.delete("ano");
-    router.replace(`/parlamentares/${CASAS[casa].rota}/?${q.toString()}`, { scroll: false });
+    router.replace(`/parlamentares/${textos.rota}/?${q.toString()}`, { scroll: false });
   };
   const t = totaisDoDeputado(d, ano);
   const periodo = ano ?? (anos.length === 1 ? anos[0] : `${anos[0]} a ${anos[anos.length - 1]}`);
+  const foto = fotoDoDeputado(d.id, casa);
+  const pagina = paginaNaCamara(d.id, casa, camara?.[3]);
+  const host = camara?.[3] ?? null;
 
   return (
-    <PrefixoCsv.Provider value={["deputado", d.id, ano].filter(Boolean).join("-")}>
+    <PrefixoCsv.Provider value={[textos.singular, d.id, ano].filter(Boolean).join("-")}>
       <section className="cartao cartao-corpo deputado-topo">
-        <img src={fotoDoDeputado(d.id, casa)} alt={`Foto oficial de ${d.nome}`} width={90} height={120} className="deputado-foto" />
+        {foto && <img src={foto} alt={`Foto oficial de ${d.nome}`} width={90} height={120} className="deputado-foto" />}
         <div>
           <h2 className="painel-ente">{d.nome}</h2>
           <p>
-            {CASAS[casa].pessoa} · {d.partido ? `${d.partido}-` : ""}{d.uf} · legislatura(s) {d.legislaturas.join(" e ")}
-            <span className="busca-detalhe"> · <a href={paginaNaCamara(d.id, casa)} target="_blank" rel="noreferrer">página no {casa === "senado" ? "Senado" : "site da Câmara"}</a></span>
+            {municipal
+              ? <>{textos.pessoa}{camara ? <> de <Link href={`/parlamentares/?casa=${camara[0]}`}>{camara[1]} ({camara[2]})</Link></> : ""}
+                  {" "}· {d.partido || "sem partido registrado"} · mandato(s) {d.legislaturas.map((l) => `${l} a ${l + 3}`).join(" e ") || "sem registro"}</>
+              : <>{textos.pessoa} · {d.partido ? `${d.partido}-` : ""}{d.uf} · legislatura(s) {d.legislaturas.join(" e ")}</>}
+            {pagina && <span className="busca-detalhe"> · <a href={pagina} target="_blank" rel="noreferrer">página no {
+              municipal ? "SAPL da câmara" : casa === "senado" ? "Senado" : "site da Câmara"}</a></span>}
           </p>
           <p className="busca-detalhe">
             Em exercício: {d.exercicio.map(([i, f]) => `${dataCurta(i)} a ${f ? dataCurta(f) : "hoje"}`).join("; ") || "sem registro"}
@@ -107,17 +124,26 @@ export function PainelDeputado({ casa = "camara" }: { casa?: Casa }) {
       )}
       <div className="totais">
         <Numero rotulo={`Votos no Plenário, ${periodo}`} valor={numero(t.votos)} detalhe={`${numero(t.sim)} Sim · ${numero(t.nao)} Não`} />
-        <Numero rotulo={casa === "senado" ? "Presença nas votações" : "Presença nas sessões"}
+        <Numero rotulo={textos.presenca}
           valor={t.sessoes ? percentual((100 * t.presentes) / t.sessoes) : "—"}
           detalhe={`${numero(t.presentes)} de ${numero(t.sessoes)} em exercício`} />
-        <Numero rotulo={casa === "senado" ? "Matérias de autoria" : "Proposições apresentadas"} valor={numero(t.proposicoes)}
-          detalhe={casa === "senado" ? "PL, PLS, PLP, PEC, PDL e PRS" : "PL, PLP, PEC, PDL e PRC"} />
-        <Numero rotulo="Cota parlamentar" valor={moeda(t.cota)} detalhe="valor reembolsado" />
+        <Numero rotulo={textos.proposicoes} valor={numero(t.proposicoes)} detalhe={textos.tipos} />
+        {!municipal && <Numero rotulo="Cota parlamentar" valor={moeda(t.cota)} detalhe="valor reembolsado" />}
       </div>
-      {anos.length > 1 && <AnoAAno d={d} anos={anos} ano={ano} onAno={escolherAno} />}
+      {anos.length > 1 && <AnoAAno d={d} anos={anos} ano={ano} onAno={escolherAno} semCota={municipal} />}
       <Votos d={d} ano={ano} votacoes={votacoes} casa={casa} />
-      <Proposicoes d={d} ano={ano} contagem={t.contagem} casa={casa} />
+      <Proposicoes d={d} ano={ano} contagem={t.contagem} casa={casa} host={host} />
       <CotaParlamentar d={d} ano={ano} />
+      {municipal ? (
+        <p className="busca-detalhe">
+          Do SAPL da câmara municipal{host ? <> (<a href={`https://${host}`} target="_blank" rel="noreferrer">{host}</a>)</> : null}:
+          votações nominais dos projetos, presença nas sessões com presença registrada (conta só as do mandato do
+          vereador) e projetos de que é autor; os requerimentos, as indicações e as moções entram só na contagem por
+          tipo. São os números que a câmara registrou no sistema, sem juízo sobre o vereador: câmara que registra pouco
+          aparece com pouco.{" "}
+          <a href="https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-062.md" target="_blank" rel="noreferrer">como é montado</a>
+        </p>
+      ) : (
       <p className="busca-detalhe">
         Dados abertos da Câmara dos Deputados: votações nominais do Plenário, presença nas sessões deliberativas do
         Plenário (a presença conta só as sessões realizadas enquanto o deputado estava em exercício), proposições que ele
@@ -125,6 +151,7 @@ export function PainelDeputado({ casa = "camara" }: { casa?: Casa }) {
         nem o que não vai a voto nominal. São os fatos como a fonte publica, sem juízo sobre o parlamentar.{" "}
         <a href={METODO} target="_blank" rel="noreferrer">como é montado</a>
       </p>
+      )}
     </PrefixoCsv.Provider>
   );
 }
@@ -147,14 +174,14 @@ const METRICAS: Record<string, Metrica> = {
 };
 
 /** O ano a ano de uma medida, à escolha; clicar numa barra filtra a página por aquele ano (clicar de novo volta). */
-function AnoAAno({ d, anos, ano, onAno }: { d: Deputado; anos: string[]; ano: string | null; onAno: (a: string | null) => void }) {
+function AnoAAno({ d, anos, ano, onAno, semCota }: { d: Deputado; anos: string[]; ano: string | null; onAno: (a: string | null) => void; semCota?: boolean }) {
   const [metrica, setMetrica] = useState("presenca");
   const m = METRICAS[metrica] ?? METRICAS.presenca!;
   return (
     <section className="cartao cartao-corpo" aria-labelledby="titulo-ano-a-ano">
       <h2 id="titulo-ano-a-ano" className="titulo-secao">Ano a ano</h2>
       <Escolha rotulo="Medida" valor={metrica} onEscolher={setMetrica}
-        opcoes={Object.entries(METRICAS).map(([valor, x]) => ({ valor, rotulo: x.rotulo }))} />
+        opcoes={Object.entries(METRICAS).filter(([valor]) => !semCota || valor !== "cota").map(([valor, x]) => ({ valor, rotulo: x.rotulo }))} />
       <GraficoBarras titulo={`${m.rotulo} por ano`} barras={anos.map((a) => ({ rotulo: a, valor: m.valor(totaisDoDeputado(d, a)) }))}
         formatar={m.formatar} formatarEixo={m.eixo} selecionada={ano} onEscolher={(a) => onAno(a === ano ? null : a)} />
       <p className="busca-detalhe">Clique num ano para ver só ele na página; clique de novo para ver todos.</p>
@@ -235,7 +262,7 @@ function Votos({ d, ano, votacoes, casa }: { d: Deputado; ano: string | null; vo
 }
 
 /** As proposições que o deputado apresentou como autor, e a contagem de todas por tipo. */
-function Proposicoes({ d, ano, contagem, casa }: { d: Deputado; ano: string | null; contagem: Record<string, number>; casa: Casa }) {
+function Proposicoes({ d, ano, contagem, casa, host }: { d: Deputado; ano: string | null; contagem: Record<string, number>; casa: Casa; host?: string | null }) {
   const [todas, setTodas] = useState(false);
   const [ordem, setOrdem] = useState<Ordem | null>(null);
   const lista = ordenar(Object.entries(d.anos).filter(([a]) => !ano || a === ano).flatMap(([, a]) => a.autoria)
@@ -263,7 +290,9 @@ function Proposicoes({ d, ano, contagem, casa }: { d: Deputado; ano: string | nu
             <tbody>
               {mostradas.map(([pid, tipo, numeroP, anoP, ementa, data, situacao]) => (
                 <tr key={pid}>
-                  <td><a href={proposicaoNaCamara(pid, casa)} target="_blank" rel="noreferrer">{tipo} {numeroP}/{anoP}</a></td>
+                  <td>{proposicaoNaCamara(pid, casa, host)
+                    ? <a href={proposicaoNaCamara(pid, casa, host)!} target="_blank" rel="noreferrer">{tipo} {numeroP}/{anoP}</a>
+                    : <>{tipo} {numeroP}/{anoP}</>}</td>
                   <td>{ementa}</td>
                   <td>{dataCurta(data)}</td>
                   <td>{situacao ?? "—"}</td>

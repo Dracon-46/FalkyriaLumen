@@ -48,6 +48,8 @@ describe("filtro de local", () => {
     expect(hrefDaArea("conformidade", uniao)).toBe("/conformidade/");
     expect(hrefDaArea("estatais", sp)).toBe("/economia/estatais/?ente=3550308");
     expect(hrefDaArea("economia", sp)).toBe("/economia/");
+    expect(hrefDaArea("parlamentares", sp)).toBe("/parlamentares/vereadores/?uf=SP&municipio=3550308");
+    expect(hrefDaArea("parlamentares", estado)).toBe("/parlamentares/?uf=SP");
     expect(hrefDaArea("contratacoes", null)).toBe("/contratacoes/");
     expect(hrefDaArea("contratacoes", { codigo: "x", nome: "?", uf: null })).toBe("/contratacoes/");
   });
@@ -63,6 +65,9 @@ describe("filtro de local", () => {
     expect(codigoNaUrl("/eleicoes/", u("a=mu-ap-06130"))).toBeNull();
     expect(codigoNaUrl("/eleicoes/", u(""))).toBeNull();
     expect(codigoNaUrl("/economia/", u("ente=35"))).toBeNull();
+    expect(codigoNaUrl("/parlamentares/", u("casa=3509502"))).toBe("3509502");
+    expect(codigoNaUrl("/parlamentares/vereadores/", u("uf=SP&municipio=3550308"))).toBe("3550308");
+    expect(codigoNaUrl("/parlamentares/", u("casa=senado"))).toBeNull();
     expect(codigoNaUrl("/contratacoes/", u("ente=../x"))).toBeNull();
     expect(codigoDaUf("sp")).toBe("35");
     expect(codigoDaUf("zz")).toBeNull();

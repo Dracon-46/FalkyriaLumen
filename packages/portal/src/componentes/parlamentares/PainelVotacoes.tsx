@@ -19,8 +19,11 @@ import { dataCurta } from "@/lib/paineis";
 import { NavParlamentares } from "./NavParlamentares";
 import {
   type Casa,
-  CASAS,
+  type CamaraMunicipal,
+  carregarCamaraDaCasa,
   casaDaUrl,
+  consultaDaCasa,
+  daCasa,
   carregarIndiceCamara,
   carregarVotacoes,
   carregarVotosDoAno,
@@ -56,6 +59,7 @@ export function PainelVotacoes() {
   const [indice, setIndice] = useState<IndiceCamara | null | undefined>(undefined);
   const [dados, setDados] = useState<Dados | null>(null);
   const [erro, setErro] = useState(false);
+  const [camara, setCamara] = useState<CamaraMunicipal | null>(null);
   const casa = casaDaUrl(params.get("casa"));
   const anos = indice?.anos ?? [];
   const ano = params.get("ano") && anos.includes(params.get("ano")!) ? params.get("ano")! : anos[anos.length - 1] ?? null;
@@ -65,6 +69,8 @@ export function PainelVotacoes() {
     const c = new AbortController();
     setIndice(undefined);
     carregarIndiceCamara(c.signal, casa).then(setIndice).catch((e: Error) => e.name !== "AbortError" && setErro(true));
+    setCamara(null);
+    carregarCamaraDaCasa(casa, c.signal).then(setCamara).catch(() => undefined);
     return () => c.abort();
   }, [casa]);
 
@@ -91,17 +97,17 @@ export function PainelVotacoes() {
   const nav = <NavParlamentares atual="votacoes" />;
   if (erro) return <>{nav}<Situacao>Não foi possível ler as votações agora.</Situacao></>;
   if (indice === undefined || (ano && !dados)) return <>{nav}<Situacao>Carregando…</Situacao></>;
-  if (!indice || !ano || !dados) return <>{nav}<Situacao>As votações do {CASAS[casa].nome} ainda não foram publicadas.</Situacao></>;
+  if (!indice || !ano || !dados) return <>{nav}<Situacao>As votações {daCasa(casa).doPlenario} ainda não foram publicadas.</Situacao></>;
   if (id) {
     const v = dados.votacoes[id];
-    if (!v) return <>{nav}<Situacao>Esta votação não está nos dados de {ano}. <Link href={`/parlamentares/votacoes/?${casa === "senado" ? "casa=senado&" : ""}ano=${ano}`}>Ver as votações do ano</Link>.</Situacao></>;
-    return <>{nav}<UmaVotacao id={id} ano={ano} v={v} votos={dados.votos[id] ?? []} indice={indice} casa={casa} /></>;
+    if (!v) return <>{nav}<Situacao>Esta votação não está nos dados de {ano}. <Link href={`/parlamentares/votacoes/?${consultaDaCasa(casa)}ano=${ano}`}>Ver as votações do ano</Link>.</Situacao></>;
+    return <>{nav}<UmaVotacao id={id} ano={ano} v={v} votos={dados.votos[id] ?? []} indice={indice} casa={casa} camara={camara} /></>;
   }
-  return <>{nav}<Lista ano={ano} anos={anos} dados={dados} mudar={mudar} casa={casa} /></>;
+  return <>{nav}<Lista ano={ano} anos={anos} dados={dados} mudar={mudar} casa={casa} camara={camara} /></>;
 }
 
 /** A lista das votações do ano. */
-function Lista({ ano, anos, dados, mudar, casa }: { ano: string; anos: string[]; dados: Dados; mudar: (n: Record<string, string | null>) => void; casa: Casa }) {
+function Lista({ ano, anos, dados, mudar, casa, camara }: { ano: string; anos: string[]; dados: Dados; mudar: (n: Record<string, string | null>) => void; casa: Casa; camara: CamaraMunicipal | null }) {
   const [busca, setBusca] = useState("");
   const [tipo, setTipo] = useState("");
   const [res, setRes] = useState("");
@@ -120,8 +126,10 @@ function Lista({ ano, anos, dados, mudar, casa }: { ano: string; anos: string[];
   return (
     <>
       <section className="cartao cartao-corpo filtro-periodo" aria-label="Filtros">
-        <Escolha rotulo="Casa" className="escolha-larga" valor={casa} onEscolher={(v) => mudar({ casa: v === "senado" ? "senado" : null, ano: null, id: null })}
-          opcoes={[{ valor: "camara", rotulo: "Câmara dos Deputados" }, { valor: "senado", rotulo: "Senado Federal" }]} />
+        <Escolha rotulo="Casa" className="escolha-larga" valor={casa}
+          onEscolher={(v) => mudar({ casa: v === "senado" ? "senado" : v.startsWith("municipal/") ? v.slice(10) : null, ano: null, id: null })}
+          opcoes={[{ valor: "camara", rotulo: "Câmara dos Deputados" }, { valor: "senado", rotulo: "Senado Federal" },
+                   ...(camara ? [{ valor: casa, rotulo: `Câmara de ${camara[1]} (${camara[2]})` }] : [])]} />
         <Escolha rotulo="Ano" valor={ano} onEscolher={(v) => mudar({ ano: v, id: null })}
           opcoes={[...anos].reverse().map((a) => ({ valor: a, rotulo: a }))} />
         <Escolha rotulo="Tipo" valor={tipo} onEscolher={setTipo}
@@ -132,7 +140,7 @@ function Lista({ ano, anos, dados, mudar, casa }: { ano: string; anos: string[];
           value={busca} onChange={(e) => setBusca(e.target.value)} />
       </section>
       <section className="cartao cartao-corpo" aria-labelledby="titulo-votacoes">
-        <h2 id="titulo-votacoes" className="titulo-secao">Votações nominais no Plenário {casa === "senado" ? "do Senado" : "da Câmara"} em {ano}</h2>
+        <h2 id="titulo-votacoes" className="titulo-secao">Votações nominais no Plenário {daCasa(casa).doPlenario}{camara ? ` de ${camara[1]}` : ""} em {ano}</h2>
         <p>
           {numero(linhas.length)} de {numero(todasDoAno.length)} votações. Clique numa para ver como votou cada deputado e
           cada partido; clique no cabeçalho de uma coluna para ordenar.
@@ -180,7 +188,7 @@ function Lista({ ano, anos, dados, mudar, casa }: { ano: string; anos: string[];
 }
 
 /** Uma votação: o placar, o voto por partido e o voto de cada deputado. */
-function UmaVotacao({ id, ano, v, votos, indice, casa }: { id: string; ano: string; v: Votacao; votos: VotoNaVotacao[]; indice: IndiceCamara; casa: Casa }) {
+function UmaVotacao({ id, ano, v, votos, indice, casa, camara }: { id: string; ano: string; v: Votacao; votos: VotoNaVotacao[]; indice: IndiceCamara; casa: Casa; camara: CamaraMunicipal | null }) {
   const [ordemP, setOrdemP] = useState<Ordem | null>(null);
   const [ordemD, setOrdemD] = useState<Ordem | null>(null);
   const [filtroVoto, setFiltroVoto] = useState("");
@@ -202,9 +210,9 @@ function UmaVotacao({ id, ano, v, votos, indice, casa }: { id: string; ano: stri
   return (
     <>
       <section className="cartao cartao-corpo">
-        <p className="busca-detalhe"><Link href={`/parlamentares/votacoes/?${casa === "senado" ? "casa=senado&" : ""}ano=${ano}`}>votações {casa === "senado" ? "do Senado" : "da Câmara"} em {ano}</Link> · {dataCurta(v[0])}</p>
+        <p className="busca-detalhe"><Link href={`/parlamentares/votacoes/?${consultaDaCasa(casa)}ano=${ano}`}>votações {daCasa(casa).doPlenario}{camara ? ` de ${camara[1]}` : ""} em {ano}</Link> · {dataCurta(v[0])}</p>
         <h2 className="painel-ente">
-          {v[9] ? <a href={proposicaoNaCamara(v[9], casa)} target="_blank" rel="noreferrer">{v[1] || "Votação"}</a> : v[1] || "Votação"}
+          {v[9] && proposicaoNaCamara(v[9], casa, camara?.[3]) ? <a href={proposicaoNaCamara(v[9], casa, camara?.[3])!} target="_blank" rel="noreferrer">{v[1] || "Votação"}</a> : v[1] || "Votação"}
         </h2>
         {v[2] && <p>{v[2]}</p>}
         {v[3] && <p className="busca-detalhe">{v[3]}</p>}
@@ -246,7 +254,7 @@ function UmaVotacao({ id, ano, v, votos, indice, casa }: { id: string; ano: stri
         <p className="busca-detalhe">O partido de cada deputado no dia do voto. Clique num partido para ver só os deputados dele abaixo.</p>
       </section>
       <section className="cartao cartao-corpo" aria-labelledby="titulo-deputados-votacao">
-        <h2 id="titulo-deputados-votacao" className="titulo-secao">Como votou cada {casa === "senado" ? "senador" : "deputado"}</h2>
+        <h2 id="titulo-deputados-votacao" className="titulo-secao">Como votou cada {daCasa(casa).singular}</h2>
         <div className="filtro-periodo">
           <Escolha rotulo="Voto" valor={filtroVoto} onEscolher={setFiltroVoto} opcoes={[
             { valor: "", rotulo: "todos os votos" }, { valor: "S", rotulo: "Sim" }, { valor: "N", rotulo: "Não" },
@@ -261,7 +269,7 @@ function UmaVotacao({ id, ano, v, votos, indice, casa }: { id: string; ano: stri
           <table className="tabela">
             <thead>
               <tr>
-                <ThOrdem coluna="nome" ordem={ordemD ?? { coluna: "nome", sentido: "asc" }} onOrdenar={setOrdemD} texto>{casa === "senado" ? "Senador" : "Deputado"}</ThOrdem>
+                <ThOrdem coluna="nome" ordem={ordemD ?? { coluna: "nome", sentido: "asc" }} onOrdenar={setOrdemD} texto>{daCasa(casa).singular[0]!.toUpperCase() + daCasa(casa).singular.slice(1)}</ThOrdem>
                 <ThOrdem coluna="partido" ordem={ordemD} onOrdenar={setOrdemD} texto>Partido</ThOrdem>
                 <ThOrdem coluna="uf" ordem={ordemD} onOrdenar={setOrdemD} texto>UF</ThOrdem>
                 <ThOrdem coluna="voto" ordem={ordemD} onOrdenar={setOrdemD} texto>Voto</ThOrdem>

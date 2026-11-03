@@ -359,17 +359,19 @@ def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em
 
 
 def publicar_casa(dados: dict, gravar: Callable[[str, Any], Any], *, gerado_em: str, casa: str,
-                  pessoa: str) -> dict:
-    """A publicação comum à Câmara e ao Senado (``senado.py``), do estado no mesmo formato: ``deputados`` (o cadastro,
-    ``{id: [nome, partido, uf, [legislaturas]]}``, de deputados ou senadores), ``exercicio`` e ``anos``. Grava, em
-    ``parlamentares/<casa>/``, um arquivo por parlamentar (tipo ``<casa>-<pessoa>``), as votações e os votos de cada
-    ano e o índice (``<casa>-indice``)."""
-    base = f"parlamentares/{casa}"
+                  pessoa: str, legislaturas: dict[int, tuple[int, int]] = LEGISLATURAS,
+                  no_mandato_fn: Callable[[str, Iterable[int]], bool] = no_mandato) -> dict:
+    """A publicação comum à Câmara, ao Senado (``senado.py``) e às câmaras municipais (``vereadores.py``), do estado no
+    mesmo formato: ``deputados`` (o cadastro, ``{id: [nome, partido, uf, [legislaturas]]}``, de deputados, senadores
+    ou vereadores), ``exercicio`` e ``anos``. Grava, em ``parlamentares/<casa>/``, um arquivo por parlamentar (tipo
+    ``<tipo>-<pessoa>``, com o tipo sendo a casa até a primeira barra), as votações e os votos de cada ano e o índice
+    (``<tipo>-indice``). As legislaturas e o teste de mandato são os federais, salvo os passados."""
+    base, tipo, mandatos = f"parlamentares/{casa}", casa.split("/")[0], legislaturas
     deputados, periodos = dados["deputados"], dados.get("exercicio") or {}
     pessoas: dict[str, dict] = {}
     for ano, a in sorted(dados["anos"].items()):
         gravar(f"{base}/votacoes-{ano}.json.gz", {
-            "versao": 1, "tipo": f"{casa}-votacoes", "gerado_em": gerado_em, "ano": ano,
+            "versao": 1, "tipo": f"{tipo}-votacoes", "gerado_em": gerado_em, "ano": ano,
             "colunas": ["data", "proposicao", "ementa", "descricao", "aprovacao", "sim", "nao", "outros", "governo",
                         "proposicao_id"],
             "votacoes": a["votacoes"]})
@@ -380,12 +382,12 @@ def publicar_casa(dados: dict, gravar: Callable[[str, Any], Any], *, gerado_em: 
                 partido = (a.get("partidos") or {}).get(vid, {}).get(dep) or deputados.get(dep, [None, ""])[1]
                 por_votacao.setdefault(vid, []).append([dep, voto, partido])
         gravar(f"{base}/votos-{ano}.json.gz", {
-            "versao": 1, "tipo": f"{casa}-votos", "gerado_em": gerado_em, "ano": ano,
+            "versao": 1, "tipo": f"{tipo}-votos", "gerado_em": gerado_em, "ano": ano,
             "colunas": ["parlamentar", "voto", "partido"],
             "votos": {v: sorted(linhas) for v, linhas in sorted(por_votacao.items())}})
         for dep in deputados:
             sessoes = [e for e, dia in a["sessoes"].items()
-                       if em_exercicio(dia, periodos.get(dep, [])) and no_mandato(dia, deputados[dep][3])]
+                       if em_exercicio(dia, periodos.get(dep, [])) and no_mandato_fn(dia, deputados[dep][3])]
             presente = len(set(a["presencas"].get(dep, [])) & set(sessoes))
             ceap = a["ceap"].get(dep)
             registro = {"votos": a["votos"].get(dep, {}), "presenca": [presente, len(sessoes)],
@@ -400,7 +402,7 @@ def publicar_casa(dados: dict, gravar: Callable[[str, Any], Any], *, gerado_em: 
     for dep, anos in sorted(pessoas.items(), key=lambda x: deputados[x[0]][0]):
         nome, partido, uf, legislaturas = deputados[dep]
         gravar(f"{base}/{dep}.json.gz", {
-            "versao": 1, "tipo": f"{casa}-{pessoa}", "gerado_em": gerado_em, "id": dep, "nome": nome,
+            "versao": 1, "tipo": f"{tipo}-{pessoa}", "gerado_em": gerado_em, "id": dep, "nome": nome,
             "partido": partido, "uf": uf, "legislaturas": legislaturas, "exercicio": periodos.get(dep, []),
             "colunas_autoria": ["id", "tipo", "numero", "ano", "ementa", "apresentacao", "situacao"],
             "colunas_fornecedor": ["cnpj", "nome", "documentos", "valor"], "anos": anos})
@@ -411,9 +413,9 @@ def publicar_casa(dados: dict, gravar: Callable[[str, Any], Any], *, gerado_em: 
         indice.append([dep, nome, partido, uf, legislaturas, *(round(sum(x[i] for x in por_ano.values()), 2)
                                                                 for i in range(5)), por_ano])
     gravar(f"{base}/indice.json", {
-        "versao": 1, "tipo": f"{casa}-indice", "gerado_em": gerado_em, "fonte": dados.get("fonte"),
+        "versao": 1, "tipo": f"{tipo}-indice", "gerado_em": gerado_em, "fonte": dados.get("fonte"),
         "coletado_em": dados.get("coletado_em"), "anos": sorted(dados["anos"]),
         "colunas": ["id", "nome", "partido", "uf", "legislaturas", "votos", "proposicoes", "presencas", "sessoes",
                     "ceap", "anos"], "colunas_ano": ["votos", "proposicoes", "presencas", "sessoes", "ceap"],
-        "legislaturas": {str(k): list(v) for k, v in LEGISLATURAS.items()}, "deputados": indice})
+        "legislaturas": {str(k): list(v) for k, v in mandatos.items()}, "deputados": indice})
     return {"deputados": len(indice), "anos": sorted(dados["anos"])}

@@ -1,7 +1,8 @@
 "use client";
 
 /**
- * A lista dos parlamentares (ADR-060): por enquanto, os deputados federais das duas últimas legislaturas. Filtros de
+ * A lista dos parlamentares (ADR-060): os deputados federais, os senadores (`?casa=senado`) ou os vereadores de uma
+ * câmara municipal (`?casa=<IBGE>`, ADR-062). Filtros de
  * período (um ano ou uma legislatura), nome, UF e partido, que ficam na URL (`?periodo=`, `?busca=`, `?uf=`,
  * `?partido=`), e as colunas ordenáveis pelo cabeçalho (`?ordem=coluna-sentido`). Cada nome abre a página do deputado.
  * A ordem padrão é a alfabética: a lista não pontua ninguém.
@@ -19,14 +20,18 @@ import { moeda } from "@/lib/paineis";
 import { NavParlamentares } from "./NavParlamentares";
 import {
   apareceNoPeriodo,
-  CASAS,
+  type CamaraMunicipal,
+  carregarCamaraDaCasa,
   casaDaUrl,
   carregarIndiceCamara,
+  consultaDaCasa,
+  daCasa,
   filtrarDeputados,
   type IndiceCamara,
   type LinhaDeputado,
   type Numeros,
   numerosNoPeriodo,
+  tipoDaCasa,
   urlDoParlamentar,
 } from "@/lib/parlamentares";
 import { Situacao } from "../paineis/Comuns";
@@ -64,6 +69,9 @@ export function PainelParlamentares() {
   const ordem: Ordem | null = colunaOrdem && (sentidoOrdem === "asc" || sentidoOrdem === "desc")
     ? { coluna: colunaOrdem, sentido: sentidoOrdem } : null;
   const [texto, setTexto] = useState(termo);
+  const [camara, setCamara] = useState<CamaraMunicipal | null>(null);
+  const textos = daCasa(casa);
+  const municipal = tipoDaCasa(casa) === "municipal";
 
   useEffect(() => {
     const c = new AbortController();
@@ -71,6 +79,8 @@ export function PainelParlamentares() {
     carregarIndiceCamara(c.signal, casa)
       .then((indice) => setEstado({ fase: "pronto", indice }))
       .catch((e: Error) => e.name !== "AbortError" && setEstado({ fase: "erro" }));
+    setCamara(null);
+    carregarCamaraDaCasa(casa, c.signal).then(setCamara).catch(() => undefined);
     return () => c.abort();
   }, [casa]);
 
@@ -100,16 +110,18 @@ export function PainelParlamentares() {
     });
   }, [indice, termo, uf, partido, chaveAnos, colunaOrdem, sentidoOrdem]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const nav = <NavParlamentares atual={casa === "senado" ? "senadores" : "deputados"} />;
+  const nav = <NavParlamentares atual={municipal ? "vereadores" : casa === "senado" ? "senadores" : "deputados"} />;
   if (estado.fase === "carregando") return <>{nav}<Situacao>Carregando…</Situacao></>;
   if (estado.fase === "erro") return <>{nav}<Situacao>Não foi possível ler os parlamentares agora.</Situacao></>;
-  if (!indice) return <>{nav}<Situacao>Os {CASAS[casa].pessoas.toLowerCase()} ainda não foram publicados.</Situacao></>;
+  if (!indice) return <>{nav}<Situacao>Os {textos.pessoas.toLowerCase()} ainda não foram publicados.</Situacao></>;
   const ufs = [...new Set(indice.deputados.map((d) => d[3]))].sort();
   const partidos = [...new Set(indice.deputados.map((d) => d[2]))].sort();
   const legislaturas = Object.entries(indice.legislaturas ?? {}).sort((a, b) => b[0].localeCompare(a[0]));
   const mostradas = todos ? linhas : linhas.slice(0, INICIAIS);
   const doPeriodo = anos ?? indice.anos;
   const nomePeriodo = doPeriodo.length === 1 ? `em ${doPeriodo[0]}` : `de ${doPeriodo[0]} a ${doPeriodo[doPeriodo.length - 1]}`;
+  const plural = `${textos.singular}${textos.singular.endsWith("r") ? "(es)" : "(s)"}`;
+  const ondeMunicipal = camara ? ` de ${camara[1]} (${camara[2]})` : "";
   const th = (coluna: string, rotulo: string, opcoes: { className?: string; texto?: boolean } = {}) => (
     <ThOrdem coluna={coluna} ordem={ordem} className={opcoes.className} texto={opcoes.texto}
       onOrdenar={(o) => mudar("ordem", `${o.coluna}-${o.sentido}`)}>{rotulo}</ThOrdem>
@@ -122,41 +134,41 @@ export function PainelParlamentares() {
         onSubmit={(e) => { e.preventDefault(); mudar("busca", texto.trim() || null); }}>
         <Escolha rotulo="Período" className="escolha-larga" valor={periodo} onEscolher={(v) => mudar("periodo", v || null)} opcoes={[
           { valor: "", rotulo: "todos os anos" },
-          ...legislaturas.map(([l, [a, b]]) => ({ valor: l, rotulo: `${l}ª legislatura (${a} a ${b})` })),
+          ...legislaturas.map(([l, [a, b]]) => ({ valor: l, rotulo: municipal ? `mandato de ${a} a ${b}` : `${l}ª legislatura (${a} a ${b})` })),
           ...[...indice.anos].reverse().map((a) => ({ valor: a, rotulo: a })),
         ]} />
-        <Escolha rotulo="UF" valor={uf ?? ""} onEscolher={(v) => mudar("uf", v || null)}
-          opcoes={[{ valor: "", rotulo: "todas as UFs" }, ...ufs.map((u) => ({ valor: u, rotulo: u }))]} />
+        {!municipal && <Escolha rotulo="UF" valor={uf ?? ""} onEscolher={(v) => mudar("uf", v || null)}
+          opcoes={[{ valor: "", rotulo: "todas as UFs" }, ...ufs.map((u) => ({ valor: u, rotulo: u }))]} />}
         <Escolha rotulo="Partido" className="escolha-larga" valor={partido ?? ""} onEscolher={(v) => mudar("partido", v || null)}
           opcoes={[{ valor: "", rotulo: "todos os partidos" }, ...partidos.map((p) => ({ valor: p, rotulo: p }))]} />
-        <input id="busca-parlamentar" className="seletor" placeholder={casa === "senado" ? "nome do senador" : "nome do deputado"}
-          aria-label={casa === "senado" ? "Nome do senador" : "Nome do deputado"}
+        <input id="busca-parlamentar" className="seletor" placeholder={`nome do ${textos.singular}`}
+          aria-label={`Nome do ${textos.singular}`}
           value={texto} onChange={(e) => setTexto(e.target.value)} />
         <button type="submit" className="botao">Buscar</button>
         {(periodo || uf || partido || termo || ordem) && (
           <button type="button" className="botao-link"
-            onClick={() => router.replace(casa === "senado" ? "/parlamentares/?casa=senado" : "/parlamentares/", { scroll: false })}>
+            onClick={() => router.replace(`/parlamentares/?${consultaDaCasa(casa)}`.replace(/[?&]$/, ""), { scroll: false })}>
             limpar filtros
           </button>
         )}
       </form>
       <section className="cartao cartao-corpo" aria-labelledby="titulo-deputados">
-        <h2 id="titulo-deputados" className="titulo-secao">{CASAS[casa].pessoas}</h2>
+        <h2 id="titulo-deputados" className="titulo-secao">{textos.pessoas}{ondeMunicipal}</h2>
         <p>
-          {numero(linhas.length)} {casa === "senado" ? "senador(es)" : "deputado(s)"} com mandato {nomePeriodo}. Clique no cabeçalho de uma coluna para ordenar;
-          clique de novo para inverter. O partido e a UF são os mais recentes.
+          {numero(linhas.length)} {plural} com mandato {nomePeriodo}. Clique no cabeçalho de uma coluna para ordenar;
+          clique de novo para inverter. O partido{municipal ? "" : " e a UF"} {municipal ? "é o mais recente" : "são os mais recentes"}.
         </p>
         <div className="tabela-rolavel">
           <table className="tabela">
             <thead>
               <tr>
-                {th("nome", casa === "senado" ? "Senador" : "Deputado", { texto: true })}
+                {th("nome", textos.singular[0]!.toUpperCase() + textos.singular.slice(1), { texto: true })}
                 {th("partido", "Partido", { texto: true })}
-                {th("uf", "UF", { texto: true })}
+                {!municipal && th("uf", "UF", { texto: true })}
                 {th("votos", "Votos no Plenário", { className: "n" })}
                 {th("presenca", "Presença", { className: "n" })}
                 {th("proposicoes", "Proposições", { className: "n" })}
-                {th("cota", "Cota parlamentar", { className: "n" })}
+                {!municipal && th("cota", "Cota parlamentar", { className: "n" })}
               </tr>
             </thead>
             <tbody>
@@ -164,13 +176,13 @@ export function PainelParlamentares() {
                 <tr key={id}>
                   <td><Link href={urlDoParlamentar(id, casa, anos?.length === 1 ? anos[0] : null)}>{nome}</Link></td>
                   <td>{p}</td>
-                  <td>{u}</td>
+                  {!municipal && <td>{u}</td>}
                   <td className="n">{numero(n[0])}</td>
-                  <td className="n" title={`${numero(n[2])} de ${numero(n[3])} sessões deliberativas em exercício`}>
+                  <td className="n" title={`${numero(n[2])} de ${numero(n[3])} ${municipal ? "sessões com presença registrada no mandato" : "sessões deliberativas em exercício"}`}>
                     {presenca === null ? "—" : percentual(presenca)}
                   </td>
                   <td className="n">{numero(n[1])}</td>
-                  <td className="n">{moeda(n[4])}</td>
+                  {!municipal && <td className="n">{moeda(n[4])}</td>}
                 </tr>
               ))}
             </tbody>
@@ -181,12 +193,19 @@ export function PainelParlamentares() {
             {todos ? `mostrar só os ${INICIAIS} primeiros` : `ver todos os ${numero(linhas.length)}`}
           </button>
         )}
-        <BaixarCsv nome={casa === "senado" ? "senadores" : "deputados-federais"}
-          colunas={[casa === "senado" ? "Código no Senado" : "Id na Câmara", casa === "senado" ? "Senador" : "Deputado", "Partido", "UF", "Votos no Plenário", "Sessões presentes",
+        <BaixarCsv nome={municipal && camara ? `vereadores-${camara[0]}` : textos.arquivo}
+          colunas={[textos.idRotulo, textos.singular[0]!.toUpperCase() + textos.singular.slice(1), "Partido", "UF", "Votos no Plenário", "Sessões presentes",
                     "Sessões em exercício", "Proposições", "Cota parlamentar (R$)"]}
           linhas={() => linhas.map(({ d: [id, nome, p, u], n }) => [id, nome, p, u, n[0], n[2], n[3], n[1], n[4]])} />
         <p className="busca-detalhe">
-          {casa === "senado"
+          {municipal
+            ? <>Votos nominais nos projetos (projetos de lei, de resolução e de decreto legislativo e emendas à Lei
+                Orgânica), presença nas sessões com presença registrada enquanto o vereador tinha mandato (passe o mouse
+                para ver quantas) e projetos que apresentou, {nomePeriodo}, do SAPL da câmara
+                {camara ? <> (<a href={`https://${camara[3]}`} target="_blank" rel="noreferrer">{camara[3]}</a>)</> : null}.
+                Os números são os que a câmara registrou no sistema: câmara que registra pouco aparece com pouco. Vereador
+                não tem cota parlamentar federal.</>
+            : casa === "senado"
             ? <>Votos nominais no Plenário, presença nas votações nominais enquanto o senador estava em exercício (passe o
                 mouse para ver quantas), matérias de que é autor ou coautor (projetos de lei, de lei complementar, de
                 decreto legislativo, de resolução e PECs) e cota parlamentar (CEAPS), {nomePeriodo}, dos dados abertos do

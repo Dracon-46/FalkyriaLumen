@@ -57,6 +57,7 @@ export function hrefDaArea(area: Area, local: Local | null, atual?: URLSearchPar
   if (area === "economia") return base;
   if (area === "parlamentares") {
     const uf = tipo === "uniao" ? null : siglaDaUf(local.codigo);
+    if (uf && tipo === "municipio") return `${base}vereadores/?uf=${uf.toUpperCase()}&municipio=${local.codigo}`;
     return uf ? `${base}?uf=${uf.toUpperCase()}` : base;
   }
   if (area === "conformidade" && tipo === "uniao") return base;
@@ -65,7 +66,8 @@ export function hrefDaArea(area: Area, local: Local | null, atual?: URLSearchPar
 
 /**
  * O local que a URL da aba aberta indica, ou `null` se ela está no Brasil ou não é de uma área com local:
- * `?ente=` em Contratações, Conformidade, Estatais e Avisos; `?uf=` em Conformidade; `?a=mu-…` ou `?a=uf-…` em Eleições.
+ * `?ente=` em Contratações, Conformidade, Estatais e Avisos; `?uf=` em Conformidade; `?a=mu-…` ou `?a=uf-…` em Eleições;
+ * a câmara municipal (`?casa=` ou `?municipio=`) em Parlamentares.
  * Só o código: o nome vem do cadastro.
  */
 export function codigoNaUrl(caminho: string, params: URLSearchParams): string | null {
@@ -75,6 +77,10 @@ export function codigoNaUrl(caminho: string, params: URLSearchParams): string | 
   if (/^\/conformidade\/?$/.test(caminho)) {
     const uf = params.get("uf");
     return uf ? codigoDaUf(uf) : null;
+  }
+  if (/^\/parlamentares(\/(vereador|vereadores|votacoes))?\/?$/.test(caminho)) {
+    const municipio = params.get("municipio") ?? params.get("casa");
+    if (municipio && /^\d{7}$/.test(municipio)) return municipio;
   }
   if (/^\/eleicoes\/?$/.test(caminho)) {
     const a = params.get("a") ?? "";

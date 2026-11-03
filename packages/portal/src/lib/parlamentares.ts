@@ -23,7 +23,7 @@ export type LinhaDeputado = [string, string, string, string, number[], number, n
 /** Arquivo `parlamentares/camara/indice.json`. */
 export interface IndiceCamara {
   versao: 1;
-  tipo: `${Casa}-indice`;
+  tipo: `${TipoDeCasa}-indice`;
   gerado_em: string;
   fonte: string | null;
   coletado_em: string | null;
@@ -62,7 +62,7 @@ export interface AnoDeputado {
 /** Arquivo `parlamentares/camara/<id>.json.gz`. */
 export interface Deputado {
   versao: 1;
-  tipo: `${Casa}-${"deputado" | "senador"}`;
+  tipo: `${TipoDeCasa}-${"deputado" | "senador" | "vereador"}`;
   gerado_em: string;
   id: string;
   nome: string;
@@ -86,7 +86,7 @@ export type VotoNaVotacao = [string, string, string];
 /** Arquivo `parlamentares/camara/votos-<ano>.json.gz`: quem votou em cada votação nominal do ano. */
 interface VotosAno {
   versao: 1;
-  tipo: `${Casa}-votos`;
+  tipo: `${TipoDeCasa}-votos`;
   ano: string;
   votos: Record<string, VotoNaVotacao[]>;
 }
@@ -94,31 +94,100 @@ interface VotosAno {
 /** Arquivo `parlamentares/camara/votacoes-<ano>.json.gz`. */
 interface VotacoesAno {
   versao: 1;
-  tipo: `${Casa}-votacoes`;
+  tipo: `${TipoDeCasa}-votacoes`;
   ano: string;
   votacoes: Record<string, Votacao>;
 }
 
-/** A casa legislativa: a Câmara dos Deputados ou o Senado Federal. */
-export type Casa = "camara" | "senado";
+/** A casa legislativa: a Câmara dos Deputados, o Senado Federal ou uma câmara municipal (`municipal/<IBGE>`, ADR-062). */
+export type Casa = "camara" | "senado" | `municipal/${string}`;
+/** O tipo da casa, que dá os textos e o tipo dos arquivos. */
+export type TipoDeCasa = "camara" | "senado" | "municipal";
+
+/** O tipo da casa (`municipal/3509502` → `municipal`). */
+export const tipoDaCasa = (casa: Casa): TipoDeCasa => (casa.startsWith("municipal/") ? "municipal" : casa as TipoDeCasa);
+
+/** O código IBGE do município da câmara municipal, ou null nas casas federais. */
+export const municipioDaCasa = (casa: Casa): string | null => (casa.startsWith("municipal/") ? casa.slice(10) : null);
 
 /** A pasta da casa no site dos painéis. */
 const base = (casa: Casa) => `${BASE_PAINEL}/parlamentares/${casa}`;
 
-/** O nome da casa e de quem tem mandato nela, para os textos das páginas. */
-export const CASAS: Record<Casa, { nome: string; pessoa: string; pessoas: string; rota: string }> = {
-  camara: { nome: "Câmara dos Deputados", pessoa: "Deputado(a) federal", pessoas: "Deputados federais", rota: "deputado" },
-  senado: { nome: "Senado Federal", pessoa: "Senador(a)", pessoas: "Senadores", rota: "senador" },
+/** Os textos de uma casa: o nome, quem tem mandato nela, a rota da página da pessoa e os rótulos dos números. */
+export interface DescricaoDaCasa {
+  nome: string;
+  pessoa: string;
+  pessoas: string;
+  rota: string;
+  /** "deputado", "senador" ou "vereador", para as frases. */
+  singular: string;
+  /** O nome do arquivo CSV da lista. */
+  arquivo: string;
+  /** O rótulo do id da pessoa no CSV. */
+  idRotulo: string;
+  presenca: string;
+  proposicoes: string;
+  /** Os tipos de proposição listados. */
+  tipos: string;
+  /** "da Câmara", "do Senado", "da câmara municipal". */
+  doPlenario: string;
+}
+
+/** Os textos de cada tipo de casa. */
+export const CASAS: Record<TipoDeCasa, DescricaoDaCasa> = {
+  camara: { nome: "Câmara dos Deputados", pessoa: "Deputado(a) federal", pessoas: "Deputados federais", rota: "deputado",
+            singular: "deputado", arquivo: "deputados-federais", idRotulo: "Id na Câmara", presenca: "Presença nas sessões",
+            proposicoes: "Proposições apresentadas", tipos: "PL, PLP, PEC, PDL e PRC", doPlenario: "da Câmara" },
+  senado: { nome: "Senado Federal", pessoa: "Senador(a)", pessoas: "Senadores", rota: "senador", singular: "senador",
+            arquivo: "senadores", idRotulo: "Código no Senado", presenca: "Presença nas votações",
+            proposicoes: "Matérias de autoria", tipos: "PL, PLS, PLP, PEC, PDL e PRS", doPlenario: "do Senado" },
+  municipal: { nome: "Câmara Municipal", pessoa: "Vereador(a)", pessoas: "Vereadores", rota: "vereador",
+               singular: "vereador", arquivo: "vereadores", idRotulo: "Id no SAPL", presenca: "Presença nas sessões",
+               proposicoes: "Projetos apresentados",
+               tipos: "projetos de lei, de resolução e de decreto legislativo e emendas à Lei Orgânica",
+               doPlenario: "da câmara municipal" },
 };
 
-/** A casa pelo parâmetro da URL (`?casa=senado`); qualquer outro valor é a Câmara. */
-export const casaDaUrl = (valor: string | null): Casa => (valor === "senado" ? "senado" : "camara");
+/** Os textos da casa. */
+export const daCasa = (casa: Casa): DescricaoDaCasa => CASAS[tipoDaCasa(casa)];
+
+/** A casa pelo parâmetro da URL: `?casa=senado`, `?casa=<IBGE do município>` ou, sem ele, a Câmara. */
+export const casaDaUrl = (valor: string | null): Casa =>
+  valor === "senado" ? "senado" : valor && /^\d{7}$/.test(valor) ? `municipal/${valor}` : "camara";
+
+/** O parâmetro da casa para a URL, com o `&` no fim (vazio para a Câmara). */
+export const consultaDaCasa = (casa: Casa): string =>
+  casa === "camara" ? "" : `casa=${municipioDaCasa(casa) ?? casa}&`;
+
+/** Uma câmara municipal no índice: `[IBGE, município, UF, endereço do SAPL, vereadores, votações, anos]`. */
+export type CamaraMunicipal = [string, string, string, string, number, number, string[]];
+
+/** Arquivo `parlamentares/municipal/indice.json`: as câmaras municipais com dados do SAPL (ADR-062). */
+interface IndiceMunicipal {
+  versao: 1;
+  tipo: "municipal-camaras";
+  camaras: CamaraMunicipal[];
+}
+
+/** As câmaras municipais publicadas (vazio quando ainda não há nenhuma). */
+export async function carregarCamarasMunicipais(sinal?: AbortSignal): Promise<CamaraMunicipal[]> {
+  const url = `${BASE_PAINEL}/parlamentares/municipal/indice.json`;
+  const bruto = await obterJson(url, { sinal });
+  return bruto === null ? [] : conferir<IndiceMunicipal>(bruto, "municipal-camaras", url).camaras;
+}
+
+/** A câmara municipal da casa (null nas casas federais ou quando ela não está publicada). */
+export async function carregarCamaraDaCasa(casa: Casa, sinal?: AbortSignal): Promise<CamaraMunicipal | null> {
+  const ibge = municipioDaCasa(casa);
+  if (!ibge) return null;
+  return (await carregarCamarasMunicipais(sinal)).find((c) => c[0] === ibge) ?? null;
+}
 
 /** O índice dos parlamentares da casa; `null` quando ainda não foi publicado. */
 export async function carregarIndiceCamara(sinal?: AbortSignal, casa: Casa = "camara"): Promise<IndiceCamara | null> {
   const url = `${base(casa)}/indice.json`;
   const bruto = await obterJson(url, { sinal });
-  return bruto === null ? null : conferir<IndiceCamara>(bruto, `${casa}-indice`, url);
+  return bruto === null ? null : conferir<IndiceCamara>(bruto, `${tipoDaCasa(casa)}-indice`, url);
 }
 
 /** O arquivo de um deputado; `null` quando ele não está no Lumen. */
@@ -126,21 +195,21 @@ export async function carregarDeputado(id: string, sinal?: AbortSignal, casa: Ca
   if (!/^\d+$/.test(id)) return null;
   const url = `${base(casa)}/${id}.json.gz`;
   const bruto = await obterJsonComprimido(url, sinal);
-  return bruto === null ? null : conferir<Deputado>(bruto, `${casa}-${casa === "senado" ? "senador" : "deputado"}`, url);
+  return bruto === null ? null : conferir<Deputado>(bruto, `${tipoDaCasa(casa)}-${daCasa(casa).singular}`, url);
 }
 
 /** As votações nominais do Plenário num ano (vazio quando o arquivo não existe). */
 export async function carregarVotacoes(ano: string, sinal?: AbortSignal, casa: Casa = "camara"): Promise<Record<string, Votacao>> {
   const url = `${base(casa)}/votacoes-${ano}.json.gz`;
   const bruto = await obterJsonComprimido(url, sinal);
-  return bruto === null ? {} : conferir<VotacoesAno>(bruto, `${casa}-votacoes`, url).votacoes;
+  return bruto === null ? {} : conferir<VotacoesAno>(bruto, `${tipoDaCasa(casa)}-votacoes`, url).votacoes;
 }
 
 /** Os votos de cada votação nominal do ano (vazio quando o arquivo não existe). */
 export async function carregarVotosDoAno(ano: string, sinal?: AbortSignal, casa: Casa = "camara"): Promise<Record<string, VotoNaVotacao[]>> {
   const url = `${base(casa)}/votos-${ano}.json.gz`;
   const bruto = await obterJsonComprimido(url, sinal);
-  return bruto === null ? {} : conferir<VotosAno>(bruto, `${casa}-votos`, url).votos;
+  return bruto === null ? {} : conferir<VotosAno>(bruto, `${tipoDaCasa(casa)}-votos`, url).votos;
 }
 
 /** O placar de um partido numa votação. */
@@ -177,24 +246,25 @@ export function tipoDaProposicao(titulo: string): string {
 
 /** A página da votação no Lumen. */
 export const urlDaVotacao = (ano: string, id: string, casa: Casa = "camara") =>
-  `/parlamentares/votacoes/?${casa === "senado" ? "casa=senado&" : ""}ano=${ano}&id=${encodeURIComponent(id)}`;
+  `/parlamentares/votacoes/?${consultaDaCasa(casa)}ano=${ano}&id=${encodeURIComponent(id)}`;
 
 /** A página do parlamentar no Lumen. */
 export const urlDoParlamentar = (id: string, casa: Casa = "camara", ano?: string | null) =>
-  `/parlamentares/${CASAS[casa].rota}/?id=${id}${ano ? `&ano=${ano}` : ""}`;
+  `/parlamentares/${daCasa(casa).rota}/?${municipioDaCasa(casa) ? consultaDaCasa(casa) : ""}id=${id}${ano ? `&ano=${ano}` : ""}`;
 
-/** A foto oficial do parlamentar no site da casa. */
-export const fotoDoDeputado = (id: string, casa: Casa = "camara") => casa === "senado"
+/** A foto oficial do parlamentar no site da casa; null na câmara municipal (o SAPL não tem endereço fixo da foto). */
+export const fotoDoDeputado = (id: string, casa: Casa = "camara"): string | null => casa === "senado"
   ? `https://www.senado.leg.br/senadores/img/fotos-oficiais/senador${id}.jpg`
-  : `https://www.camara.leg.br/internet/deputado/bandep/${id}.jpg`;
-/** A página do parlamentar no site da casa. */
-export const paginaNaCamara = (id: string, casa: Casa = "camara") => casa === "senado"
+  : casa === "camara" ? `https://www.camara.leg.br/internet/deputado/bandep/${id}.jpg` : null;
+/** A página do parlamentar no site da casa (na câmara municipal, no SAPL do endereço `host`). */
+export const paginaNaCamara = (id: string, casa: Casa = "camara", host?: string | null): string | null => casa === "senado"
   ? `https://www25.senado.leg.br/web/senadores/senador/-/perfil/${id}`
-  : `https://www.camara.leg.br/deputados/${id}`;
-/** A página da proposição (ou matéria, no Senado) no site da casa. */
-export const proposicaoNaCamara = (id: string, casa: Casa = "camara") => casa === "senado"
+  : casa === "camara" ? `https://www.camara.leg.br/deputados/${id}` : host ? `https://${host}/parlamentar/${id}` : null;
+/** A página da proposição (ou matéria, no Senado e no SAPL do endereço `host`) no site da casa. */
+export const proposicaoNaCamara = (id: string, casa: Casa = "camara", host?: string | null): string | null => casa === "senado"
   ? `https://www25.senado.leg.br/web/atividade/materias/-/materia/${id}`
-  : `https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=${id}`;
+  : casa === "camara" ? `https://www.camara.leg.br/proposicoesWeb/fichadetramitacao?idProposicao=${id}`
+  : host ? `https://${host}/materia/${id}` : null;
 
 /** Os votos de fato: sim, não, abstenção, obstrução e o do presidente da sessão na Câmara (art. 17). */
 const VOTOS_DE_FATO = new Set(["S", "N", "A", "O", "17"]);
