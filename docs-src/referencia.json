@@ -8971,99 +8971,148 @@
   {
    "caminho": "packages/painel/lumen_painel/assembleias.py",
    "linguagem": "python",
-   "linhas": 283,
-   "doc": "Os deputados estaduais pelas fontes próprias das Assembleias Legislativas (ADR-062, adendo 2): por enquanto, as que\nusam o SPL da Ágape Consultoria, que tem uma API pública comum (``/api/publico/``), e os votos nominais de Goiás.\n\nAs Assembleias com o SAPL do Interlegis vão pela coleta dos vereadores (``vereadores.py``). As outras publicam cada\numa do seu jeito; o levantamento de 4/11/2026 achou o SPL da Ágape em quatro (``CASAS_SPL``: GO, ES, SE e BA):\n\n- ``/api/publico/parlamentar/?pag=&qtd=``: os deputados da legislatura atual, com o partido (a API não traz as\n  anteriores; por isso a coleta começa em ``PRIMEIRO_ANO``, o início da legislatura de 2023);\n- ``/api/publico/proposicao/?pag=&qtd=&ano=``: as proposições do ano, com o tipo, a ementa e o autor pelo nome (e o\n  gabinete). O autor é ligado ao deputado pelo nome; os documentos (CPF) e os contatos que a API traz não são\n  guardados. Os projetos (o tipo começa por \"projeto\" ou é proposta de emenda) ficam com a ementa; os outros tipos\n  são só contados;\n- em Goiás, ``transparencia.al.go.leg.br/api/transparencia/votacoes.json?tipo=detalhes&ano=&todos=true``: o voto de\n  cada deputado nas votações nominais do Plenário, com o partido no dia, de 2023 em diante; ``tipo=resumo`` dá o\n  processo votado. O voto vem com o nome do deputado, às vezes repetido em maiúsculas: fica um por deputado.\n\nNão há presença em nenhuma delas: o detalhe da sessão do SPL, que traria as presenças, respondeu erro em 4/11/2026.\nO estado fica em ``assembleias.json.gz``; o ano fechado é relido uma vez por mês e o corrente e o anterior, uma vez\npor semana (``tce.precisa_ler_por_idade``). A publicação é a dos deputados federais (``camara.publicar_casa``), em\n``parlamentares/estadual/<código da UF>/``, e as linhas entram no índice das Assembleias (``vereadores.publicar``).",
+   "linhas": 540,
+   "doc": "Os deputados estaduais pelas fontes próprias das Assembleias Legislativas (ADR-062, adendos 2 e 3): as que usam o\nSPL da Ágape Consultoria, que tem uma API pública comum (``/api/publico/``), os votos nominais de Goiás, a API de\ndados abertos da Assembleia de Minas Gerais (``CASAS_ALMG``) e os arquivos da Assembleia de São Paulo\n(``CASAS_ALESP``), as duas com a verba de gabinete.\n\nAs Assembleias com o SAPL do Interlegis vão pela coleta dos vereadores (``vereadores.py``). As outras publicam cada\numa do seu jeito; o levantamento de 4/11/2026 achou o SPL da Ágape em quatro (``CASAS_SPL``: GO, ES, SE e BA):\n\n- ``/api/publico/parlamentar/?pag=&qtd=``: os deputados da legislatura atual, com o partido (a API não traz as\n  anteriores; por isso a coleta começa em ``PRIMEIRO_ANO``, o início da legislatura de 2023);\n- ``/api/publico/proposicao/?pag=&qtd=&ano=``: as proposições do ano, com o tipo, a ementa e o autor pelo nome (e o\n  gabinete). O autor é ligado ao deputado pelo nome; os documentos (CPF) e os contatos que a API traz não são\n  guardados. Os projetos (o tipo começa por \"projeto\" ou é proposta de emenda) ficam com a ementa; os outros tipos\n  são só contados;\n- em Goiás, ``transparencia.al.go.leg.br/api/transparencia/votacoes.json?tipo=detalhes&ano=&todos=true``: o voto de\n  cada deputado nas votações nominais do Plenário, com o partido no dia, de 2023 em diante; ``tipo=resumo`` dá o\n  processo votado. O voto vem com o nome do deputado, às vezes repetido em maiúsculas: fica um por deputado.\n\nMinas Gerais (``dadosabertos.almg.gov.br/api/v2``) dá os deputados da legislatura atual (em exercício e os que\nexerceram o mandato), as proposições de cada ano com os autores pelo id (``proposicoes/pesquisa/direcionada``, de 100\nem 100, uma consulta por tipo: a API não pagina além de 10 mil linhas) e a verba indenizatória de cada deputado por mês, nota a nota, com o CNPJ do emitente\n(``prestacao_contas/verbas_indenizatorias/deputados/<id>/<ano>/<mês>``). A verba vai no lugar da cota dos deputados\nfederais: por categoria, por mês e por fornecedor com CNPJ; o emitente pessoa física entra só na soma, sem o CPF. MG\nnão publica os votos nem a presença do Plenário.\n\nSão Paulo (``www.al.sp.gov.br/repositorioDados/``) publica arquivos inteiros, refeitos todo dia: os deputados em\nexercício (``deputados/deputados.xml``), todas as proposituras desde 1990 (``processo_legislativo/proposituras.zip``,\n132 MB descompactado), os autores de cada uma (``documento_autor.zip``, 145 MB; o autor é o ``IdSPL`` do deputado), as\nnaturezas (``naturezasSpl.xml``) e as despesas de gabinete por nota desde 2015 (``deputados/despesas_gabinetes.xml``,\n172 MB, ligadas ao deputado pela matrícula). Os arquivos são lidos em fluxo, sem carregar tudo na memória; ficam as\nproposituras e as despesas de ``PRIMEIRO_ANO`` em diante. A ALESP só publica votos e presença das comissões.\n\nNão há presença em nenhuma delas: o detalhe da sessão do SPL, que traria as presenças, respondeu erro em 4/11/2026.\nO estado fica em ``assembleias.json.gz``; o ano fechado é relido uma vez por mês e o corrente e o anterior, uma vez\npor semana (``tce.precisa_ler_por_idade``). A publicação é a dos deputados federais (``camara.publicar_casa``), em\n``parlamentares/estadual/<código da UF>/``, e as linhas entram no índice das Assembleias (``vereadores.publicar``).",
    "itens": [
     {
      "tipo": "funcao",
      "nome": "chave",
      "assinatura": "def chave(nome: str | None) -> str",
      "doc": "O nome para ligar autor e voto ao deputado: sem acento, maiúsculo, sem pontuação e sem \"Gabinete do Deputado\"\n(\"Gab. Dep. João Coser\" → ``JOAO COSER``).",
-     "linha": 56
+     "linha": 89
     },
     {
      "tipo": "funcao",
      "nome": "_json",
      "assinatura": "def _json(url: str, *, contato: str, ler_fn: Callable[[str], Any] | None) -> Any",
      "doc": "O JSON de um endereço (``ler_fn`` substitui a rede nos testes).",
-     "linha": 63
+     "linha": 96
     },
     {
      "tipo": "funcao",
      "nome": "_paginas",
      "assinatura": "def _paginas(host: str, caminho: str, chave_lista: str, *, contato: str, ler_fn: Callable[[str], Any] | None, **filtros: Any) -> list[dict]",
      "doc": "Todas as linhas de uma lista paginada do SPL (``pag`` e ``qtd``; o total vem em ``total``).",
-     "linha": 72
+     "linha": 105
     },
     {
      "tipo": "funcao",
      "nome": "ler_deputados",
      "assinatura": "def ler_deputados(linhas: list[dict]) -> dict[str, list]",
      "doc": "Os deputados do SPL: ``{id: [nome, nome civil, partido, situação]}``.",
-     "linha": 89
+     "linha": 122
     },
     {
      "tipo": "funcao",
      "nome": "_por_nome",
      "assinatura": "def _por_nome(deputados: dict[str, list]) -> dict[str, str]",
      "doc": "O id do deputado pela chave do nome parlamentar e do nome civil.",
-     "linha": 97
+     "linha": 130
     },
     {
      "tipo": "funcao",
      "nome": "ler_proposicoes",
      "assinatura": "def ler_proposicoes(linhas: list[dict], deputados: dict[str, list], ano: int) -> dict[str, Any]",
      "doc": "As proposições de um ano: os projetos (com a ementa e os autores) e a contagem de todas por tipo e deputado.",
-     "linha": 107
+     "linha": 140
     },
     {
      "tipo": "funcao",
      "nome": "_ementa",
      "assinatura": "def _ementa(texto: str | None) -> str",
      "doc": "O assunto da votação de Goiás (\"AUTOR - ...\\nASSUNTO - ...\" → o assunto).",
-     "linha": 130
+     "linha": 163
     },
     {
      "tipo": "funcao",
      "nome": "ler_votacoes_go",
      "assinatura": "def ler_votacoes_go(detalhes: list[dict], resumo: list[dict], deputados: dict[str, list]) -> tuple[dict, int]",
      "doc": "As votações nominais de Goiás num ano: ``{pauta: [data, processo, ementa, resultado, aprovação, {id: voto},\n{id: partido}]}`` e quantos votos ficaram sem deputado no cadastro.",
-     "linha": 136
+     "linha": 169
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_almg",
+     "assinatura": "def _almg(caminho: str, *, contato: str, ler_fn: Callable[[str], Any] | None, esperar: Callable[[float], None]=time.sleep, **filtros: Any) -> Any",
+     "doc": "Um pedido à API da ALMG, em JSON, com uma pausa antes (``PAUSA_ALMG``): a API responde 429 a quem pede rápido\ndemais, e então o pedido espera e é feito de novo, até ``TENTATIVAS_429`` vezes.",
+     "linha": 196
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_proposicoes_almg",
+     "assinatura": "def ler_proposicoes_almg(linhas: list[dict], deputados: dict[str, list], ano: int) -> dict[str, Any]",
+     "doc": "As proposições de um ano em Minas: os projetos (id ``SIGLA-número-ano``) com a ementa e os autores e a contagem\nde todas por tipo. O autor que não está no cadastro (deixou a Assembleia) entra nele, com o nome e o partido.",
+     "linha": 213
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_verba_almg",
+     "assinatura": "def ler_verba_almg(notas_por_deputado: dict[str, list[dict]]) -> tuple[dict[str, dict], dict[str, str]]",
+     "doc": "A verba indenizatória de um ano por deputado, como a cota dos federais (categorias, meses, fornecedores com\nCNPJ e a pessoa física só somada), e os nomes dos CNPJs. ``notas_por_deputado``: as linhas da API (uma por\ncategoria e mês, com as notas em ``listaDetalheVerba``).",
+     "linha": 241
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_coletar_almg",
+     "assinatura": "def _coletar_almg(c: dict, *, contato: str, hoje: date, ler_fn: Callable[[str], Any] | None) -> dict",
+     "doc": "Minas Gerais: os deputados, as proposições e a verba dos anos que passaram da idade de releitura.",
+     "linha": 274
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_elementos",
+     "assinatura": "def _elementos(arquivo: Any, tag: str) -> Any",
+     "doc": "Os elementos ``tag`` de um XML, um de cada vez (``iterparse``), cada um com os filhos num dicionário.",
+     "linha": 321
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_alesp",
+     "assinatura": "def ler_alesp(deputados_xml: Any, naturezas_xml: Any, proposituras_xml: Any, autores_xml: Any, despesas_xml: Any, *, primeiro_ano: int=PRIMEIRO_ANO) -> dict[str, Any]",
+     "doc": "Os arquivos da ALESP (abertos, em XML) no estado da Assembleia: os deputados (``{IdSPL: [nome, nome, partido,\nsituação]}``), as proposituras por ano (projetos e contagem) e a verba de gabinete por ano.",
+     "linha": 329
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_coletar_alesp",
+     "assinatura": "def _coletar_alesp(c: dict, *, contato: str, abrir_fn: Callable[[str], Any] | None) -> dict",
+     "doc": "São Paulo: baixa os cinco arquivos (os ZIPs, para uma pasta temporária) e lê tudo de novo.",
+     "linha": 380
     },
     {
      "tipo": "funcao",
      "nome": "coletar_casa",
-     "assinatura": "def coletar_casa(c: dict, codigo: str, *, contato: str, hoje: date, ler_fn: Callable[[str], Any] | None=None) -> dict",
-     "doc": "Lê uma Assembleia sobre o estado ``c`` (alterado no lugar): os deputados, as proposições e os votos dos anos\nque passaram da idade de releitura. Devolve o resumo.",
-     "linha": 161
+     "assinatura": "def coletar_casa(c: dict, codigo: str, *, contato: str, hoje: date, ler_fn: Callable[[str], Any] | None=None, abrir_fn: Callable[[str], Any] | None=None) -> dict",
+     "doc": "Lê uma Assembleia sobre o estado ``c`` (alterado no lugar): os deputados, as proposições, os votos e a verba\ndos anos que passaram da idade de releitura. Devolve o resumo.",
+     "linha": 406
     },
     {
      "tipo": "funcao",
      "nome": "ler_estado",
      "assinatura": "def ler_estado(estado: Path | str) -> dict[str, dict]",
      "doc": "As Assembleias já lidas (vazio se ainda não houve coleta).",
-     "linha": 192
+     "linha": 444
     },
     {
      "tipo": "funcao",
      "nome": "coletar",
-     "assinatura": "def coletar(estado: Path | str, *, contato: str, hoje: date | None=None, casas: list[str] | None=None, ler_fn: Callable[[str], Any] | None=None) -> dict",
+     "assinatura": "def coletar(estado: Path | str, *, contato: str, hoje: date | None=None, casas: list[str] | None=None, ler_fn: Callable[[str], Any] | None=None, abrir_fn: Callable[[str], Any] | None=None) -> dict",
      "doc": "Lê as Assembleias de ``CASAS_SPL`` (ou as pedidas), uma por vez em paralelo, e grava ``ARQUIVO``.",
-     "linha": 203
+     "linha": 455
     },
     {
      "tipo": "funcao",
      "nome": "montar",
      "assinatura": "def montar(c: dict, uf: str) -> dict",
      "doc": "O estado de uma Assembleia no formato da publicação comum (``camara.publicar_casa``).",
-     "linha": 234
+     "linha": 486
     },
     {
      "tipo": "funcao",
      "nome": "publicar",
      "assinatura": "def publicar(estado: Path | str, cadastro: Cadastro, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> list[list]",
      "doc": "Grava ``parlamentares/estadual/<código>/`` de cada Assembleia lida e devolve as linhas do índice das\nAssembleias (``[código, estado, UF, endereço, deputados, votações, anos, sistema]``).",
-     "linha": 267
+     "linha": 523
     }
    ]
   },
@@ -9578,7 +9627,7 @@
      "tipo": "funcao",
      "nome": "cmd_assembleias",
      "assinatura": "def cmd_assembleias(args) -> int",
-     "doc": "Lê os deputados estaduais das Assembleias pelas fontes próprias (SPL da Ágape e os votos de Goiás) e grava\n``assembleias.json.gz`` (ADR-062, adendo 2).",
+     "doc": "Lê os deputados estaduais das Assembleias pelas fontes próprias (SPL da Ágape, votos de Goiás, ALMG e ALESP) e\ngrava ``assembleias.json.gz`` (ADR-062, adendos 2 e 3).",
      "linha": 310
     },
     {
@@ -20285,7 +20334,7 @@
   {
    "caminho": "packages/portal/src/componentes/parlamentares/PainelCamaras.tsx",
    "linguagem": "typescript",
-   "linhas": 142,
+   "linhas": 144,
    "doc": "A lista das câmaras municipais com dados do SAPL do Interlegis (ADR-062): filtros de UF e de nome na URL (`?uf=`,\n`?busca=`) e o município escolhido no cabeçalho (`?municipio=`) em destaque. Cada câmara abre a lista dos vereadores.\nCom `esfera` `estadual`, a mesma lista para as Assembleias Legislativas (pelo SAPL ou pelo SPL da Ágape).",
    "itens": [
     {
@@ -20300,7 +20349,7 @@
   {
    "caminho": "packages/portal/src/componentes/parlamentares/PainelDeputado.tsx",
    "linguagem": "typescript",
-   "linhas": 406,
+   "linhas": 410,
    "doc": "A página de um deputado federal (ADR-060), pelo id da Câmara (`?id=`): os totais, os votos nominais no Plenário com\na votação e a orientação do Governo, as proposições que apresentou e a cota parlamentar, num ano (`?ano=`) ou em\ntodos. São os fatos como a Câmara publica: a página não pontua nem ordena ninguém. A mesma página mostra o senador e\no vereador e o deputado estadual (ADR-062), com os textos da casa.",
    "itens": [
     {
@@ -20322,42 +20371,42 @@
      "nome": "Metrica",
      "assinatura": "interface Metrica",
      "doc": "Uma medida do gráfico ano a ano: o rótulo, o valor num ano e os formatos.",
-     "linha": 164
+     "linha": 165
     },
     {
      "tipo": "componente",
      "nome": "AnoAAno",
      "assinatura": "function AnoAAno({ d, anos, ano, onAno, semCota }: { d: Deputado; anos: string[]; ano: string | null; onAno: (a: string | null) => void; semCota?: boolean })",
      "doc": "O ano a ano de uma medida, à escolha; clicar numa barra filtra a página por aquele ano (clicar de novo volta).",
-     "linha": 181
+     "linha": 182
     },
     {
      "tipo": "componente",
      "nome": "Votos",
      "assinatura": "function Votos({ d, ano, votacoes, casa }: { d: Deputado; ano: string | null; votacoes: Record<string, Record<string, Votacao>>; casa: Casa })",
      "doc": "Os votos nominais no Plenário, com a votação, o resultado e se o voto foi igual à orientação do Governo.",
-     "linha": 197
+     "linha": 198
     },
     {
      "tipo": "componente",
      "nome": "Proposicoes",
      "assinatura": "function Proposicoes({ d, ano, contagem, casa, host }: { d: Deputado; ano: string | null; contagem: Record<string, number>; casa: Casa; host?: string | null })",
      "doc": "As proposições que o deputado apresentou como autor, e a contagem de todas por tipo.",
-     "linha": 269
+     "linha": 270
     },
     {
      "tipo": "componente",
      "nome": "CotaParlamentar",
-     "assinatura": "function CotaParlamentar({ d, ano }: { d: Deputado; ano: string | null })",
-     "doc": "A cota parlamentar: por categoria, por mês (num ano) e por fornecedor, com a ligação para a página da empresa.",
-     "linha": 332
+     "assinatura": "function CotaParlamentar({ d, ano, titulo }: { d: Deputado; ano: string | null; titulo: string })",
+     "doc": "A cota parlamentar (ou a verba indenizatória da Assembleia, com o `titulo`): por categoria, por mês (num ano) e por\nfornecedor, com a ligação para a página da empresa.",
+     "linha": 336
     }
    ]
   },
   {
    "caminho": "packages/portal/src/componentes/parlamentares/PainelParlamentares.tsx",
    "linguagem": "typescript",
-   "linhas": 226,
+   "linhas": 228,
    "doc": "A lista dos parlamentares (ADR-060): os deputados federais, os senadores (`?casa=senado`) ou os vereadores de uma\ncâmara municipal (`?casa=<IBGE>`) ou os deputados de uma Assembleia (`?casa=<código da UF>`), pelo SAPL (ADR-062).\nFiltros de\nperíodo (um ano ou uma legislatura), nome, UF e partido, que ficam na URL (`?periodo=`, `?busca=`, `?uf=`,\n`?partido=`), e as colunas ordenáveis pelo cabeçalho (`?ordem=coluna-sentido`). Cada nome abre a página do deputado.\nA ordem padrão é a alfabética: a lista não pontua ninguém.",
    "itens": [
     {
@@ -20736,7 +20785,7 @@
   {
    "caminho": "packages/painel/testes/test_assembleias.py",
    "doc": "Os deputados estaduais pelas fontes próprias das Assembleias (ADR-062, adendo 2): o SPL da Ágape e os votos de\nGoiás.",
-   "testes": 3
+   "testes": 6
   },
   {
    "caminho": "packages/painel/testes/test_avisos.py",

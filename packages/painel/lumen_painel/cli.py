@@ -308,8 +308,8 @@ def cmd_camaras_sapl(args) -> int:
 
 
 def cmd_assembleias(args) -> int:
-    """Lê os deputados estaduais das Assembleias pelas fontes próprias (SPL da Ágape e os votos de Goiás) e grava
-    ``assembleias.json.gz`` (ADR-062, adendo 2)."""
+    """Lê os deputados estaduais das Assembleias pelas fontes próprias (SPL da Ágape, votos de Goiás, ALMG e ALESP) e
+    grava ``assembleias.json.gz`` (ADR-062, adendos 2 e 3)."""
     cfg = _configuracao(args)
     _imprimir(assembleias.coletar(Path(args.estado), contato=cfg.contato,
                                   casas=[x.strip() for x in args.casas.split(",")] if args.casas else None))
@@ -575,7 +575,7 @@ def construir_parser() -> argparse.ArgumentParser:
     c = sub.add_parser("camaras-sapl", help="câmaras municipais com o SAPL e a API aberta (levantamento)")
     c.add_argument("--estado", required=True)
 
-    c = sub.add_parser("assembleias", help="deputados estaduais pelas fontes próprias das Assembleias (SPL, Goiás)")
+    c = sub.add_parser("assembleias", help="deputados estaduais pelas fontes próprias das Assembleias (SPL, Goiás, MG e SP)")
     c.add_argument("--estado", required=True)
     c.add_argument("--casas", help="só estas Assembleias (código IBGE da UF), separadas por vírgula")
 

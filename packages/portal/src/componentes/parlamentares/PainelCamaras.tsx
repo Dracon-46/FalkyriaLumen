@@ -128,8 +128,10 @@ export function PainelCamaras({ esfera = "municipal" }: { esfera?: Esfera }) {
           {estadual ? <>As Assembleias Legislativas que usam o SAPL do Interlegis (sapl.al.uf.leg.br), de 2017 em
             diante: os deputados estaduais, os projetos, a presença e o voto de cada um nas votações nominais. E as que
             usam o SPL da Ágape (GO, ES, SE e BA), pela API pública dele, de 2023 em diante: os deputados e os projetos,
-            e em Goiás o voto de cada deputado, pela transparência da Assembleia; o SPL não dá a presença. As demais
-            Assembleias não publicam esses dados num formato aberto que o Lumen consiga ler.{" "}</> : <>
+            e em Goiás o voto de cada deputado, pela transparência da Assembleia; o SPL não dá a presença. Minas Gerais
+            e São Paulo, pelos dados abertos delas: os deputados, os projetos e a verba de gabinete nota a nota (as duas
+            não publicam os votos nem a presença do Plenário). As demais Assembleias não publicam esses dados num
+            formato aberto que o Lumen consiga ler.{" "}</> : <>
           As câmaras que usam o SAPL do Interlegis no endereço padrão (sapl.cidade.uf.leg.br), com a API aberta, de 2017
           em diante: os vereadores, os projetos que apresentaram, a presença nas sessões e o voto de cada um nas votações
           nominais dos projetos. Muitas câmaras votam quase tudo de forma simbólica, sem voto por vereador. A câmara que

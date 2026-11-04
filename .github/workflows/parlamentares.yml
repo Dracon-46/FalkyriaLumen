@@ -100,8 +100,8 @@ jobs:
             echo "nada mudou"
           fi
 
-  # Deputados estaduais pelas fontes próprias das Assembleias (ADR-062, adendo 2): o SPL da Ágape (GO, ES, SE e BA)
-  # e os votos nominais de Goiás.
+  # Deputados estaduais pelas fontes próprias das Assembleias (ADR-062, adendos 2 e 3): o SPL da Ágape (GO, ES, SE e
+  # BA), os votos nominais de Goiás, a API da ALMG e os arquivos da ALESP, com a verba de gabinete.
   assembleias:
     runs-on: ubuntu-24.04
     timeout-minutes: 120

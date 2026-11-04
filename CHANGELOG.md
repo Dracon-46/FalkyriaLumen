@@ -7,6 +7,8 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ### Vereadores pelo SAPL das câmaras municipais (ADR-062)
 
+- Deputados estaduais de MG (API da ALMG) e SP (arquivos da ALESP): deputados, projetos com autores e a verba de
+  gabinete nota a nota, que o portal mostra como "Verba indenizatória".
 - Deputados estaduais de GO, ES, SE e BA pelo SPL da Ágape (deputados e projetos, de 2023 em diante) e o voto de cada
   deputado de Goiás nas votações nominais, pela transparência da Alego (`lumen painel assembleias`, job `assembleias`
   do fluxo `parlamentares`).

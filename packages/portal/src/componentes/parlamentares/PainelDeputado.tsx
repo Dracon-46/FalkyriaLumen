@@ -132,12 +132,13 @@ export function PainelDeputado({ casa: casaFixa }: { casa?: Casa }) {
           valor={t.sessoes ? percentual((100 * t.presentes) / t.sessoes) : "—"}
           detalhe={`${numero(t.presentes)} de ${numero(t.sessoes)} em exercício`} />
         <Numero rotulo={textos.proposicoes} valor={numero(t.proposicoes)} detalhe={textos.tipos} />
-        {!municipal && <Numero rotulo="Cota parlamentar" valor={moeda(t.cota)} detalhe="valor reembolsado" />}
+        {(!municipal || t.cota > 0) && <Numero rotulo={estadual ? "Verba indenizatória" : "Cota parlamentar"}
+          valor={moeda(t.cota)} detalhe="valor reembolsado" />}
       </div>
-      {anos.length > 1 && <AnoAAno d={d} anos={anos} ano={ano} onAno={escolherAno} semCota={municipal} />}
+      {anos.length > 1 && <AnoAAno d={d} anos={anos} ano={ano} onAno={escolherAno} semCota={municipal && t.cota === 0} />}
       <Votos d={d} ano={ano} votacoes={votacoes} casa={casa} />
       <Proposicoes d={d} ano={ano} contagem={t.contagem} casa={casa} host={host} />
-      <CotaParlamentar d={d} ano={ano} />
+      <CotaParlamentar d={d} ano={ano} titulo={estadual ? "Verba indenizatória" : "Cota parlamentar (CEAP)"} />
       {municipal ? (
         <p className="busca-detalhe">
           {spl ? `Do sistema ${textos.doPlenario}` : `Do SAPL ${textos.doPlenario}`}{host ? <> (<a href={`https://${host}`} target="_blank" rel="noreferrer">{host}</a>)</> : null}:
@@ -328,8 +329,11 @@ function Proposicoes({ d, ano, contagem, casa, host }: { d: Deputado; ano: strin
   );
 }
 
-/** A cota parlamentar: por categoria, por mês (num ano) e por fornecedor, com a ligação para a página da empresa. */
-function CotaParlamentar({ d, ano }: { d: Deputado; ano: string | null }) {
+/**
+ * A cota parlamentar (ou a verba indenizatória da Assembleia, com o `titulo`): por categoria, por mês (num ano) e por
+ * fornecedor, com a ligação para a página da empresa.
+ */
+function CotaParlamentar({ d, ano, titulo }: { d: Deputado; ano: string | null; titulo: string }) {
   const [todos, setTodos] = useState(false);
   const [ordemCat, setOrdemCat] = useState<Ordem | null>(null);
   const [ordemForn, setOrdemForn] = useState<Ordem | null>(null);
@@ -341,7 +345,7 @@ function CotaParlamentar({ d, ano }: { d: Deputado; ano: string | null }) {
   const mostrados = todos ? fornecedores : fornecedores.slice(0, INICIAIS);
   return (
     <section className="cartao cartao-corpo" aria-labelledby="titulo-cota">
-      <h2 id="titulo-cota" className="titulo-secao">Cota parlamentar (CEAP)</h2>
+      <h2 id="titulo-cota" className="titulo-secao">{titulo}</h2>
       {ano && meses.length > 1 && (
         <GraficoBarras titulo={`Reembolsado por mês em ${ano}`}
           barras={meses.map((m) => ({ rotulo: MESES[Number(m.mes) - 1] ?? m.mes, valor: m.valor }))} formatar={moeda} formatarEixo={moedaCompacta} />

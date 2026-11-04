@@ -123,6 +123,8 @@ export function PainelParlamentares() {
   const mostradas = todos ? linhas : linhas.slice(0, INICIAIS);
   const doPeriodo = anos ?? indice.anos;
   const nomePeriodo = doPeriodo.length === 1 ? `em ${doPeriodo[0]}` : `de ${doPeriodo[0]} a ${doPeriodo[doPeriodo.length - 1]}`;
+  // A cota federal, ou a verba indenizatória da Assembleia que a publica (Minas Gerais)
+  const comCota = !municipal || indice.deputados.some((d) => d[9] > 0);
   const plural = `${textos.singular}${textos.singular.endsWith("r") ? "(es)" : "(s)"}`;
   const ondeMunicipal = camara ? ` de ${camara[1]} (${camara[2]})` : "";
   const th = (coluna: string, rotulo: string, opcoes: { className?: string; texto?: boolean } = {}) => (
@@ -171,7 +173,7 @@ export function PainelParlamentares() {
                 {th("votos", "Votos no Plenário", { className: "n" })}
                 {th("presenca", "Presença", { className: "n" })}
                 {th("proposicoes", "Proposições", { className: "n" })}
-                {!municipal && th("cota", "Cota parlamentar", { className: "n" })}
+                {comCota && th("cota", estadual ? "Verba indenizatória" : "Cota parlamentar", { className: "n" })}
               </tr>
             </thead>
             <tbody>
@@ -185,7 +187,7 @@ export function PainelParlamentares() {
                     {presenca === null ? "—" : percentual(presenca)}
                   </td>
                   <td className="n">{numero(n[1])}</td>
-                  {!municipal && <td className="n">{moeda(n[4])}</td>}
+                  {comCota && <td className="n">{moeda(n[4])}</td>}
                 </tr>
               ))}
             </tbody>
