@@ -8969,6 +8969,105 @@
    "itens": []
   },
   {
+   "caminho": "packages/painel/lumen_painel/assembleias.py",
+   "linguagem": "python",
+   "linhas": 283,
+   "doc": "Os deputados estaduais pelas fontes próprias das Assembleias Legislativas (ADR-062, adendo 2): por enquanto, as que\nusam o SPL da Ágape Consultoria, que tem uma API pública comum (``/api/publico/``), e os votos nominais de Goiás.\n\nAs Assembleias com o SAPL do Interlegis vão pela coleta dos vereadores (``vereadores.py``). As outras publicam cada\numa do seu jeito; o levantamento de 4/11/2026 achou o SPL da Ágape em quatro (``CASAS_SPL``: GO, ES, SE e BA):\n\n- ``/api/publico/parlamentar/?pag=&qtd=``: os deputados da legislatura atual, com o partido (a API não traz as\n  anteriores; por isso a coleta começa em ``PRIMEIRO_ANO``, o início da legislatura de 2023);\n- ``/api/publico/proposicao/?pag=&qtd=&ano=``: as proposições do ano, com o tipo, a ementa e o autor pelo nome (e o\n  gabinete). O autor é ligado ao deputado pelo nome; os documentos (CPF) e os contatos que a API traz não são\n  guardados. Os projetos (o tipo começa por \"projeto\" ou é proposta de emenda) ficam com a ementa; os outros tipos\n  são só contados;\n- em Goiás, ``transparencia.al.go.leg.br/api/transparencia/votacoes.json?tipo=detalhes&ano=&todos=true``: o voto de\n  cada deputado nas votações nominais do Plenário, com o partido no dia, de 2023 em diante; ``tipo=resumo`` dá o\n  processo votado. O voto vem com o nome do deputado, às vezes repetido em maiúsculas: fica um por deputado.\n\nNão há presença em nenhuma delas: o detalhe da sessão do SPL, que traria as presenças, respondeu erro em 4/11/2026.\nO estado fica em ``assembleias.json.gz``; o ano fechado é relido uma vez por mês e o corrente e o anterior, uma vez\npor semana (``tce.precisa_ler_por_idade``). A publicação é a dos deputados federais (``camara.publicar_casa``), em\n``parlamentares/estadual/<código da UF>/``, e as linhas entram no índice das Assembleias (``vereadores.publicar``).",
+   "itens": [
+    {
+     "tipo": "funcao",
+     "nome": "chave",
+     "assinatura": "def chave(nome: str | None) -> str",
+     "doc": "O nome para ligar autor e voto ao deputado: sem acento, maiúsculo, sem pontuação e sem \"Gabinete do Deputado\"\n(\"Gab. Dep. João Coser\" → ``JOAO COSER``).",
+     "linha": 56
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_json",
+     "assinatura": "def _json(url: str, *, contato: str, ler_fn: Callable[[str], Any] | None) -> Any",
+     "doc": "O JSON de um endereço (``ler_fn`` substitui a rede nos testes).",
+     "linha": 63
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_paginas",
+     "assinatura": "def _paginas(host: str, caminho: str, chave_lista: str, *, contato: str, ler_fn: Callable[[str], Any] | None, **filtros: Any) -> list[dict]",
+     "doc": "Todas as linhas de uma lista paginada do SPL (``pag`` e ``qtd``; o total vem em ``total``).",
+     "linha": 72
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_deputados",
+     "assinatura": "def ler_deputados(linhas: list[dict]) -> dict[str, list]",
+     "doc": "Os deputados do SPL: ``{id: [nome, nome civil, partido, situação]}``.",
+     "linha": 89
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_por_nome",
+     "assinatura": "def _por_nome(deputados: dict[str, list]) -> dict[str, str]",
+     "doc": "O id do deputado pela chave do nome parlamentar e do nome civil.",
+     "linha": 97
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_proposicoes",
+     "assinatura": "def ler_proposicoes(linhas: list[dict], deputados: dict[str, list], ano: int) -> dict[str, Any]",
+     "doc": "As proposições de um ano: os projetos (com a ementa e os autores) e a contagem de todas por tipo e deputado.",
+     "linha": 107
+    },
+    {
+     "tipo": "funcao",
+     "nome": "_ementa",
+     "assinatura": "def _ementa(texto: str | None) -> str",
+     "doc": "O assunto da votação de Goiás (\"AUTOR - ...\\nASSUNTO - ...\" → o assunto).",
+     "linha": 130
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_votacoes_go",
+     "assinatura": "def ler_votacoes_go(detalhes: list[dict], resumo: list[dict], deputados: dict[str, list]) -> tuple[dict, int]",
+     "doc": "As votações nominais de Goiás num ano: ``{pauta: [data, processo, ementa, resultado, aprovação, {id: voto},\n{id: partido}]}`` e quantos votos ficaram sem deputado no cadastro.",
+     "linha": 136
+    },
+    {
+     "tipo": "funcao",
+     "nome": "coletar_casa",
+     "assinatura": "def coletar_casa(c: dict, codigo: str, *, contato: str, hoje: date, ler_fn: Callable[[str], Any] | None=None) -> dict",
+     "doc": "Lê uma Assembleia sobre o estado ``c`` (alterado no lugar): os deputados, as proposições e os votos dos anos\nque passaram da idade de releitura. Devolve o resumo.",
+     "linha": 161
+    },
+    {
+     "tipo": "funcao",
+     "nome": "ler_estado",
+     "assinatura": "def ler_estado(estado: Path | str) -> dict[str, dict]",
+     "doc": "As Assembleias já lidas (vazio se ainda não houve coleta).",
+     "linha": 192
+    },
+    {
+     "tipo": "funcao",
+     "nome": "coletar",
+     "assinatura": "def coletar(estado: Path | str, *, contato: str, hoje: date | None=None, casas: list[str] | None=None, ler_fn: Callable[[str], Any] | None=None) -> dict",
+     "doc": "Lê as Assembleias de ``CASAS_SPL`` (ou as pedidas), uma por vez em paralelo, e grava ``ARQUIVO``.",
+     "linha": 203
+    },
+    {
+     "tipo": "funcao",
+     "nome": "montar",
+     "assinatura": "def montar(c: dict, uf: str) -> dict",
+     "doc": "O estado de uma Assembleia no formato da publicação comum (``camara.publicar_casa``).",
+     "linha": 234
+    },
+    {
+     "tipo": "funcao",
+     "nome": "publicar",
+     "assinatura": "def publicar(estado: Path | str, cadastro: Cadastro, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> list[list]",
+     "doc": "Grava ``parlamentares/estadual/<código>/`` de cada Assembleia lida e devolve as linhas do índice das\nAssembleias (``[código, estado, UF, endereço, deputados, votações, anos, sistema]``).",
+     "linha": 267
+    }
+   ]
+  },
+  {
    "caminho": "packages/painel/lumen_painel/avisos.py",
    "linguagem": "python",
    "linhas": 320,
@@ -9346,7 +9445,7 @@
   {
    "caminho": "packages/painel/lumen_painel/cli.py",
    "linguagem": "python",
-   "linhas": 617,
+   "linhas": 633,
    "doc": "``lumen painel``: coleta e publicação dos painéis de contratações e de conformidade (ADR-028).\n\nExemplos::\n\n    lumen painel cadastro --estado estado/                          # cadastro de entes do SICONFI\n    lumen painel contratacoes --estado estado/ --ultimos 3          # dias que faltam entre os 3 últimos\n    lumen painel contratacoes --estado estado/ --de 2026-01-01 --ate 2026-01-31 --limite-minutos 300\n    lumen painel faltando --estado estado/ --de 2026-01-01 --partes 6   # divisão para execuções paralelas\n    lumen painel conformidade --estado estado/ --ufs SP,MG --exercicios 2025,2026\n    lumen painel rcl --estado estado/ --ufs SP,MG                  # RCL do exercício anterior, para os pares\n    lumen painel despesa-funcao --estado estado/ --ufs SP,MG --limite-minutos 30   # DCA por função, pares\n    lumen painel pessoal --estado estado/ --ufs SP,MG --limite-minutos 20          # RGF: pessoal em % da RCL\n    lumen painel cnpj --estado estado/                              # base de CNPJ da Receita, dos fornecedores\n    lumen painel emendas --estado estado/                           # emendas parlamentares (CGU), por ente\n    lumen painel convenios --estado estado/                         # convênios da União (CGU), por ente\n    lumen painel transparencia --estado estado/                     # portais de transparência (PNTP)\n    lumen painel anp --estado estado/                               # preço de revenda da ANP por semana\n    lumen painel publicar --estado estado/ --saida site/            # o site inteiro, a partir do estado\n\nO estado é um diretório com ``cadastro-entes.json.gz``, um ``contratacoes-<dia>.json.gz`` por dia coletado e\num ``conformidade-<UF>.json.gz`` por UF. No GitHub Actions, ele fica nos anexos de uma versão do repositório\n(``painel-estado``) entre uma execução e outra.",
    "itens": [
     {
@@ -9354,210 +9453,217 @@
      "nome": "_data",
      "assinatura": "def _data(texto: str) -> date",
      "doc": "``AAAA-MM-DD`` → ``date``, como ``type`` do argparse.",
-     "linha": 75
+     "linha": 76
     },
     {
      "tipo": "funcao",
      "nome": "_lista",
      "assinatura": "def _lista(texto: str) -> list[str]",
      "doc": "``SP, mg`` → ``[\"SP\", \"MG\"]``.",
-     "linha": 80
+     "linha": 81
     },
     {
      "tipo": "funcao",
      "nome": "_imprimir",
      "assinatura": "def _imprimir(dados) -> None",
      "doc": "JSON legível na saída padrão.",
-     "linha": 85
+     "linha": 86
     },
     {
      "tipo": "funcao",
      "nome": "_configuracao",
      "assinatura": "def _configuracao(args)",
      "doc": "A configuração do pipeline (contato da coleta e limites de requisições).",
-     "linha": 90
+     "linha": 91
     },
     {
      "tipo": "funcao",
      "nome": "dias_pedidos",
      "assinatura": "def dias_pedidos(estado: Path, *, de: date | None, ate: date | None, ultimos: int | None, hoje: date, refazer: bool=False) -> list[date]",
      "doc": "Os dias a coletar, do mais recente para o mais antigo, sem os que já estão no estado.\n\nSem ``de``, o intervalo é dos ``ultimos`` dias (padrão 3) até ontem; o dia corrente nunca entra, porque\nainda está recebendo publicações.",
-     "linha": 96
+     "linha": 97
     },
     {
      "tipo": "funcao",
      "nome": "partes",
      "assinatura": "def partes(dias: list[date], n: int) -> list[dict]",
      "doc": "Divide os dias (já do mais recente ao mais antigo) em até ``n`` blocos de dias seguidos, para execuções\nparalelas; cada bloco vira ``{\"de\": …, \"ate\": …, \"dias\": …}``.",
-     "linha": 109
+     "linha": 110
     },
     {
      "tipo": "funcao",
      "nome": "cmd_cadastro",
      "assinatura": "def cmd_cadastro(args) -> int",
      "doc": "Coleta o cadastro de entes do SICONFI (uma requisição), normaliza e grava ``cadastro-entes.json.gz``.",
-     "linha": 121
+     "linha": 122
     },
     {
      "tipo": "funcao",
      "nome": "cmd_contratacoes",
      "assinatura": "def cmd_contratacoes(args) -> int",
      "doc": "Coleta os dias pedidos que faltam no estado, do mais recente ao mais antigo, até o prazo.",
-     "linha": 152
+     "linha": 153
     },
     {
      "tipo": "funcao",
      "nome": "cmd_faltando",
      "assinatura": "def cmd_faltando(args) -> int",
      "doc": "Imprime, em JSON, os blocos de dias que faltam no estado (matriz das execuções paralelas).",
-     "linha": 176
+     "linha": 177
     },
     {
      "tipo": "funcao",
      "nome": "cmd_conformidade",
      "assinatura": "def cmd_conformidade(args) -> int",
      "doc": "Coleta o extrato de entregas de cada UF pedida e grava o estado de cada uma.",
-     "linha": 183
+     "linha": 184
     },
     {
      "tipo": "funcao",
      "nome": "cmd_rcl",
      "assinatura": "def cmd_rcl(args) -> int",
      "doc": "Coleta a RCL dos entes pendentes de cada UF pedida (RREO, Anexo 03) e grava o estado de cada uma.\n\nEnte que ainda não publicou não é falha: fica para a próxima tentativa. O código é 1 só quando uma coleta\nfoi interrompida.",
-     "linha": 198
+     "linha": 199
     },
     {
      "tipo": "funcao",
      "nome": "cmd_despesa_funcao",
      "assinatura": "def cmd_despesa_funcao(args) -> int",
      "doc": "Coleta a despesa por função (DCA, Anexo I-E) dos entes pendentes de cada UF pedida e grava o estado.\n\nO ``--limite-minutos`` vale para todas as UFs juntas: passado o tempo, os entes que faltam ficam para a\nexecução seguinte. O código é 1 só quando uma coleta foi interrompida.",
-     "linha": 217
+     "linha": 218
     },
     {
      "tipo": "funcao",
      "nome": "cmd_pessoal",
      "assinatura": "def cmd_pessoal(args) -> int",
      "doc": "Coleta a despesa com pessoal do Executivo (RGF, Anexo 1) dos entes pendentes de cada UF pedida.\n\nComo em ``despesa-funcao``, o ``--limite-minutos`` vale para todas as UFs juntas. O código é 1 só quando uma\ncoleta foi interrompida.",
-     "linha": 239
+     "linha": 240
     },
     {
      "tipo": "funcao",
      "nome": "cmd_cnpj",
      "assinatura": "def cmd_cnpj(args) -> int",
      "doc": "Lê a base pública de CNPJ da Receita para os fornecedores do estado e grava ``cnpj-fornecedores.json.gz``.\n\nPula quando o estado já tem a base do mês para todos os fornecedores (ADR-043).",
-     "linha": 261
+     "linha": 262
     },
     {
      "tipo": "funcao",
      "nome": "cmd_tce",
      "assinatura": "def cmd_tce(args) -> int",
      "doc": "Lê os contratos de um tribunal de contas (``tce-rs``: LicitaCon; ``tce-pr``: SIM-AM; ``tce-pe``: API de dados\nabertos) nos anos que mudaram e grava ``tce-<sigla>.json.gz`` (ADR-050).",
-     "linha": 272
+     "linha": 273
     },
     {
      "tipo": "funcao",
      "nome": "cmd_emendas",
      "assinatura": "def cmd_emendas(args) -> int",
      "doc": "Lê o arquivo de emendas parlamentares da CGU quando ele muda e grava ``emendas.json.gz`` (ADR-044).",
-     "linha": 284
+     "linha": 285
     },
     {
      "tipo": "funcao",
      "nome": "cmd_camara",
      "assinatura": "def cmd_camara(args) -> int",
      "doc": "Lê os arquivos de dados abertos da Câmara dos anos que mudaram e grava ``camara.json.gz`` (ADR-060).",
-     "linha": 292
+     "linha": 293
     },
     {
      "tipo": "funcao",
      "nome": "cmd_camaras_sapl",
      "assinatura": "def cmd_camaras_sapl(args) -> int",
      "doc": "Testa o SAPL de cada câmara municipal e grava ``camaras-sapl.json.gz`` (ADR-062).",
-     "linha": 301
+     "linha": 302
+    },
+    {
+     "tipo": "funcao",
+     "nome": "cmd_assembleias",
+     "assinatura": "def cmd_assembleias(args) -> int",
+     "doc": "Lê os deputados estaduais das Assembleias pelas fontes próprias (SPL da Ágape e os votos de Goiás) e grava\n``assembleias.json.gz`` (ADR-062, adendo 2).",
+     "linha": 310
     },
     {
      "tipo": "funcao",
      "nome": "cmd_vereadores",
      "assinatura": "def cmd_vereadores(args) -> int",
      "doc": "Lê as câmaras municipais com o SAPL que passaram da idade de releitura e grava ``vereadores-<UF>.json.gz``\n(ADR-062).",
-     "linha": 309
+     "linha": 319
     },
     {
      "tipo": "funcao",
      "nome": "cmd_senado",
      "assinatura": "def cmd_senado(args) -> int",
      "doc": "Lê os dados abertos do Senado dos anos que passaram da idade de releitura e grava ``senado.json.gz``\n(ADR-060, adendo).",
-     "linha": 321
+     "linha": 331
     },
     {
      "tipo": "funcao",
      "nome": "cmd_recebimentos",
      "assinatura": "def cmd_recebimentos(args) -> int",
      "doc": "Soma os arquivos mensais de recebimentos por favorecido da CGU, os meses recentes e os que faltam, e grava\n``recebimentos.json.gz`` (ADR-058).",
-     "linha": 331
+     "linha": 341
     },
     {
      "tipo": "funcao",
      "nome": "cmd_transferencias",
      "assinatura": "def cmd_transferencias(args) -> int",
      "doc": "Soma os arquivos mensais de transferências da CGU, refazendo só o ano com mês novo ou mudado, e grava\n``transferencias.json.gz`` (ADR-054).",
-     "linha": 339
+     "linha": 349
     },
     {
      "tipo": "funcao",
      "nome": "cmd_convenios",
      "assinatura": "def cmd_convenios(args) -> int",
      "doc": "Lê o arquivo de convênios da CGU quando sai um novo e grava ``convenios.json.gz`` (ADR-045).",
-     "linha": 348
+     "linha": 358
     },
     {
      "tipo": "funcao",
      "nome": "cmd_mascarar",
      "assinatura": "def cmd_mascarar(args) -> int",
      "doc": "Reescreve os arquivos do dia gravados antes da máscara de CPF (ADR-043) e lista os que mudaram.",
-     "linha": 356
+     "linha": 366
     },
     {
      "tipo": "funcao",
      "nome": "cmd_transparencia",
      "assinatura": "def cmd_transparencia(args) -> int",
      "doc": "Lê o ciclo mais recente do PNTP para ``transparencia-pntp.json.gz``; o código é 1 quando falhou.",
-     "linha": 370
+     "linha": 380
     },
     {
      "tipo": "funcao",
      "nome": "cmd_anp",
      "assinatura": "def cmd_anp(args) -> int",
      "doc": "Lê as planilhas semanais da ANP que faltam em ``anp-semanas.json.gz``; o código é 1 quando algo falhou.",
-     "linha": 378
+     "linha": 388
     },
     {
      "tipo": "funcao",
      "nome": "_agrupar",
      "assinatura": "def _agrupar(chaves, grupo) -> list[tuple[str, list[str]]]",
      "doc": "As chaves em grupos (``grupo(chave)``), na ordem dos grupos: um grupo de cada vez vai para a memória.",
-     "linha": 387
+     "linha": 397
     },
     {
      "tipo": "funcao",
      "nome": "cmd_publicar",
      "assinatura": "def cmd_publicar(args) -> int",
      "doc": "Monta o site inteiro a partir do estado: índice, busca, contratações e conformidade.",
-     "linha": 395
+     "linha": 405
     },
     {
      "tipo": "funcao",
      "nome": "construir_parser",
      "assinatura": "def construir_parser() -> argparse.ArgumentParser",
      "doc": "Os subcomandos e as opções de cada um.",
-     "linha": 488
+     "linha": 500
     },
     {
      "tipo": "funcao",
      "nome": "main",
      "assinatura": "def main(argv: list[str] | None=None) -> int",
      "doc": "Ponto de entrada de ``lumen painel``; falta de configuração (contato da coleta) vira código 2.",
-     "linha": 606
+     "linha": 622
     }
    ]
   },
@@ -11962,7 +12068,7 @@
   {
    "caminho": "packages/painel/lumen_painel/vereadores.py",
    "linguagem": "python",
-   "linhas": 464,
+   "linhas": 466,
    "doc": "Os vereadores pelo SAPL do Interlegis (ADR-062): mandatos e partidos, projetos apresentados, presença nas sessões e\no voto de cada vereador nas votações nominais dos projetos, de 2017 em diante (os mandatos de 2017, 2021 e 2025).\n\nAs câmaras são as do levantamento (``camaras.py``). A API do SAPL (``/api/``) pagina de 100 em 100, em ordem\ncrescente de id, e não filtra por data nem por id; filtra as matérias por ano, os votos por votação e as pautas por\nmatéria. De cada câmara, a coleta lê:\n\n- ``parlamentares/parlamentar``, ``mandato``, ``filiacao`` e ``partido``: os vereadores, os períodos de mandato e o\n  partido em cada data; ``base/autor`` liga o autor da matéria ao vereador (o autor do tipo \"Parlamentar\");\n- ``materia/materialegislativa?ano=AAAA``: as matérias de cada ano com os autores. As dos tipos de projeto (projetos\n  de lei, de lei complementar, de decreto legislativo e de resolução e emendas à Lei Orgânica, pela descrição do\n  tipo, que cada câmara cadastra do seu jeito) ficam com a ementa; as demais (requerimentos, indicações, moções) são\n  só contadas por tipo. O ano corrente e o anterior são relidos a cada coleta da câmara; os outros, uma vez;\n- ``sessao/sessaoplenaria`` e ``sessaoplenariapresenca``: as sessões e quem esteve nelas. A presença conta só as\n  sessões com alguma presença registrada, para não pesar contra o vereador a sessão que a câmara não registrou;\n- ``sessao/registrovotacao``: as votações, lidas a partir da página em que a leitura anterior parou. Ficam as dos\n  projetos; de cada uma, os votos (``votoparlamentar?votacao=``) e a data, pela pauta (``ordemdia`` e\n  ``expedientemateria`` da matéria). Votação sem voto por vereador (simbólica) fica registrada, sem votos, e não é\n  publicada.\n\nO estado fica num arquivo por UF (``vereadores-<UF>.json.gz``), com as câmaras do estado. Cada câmara é relida no\nmáximo uma vez a cada ``DIAS_ENTRE_COLETAS`` dias; a que não termina no prazo guarda o que leu e continua na próxima.\nA publicação usa a dos deputados e senadores (``camara.publicar_casa``), em ``parlamentares/municipal/<IBGE>/``.\n\nAs Assembleias Legislativas que usam o SAPL (``sapl.al.<uf>.leg.br``; 9 em 4/11/2026: AC, AL, AM, MT, PB, PI, RO, RR\ne TO) entram pelo mesmo caminho: estão no levantamento com o código da UF (2 dígitos), e a publicação vai para\n``parlamentares/estadual/<código da UF>/``, com as legislaturas estaduais (de 1º de fevereiro a 31 de janeiro).",
    "itens": [
     {
@@ -12129,8 +12235,8 @@
     {
      "tipo": "funcao",
      "nome": "publicar",
-     "assinatura": "def publicar(estado: Path | str, cadastro: Cadastro, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> dict | None",
-     "doc": "Grava ``parlamentares/<esfera>/<código>/`` de cada câmara e Assembleia com dados (como os deputados) e o índice\nde cada esfera (``parlamentares/municipal/indice.json`` e ``parlamentares/estadual/indice.json``); devolve o\nresumo para o índice do site.",
+     "assinatura": "def publicar(estado: Path | str, cadastro: Cadastro, gravar: Callable[[str, Any], Any], *, gerado_em: str, estaduais: list[list] | None=None) -> dict | None",
+     "doc": "Grava ``parlamentares/<esfera>/<código>/`` de cada câmara e Assembleia com dados (como os deputados) e o índice\nde cada esfera (``parlamentares/municipal/indice.json`` e ``parlamentares/estadual/indice.json``, com as linhas\ndas Assembleias pelas fontes próprias, ``estaduais``, de ``assembleias.publicar``); devolve o resumo para o índice\ndo site.",
      "linha": 434
     }
    ]
@@ -15472,7 +15578,7 @@
   {
    "caminho": "packages/portal/src/lib/parlamentares.ts",
    "linguagem": "typescript",
-   "linhas": 399,
+   "linhas": 402,
    "doc": "Parlamentares (ADR-060): os deputados federais pelos arquivos de dados abertos da Câmara, publicados com os\npainéis em `parlamentares/camara/`. O índice lista todos, com os totais; cada deputado tem o próprio arquivo, com os\nvotos nominais do Plenário, a presença nas sessões deliberativas, as proposições que apresentou e a cota\nparlamentar, por ano; as votações (data, proposição, resultado e orientação do Governo) ficam num arquivo por ano.",
    "itens": [
     {
@@ -15639,184 +15745,184 @@
     {
      "tipo": "tipo",
      "nome": "CamaraMunicipal",
-     "assinatura": "export type CamaraMunicipal = [string, string, string, string, number, number, string[]];",
-     "doc": "Uma casa pelo SAPL no índice: `[código IBGE, município ou UF, UF, endereço do SAPL, parlamentares, votações, anos]`.",
-     "linha": 181
+     "assinatura": "export type CamaraMunicipal = [string, string, string, string, number, number, string[], string?];",
+     "doc": "Uma casa no índice das câmaras ou das Assembleias: `[código IBGE, município ou UF, UF, endereço do sistema,\nparlamentares, votações, anos, sistema]`; o sistema (`sapl` ou `spl`, o da Ágape) falta nos índices antigos.",
+     "linha": 184
     },
     {
      "tipo": "interface",
      "nome": "IndiceMunicipal",
      "assinatura": "interface IndiceMunicipal",
      "doc": "Arquivo `parlamentares/<esfera>/indice.json`: as câmaras municipais ou as Assembleias com dados do SAPL (ADR-062).",
-     "linha": 184
+     "linha": 187
     },
     {
      "tipo": "funcao",
      "nome": "carregarCamarasMunicipais",
      "assinatura": "export async function carregarCamarasMunicipais(sinal?: AbortSignal, esfera: Esfera = \"municipal\"): Promise<CamaraMunicipal[]>",
      "doc": "As câmaras municipais (ou, com `esfera` `estadual`, as Assembleias) publicadas; vazio quando não há nenhuma.",
-     "linha": 191
+     "linha": 194
     },
     {
      "tipo": "funcao",
      "nome": "carregarCamaraDaCasa",
      "assinatura": "export async function carregarCamaraDaCasa(casa: Casa, sinal?: AbortSignal): Promise<CamaraMunicipal | null>",
      "doc": "A câmara municipal ou a Assembleia da casa (null nas casas federais ou quando ela não está publicada).",
-     "linha": 198
+     "linha": 201
     },
     {
      "tipo": "funcao",
      "nome": "carregarIndiceCamara",
      "assinatura": "export async function carregarIndiceCamara(sinal?: AbortSignal, casa: Casa = \"camara\"): Promise<IndiceCamara | null>",
      "doc": "O índice dos parlamentares da casa; `null` quando ainda não foi publicado.",
-     "linha": 206
+     "linha": 209
     },
     {
      "tipo": "funcao",
      "nome": "carregarDeputado",
      "assinatura": "export async function carregarDeputado(id: string, sinal?: AbortSignal, casa: Casa = \"camara\"): Promise<Deputado | null>",
      "doc": "O arquivo de um deputado; `null` quando ele não está no Lumen.",
-     "linha": 213
+     "linha": 216
     },
     {
      "tipo": "funcao",
      "nome": "carregarVotacoes",
      "assinatura": "export async function carregarVotacoes(ano: string, sinal?: AbortSignal, casa: Casa = \"camara\"): Promise<Record<string, Votacao>>",
      "doc": "As votações nominais do Plenário num ano (vazio quando o arquivo não existe).",
-     "linha": 221
+     "linha": 224
     },
     {
      "tipo": "funcao",
      "nome": "carregarVotosDoAno",
      "assinatura": "export async function carregarVotosDoAno(ano: string, sinal?: AbortSignal, casa: Casa = \"camara\"): Promise<Record<string, VotoNaVotacao[]>>",
      "doc": "Os votos de cada votação nominal do ano (vazio quando o arquivo não existe).",
-     "linha": 228
+     "linha": 231
     },
     {
      "tipo": "interface",
      "nome": "PlacarPartido",
      "assinatura": "export interface PlacarPartido",
      "doc": "O placar de um partido numa votação.",
-     "linha": 235
+     "linha": 238
     },
     {
      "tipo": "funcao",
      "nome": "placarPorPartido",
      "assinatura": "export function placarPorPartido(votos: VotoNaVotacao[]): PlacarPartido[]",
      "doc": "O placar de cada partido numa votação, do partido com mais votos ao com menos.",
-     "linha": 246
+     "linha": 249
     },
     {
      "tipo": "funcao",
      "nome": "tipoDaProposicao",
      "assinatura": "export function tipoDaProposicao(titulo: string): string",
      "doc": "O tipo da proposição pelo título (\"PEC 45/2019\" → \"PEC\"); sem título, \"Outras\".",
-     "linha": 262
+     "linha": 265
     },
     {
      "tipo": "constante",
      "nome": "urlDaVotacao",
      "assinatura": "export const urlDaVotacao = (ano: string, id: string, casa: Casa = \"camara\") =>",
      "doc": "A página da votação no Lumen.",
-     "linha": 267
+     "linha": 270
     },
     {
      "tipo": "constante",
      "nome": "urlDoParlamentar",
      "assinatura": "export const urlDoParlamentar = (id: string, casa: Casa = \"camara\", ano?: string | null) =>",
      "doc": "A página do parlamentar no Lumen.",
-     "linha": 271
+     "linha": 274
     },
     {
      "tipo": "constante",
      "nome": "fotoDoDeputado",
      "assinatura": "export const fotoDoDeputado = (id: string, casa: Casa = \"camara\"): string | null => casa === \"senado\"",
      "doc": "A foto oficial do parlamentar no site da casa; null nas casas pelo SAPL (ele não tem endereço fixo da foto).",
-     "linha": 275
+     "linha": 278
     },
     {
      "tipo": "constante",
      "nome": "paginaNaCamara",
      "assinatura": "export const paginaNaCamara = (id: string, casa: Casa = \"camara\", host?: string | null): string | null => casa === \"senado\"",
      "doc": "A página do parlamentar no site da casa (na câmara municipal, no SAPL do endereço `host`).",
-     "linha": 279
+     "linha": 282
     },
     {
      "tipo": "constante",
      "nome": "proposicaoNaCamara",
      "assinatura": "export const proposicaoNaCamara = (id: string, casa: Casa = \"camara\", host?: string | null): string | null => casa === \"senado\"",
      "doc": "A página da proposição (ou matéria, no Senado e no SAPL do endereço `host`) no site da casa.",
-     "linha": 283
+     "linha": 286
     },
     {
      "tipo": "funcao",
      "nome": "votoPorExtenso",
      "assinatura": "export function votoPorExtenso(v: string): string",
      "doc": "O voto por extenso.",
-     "linha": 292
+     "linha": 295
     },
     {
      "tipo": "funcao",
      "nome": "filtrarDeputados",
      "assinatura": "export function filtrarDeputados(linhas: LinhaDeputado[], filtro: { termo?: string; uf?: string | null; partido?: string | null })",
      "doc": "Os deputados que casam com a busca pelo nome (começo das palavras) e com a UF e o partido escolhidos.",
-     "linha": 299
+     "linha": 302
     },
     {
      "tipo": "funcao",
      "nome": "numerosNoPeriodo",
      "assinatura": "export function numerosNoPeriodo(linha: LinhaDeputado, anos: string[] | null): Numeros",
      "doc": "Os números do deputado nos anos pedidos (todos quando `anos` é null), somados.",
-     "linha": 310
+     "linha": 313
     },
     {
      "tipo": "funcao",
      "nome": "apareceNoPeriodo",
      "assinatura": "export function apareceNoPeriodo(linha: LinhaDeputado, anos: string[] | null): boolean",
      "doc": "Se o deputado tem algo nos anos pedidos: voto, proposição, sessão em exercício ou cota.",
-     "linha": 319
+     "linha": 322
     },
     {
      "tipo": "funcao",
      "nome": "anosEscolhidos",
      "assinatura": "function anosEscolhidos(d: Deputado, ano: string | null): AnoDeputado[]",
      "doc": "Os anos do deputado escolhidos: um ano, ou todos quando `ano` é null.",
-     "linha": 324
+     "linha": 327
     },
     {
      "tipo": "funcao",
      "nome": "totaisDoDeputado",
      "assinatura": "export function totaisDoDeputado(d: Deputado, ano: string | null)",
      "doc": "Os totais do deputado nos anos escolhidos.",
-     "linha": 329
+     "linha": 332
     },
     {
      "tipo": "funcao",
      "nome": "cotaDoDeputado",
      "assinatura": "export function cotaDoDeputado(d: Deputado, ano: string | null)",
      "doc": "A cota somada nos anos escolhidos: por categoria e por fornecedor (do maior valor ao menor), e a pessoa física.",
-     "linha": 347
+     "linha": 350
     },
     {
      "tipo": "funcao",
      "nome": "cotaPorMes",
      "assinatura": "export function cotaPorMes(d: Deputado, ano: string): { mes: string; valor: number }[]",
      "doc": "A cota por mês de um ano, de janeiro a dezembro (os meses sem despesa ficam fora).",
-     "linha": 372
+     "linha": 375
     },
     {
      "tipo": "interface",
      "nome": "VotoComVotacao",
      "assinatura": "export interface VotoComVotacao",
      "doc": "Um voto com a votação: o que a tabela mostra.",
-     "linha": 378
+     "linha": 381
     },
     {
      "tipo": "funcao",
      "nome": "votosComVotacoes",
      "assinatura": "export function votosComVotacoes(d: Deputado, ano: string | null, votacoes: Record<string, Record<string, Votacao>>): VotoComVotacao[]",
      "doc": "Os votos do deputado nos anos escolhidos, com as votações, do mais recente ao mais antigo.",
-     "linha": 388
+     "linha": 391
     }
    ]
   },
@@ -20179,8 +20285,8 @@
   {
    "caminho": "packages/portal/src/componentes/parlamentares/PainelCamaras.tsx",
    "linguagem": "typescript",
-   "linhas": 140,
-   "doc": "A lista das câmaras municipais com dados do SAPL do Interlegis (ADR-062): filtros de UF e de nome na URL (`?uf=`,\n`?busca=`) e o município escolhido no cabeçalho (`?municipio=`) em destaque. Cada câmara abre a lista dos vereadores.\nCom `esfera` `estadual`, a mesma lista para as Assembleias Legislativas que usam o SAPL.",
+   "linhas": 142,
+   "doc": "A lista das câmaras municipais com dados do SAPL do Interlegis (ADR-062): filtros de UF e de nome na URL (`?uf=`,\n`?busca=`) e o município escolhido no cabeçalho (`?municipio=`) em destaque. Cada câmara abre a lista dos vereadores.\nCom `esfera` `estadual`, a mesma lista para as Assembleias Legislativas (pelo SAPL ou pelo SPL da Ágape).",
    "itens": [
     {
      "tipo": "componente",
@@ -20194,7 +20300,7 @@
   {
    "caminho": "packages/portal/src/componentes/parlamentares/PainelDeputado.tsx",
    "linguagem": "typescript",
-   "linhas": 404,
+   "linhas": 406,
    "doc": "A página de um deputado federal (ADR-060), pelo id da Câmara (`?id=`): os totais, os votos nominais no Plenário com\na votação e a orientação do Governo, as proposições que apresentou e a cota parlamentar, num ano (`?ano=`) ou em\ntodos. São os fatos como a Câmara publica: a página não pontua nem ordena ninguém. A mesma página mostra o senador e\no vereador e o deputado estadual (ADR-062), com os textos da casa.",
    "itens": [
     {
@@ -20216,35 +20322,35 @@
      "nome": "Metrica",
      "assinatura": "interface Metrica",
      "doc": "Uma medida do gráfico ano a ano: o rótulo, o valor num ano e os formatos.",
-     "linha": 162
+     "linha": 164
     },
     {
      "tipo": "componente",
      "nome": "AnoAAno",
      "assinatura": "function AnoAAno({ d, anos, ano, onAno, semCota }: { d: Deputado; anos: string[]; ano: string | null; onAno: (a: string | null) => void; semCota?: boolean })",
      "doc": "O ano a ano de uma medida, à escolha; clicar numa barra filtra a página por aquele ano (clicar de novo volta).",
-     "linha": 179
+     "linha": 181
     },
     {
      "tipo": "componente",
      "nome": "Votos",
      "assinatura": "function Votos({ d, ano, votacoes, casa }: { d: Deputado; ano: string | null; votacoes: Record<string, Record<string, Votacao>>; casa: Casa })",
      "doc": "Os votos nominais no Plenário, com a votação, o resultado e se o voto foi igual à orientação do Governo.",
-     "linha": 195
+     "linha": 197
     },
     {
      "tipo": "componente",
      "nome": "Proposicoes",
      "assinatura": "function Proposicoes({ d, ano, contagem, casa, host }: { d: Deputado; ano: string | null; contagem: Record<string, number>; casa: Casa; host?: string | null })",
      "doc": "As proposições que o deputado apresentou como autor, e a contagem de todas por tipo.",
-     "linha": 267
+     "linha": 269
     },
     {
      "tipo": "componente",
      "nome": "CotaParlamentar",
      "assinatura": "function CotaParlamentar({ d, ano }: { d: Deputado; ano: string | null })",
      "doc": "A cota parlamentar: por categoria, por mês (num ano) e por fornecedor, com a ligação para a página da empresa.",
-     "linha": 330
+     "linha": 332
     }
    ]
   },
@@ -20625,6 +20731,11 @@
   {
    "caminho": "packages/orquestracao/testes/test_pipeline_pntp.py",
    "doc": "Pipeline do PNTP: Radar da Transparência (servidor local) → bronze → silver, com o ciclo lido da URL.",
+   "testes": 3
+  },
+  {
+   "caminho": "packages/painel/testes/test_assembleias.py",
+   "doc": "Os deputados estaduais pelas fontes próprias das Assembleias (ADR-062, adendo 2): o SPL da Ágape e os votos de\nGoiás.",
    "testes": 3
   },
   {

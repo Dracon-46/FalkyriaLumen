@@ -7,6 +7,9 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ### Vereadores pelo SAPL das câmaras municipais (ADR-062)
 
+- Deputados estaduais de GO, ES, SE e BA pelo SPL da Ágape (deputados e projetos, de 2023 em diante) e o voto de cada
+  deputado de Goiás nas votações nominais, pela transparência da Alego (`lumen painel assembleias`, job `assembleias`
+  do fluxo `parlamentares`).
 - Deputados estaduais das 9 Assembleias Legislativas que usam o SAPL (AC, AL, AM, MT, PB, PI, RO, RR e TO), pela mesma
   coleta: o levantamento testa `sapl.al.<uf>.leg.br`, e a aba Parlamentares ganha "Deputados estaduais", com a página
   do deputado estadual (`?casa=<código da UF>`).

@@ -195,7 +195,7 @@ def test_coletar_grava_por_uf_e_publica(tmp_path):
     votos = gravados["parlamentares/municipal/3133600/votos-2025.json.gz"]["votos"]
     assert votos == {"900": [["1", "S", "PL"], ["2", "N", ""]]}
     assert gravados["parlamentares/municipal/indice.json"]["camaras"] == [
-        ["3133600", "Itapeva", "MG", HOST, 2, 1, ["2025"]]]
+        ["3133600", "Itapeva", "MG", HOST, 2, 1, ["2025"], "sapl"]]
     json.dumps(gravados)
 
 
@@ -213,6 +213,6 @@ def test_assembleia_com_sapl_publica_na_esfera_estadual(tmp_path):
     ana = gravados["parlamentares/estadual/13/1.json.gz"]
     assert ana["tipo"] == "estadual-deputado" and ana["legislaturas"] == [2019, 2023]
     assert gravados["parlamentares/estadual/indice.json"]["camaras"] == [
-        ["13", "Amazonas", "AM", "sapl.al.am.leg.br", 2, 1, ["2025"]]]
+        ["13", "Amazonas", "AM", "sapl.al.am.leg.br", 2, 1, ["2025"], "sapl"]]
     assert gravados["parlamentares/municipal/indice.json"]["camaras"] == []
     assert vereadores.no_mandato_estadual("2027-01-31", [2023]) and not vereadores.no_mandato_estadual("2023-01-31", [2023])

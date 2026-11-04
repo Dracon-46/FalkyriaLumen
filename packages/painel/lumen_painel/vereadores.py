@@ -432,14 +432,15 @@ def montar(c: dict, uf: str, tipo: str = "municipal") -> dict:
 
 
 def publicar(estado: Path | str, cadastro: Cadastro, gravar: Callable[[str, Any], Any], *,
-             gerado_em: str) -> dict | None:
+             gerado_em: str, estaduais: list[list] | None = None) -> dict | None:
     """Grava ``parlamentares/<esfera>/<código>/`` de cada câmara e Assembleia com dados (como os deputados) e o índice
-    de cada esfera (``parlamentares/municipal/indice.json`` e ``parlamentares/estadual/indice.json``); devolve o
-    resumo para o índice do site."""
+    de cada esfera (``parlamentares/municipal/indice.json`` e ``parlamentares/estadual/indice.json``, com as linhas
+    das Assembleias pelas fontes próprias, ``estaduais``, de ``assembleias.publicar``); devolve o resumo para o índice
+    do site."""
     arquivos = sorted(Path(estado).glob(ARQUIVO.format(uf="*")))
-    if not arquivos:
+    if not arquivos and not estaduais:
         return None
-    linhas: dict[str, list] = {"municipal": [], "estadual": []}
+    linhas: dict[str, list] = {"municipal": [], "estadual": list(estaduais or [])}
     for arquivo in arquivos:
         uf = arquivo.name.split("-")[1].split(".")[0]
         for codigo, c in ler_estado(estado, uf).items():
@@ -453,11 +454,12 @@ def publicar(estado: Path | str, cadastro: Cadastro, gravar: Callable[[str, Any]
             r = publicar_casa(dados, gravar, gerado_em=gerado_em, casa=f"{tipo}/{codigo}", pessoa=pessoa,
                               legislaturas=legislaturas, no_mandato_fn=no_mandato_fn)
             votos = sum(len(a["votacoes"]) for a in dados["anos"].values())
-            linhas[tipo].append([codigo, cadastro.nome(codigo), uf, c["host"], r["deputados"], votos, r["anos"]])
+            linhas[tipo].append([codigo, cadastro.nome(codigo), uf, c["host"], r["deputados"], votos, r["anos"],
+                                 "sapl"])
     for tipo, das_casas in linhas.items():
         gravar(f"parlamentares/{tipo}/indice.json", {
             "versao": 1, "tipo": f"{tipo}-camaras", "gerado_em": gerado_em, "fonte": FONTE,
-            "colunas": ["ibge", "nome", "uf", "host", "parlamentares", "votacoes", "anos"],
+            "colunas": ["ibge", "nome", "uf", "host", "parlamentares", "votacoes", "anos", "sistema"],
             "camaras": sorted(das_casas, key=lambda x: (x[2], x[1]))})
     return {"camaras": len(linhas["municipal"]), "vereadores": sum(x[4] for x in linhas["municipal"]),
             "assembleias": len(linhas["estadual"]), "deputados_estaduais": sum(x[4] for x in linhas["estadual"])}

@@ -177,8 +177,11 @@ export const consultaDaCasa = (casa: Casa): string =>
 /** A esfera das casas pelo SAPL: as câmaras municipais ou as Assembleias. */
 export type Esfera = "municipal" | "estadual";
 
-/** Uma casa pelo SAPL no índice: `[código IBGE, município ou UF, UF, endereço do SAPL, parlamentares, votações, anos]`. */
-export type CamaraMunicipal = [string, string, string, string, number, number, string[]];
+/**
+ * Uma casa no índice das câmaras ou das Assembleias: `[código IBGE, município ou UF, UF, endereço do sistema,
+ * parlamentares, votações, anos, sistema]`; o sistema (`sapl` ou `spl`, o da Ágape) falta nos índices antigos.
+ */
+export type CamaraMunicipal = [string, string, string, string, number, number, string[], string?];
 
 /** Arquivo `parlamentares/<esfera>/indice.json`: as câmaras municipais ou as Assembleias com dados do SAPL (ADR-062). */
 interface IndiceMunicipal {

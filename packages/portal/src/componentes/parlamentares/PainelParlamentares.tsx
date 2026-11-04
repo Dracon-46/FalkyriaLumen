@@ -204,7 +204,7 @@ export function PainelParlamentares() {
           {municipal
             ? <>Votos nominais nos projetos ({textos.tipos}), presença nas sessões com presença registrada enquanto o{" "}
                 {textos.singular} tinha mandato (passe o mouse para ver quantas) e projetos que apresentou, {nomePeriodo},
-                do SAPL {textos.doPlenario}
+                {camara?.[7] === "spl" ? "do sistema" : "do SAPL"} {textos.doPlenario}
                 {camara ? <> (<a href={`https://${camara[3]}`} target="_blank" rel="noreferrer">{camara[3]}</a>)</> : null}.
                 Os números são os que a casa registrou no sistema: casa que registra pouco aparece com pouco. A cota
                 parlamentar federal não se aplica aqui.</>

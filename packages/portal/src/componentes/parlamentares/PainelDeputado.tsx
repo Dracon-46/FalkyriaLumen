@@ -95,8 +95,10 @@ export function PainelDeputado({ casa: casaFixa }: { casa?: Casa }) {
   const t = totaisDoDeputado(d, ano);
   const periodo = ano ?? (anos.length === 1 ? anos[0] : `${anos[0]} a ${anos[anos.length - 1]}`);
   const foto = fotoDoDeputado(d.id, casa);
-  const pagina = paginaNaCamara(d.id, casa, camara?.[3]);
-  const host = camara?.[3] ?? null;
+  // No SPL da Ágape (Assembleias com fonte própria), o endereço da página do parlamentar e da matéria não é fixo
+  const spl = camara?.[7] === "spl";
+  const host = camara && !spl ? camara[3] : null;
+  const pagina = paginaNaCamara(d.id, casa, host);
 
   return (
     <PrefixoCsv.Provider value={[textos.singular, d.id, ano].filter(Boolean).join("-")}>
@@ -138,7 +140,7 @@ export function PainelDeputado({ casa: casaFixa }: { casa?: Casa }) {
       <CotaParlamentar d={d} ano={ano} />
       {municipal ? (
         <p className="busca-detalhe">
-          Do SAPL {textos.doPlenario}{host ? <> (<a href={`https://${host}`} target="_blank" rel="noreferrer">{host}</a>)</> : null}:
+          {spl ? `Do sistema ${textos.doPlenario}` : `Do SAPL ${textos.doPlenario}`}{host ? <> (<a href={`https://${host}`} target="_blank" rel="noreferrer">{host}</a>)</> : null}:
           votações nominais dos projetos, presença nas sessões com presença registrada (conta só as do mandato do{" "}
           {textos.singular}) e projetos de que é autor; os requerimentos, as indicações e as moções entram só na
           contagem por tipo. São os números que a casa registrou no sistema, sem juízo sobre o {textos.singular}: casa

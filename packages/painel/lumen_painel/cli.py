@@ -31,8 +31,8 @@ import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from . import avisos as av
 from . import (
+    assembleias,
     camara,
     camaras,
     cobertura,
@@ -56,6 +56,7 @@ from . import (
     transparencia,
     vereadores,
 )
+from . import avisos as av
 from . import cnpj as base_cnpj
 from . import conformidade as conf
 from . import contratacoes as contr
@@ -306,6 +307,15 @@ def cmd_camaras_sapl(args) -> int:
     return 0
 
 
+def cmd_assembleias(args) -> int:
+    """Lê os deputados estaduais das Assembleias pelas fontes próprias (SPL da Ágape e os votos de Goiás) e grava
+    ``assembleias.json.gz`` (ADR-062, adendo 2)."""
+    cfg = _configuracao(args)
+    _imprimir(assembleias.coletar(Path(args.estado), contato=cfg.contato,
+                                  casas=[x.strip() for x in args.casas.split(",")] if args.casas else None))
+    return 0
+
+
 def cmd_vereadores(args) -> int:
     """Lê as câmaras municipais com o SAPL que passaram da idade de releitura e grava ``vereadores-<UF>.json.gz``
     (ADR-062)."""
@@ -464,7 +474,9 @@ def cmd_publicar(args) -> int:
     pj = pessoas_juridicas.publicar(estado, painel, site.gravar, gerado_em=gerado_em)
     deputados = camara.publicar(estado, site.gravar, gerado_em=gerado_em)
     senadores = senado.publicar(estado, site.gravar, gerado_em=gerado_em)
-    camaras_municipais = vereadores.publicar(estado, cadastro, site.gravar, gerado_em=gerado_em)
+    camaras_municipais = vereadores.publicar(estado, cadastro, site.gravar, gerado_em=gerado_em,
+                                             estaduais=assembleias.publicar(estado, cadastro, site.gravar,
+                                                                            gerado_em=gerado_em))
 
     entes = {c: [c, e.nome, e.uf, e.esfera, e.populacao] for c, e in cadastro.entes.items()}
     for codigo in set(painel.entes) | set(avaliacao.entes):
@@ -563,6 +575,10 @@ def construir_parser() -> argparse.ArgumentParser:
     c = sub.add_parser("camaras-sapl", help="câmaras municipais com o SAPL e a API aberta (levantamento)")
     c.add_argument("--estado", required=True)
 
+    c = sub.add_parser("assembleias", help="deputados estaduais pelas fontes próprias das Assembleias (SPL, Goiás)")
+    c.add_argument("--estado", required=True)
+    c.add_argument("--casas", help="só estas Assembleias (código IBGE da UF), separadas por vírgula")
+
     c = sub.add_parser("vereadores", help="vereadores: votos, projetos e presença, pelo SAPL de cada câmara municipal")
     c.add_argument("--estado", required=True)
     c.add_argument("--ufs", help="só as câmaras destas UFs, separadas por vírgula")
@@ -598,7 +614,7 @@ def construir_parser() -> argparse.ArgumentParser:
 
 COMANDOS = {"cadastro": cmd_cadastro, "contratacoes": cmd_contratacoes, "faltando": cmd_faltando,
             "conformidade": cmd_conformidade, "rcl": cmd_rcl, "despesa-funcao": cmd_despesa_funcao, "pessoal": cmd_pessoal,
-            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "tce-rs": cmd_tce, "tce-pr": cmd_tce, "tce-pe": cmd_tce, "tce-ce": cmd_tce, "emendas": cmd_emendas, "convenios": cmd_convenios, "transferencias": cmd_transferencias, "recebimentos": cmd_recebimentos, "camara": cmd_camara, "senado": cmd_senado, "camaras-sapl": cmd_camaras_sapl, "vereadores": cmd_vereadores,
+            "mascarar": cmd_mascarar, "cnpj": cmd_cnpj, "tce-rs": cmd_tce, "tce-pr": cmd_tce, "tce-pe": cmd_tce, "tce-ce": cmd_tce, "emendas": cmd_emendas, "convenios": cmd_convenios, "transferencias": cmd_transferencias, "recebimentos": cmd_recebimentos, "camara": cmd_camara, "senado": cmd_senado, "camaras-sapl": cmd_camaras_sapl, "vereadores": cmd_vereadores, "assembleias": cmd_assembleias,
             "transparencia": cmd_transparencia, "anp": cmd_anp,
             "publicar": cmd_publicar}
 
