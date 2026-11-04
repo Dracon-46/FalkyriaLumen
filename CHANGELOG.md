@@ -7,6 +7,9 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 ### Vereadores pelo SAPL das câmaras municipais (ADR-062)
 
+- Deputados estaduais das 9 Assembleias Legislativas que usam o SAPL (AC, AL, AM, MT, PB, PI, RO, RR e TO), pela mesma
+  coleta: o levantamento testa `sapl.al.<uf>.leg.br`, e a aba Parlamentares ganha "Deputados estaduais", com a página
+  do deputado estadual (`?casa=<código da UF>`).
 - Levantamento das câmaras municipais com o SAPL do Interlegis e a API aberta: 1.192 dos 5.570 municípios, 584 com votos
   nominais registrados. Novo comando `lumen painel camaras-sapl` e fluxo mensal `camaras-sapl`.
 - Coleta dos vereadores de 2017 em diante (`lumen painel vereadores`, fluxo `vereadores`, a cada 3 horas): os

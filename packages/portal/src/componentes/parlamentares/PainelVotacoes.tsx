@@ -127,9 +127,9 @@ function Lista({ ano, anos, dados, mudar, casa, camara }: { ano: string; anos: s
     <>
       <section className="cartao cartao-corpo filtro-periodo" aria-label="Filtros">
         <Escolha rotulo="Casa" className="escolha-larga" valor={casa}
-          onEscolher={(v) => mudar({ casa: v === "senado" ? "senado" : v.startsWith("municipal/") ? v.slice(10) : null, ano: null, id: null })}
+          onEscolher={(v) => mudar({ casa: v === "senado" ? "senado" : v.includes("/") ? v.split("/")[1]! : null, ano: null, id: null })}
           opcoes={[{ valor: "camara", rotulo: "Câmara dos Deputados" }, { valor: "senado", rotulo: "Senado Federal" },
-                   ...(camara ? [{ valor: casa, rotulo: `Câmara de ${camara[1]} (${camara[2]})` }] : [])]} />
+                   ...(camara ? [{ valor: casa, rotulo: `${daCasa(casa).nome} · ${camara[1]} (${camara[2]})` }] : [])]} />
         <Escolha rotulo="Ano" valor={ano} onEscolher={(v) => mudar({ ano: v, id: null })}
           opcoes={[...anos].reverse().map((a) => ({ valor: a, rotulo: a }))} />
         <Escolha rotulo="Tipo" valor={tipo} onEscolher={setTipo}

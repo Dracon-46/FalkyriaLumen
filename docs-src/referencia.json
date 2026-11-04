@@ -9303,36 +9303,43 @@
   {
    "caminho": "packages/painel/lumen_painel/camaras.py",
    "linguagem": "python",
-   "linhas": 81,
-   "doc": "As câmaras municipais com o SAPL do Interlegis e a API aberta (ADR-062): o cadastro que a coleta dos vereadores usa.\n\nO SAPL (Sistema de Apoio ao Processo Legislativo) do Interlegis guarda, em cada câmara que o usa, os vereadores, os\nmandatos e as filiações, as matérias com os autores, as sessões com a presença e as votações com o voto de cada um, e\ntem uma API REST aberta (``/api/``). As câmaras hospedadas pelo Interlegis ficam em ``sapl.<cidade>.<uf>.leg.br``, com\no nome do município sem acento, sem espaço e sem pontuação.\n\nO levantamento (``levantar``) testa esse endereço para cada município do cadastro, um pedido por câmara, alguns ao\nmesmo tempo (são servidores diferentes), e guarda as que responderam com o número de parlamentares que a câmara tem\nno SAPL. Em 3/11/2026, foram 1.192 das 5.570 (21%): 971 com matérias, 584 com ao menos 100 votos nominais (5,1 milhões\nde votos somados) e 870 com presença. Câmara com o SAPL noutro endereço fica de fora até entrar à mão\n(``ENDERECOS_EXTRAS``).",
+   "linhas": 93,
+   "doc": "As câmaras municipais com o SAPL do Interlegis e a API aberta (ADR-062): o cadastro que a coleta dos vereadores usa.\n\nO SAPL (Sistema de Apoio ao Processo Legislativo) do Interlegis guarda, em cada câmara que o usa, os vereadores, os\nmandatos e as filiações, as matérias com os autores, as sessões com a presença e as votações com o voto de cada um, e\ntem uma API REST aberta (``/api/``). As câmaras hospedadas pelo Interlegis ficam em ``sapl.<cidade>.<uf>.leg.br``, com\no nome do município sem acento, sem espaço e sem pontuação.\n\nO levantamento (``levantar``) testa esse endereço para cada município do cadastro, um pedido por câmara, alguns ao\nmesmo tempo (são servidores diferentes), e guarda as que responderam com o número de parlamentares que a câmara tem\nno SAPL. Em 3/11/2026, foram 1.192 das 5.570 (21%): 971 com matérias, 584 com ao menos 100 votos nominais (5,1 milhões\nde votos somados) e 870 com presença. Câmara com o SAPL noutro endereço fica de fora até entrar à mão\n(``ENDERECOS_EXTRAS``).\n\nO levantamento testa também as Assembleias Legislativas, em ``sapl.al.<uf>.leg.br``, guardadas com o código da UF\n(2 dígitos): em 4/11/2026, 9 responderam (AC, AL, AM, MT, PB, PI, RO, RR e TO).",
    "itens": [
     {
      "tipo": "funcao",
      "nome": "endereco",
      "assinatura": "def endereco(nome: str, uf: str) -> str",
      "doc": "O endereço padrão do SAPL hospedado pelo Interlegis (\"São José dos Campos\", \"SP\" →\n``sapl.saojosedoscampos.sp.leg.br``).",
-     "linha": 35
+     "linha": 38
+    },
+    {
+     "tipo": "funcao",
+     "nome": "endereco_assembleia",
+     "assinatura": "def endereco_assembleia(uf: str) -> str",
+     "doc": "O endereço do SAPL da Assembleia Legislativa hospedado pelo Interlegis (\"AM\" → ``sapl.al.am.leg.br``).",
+     "linha": 44
     },
     {
      "tipo": "funcao",
      "nome": "testar",
      "assinatura": "def testar(host: str, *, contato: str, abrir: Callable[..., object] | None=None) -> int | None",
      "doc": "Quantos parlamentares a câmara tem no SAPL, ou ``None`` se o endereço não responde com a API.",
-     "linha": 41
+     "linha": 49
     },
     {
      "tipo": "funcao",
      "nome": "levantar",
      "assinatura": "def levantar(estado: Path | str, cadastro: Cadastro, *, contato: str, testar_fn: Callable[..., int | None]=testar) -> dict",
-     "doc": "Testa o SAPL de cada município e grava ``ARQUIVO``: ``{código IBGE: [endereço, parlamentares]}``, com a data.",
-     "linha": 54
+     "doc": "Testa o SAPL de cada município e de cada Assembleia e grava ``ARQUIVO``: ``{código IBGE: [endereço,\nparlamentares]}``, com a data.",
+     "linha": 62
     },
     {
      "tipo": "funcao",
      "nome": "ler",
      "assinatura": "def ler(estado: Path | str) -> dict[str, list]",
      "doc": "As câmaras do último levantamento (vazio se ainda não houve).",
-     "linha": 74
+     "linha": 86
     }
    ]
   },
@@ -11955,155 +11962,176 @@
   {
    "caminho": "packages/painel/lumen_painel/vereadores.py",
    "linguagem": "python",
-   "linhas": 419,
-   "doc": "Os vereadores pelo SAPL do Interlegis (ADR-062): mandatos e partidos, projetos apresentados, presença nas sessões e\no voto de cada vereador nas votações nominais dos projetos, de 2017 em diante (os mandatos de 2017, 2021 e 2025).\n\nAs câmaras são as do levantamento (``camaras.py``). A API do SAPL (``/api/``) pagina de 100 em 100, em ordem\ncrescente de id, e não filtra por data nem por id; filtra as matérias por ano, os votos por votação e as pautas por\nmatéria. De cada câmara, a coleta lê:\n\n- ``parlamentares/parlamentar``, ``mandato``, ``filiacao`` e ``partido``: os vereadores, os períodos de mandato e o\n  partido em cada data; ``base/autor`` liga o autor da matéria ao vereador (o autor do tipo \"Parlamentar\");\n- ``materia/materialegislativa?ano=AAAA``: as matérias de cada ano com os autores. As dos tipos de projeto (projetos\n  de lei, de lei complementar, de decreto legislativo e de resolução e emendas à Lei Orgânica, pela descrição do\n  tipo, que cada câmara cadastra do seu jeito) ficam com a ementa; as demais (requerimentos, indicações, moções) são\n  só contadas por tipo. O ano corrente e o anterior são relidos a cada coleta da câmara; os outros, uma vez;\n- ``sessao/sessaoplenaria`` e ``sessaoplenariapresenca``: as sessões e quem esteve nelas. A presença conta só as\n  sessões com alguma presença registrada, para não pesar contra o vereador a sessão que a câmara não registrou;\n- ``sessao/registrovotacao``: as votações, lidas a partir da página em que a leitura anterior parou. Ficam as dos\n  projetos; de cada uma, os votos (``votoparlamentar?votacao=``) e a data, pela pauta (``ordemdia`` e\n  ``expedientemateria`` da matéria). Votação sem voto por vereador (simbólica) fica registrada, sem votos, e não é\n  publicada.\n\nO estado fica num arquivo por UF (``vereadores-<UF>.json.gz``), com as câmaras do estado. Cada câmara é relida no\nmáximo uma vez a cada ``DIAS_ENTRE_COLETAS`` dias; a que não termina no prazo guarda o que leu e continua na próxima.\nA publicação usa a dos deputados e senadores (``camara.publicar_casa``), em ``parlamentares/municipal/<IBGE>/``.",
+   "linhas": 464,
+   "doc": "Os vereadores pelo SAPL do Interlegis (ADR-062): mandatos e partidos, projetos apresentados, presença nas sessões e\no voto de cada vereador nas votações nominais dos projetos, de 2017 em diante (os mandatos de 2017, 2021 e 2025).\n\nAs câmaras são as do levantamento (``camaras.py``). A API do SAPL (``/api/``) pagina de 100 em 100, em ordem\ncrescente de id, e não filtra por data nem por id; filtra as matérias por ano, os votos por votação e as pautas por\nmatéria. De cada câmara, a coleta lê:\n\n- ``parlamentares/parlamentar``, ``mandato``, ``filiacao`` e ``partido``: os vereadores, os períodos de mandato e o\n  partido em cada data; ``base/autor`` liga o autor da matéria ao vereador (o autor do tipo \"Parlamentar\");\n- ``materia/materialegislativa?ano=AAAA``: as matérias de cada ano com os autores. As dos tipos de projeto (projetos\n  de lei, de lei complementar, de decreto legislativo e de resolução e emendas à Lei Orgânica, pela descrição do\n  tipo, que cada câmara cadastra do seu jeito) ficam com a ementa; as demais (requerimentos, indicações, moções) são\n  só contadas por tipo. O ano corrente e o anterior são relidos a cada coleta da câmara; os outros, uma vez;\n- ``sessao/sessaoplenaria`` e ``sessaoplenariapresenca``: as sessões e quem esteve nelas. A presença conta só as\n  sessões com alguma presença registrada, para não pesar contra o vereador a sessão que a câmara não registrou;\n- ``sessao/registrovotacao``: as votações, lidas a partir da página em que a leitura anterior parou. Ficam as dos\n  projetos; de cada uma, os votos (``votoparlamentar?votacao=``) e a data, pela pauta (``ordemdia`` e\n  ``expedientemateria`` da matéria). Votação sem voto por vereador (simbólica) fica registrada, sem votos, e não é\n  publicada.\n\nO estado fica num arquivo por UF (``vereadores-<UF>.json.gz``), com as câmaras do estado. Cada câmara é relida no\nmáximo uma vez a cada ``DIAS_ENTRE_COLETAS`` dias; a que não termina no prazo guarda o que leu e continua na próxima.\nA publicação usa a dos deputados e senadores (``camara.publicar_casa``), em ``parlamentares/municipal/<IBGE>/``.\n\nAs Assembleias Legislativas que usam o SAPL (``sapl.al.<uf>.leg.br``; 9 em 4/11/2026: AC, AL, AM, MT, PB, PI, RO, RR\ne TO) entram pelo mesmo caminho: estão no levantamento com o código da UF (2 dígitos), e a publicação vai para\n``parlamentares/estadual/<código da UF>/``, com as legislaturas estaduais (de 1º de fevereiro a 31 de janeiro).",
    "itens": [
     {
      "tipo": "classe",
      "nome": "_Prazo",
      "assinatura": "class _Prazo(Exception)",
      "doc": "O prazo da coleta acabou no meio de uma câmara.",
-     "linha": 57
+     "linha": 63
     },
     {
      "tipo": "funcao",
      "nome": "no_mandato",
      "assinatura": "def no_mandato(dia: str, legislaturas: Iterable[int]) -> bool",
      "doc": "Se o dia cai num dos mandatos municipais do vereador (de 1º de janeiro a 31 de dezembro do quarto ano).",
-     "linha": 61
+     "linha": 67
+    },
+    {
+     "tipo": "funcao",
+     "nome": "no_mandato_estadual",
+     "assinatura": "def no_mandato_estadual(dia: str, legislaturas: Iterable[int]) -> bool",
+     "doc": "Se o dia cai numa das legislaturas estaduais do deputado (de 1º de fevereiro a 31 de janeiro do quinto ano).",
+     "linha": 72
+    },
+    {
+     "tipo": "funcao",
+     "nome": "esfera",
+     "assinatura": "def esfera(codigo: str) -> str",
+     "doc": "``estadual`` para a Assembleia (código da UF, 2 dígitos), ``municipal`` para a câmara (código IBGE, 7).",
+     "linha": 77
     },
     {
      "tipo": "funcao",
      "nome": "e_projeto",
      "assinatura": "def e_projeto(descricao: str | None) -> bool",
      "doc": "Se o tipo de matéria é de projeto, pela descrição (\"Projeto de Lei (Executivo)\", \"emenda a lei organica\"); as\nemendas a projeto, os requerimentos e as indicações não são.",
-     "linha": 66
+     "linha": 90
     },
     {
      "tipo": "classe",
      "nome": "Api",
      "assinatura": "class Api",
      "doc": "Os pedidos à API do SAPL de uma câmara, com o prazo da coleta.",
-     "linha": 74
+     "linha": 98
     },
     {
      "tipo": "metodo",
      "nome": "Api.__init__",
-     "assinatura": "def __init__(self, host: str, *, contato: str, ler_fn: Callable[[str], Any] | None=None, prazo: float | None=None, relogio: Callable[[], float]=time.monotonic)",
+     "assinatura": "def __init__(self, host: str, *, contato: str, ler_fn: Callable[[str], Any] | None=None, prazo: float | None=None, relogio: Callable[[], float]=time.monotonic, esperar: Callable[[float], None]=time.sleep)",
      "doc": "A câmara (``host``), o contato do User-Agent e o prazo (no relógio ``relogio``); ``ler_fn`` substitui a rede\nnos testes.",
-     "linha": 77
+     "linha": 101
     },
     {
      "tipo": "metodo",
      "nome": "Api.obter",
      "assinatura": "def obter(self, caminho: str, **filtros: Any) -> dict",
-     "doc": "Uma página da API (``caminho`` como ``sessao/votoparlamentar``), em JSON.",
-     "linha": 84
+     "doc": "Uma página da API (``caminho`` como ``sessao/votoparlamentar``), em JSON. O 404 é pedido de novo, com uma\npausa, até ``TENTATIVAS_404`` vezes: o SAPL às vezes o responde a um pedido que funciona logo depois.",
+     "linha": 110
+    },
+    {
+     "tipo": "metodo",
+     "nome": "Api._ler",
+     "assinatura": "def _ler(self, url: str) -> dict",
+     "doc": "O JSON do endereço, pela rede (com as novas tentativas de ``tce.abrir`` para erro 5xx) ou por ``ler_fn``.",
+     "linha": 126
     },
     {
      "tipo": "metodo",
      "nome": "Api.retomar",
      "assinatura": "def retomar(self, caminho: str, pagina: int, **filtros: Any) -> tuple[dict, int]",
      "doc": "A página em que a leitura anterior parou e o número dela. Se a página não existe mais (a câmara apagou\nlinhas e o total encolheu: a API responde 404), volta à primeira.",
-     "linha": 96
+     "linha": 134
     },
     {
      "tipo": "metodo",
      "nome": "Api.listar",
      "assinatura": "def listar(self, caminho: str, *, desde: int=0, **filtros: Any) -> tuple[list[dict], int]",
      "doc": "As linhas a partir da página da linha ``desde`` (a página em que a leitura anterior parou, relida inteira)\ne o total de linhas.",
-     "linha": 106
+     "linha": 144
     },
     {
      "tipo": "funcao",
      "nome": "_cadastro",
      "assinatura": "def _cadastro(api: Api, c: dict) -> None",
      "doc": "Os vereadores, os mandatos, as filiações (com a sigla do partido) e os autores que são vereadores.",
-     "linha": 121
+     "linha": 159
     },
     {
      "tipo": "funcao",
      "nome": "_materias",
      "assinatura": "def _materias(api: Api, c: dict, hoje: date) -> None",
      "doc": "As matérias de cada ano (o corrente e o anterior sempre; os outros, só se nunca lidos): os projetos com a\nementa e os autores, e a contagem de todas por tipo e vereador.",
-     "linha": 143
+     "linha": 181
     },
     {
      "tipo": "funcao",
      "nome": "_presenca",
      "assinatura": "def _presenca(api: Api, c: dict) -> None",
      "doc": "As sessões de 2017 em diante e a presença, a partir da página em que a leitura anterior parou.",
-     "linha": 164
+     "linha": 202
     },
     {
      "tipo": "funcao",
      "nome": "_votacoes",
      "assinatura": "def _votacoes(api: Api, c: dict) -> None",
      "doc": "As votações dos projetos, a partir da página em que a leitura anterior parou: a data pela pauta, o resultado e\nos votos. O contador só anda depois que a página inteira foi lida.",
-     "linha": 179
+     "linha": 217
     },
     {
      "tipo": "funcao",
      "nome": "vazia",
      "assinatura": "def vazia(host: str) -> dict",
      "doc": "O estado de uma câmara ainda não lida.",
-     "linha": 214
+     "linha": 252
     },
     {
      "tipo": "funcao",
      "nome": "coletar_camara",
      "assinatura": "def coletar_camara(c: dict, api: Api, hoje: date) -> bool",
      "doc": "Lê uma câmara sobre o estado ``c`` (alterado no lugar). Devolve se terminou; no prazo, guarda o que leu (o\ncadastro, os anos de matérias, a presença e as votações até a última página inteira) e devolve ``False``.",
-     "linha": 221
+     "linha": 259
     },
     {
      "tipo": "funcao",
      "nome": "ler_estado",
      "assinatura": "def ler_estado(estado: Path | str, uf: str) -> dict[str, dict]",
      "doc": "As câmaras de uma UF (vazio se ainda não houve coleta).",
-     "linha": 239
+     "linha": 277
     },
     {
      "tipo": "funcao",
      "nome": "_gravar",
      "assinatura": "def _gravar(estado: Path | str, uf: str, camaras_uf: dict[str, dict]) -> None",
      "doc": "Grava o arquivo das câmaras de uma UF.",
-     "linha": 250
+     "linha": 288
     },
     {
      "tipo": "funcao",
      "nome": "_idade",
      "assinatura": "def _idade(c: dict | None, hoje: date) -> int",
      "doc": "Dias desde a última coleta que terminou ou falhou (a interrompida pelo prazo não conta: continua logo).",
-     "linha": 258
+     "linha": 296
     },
     {
      "tipo": "funcao",
      "nome": "coletar",
-     "assinatura": "def coletar(estado: Path | str, cadastro: Cadastro, *, contato: str, hoje: date | None=None, ufs: list[str] | None=None, municipios: list[str] | None=None, limite_minutos: float | None=None, simultaneos: int=SIMULTANEOS, ler_fn: Callable[[str], Any] | None=None, relogio: Callable[[], float]=time.monotonic) -> dict",
+     "assinatura": "def coletar(estado: Path | str, cadastro: Cadastro, *, contato: str, hoje: date | None=None, ufs: list[str] | None=None, municipios: list[str] | None=None, limite_minutos: float | None=None, simultaneos: int=SIMULTANEOS, ler_fn: Callable[[str], Any] | None=None, relogio: Callable[[], float]=time.monotonic, esperar: Callable[[float], None]=time.sleep) -> dict",
      "doc": "Lê as câmaras do levantamento que passaram de ``DIAS_ENTRE_COLETAS`` dias (as nunca lidas primeiro, depois as\nmais antigas), algumas ao mesmo tempo, e grava o arquivo de cada UF. Devolve o resumo.",
-     "linha": 266
+     "linha": 304
     },
     {
      "tipo": "funcao",
      "nome": "_partido",
      "assinatura": "def _partido(filiacoes: list[list], dia: str) -> str",
      "doc": "A sigla do partido do vereador no dia (a filiação mais recente começada até o dia e não encerrada antes).",
-     "linha": 333
+     "linha": 371
     },
     {
      "tipo": "funcao",
      "nome": "montar",
-     "assinatura": "def montar(c: dict, uf: str) -> dict",
-     "doc": "O estado de uma câmara no formato da publicação comum (``camara.publicar_casa``).",
-     "linha": 342
+     "assinatura": "def montar(c: dict, uf: str, tipo: str='municipal') -> dict",
+     "doc": "O estado de uma câmara (ou Assembleia, com ``tipo`` ``estadual``) no formato da publicação comum\n(``camara.publicar_casa``).",
+     "linha": 380
     },
     {
      "tipo": "funcao",
      "nome": "publicar",
      "assinatura": "def publicar(estado: Path | str, cadastro: Cadastro, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> dict | None",
-     "doc": "Grava ``parlamentares/municipal/<IBGE>/`` de cada câmara com dados (como os deputados) e o índice das câmaras\n(``parlamentares/municipal/indice.json``); devolve o resumo para o índice do site.",
-     "linha": 394
+     "doc": "Grava ``parlamentares/<esfera>/<código>/`` de cada câmara e Assembleia com dados (como os deputados) e o índice\nde cada esfera (``parlamentares/municipal/indice.json`` e ``parlamentares/estadual/indice.json``); devolve o\nresumo para o índice do site.",
+     "linha": 434
     }
    ]
   },
@@ -14463,7 +14491,7 @@
      "tipo": "funcao",
      "nome": "codigoNaUrl",
      "assinatura": "export function codigoNaUrl(caminho: string, params: URLSearchParams): string | null",
-     "doc": "O local que a URL da aba aberta indica, ou `null` se ela está no Brasil ou não é de uma área com local:\n`?ente=` em Contratações, Conformidade, Estatais e Avisos; `?uf=` em Conformidade; `?a=mu-…` ou `?a=uf-…` em Eleições;\na câmara municipal (`?casa=` ou `?municipio=`) em Parlamentares.\nSó o código: o nome vem do cadastro.",
+     "doc": "O local que a URL da aba aberta indica, ou `null` se ela está no Brasil ou não é de uma área com local:\n`?ente=` em Contratações, Conformidade, Estatais e Avisos; `?uf=` em Conformidade; `?a=mu-…` ou `?a=uf-…` em Eleições;\na câmara municipal ou a Assembleia (`?casa=` ou `?municipio=`) em Parlamentares.\nSó o código: o nome vem do cadastro.",
      "linha": 73
     },
     {
@@ -15444,7 +15472,7 @@
   {
    "caminho": "packages/portal/src/lib/parlamentares.ts",
    "linguagem": "typescript",
-   "linhas": 380,
+   "linhas": 399,
    "doc": "Parlamentares (ADR-060): os deputados federais pelos arquivos de dados abertos da Câmara, publicados com os\npainéis em `parlamentares/camara/`. O índice lista todos, com os totais; cada deputado tem o próprio arquivo, com os\nvotos nominais do Plenário, a presença nas sessões deliberativas, as proposições que apresentou e a cota\nparlamentar, por ano; as votações (data, proposição, resultado e orientação do Governo) ficam num arquivo por ano.",
    "itens": [
     {
@@ -15534,247 +15562,261 @@
     {
      "tipo": "tipo",
      "nome": "Casa",
-     "assinatura": "export type Casa = \"camara\" | \"senado\" | `municipal/${string}`;",
-     "doc": "A casa legislativa: a Câmara dos Deputados, o Senado Federal ou uma câmara municipal (`municipal/<IBGE>`, ADR-062).",
-     "linha": 103
+     "assinatura": "export type Casa = \"camara\" | \"senado\" | `municipal/${string}` | `estadual/${string}`;",
+     "doc": "A casa legislativa: a Câmara dos Deputados, o Senado Federal, uma câmara municipal (`municipal/<IBGE>`) ou uma\nAssembleia Legislativa (`estadual/<código da UF>`), as duas pelo SAPL (ADR-062).",
+     "linha": 106
     },
     {
      "tipo": "tipo",
      "nome": "TipoDeCasa",
-     "assinatura": "export type TipoDeCasa = \"camara\" | \"senado\" | \"municipal\";",
+     "assinatura": "export type TipoDeCasa = \"camara\" | \"senado\" | \"municipal\" | \"estadual\";",
      "doc": "O tipo da casa, que dá os textos e o tipo dos arquivos.",
-     "linha": 105
-    },
-    {
-     "tipo": "constante",
-     "nome": "tipoDaCasa",
-     "assinatura": "export const tipoDaCasa = (casa: Casa): TipoDeCasa => (casa.startsWith(\"municipal/\") ? \"municipal\" : casa as TipoDeCasa);",
-     "doc": "O tipo da casa (`municipal/3509502` → `municipal`).",
      "linha": 108
     },
     {
      "tipo": "constante",
-     "nome": "municipioDaCasa",
-     "assinatura": "export const municipioDaCasa = (casa: Casa): string | null => (casa.startsWith(\"municipal/\") ? casa.slice(10) : null);",
-     "doc": "O código IBGE do município da câmara municipal, ou null nas casas federais.",
+     "nome": "tipoDaCasa",
+     "assinatura": "export const tipoDaCasa = (casa: Casa): TipoDeCasa => (casa.split(\"/\")[0] as TipoDeCasa);",
+     "doc": "O tipo da casa (`municipal/3509502` → `municipal`, `estadual/13` → `estadual`).",
      "linha": 111
+    },
+    {
+     "tipo": "constante",
+     "nome": "codigoDaCasa",
+     "assinatura": "export const codigoDaCasa = (casa: Casa): string | null => (casa.includes(\"/\") ? casa.split(\"/\")[1]! : null);",
+     "doc": "O código IBGE do município ou da UF da casa pelo SAPL, ou null nas casas federais.",
+     "linha": 114
+    },
+    {
+     "tipo": "constante",
+     "nome": "casaDoSapl",
+     "assinatura": "export const casaDoSapl = (casa: Casa): boolean => codigoDaCasa(casa) !== null;",
+     "doc": "Se a casa é lida do SAPL (câmara municipal ou Assembleia): sem foto, sem cota, com os links no SAPL.",
+     "linha": 117
     },
     {
      "tipo": "interface",
      "nome": "DescricaoDaCasa",
      "assinatura": "export interface DescricaoDaCasa",
      "doc": "Os textos de uma casa: o nome, quem tem mandato nela, a rota da página da pessoa e os rótulos dos números.",
-     "linha": 117
+     "linha": 123
     },
     {
      "tipo": "constante",
      "nome": "CASAS",
      "assinatura": "export const CASAS: Record<TipoDeCasa, DescricaoDaCasa> =",
      "doc": "Os textos de cada tipo de casa.",
-     "linha": 137
+     "linha": 143
     },
     {
      "tipo": "constante",
      "nome": "daCasa",
      "assinatura": "export const daCasa = (casa: Casa): DescricaoDaCasa => CASAS[tipoDaCasa(casa)];",
      "doc": "Os textos da casa.",
-     "linha": 152
+     "linha": 163
     },
     {
      "tipo": "constante",
      "nome": "casaDaUrl",
      "assinatura": "export const casaDaUrl = (valor: string | null): Casa =>",
-     "doc": "A casa pelo parâmetro da URL: `?casa=senado`, `?casa=<IBGE do município>` ou, sem ele, a Câmara.",
-     "linha": 155
+     "doc": "A casa pelo parâmetro da URL: `?casa=senado`, `?casa=<IBGE do município>`, `?casa=<código da UF>` (a Assembleia) ou,\nsem ele, a Câmara.",
+     "linha": 169
     },
     {
      "tipo": "constante",
      "nome": "consultaDaCasa",
      "assinatura": "export const consultaDaCasa = (casa: Casa): string =>",
      "doc": "O parâmetro da casa para a URL, com o `&` no fim (vazio para a Câmara).",
-     "linha": 159
+     "linha": 174
+    },
+    {
+     "tipo": "tipo",
+     "nome": "Esfera",
+     "assinatura": "export type Esfera = \"municipal\" | \"estadual\";",
+     "doc": "A esfera das casas pelo SAPL: as câmaras municipais ou as Assembleias.",
+     "linha": 178
     },
     {
      "tipo": "tipo",
      "nome": "CamaraMunicipal",
      "assinatura": "export type CamaraMunicipal = [string, string, string, string, number, number, string[]];",
-     "doc": "Uma câmara municipal no índice: `[IBGE, município, UF, endereço do SAPL, vereadores, votações, anos]`.",
-     "linha": 163
+     "doc": "Uma casa pelo SAPL no índice: `[código IBGE, município ou UF, UF, endereço do SAPL, parlamentares, votações, anos]`.",
+     "linha": 181
     },
     {
      "tipo": "interface",
      "nome": "IndiceMunicipal",
      "assinatura": "interface IndiceMunicipal",
-     "doc": "Arquivo `parlamentares/municipal/indice.json`: as câmaras municipais com dados do SAPL (ADR-062).",
-     "linha": 166
+     "doc": "Arquivo `parlamentares/<esfera>/indice.json`: as câmaras municipais ou as Assembleias com dados do SAPL (ADR-062).",
+     "linha": 184
     },
     {
      "tipo": "funcao",
      "nome": "carregarCamarasMunicipais",
-     "assinatura": "export async function carregarCamarasMunicipais(sinal?: AbortSignal): Promise<CamaraMunicipal[]>",
-     "doc": "As câmaras municipais publicadas (vazio quando ainda não há nenhuma).",
-     "linha": 173
+     "assinatura": "export async function carregarCamarasMunicipais(sinal?: AbortSignal, esfera: Esfera = \"municipal\"): Promise<CamaraMunicipal[]>",
+     "doc": "As câmaras municipais (ou, com `esfera` `estadual`, as Assembleias) publicadas; vazio quando não há nenhuma.",
+     "linha": 191
     },
     {
      "tipo": "funcao",
      "nome": "carregarCamaraDaCasa",
      "assinatura": "export async function carregarCamaraDaCasa(casa: Casa, sinal?: AbortSignal): Promise<CamaraMunicipal | null>",
-     "doc": "A câmara municipal da casa (null nas casas federais ou quando ela não está publicada).",
-     "linha": 180
+     "doc": "A câmara municipal ou a Assembleia da casa (null nas casas federais ou quando ela não está publicada).",
+     "linha": 198
     },
     {
      "tipo": "funcao",
      "nome": "carregarIndiceCamara",
      "assinatura": "export async function carregarIndiceCamara(sinal?: AbortSignal, casa: Casa = \"camara\"): Promise<IndiceCamara | null>",
      "doc": "O índice dos parlamentares da casa; `null` quando ainda não foi publicado.",
-     "linha": 187
+     "linha": 206
     },
     {
      "tipo": "funcao",
      "nome": "carregarDeputado",
      "assinatura": "export async function carregarDeputado(id: string, sinal?: AbortSignal, casa: Casa = \"camara\"): Promise<Deputado | null>",
      "doc": "O arquivo de um deputado; `null` quando ele não está no Lumen.",
-     "linha": 194
+     "linha": 213
     },
     {
      "tipo": "funcao",
      "nome": "carregarVotacoes",
      "assinatura": "export async function carregarVotacoes(ano: string, sinal?: AbortSignal, casa: Casa = \"camara\"): Promise<Record<string, Votacao>>",
      "doc": "As votações nominais do Plenário num ano (vazio quando o arquivo não existe).",
-     "linha": 202
+     "linha": 221
     },
     {
      "tipo": "funcao",
      "nome": "carregarVotosDoAno",
      "assinatura": "export async function carregarVotosDoAno(ano: string, sinal?: AbortSignal, casa: Casa = \"camara\"): Promise<Record<string, VotoNaVotacao[]>>",
      "doc": "Os votos de cada votação nominal do ano (vazio quando o arquivo não existe).",
-     "linha": 209
+     "linha": 228
     },
     {
      "tipo": "interface",
      "nome": "PlacarPartido",
      "assinatura": "export interface PlacarPartido",
      "doc": "O placar de um partido numa votação.",
-     "linha": 216
+     "linha": 235
     },
     {
      "tipo": "funcao",
      "nome": "placarPorPartido",
      "assinatura": "export function placarPorPartido(votos: VotoNaVotacao[]): PlacarPartido[]",
      "doc": "O placar de cada partido numa votação, do partido com mais votos ao com menos.",
-     "linha": 227
+     "linha": 246
     },
     {
      "tipo": "funcao",
      "nome": "tipoDaProposicao",
      "assinatura": "export function tipoDaProposicao(titulo: string): string",
      "doc": "O tipo da proposição pelo título (\"PEC 45/2019\" → \"PEC\"); sem título, \"Outras\".",
-     "linha": 243
+     "linha": 262
     },
     {
      "tipo": "constante",
      "nome": "urlDaVotacao",
      "assinatura": "export const urlDaVotacao = (ano: string, id: string, casa: Casa = \"camara\") =>",
      "doc": "A página da votação no Lumen.",
-     "linha": 248
+     "linha": 267
     },
     {
      "tipo": "constante",
      "nome": "urlDoParlamentar",
      "assinatura": "export const urlDoParlamentar = (id: string, casa: Casa = \"camara\", ano?: string | null) =>",
      "doc": "A página do parlamentar no Lumen.",
-     "linha": 252
+     "linha": 271
     },
     {
      "tipo": "constante",
      "nome": "fotoDoDeputado",
      "assinatura": "export const fotoDoDeputado = (id: string, casa: Casa = \"camara\"): string | null => casa === \"senado\"",
-     "doc": "A foto oficial do parlamentar no site da casa; null na câmara municipal (o SAPL não tem endereço fixo da foto).",
-     "linha": 256
+     "doc": "A foto oficial do parlamentar no site da casa; null nas casas pelo SAPL (ele não tem endereço fixo da foto).",
+     "linha": 275
     },
     {
      "tipo": "constante",
      "nome": "paginaNaCamara",
      "assinatura": "export const paginaNaCamara = (id: string, casa: Casa = \"camara\", host?: string | null): string | null => casa === \"senado\"",
      "doc": "A página do parlamentar no site da casa (na câmara municipal, no SAPL do endereço `host`).",
-     "linha": 260
+     "linha": 279
     },
     {
      "tipo": "constante",
      "nome": "proposicaoNaCamara",
      "assinatura": "export const proposicaoNaCamara = (id: string, casa: Casa = \"camara\", host?: string | null): string | null => casa === \"senado\"",
      "doc": "A página da proposição (ou matéria, no Senado e no SAPL do endereço `host`) no site da casa.",
-     "linha": 264
+     "linha": 283
     },
     {
      "tipo": "funcao",
      "nome": "votoPorExtenso",
      "assinatura": "export function votoPorExtenso(v: string): string",
      "doc": "O voto por extenso.",
-     "linha": 273
+     "linha": 292
     },
     {
      "tipo": "funcao",
      "nome": "filtrarDeputados",
      "assinatura": "export function filtrarDeputados(linhas: LinhaDeputado[], filtro: { termo?: string; uf?: string | null; partido?: string | null })",
      "doc": "Os deputados que casam com a busca pelo nome (começo das palavras) e com a UF e o partido escolhidos.",
-     "linha": 280
+     "linha": 299
     },
     {
      "tipo": "funcao",
      "nome": "numerosNoPeriodo",
      "assinatura": "export function numerosNoPeriodo(linha: LinhaDeputado, anos: string[] | null): Numeros",
      "doc": "Os números do deputado nos anos pedidos (todos quando `anos` é null), somados.",
-     "linha": 291
+     "linha": 310
     },
     {
      "tipo": "funcao",
      "nome": "apareceNoPeriodo",
      "assinatura": "export function apareceNoPeriodo(linha: LinhaDeputado, anos: string[] | null): boolean",
      "doc": "Se o deputado tem algo nos anos pedidos: voto, proposição, sessão em exercício ou cota.",
-     "linha": 300
+     "linha": 319
     },
     {
      "tipo": "funcao",
      "nome": "anosEscolhidos",
      "assinatura": "function anosEscolhidos(d: Deputado, ano: string | null): AnoDeputado[]",
      "doc": "Os anos do deputado escolhidos: um ano, ou todos quando `ano` é null.",
-     "linha": 305
+     "linha": 324
     },
     {
      "tipo": "funcao",
      "nome": "totaisDoDeputado",
      "assinatura": "export function totaisDoDeputado(d: Deputado, ano: string | null)",
      "doc": "Os totais do deputado nos anos escolhidos.",
-     "linha": 310
+     "linha": 329
     },
     {
      "tipo": "funcao",
      "nome": "cotaDoDeputado",
      "assinatura": "export function cotaDoDeputado(d: Deputado, ano: string | null)",
      "doc": "A cota somada nos anos escolhidos: por categoria e por fornecedor (do maior valor ao menor), e a pessoa física.",
-     "linha": 328
+     "linha": 347
     },
     {
      "tipo": "funcao",
      "nome": "cotaPorMes",
      "assinatura": "export function cotaPorMes(d: Deputado, ano: string): { mes: string; valor: number }[]",
      "doc": "A cota por mês de um ano, de janeiro a dezembro (os meses sem despesa ficam fora).",
-     "linha": 353
+     "linha": 372
     },
     {
      "tipo": "interface",
      "nome": "VotoComVotacao",
      "assinatura": "export interface VotoComVotacao",
      "doc": "Um voto com a votação: o que a tabela mostra.",
-     "linha": 359
+     "linha": 378
     },
     {
      "tipo": "funcao",
      "nome": "votosComVotacoes",
      "assinatura": "export function votosComVotacoes(d: Deputado, ano: string | null, votacoes: Record<string, Record<string, Votacao>>): VotoComVotacao[]",
      "doc": "Os votos do deputado nos anos escolhidos, com as votações, do mais recente ao mais antigo.",
-     "linha": 369
+     "linha": 388
     }
    ]
   },
@@ -17890,6 +17932,50 @@
      "assinatura": "export default function PaginaDeputado()",
      "doc": "Título, a volta para a lista e o painel, que lê a URL com `useSearchParams` e por isso fica dentro de `Suspense`.",
      "linha": 20
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/app/parlamentares/deputado-estadual/page.tsx",
+   "linguagem": "typescript",
+   "linhas": 32,
+   "doc": "Página `/parlamentares/deputado-estadual/?casa=<código da UF>&id=`: um deputado estadual pelo id no SAPL da\nAssembleia (ADR-062). O trabalho é do `PainelDeputado`, o mesmo dos deputados federais, com a casa da URL.",
+   "itens": [
+    {
+     "tipo": "constante",
+     "nome": "metadata",
+     "assinatura": "export const metadata: Metadata =",
+     "doc": "Título e descrição da página, usados pelo navegador e nas prévias de link.",
+     "linha": 12
+    },
+    {
+     "tipo": "componente",
+     "nome": "PaginaDeputadoEstadual",
+     "assinatura": "export default function PaginaDeputadoEstadual()",
+     "doc": "Título, a volta para as Assembleias e o painel, que lê a URL com `useSearchParams` e por isso fica dentro de `Suspense`.",
+     "linha": 20
+    }
+   ]
+  },
+  {
+   "caminho": "packages/portal/src/app/parlamentares/estaduais/page.tsx",
+   "linguagem": "typescript",
+   "linhas": 30,
+   "doc": "Página `/parlamentares/estaduais/`: as Assembleias Legislativas com dados do SAPL do Interlegis (ADR-062). O\ntrabalho é do `PainelCamaras`, com a esfera estadual, que lê `parlamentares/estadual/indice.json`.",
+   "itens": [
+    {
+     "tipo": "constante",
+     "nome": "metadata",
+     "assinatura": "export const metadata: Metadata =",
+     "doc": "Título e descrição da página, usados pelo navegador e nas prévias de link.",
+     "linha": 11
+    },
+    {
+     "tipo": "componente",
+     "nome": "DeputadosEstaduais",
+     "assinatura": "export default function DeputadosEstaduais()",
+     "doc": "Título e o painel, que lê a URL com `useSearchParams` e por isso fica dentro de `Suspense`.",
+     "linha": 19
     }
    ]
   },
@@ -20078,13 +20164,13 @@
   {
    "caminho": "packages/portal/src/componentes/parlamentares/NavParlamentares.tsx",
    "linguagem": "typescript",
-   "linhas": 18,
-   "doc": "A navegação dentro da aba Parlamentares (ADR-060): os deputados federais, os senadores, os vereadores (ADR-062) e as\nvotações.",
+   "linhas": 19,
+   "doc": "A navegação dentro da aba Parlamentares (ADR-060): os deputados federais, os senadores, os deputados estaduais e os\nvereadores (ADR-062) e as votações.",
    "itens": [
     {
      "tipo": "componente",
      "nome": "NavParlamentares",
-     "assinatura": "export function NavParlamentares({ atual }: { atual: \"deputados\" | \"senadores\" | \"vereadores\" | \"votacoes\" })",
+     "assinatura": "export function NavParlamentares({ atual }: { atual: \"deputados\" | \"senadores\" | \"estaduais\" | \"vereadores\" | \"votacoes\" })",
      "doc": "Os links, com o da página aberta marcado.",
      "linha": 9
     }
@@ -20093,108 +20179,108 @@
   {
    "caminho": "packages/portal/src/componentes/parlamentares/PainelCamaras.tsx",
    "linguagem": "typescript",
-   "linhas": 133,
-   "doc": "A lista das câmaras municipais com dados do SAPL do Interlegis (ADR-062): filtros de UF e de nome na URL (`?uf=`,\n`?busca=`) e o município escolhido no cabeçalho (`?municipio=`) em destaque. Cada câmara abre a lista dos vereadores.",
+   "linhas": 140,
+   "doc": "A lista das câmaras municipais com dados do SAPL do Interlegis (ADR-062): filtros de UF e de nome na URL (`?uf=`,\n`?busca=`) e o município escolhido no cabeçalho (`?municipio=`) em destaque. Cada câmara abre a lista dos vereadores.\nCom `esfera` `estadual`, a mesma lista para as Assembleias Legislativas que usam o SAPL.",
    "itens": [
     {
      "tipo": "componente",
      "nome": "PainelCamaras",
-     "assinatura": "export function PainelCamaras()",
-     "doc": "A página: as câmaras publicadas, filtradas e ordenáveis.",
-     "linha": 23
+     "assinatura": "export function PainelCamaras({ esfera = \"municipal\" }: { esfera?: Esfera })",
+     "doc": "A página: as câmaras (ou Assembleias) publicadas, filtradas e ordenáveis.",
+     "linha": 24
     }
    ]
   },
   {
    "caminho": "packages/portal/src/componentes/parlamentares/PainelDeputado.tsx",
    "linguagem": "typescript",
-   "linhas": 402,
-   "doc": "A página de um deputado federal (ADR-060), pelo id da Câmara (`?id=`): os totais, os votos nominais no Plenário com\na votação e a orientação do Governo, as proposições que apresentou e a cota parlamentar, num ano (`?ano=`) ou em\ntodos. São os fatos como a Câmara publica: a página não pontua nem ordena ninguém. A mesma página mostra o senador e\no vereador (ADR-062), com os textos da casa.",
+   "linhas": 404,
+   "doc": "A página de um deputado federal (ADR-060), pelo id da Câmara (`?id=`): os totais, os votos nominais no Plenário com\na votação e a orientação do Governo, as proposições que apresentou e a cota parlamentar, num ano (`?ano=`) ou em\ntodos. São os fatos como a Câmara publica: a página não pontua nem ordena ninguém. A mesma página mostra o senador e\no vereador e o deputado estadual (ADR-062), com os textos da casa.",
    "itens": [
     {
      "tipo": "tipo",
      "nome": "Estado",
      "assinatura": "type Estado = { fase: \"carregando\" } | { fase: \"pronto\"; deputado: Deputado | null } | { fase: \"erro\"; erro: string };",
      "doc": "Carregando, o deputado lido (null quando não está no Lumen) ou o erro.",
-     "linha": 49
+     "linha": 50
     },
     {
      "tipo": "componente",
      "nome": "PainelDeputado",
      "assinatura": "export function PainelDeputado({ casa: casaFixa }: { casa?: Casa })",
      "doc": "A página: lê o parlamentar (da casa passada ou, sem ela, da casa da URL) e as votações dos anos dele.",
-     "linha": 52
+     "linha": 53
     },
     {
      "tipo": "interface",
      "nome": "Metrica",
      "assinatura": "interface Metrica",
      "doc": "Uma medida do gráfico ano a ano: o rótulo, o valor num ano e os formatos.",
-     "linha": 160
+     "linha": 162
     },
     {
      "tipo": "componente",
      "nome": "AnoAAno",
      "assinatura": "function AnoAAno({ d, anos, ano, onAno, semCota }: { d: Deputado; anos: string[]; ano: string | null; onAno: (a: string | null) => void; semCota?: boolean })",
      "doc": "O ano a ano de uma medida, à escolha; clicar numa barra filtra a página por aquele ano (clicar de novo volta).",
-     "linha": 177
+     "linha": 179
     },
     {
      "tipo": "componente",
      "nome": "Votos",
      "assinatura": "function Votos({ d, ano, votacoes, casa }: { d: Deputado; ano: string | null; votacoes: Record<string, Record<string, Votacao>>; casa: Casa })",
      "doc": "Os votos nominais no Plenário, com a votação, o resultado e se o voto foi igual à orientação do Governo.",
-     "linha": 193
+     "linha": 195
     },
     {
      "tipo": "componente",
      "nome": "Proposicoes",
      "assinatura": "function Proposicoes({ d, ano, contagem, casa, host }: { d: Deputado; ano: string | null; contagem: Record<string, number>; casa: Casa; host?: string | null })",
      "doc": "As proposições que o deputado apresentou como autor, e a contagem de todas por tipo.",
-     "linha": 265
+     "linha": 267
     },
     {
      "tipo": "componente",
      "nome": "CotaParlamentar",
      "assinatura": "function CotaParlamentar({ d, ano }: { d: Deputado; ano: string | null })",
      "doc": "A cota parlamentar: por categoria, por mês (num ano) e por fornecedor, com a ligação para a página da empresa.",
-     "linha": 328
+     "linha": 330
     }
    ]
   },
   {
    "caminho": "packages/portal/src/componentes/parlamentares/PainelParlamentares.tsx",
    "linguagem": "typescript",
-   "linhas": 223,
-   "doc": "A lista dos parlamentares (ADR-060): os deputados federais, os senadores (`?casa=senado`) ou os vereadores de uma\ncâmara municipal (`?casa=<IBGE>`, ADR-062). Filtros de\nperíodo (um ano ou uma legislatura), nome, UF e partido, que ficam na URL (`?periodo=`, `?busca=`, `?uf=`,\n`?partido=`), e as colunas ordenáveis pelo cabeçalho (`?ordem=coluna-sentido`). Cada nome abre a página do deputado.\nA ordem padrão é a alfabética: a lista não pontua ninguém.",
+   "linhas": 226,
+   "doc": "A lista dos parlamentares (ADR-060): os deputados federais, os senadores (`?casa=senado`) ou os vereadores de uma\ncâmara municipal (`?casa=<IBGE>`) ou os deputados de uma Assembleia (`?casa=<código da UF>`), pelo SAPL (ADR-062).\nFiltros de\nperíodo (um ano ou uma legislatura), nome, UF e partido, que ficam na URL (`?periodo=`, `?busca=`, `?uf=`,\n`?partido=`), e as colunas ordenáveis pelo cabeçalho (`?ordem=coluna-sentido`). Cada nome abre a página do deputado.\nA ordem padrão é a alfabética: a lista não pontua ninguém.",
    "itens": [
     {
      "tipo": "tipo",
      "nome": "Estado",
      "assinatura": "type Estado = { fase: \"carregando\" } | { fase: \"pronto\"; indice: IndiceCamara | null } | { fase: \"erro\" };",
      "doc": "Carregando, o índice lido (null quando ainda não foi publicado) ou o erro.",
-     "linha": 44
+     "linha": 46
     },
     {
      "tipo": "tipo",
      "nome": "Linha",
      "assinatura": "type Linha = { d: LinhaDeputado; n: Numeros; presenca: number | null };",
      "doc": "Uma linha com os números do período escolhido.",
-     "linha": 47
+     "linha": 49
     },
     {
      "tipo": "funcao",
      "nome": "anosDoPeriodo",
      "assinatura": "function anosDoPeriodo(periodo: string, indice: IndiceCamara): string[] | null",
      "doc": "`\"57\"` → os anos da legislatura que estão no índice; `\"2025\"` → só ele; vazio → todos (null).",
-     "linha": 50
+     "linha": 52
     },
     {
      "tipo": "componente",
      "nome": "PainelParlamentares",
      "assinatura": "export function PainelParlamentares()",
      "doc": "A página da lista: os filtros e a tabela dos deputados.",
-     "linha": 58
+     "linha": 60
     }
    ]
   },
@@ -20669,7 +20755,7 @@
   {
    "caminho": "packages/painel/testes/test_vereadores.py",
    "doc": "Os vereadores pelo SAPL (ADR-062): a coleta de uma câmara, a leitura incremental e a publicação.",
-   "testes": 6
+   "testes": 8
   },
   {
    "caminho": "testes/contrato/test_contrato_fontes.py",

@@ -98,5 +98,8 @@ describe("casas", () => {
     expect(urlDaVotacao("2025", "9", "municipal/3509502")).toBe("/parlamentares/votacoes/?casa=3509502&ano=2025&id=9");
     expect(paginaNaCamara("7", "municipal/3509502", "sapl.campinas.sp.leg.br")).toBe("https://sapl.campinas.sp.leg.br/parlamentar/7");
     expect(proposicaoNaCamara("8", "municipal/3509502", null)).toBeNull();
+    expect(casaDaUrl("13")).toBe("estadual/13");
+    expect(daCasa("estadual/13").pessoas).toBe("Deputados estaduais");
+    expect(urlDoParlamentar("5", "estadual/13")).toBe("/parlamentares/deputado-estadual/?casa=13&id=5");
   });
 });

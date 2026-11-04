@@ -21,6 +21,10 @@ matéria. De cada câmara, a coleta lê:
 O estado fica num arquivo por UF (``vereadores-<UF>.json.gz``), com as câmaras do estado. Cada câmara é relida no
 máximo uma vez a cada ``DIAS_ENTRE_COLETAS`` dias; a que não termina no prazo guarda o que leu e continua na próxima.
 A publicação usa a dos deputados e senadores (``camara.publicar_casa``), em ``parlamentares/municipal/<IBGE>/``.
+
+As Assembleias Legislativas que usam o SAPL (``sapl.al.<uf>.leg.br``; 9 em 4/11/2026: AC, AL, AM, MT, PB, PI, RO, RR
+e TO) entram pelo mesmo caminho: estão no levantamento com o código da UF (2 dígitos), e a publicação vai para
+``parlamentares/estadual/<código da UF>/``, com as legislaturas estaduais (de 1º de fevereiro a 31 de janeiro).
 """
 
 from __future__ import annotations
@@ -46,6 +50,7 @@ ARQUIVO = "vereadores-{uf}.json.gz"
 VERSAO_ESTADO = 1
 PRIMEIRO_ANO = 2017
 LEGISLATURAS = {2017: (2017, 2020), 2021: (2021, 2024), 2025: (2025, 2028)}
+LEGISLATURAS_ESTADUAIS = {2015: (2015, 2018), 2019: (2019, 2022), 2023: (2023, 2026)}
 POR_PAGINA = 100
 DIAS_ENTRE_COLETAS = 6
 SIMULTANEOS = 24                    # câmaras ao mesmo tempo: o tempo é de espera pela rede (1,6 s por pedido no GitHub)
@@ -62,6 +67,24 @@ class _Prazo(Exception):
 def no_mandato(dia: str, legislaturas: Iterable[int]) -> bool:
     """Se o dia cai num dos mandatos municipais do vereador (de 1º de janeiro a 31 de dezembro do quarto ano)."""
     return any(f"{n}-01-01" <= dia <= f"{n + 3}-12-31" for n in legislaturas)
+
+
+def no_mandato_estadual(dia: str, legislaturas: Iterable[int]) -> bool:
+    """Se o dia cai numa das legislaturas estaduais do deputado (de 1º de fevereiro a 31 de janeiro do quinto ano)."""
+    return any(f"{n}-02-01" <= dia <= f"{n + 4}-01-31" for n in legislaturas)
+
+
+def esfera(codigo: str) -> str:
+    """``estadual`` para a Assembleia (código da UF, 2 dígitos), ``municipal`` para a câmara (código IBGE, 7)."""
+    return "estadual" if len(codigo) == 2 else "municipal"
+
+
+# A esfera: as legislaturas, o teste de mandato, o período de uma legislatura e quem tem mandato
+ESFERAS: dict[str, tuple[dict[int, tuple[int, int]], Callable[[str, Iterable[int]], bool],
+                         Callable[[int], tuple[str, str]], str]] = {
+    "municipal": (LEGISLATURAS, no_mandato, lambda n: (f"{n}-01-01", f"{n + 3}-12-31"), "vereador"),
+    "estadual": (LEGISLATURAS_ESTADUAIS, no_mandato_estadual, lambda n: (f"{n}-02-01", f"{n + 4}-01-31"), "deputado"),
+}
 
 
 def e_projeto(descricao: str | None) -> bool:
@@ -354,8 +377,10 @@ def _partido(filiacoes: list[list], dia: str) -> str:
     return sigla
 
 
-def montar(c: dict, uf: str) -> dict:
-    """O estado de uma câmara no formato da publicação comum (``camara.publicar_casa``)."""
+def montar(c: dict, uf: str, tipo: str = "municipal") -> dict:
+    """O estado de uma câmara (ou Assembleia, com ``tipo`` ``estadual``) no formato da publicação comum
+    (``camara.publicar_casa``)."""
+    legislaturas_da_esfera, _, periodo, _ = ESFERAS[tipo]
     hoje = instante_utc()[:10]
     projetos = {m: [a, *p] for a, ano in c["materias"].items() for m, p in ano["projetos"].items()}
     anos: dict[str, dict] = {}
@@ -397,8 +422,8 @@ def montar(c: dict, uf: str) -> dict:
     for p in quem:
         if p not in c["parlamentares"]:
             continue
-        legislaturas = sorted({n for inicio, fim in c["mandatos"].get(p, [])
-                               for n in LEGISLATURAS if inicio <= f"{n + 3}-12-31" and (fim or hoje) >= f"{n}-01-01"})
+        legislaturas = sorted({n for inicio, fim in c["mandatos"].get(p, []) for n in legislaturas_da_esfera
+                               if inicio <= periodo(n)[1] and (fim or hoje) >= periodo(n)[0]})
         if legislaturas or any(p in a[k] for a in anos.values() for k in ("votos", "autoria")):
             vereadores[p] = [c["parlamentares"][p], _partido(c["filiacoes"].get(p, []), hoje), uf, legislaturas]
     exercicio = {p: [[inicio, fim] for inicio, fim in c["mandatos"].get(p, [])] for p in vereadores}
@@ -408,26 +433,31 @@ def montar(c: dict, uf: str) -> dict:
 
 def publicar(estado: Path | str, cadastro: Cadastro, gravar: Callable[[str, Any], Any], *,
              gerado_em: str) -> dict | None:
-    """Grava ``parlamentares/municipal/<IBGE>/`` de cada câmara com dados (como os deputados) e o índice das câmaras
-    (``parlamentares/municipal/indice.json``); devolve o resumo para o índice do site."""
+    """Grava ``parlamentares/<esfera>/<código>/`` de cada câmara e Assembleia com dados (como os deputados) e o índice
+    de cada esfera (``parlamentares/municipal/indice.json`` e ``parlamentares/estadual/indice.json``); devolve o
+    resumo para o índice do site."""
     arquivos = sorted(Path(estado).glob(ARQUIVO.format(uf="*")))
     if not arquivos:
         return None
-    linhas = []
+    linhas: dict[str, list] = {"municipal": [], "estadual": []}
     for arquivo in arquivos:
         uf = arquivo.name.split("-")[1].split(".")[0]
-        for ibge, c in ler_estado(estado, uf).items():
+        for codigo, c in ler_estado(estado, uf).items():
             if not c.get("lido_em") and not c.get("votacoes"):
                 continue
-            dados = montar(c, uf)
+            tipo = esfera(codigo)
+            dados = montar(c, uf, tipo)
             if not dados["anos"] or not dados["deputados"]:
                 continue
-            r = publicar_casa(dados, gravar, gerado_em=gerado_em, casa=f"municipal/{ibge}", pessoa="vereador",
-                              legislaturas=LEGISLATURAS, no_mandato_fn=no_mandato)
+            legislaturas, no_mandato_fn, _, pessoa = ESFERAS[tipo]
+            r = publicar_casa(dados, gravar, gerado_em=gerado_em, casa=f"{tipo}/{codigo}", pessoa=pessoa,
+                              legislaturas=legislaturas, no_mandato_fn=no_mandato_fn)
             votos = sum(len(a["votacoes"]) for a in dados["anos"].values())
-            linhas.append([ibge, cadastro.nome(ibge), uf, c["host"], r["deputados"], votos, r["anos"]])
-    gravar("parlamentares/municipal/indice.json", {
-        "versao": 1, "tipo": "municipal-camaras", "gerado_em": gerado_em, "fonte": FONTE,
-        "colunas": ["ibge", "nome", "uf", "host", "vereadores", "votacoes", "anos"],
-        "camaras": sorted(linhas, key=lambda x: (x[2], x[1]))})
-    return {"camaras": len(linhas), "vereadores": sum(x[4] for x in linhas)}
+            linhas[tipo].append([codigo, cadastro.nome(codigo), uf, c["host"], r["deputados"], votos, r["anos"]])
+    for tipo, das_casas in linhas.items():
+        gravar(f"parlamentares/{tipo}/indice.json", {
+            "versao": 1, "tipo": f"{tipo}-camaras", "gerado_em": gerado_em, "fonte": FONTE,
+            "colunas": ["ibge", "nome", "uf", "host", "parlamentares", "votacoes", "anos"],
+            "camaras": sorted(das_casas, key=lambda x: (x[2], x[1]))})
+    return {"camaras": len(linhas["municipal"]), "vereadores": sum(x[4] for x in linhas["municipal"]),
+            "assembleias": len(linhas["estadual"]), "deputados_estaduais": sum(x[4] for x in linhas["estadual"])}

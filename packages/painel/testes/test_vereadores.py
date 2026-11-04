@@ -181,7 +181,7 @@ def test_coletar_grava_por_uf_e_publica(tmp_path):
 
     gravados: dict[str, dict] = {}
     resumo = vereadores.publicar(tmp_path, cadastro, lambda nome, x: gravados.setdefault(nome, x), gerado_em="x")
-    assert resumo == {"camaras": 1, "vereadores": 2}
+    assert resumo == {"camaras": 1, "vereadores": 2, "assembleias": 0, "deputados_estaduais": 0}
     indice = gravados["parlamentares/municipal/3133600/indice.json"]
     assert indice["tipo"] == "municipal-indice" and indice["anos"] == ["2025"]
     assert indice["legislaturas"] == {"2017": [2017, 2020], "2021": [2021, 2024], "2025": [2025, 2028]}
@@ -197,3 +197,22 @@ def test_coletar_grava_por_uf_e_publica(tmp_path):
     assert gravados["parlamentares/municipal/indice.json"]["camaras"] == [
         ["3133600", "Itapeva", "MG", HOST, 2, 1, ["2025"]]]
     json.dumps(gravados)
+
+
+def test_assembleia_com_sapl_publica_na_esfera_estadual(tmp_path):
+    cadastro = Cadastro({"13": Ente("13", "Amazonas", "AM", "E", 4_000_000)})
+    gravar_json(tmp_path / camaras.ARQUIVO, {"versao": 1, "camaras": {"13": ["sapl.al.am.leg.br", 3]}}, comprimir=True)
+    r = vereadores.coletar(tmp_path, cadastro, contato="c", hoje=date(2025, 6, 1), ler_fn=_sapl(_tabelas()))
+    assert r["lidas"] == ["13"] and r["ufs"] == ["AM"]
+    gravados: dict[str, dict] = {}
+    resumo = vereadores.publicar(tmp_path, cadastro, lambda nome, x: gravados.setdefault(nome, x), gerado_em="x")
+    assert resumo == {"camaras": 0, "vereadores": 0, "assembleias": 1, "deputados_estaduais": 2}
+    indice = gravados["parlamentares/estadual/13/indice.json"]
+    assert indice["tipo"] == "estadual-indice"
+    assert indice["legislaturas"] == {"2015": [2015, 2018], "2019": [2019, 2022], "2023": [2023, 2026]}
+    ana = gravados["parlamentares/estadual/13/1.json.gz"]
+    assert ana["tipo"] == "estadual-deputado" and ana["legislaturas"] == [2019, 2023]
+    assert gravados["parlamentares/estadual/indice.json"]["camaras"] == [
+        ["13", "Amazonas", "AM", "sapl.al.am.leg.br", 2, 1, ["2025"]]]
+    assert gravados["parlamentares/municipal/indice.json"]["camaras"] == []
+    assert vereadores.no_mandato_estadual("2027-01-31", [2023]) and not vereadores.no_mandato_estadual("2023-01-31", [2023])

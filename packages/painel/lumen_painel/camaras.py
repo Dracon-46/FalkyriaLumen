@@ -10,6 +10,9 @@ mesmo tempo (são servidores diferentes), e guarda as que responderam com o núm
 no SAPL. Em 3/11/2026, foram 1.192 das 5.570 (21%): 971 com matérias, 584 com ao menos 100 votos nominais (5,1 milhões
 de votos somados) e 870 com presença. Câmara com o SAPL noutro endereço fica de fora até entrar à mão
 (``ENDERECOS_EXTRAS``).
+
+O levantamento testa também as Assembleias Legislativas, em ``sapl.al.<uf>.leg.br``, guardadas com o código da UF
+(2 dígitos): em 4/11/2026, 9 responderam (AC, AL, AM, MT, PB, PI, RO, RR e TO).
 """
 
 from __future__ import annotations
@@ -38,6 +41,11 @@ def endereco(nome: str, uf: str) -> str:
     return f"sapl.{re.sub(r'[^a-z0-9]', '', sem_acento(nome).lower())}.{uf.lower()}.leg.br"
 
 
+def endereco_assembleia(uf: str) -> str:
+    """O endereço do SAPL da Assembleia Legislativa hospedado pelo Interlegis ("AM" → ``sapl.al.am.leg.br``)."""
+    return f"sapl.al.{uf.lower()}.leg.br"
+
+
 def testar(host: str, *, contato: str, abrir: Callable[..., object] | None = None) -> int | None:
     """Quantos parlamentares a câmara tem no SAPL, ou ``None`` se o endereço não responde com a API."""
     url = f"https://{host}/api/parlamentares/parlamentar/?page_size=1"
@@ -53,22 +61,26 @@ def testar(host: str, *, contato: str, abrir: Callable[..., object] | None = Non
 
 def levantar(estado: Path | str, cadastro: Cadastro, *, contato: str,
              testar_fn: Callable[..., int | None] = testar) -> dict:
-    """Testa o SAPL de cada município e grava ``ARQUIVO``: ``{código IBGE: [endereço, parlamentares]}``, com a data."""
+    """Testa o SAPL de cada município e de cada Assembleia e grava ``ARQUIVO``: ``{código IBGE: [endereço,
+    parlamentares]}``, com a data."""
     municipios = sorted(c for c in cadastro.entes if len(c) == 7)
+    estados = sorted(c for c in cadastro.entes if len(c) == 2)
 
     def um(codigo: str) -> tuple[str, str, int | None]:
         ente = cadastro.entes[codigo]
-        host = ENDERECOS_EXTRAS.get(codigo) or endereco(ente.nome, ente.uf)
+        host = ENDERECOS_EXTRAS.get(codigo) or (endereco(ente.nome, ente.uf) if len(codigo) == 7
+                                                 else endereco_assembleia(ente.uf))
         return codigo, host, testar_fn(host, contato=contato)
 
     with ThreadPoolExecutor(SIMULTANEOS) as grupo:
-        resultados = list(grupo.map(um, municipios))
+        resultados = list(grupo.map(um, municipios + estados))
     camaras = {c: [h, n] for c, h, n in resultados if n is not None}
     dados = {"versao": VERSAO_ESTADO, "levantado_em": instante_utc(), "municipios": len(municipios),
              "camaras": dict(sorted(camaras.items()))}
     Path(estado).mkdir(parents=True, exist_ok=True)
     gravar_json(Path(estado) / ARQUIVO, dados, comprimir=True)
-    return {"municipios": len(municipios), "com_sapl": len(camaras)}
+    return {"municipios": len(municipios), "com_sapl": sum(1 for c in camaras if len(c) == 7),
+            "assembleias": sum(1 for c in camaras if len(c) == 2)}
 
 
 def ler(estado: Path | str) -> dict[str, list]:

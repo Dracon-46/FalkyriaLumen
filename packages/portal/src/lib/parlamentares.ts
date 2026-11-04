@@ -99,16 +99,22 @@ interface VotacoesAno {
   votacoes: Record<string, Votacao>;
 }
 
-/** A casa legislativa: a Câmara dos Deputados, o Senado Federal ou uma câmara municipal (`municipal/<IBGE>`, ADR-062). */
-export type Casa = "camara" | "senado" | `municipal/${string}`;
+/**
+ * A casa legislativa: a Câmara dos Deputados, o Senado Federal, uma câmara municipal (`municipal/<IBGE>`) ou uma
+ * Assembleia Legislativa (`estadual/<código da UF>`), as duas pelo SAPL (ADR-062).
+ */
+export type Casa = "camara" | "senado" | `municipal/${string}` | `estadual/${string}`;
 /** O tipo da casa, que dá os textos e o tipo dos arquivos. */
-export type TipoDeCasa = "camara" | "senado" | "municipal";
+export type TipoDeCasa = "camara" | "senado" | "municipal" | "estadual";
 
-/** O tipo da casa (`municipal/3509502` → `municipal`). */
-export const tipoDaCasa = (casa: Casa): TipoDeCasa => (casa.startsWith("municipal/") ? "municipal" : casa as TipoDeCasa);
+/** O tipo da casa (`municipal/3509502` → `municipal`, `estadual/13` → `estadual`). */
+export const tipoDaCasa = (casa: Casa): TipoDeCasa => (casa.split("/")[0] as TipoDeCasa);
 
-/** O código IBGE do município da câmara municipal, ou null nas casas federais. */
-export const municipioDaCasa = (casa: Casa): string | null => (casa.startsWith("municipal/") ? casa.slice(10) : null);
+/** O código IBGE do município ou da UF da casa pelo SAPL, ou null nas casas federais. */
+export const codigoDaCasa = (casa: Casa): string | null => (casa.includes("/") ? casa.split("/")[1]! : null);
+
+/** Se a casa é lida do SAPL (câmara municipal ou Assembleia): sem foto, sem cota, com os links no SAPL. */
+export const casaDoSapl = (casa: Casa): boolean => codigoDaCasa(casa) !== null;
 
 /** A pasta da casa no site dos painéis. */
 const base = (casa: Casa) => `${BASE_PAINEL}/parlamentares/${casa}`;
@@ -146,41 +152,54 @@ export const CASAS: Record<TipoDeCasa, DescricaoDaCasa> = {
                proposicoes: "Projetos apresentados",
                tipos: "projetos de lei, de resolução e de decreto legislativo e emendas à Lei Orgânica",
                doPlenario: "da câmara municipal" },
+  estadual: { nome: "Assembleia Legislativa", pessoa: "Deputado(a) estadual", pessoas: "Deputados estaduais",
+              rota: "deputado-estadual", singular: "deputado", arquivo: "deputados-estaduais", idRotulo: "Id no SAPL",
+              presenca: "Presença nas sessões", proposicoes: "Projetos apresentados",
+              tipos: "projetos de lei, de resolução e de decreto legislativo e emendas à Constituição Estadual",
+              doPlenario: "da Assembleia" },
 };
 
 /** Os textos da casa. */
 export const daCasa = (casa: Casa): DescricaoDaCasa => CASAS[tipoDaCasa(casa)];
 
-/** A casa pelo parâmetro da URL: `?casa=senado`, `?casa=<IBGE do município>` ou, sem ele, a Câmara. */
+/**
+ * A casa pelo parâmetro da URL: `?casa=senado`, `?casa=<IBGE do município>`, `?casa=<código da UF>` (a Assembleia) ou,
+ * sem ele, a Câmara.
+ */
 export const casaDaUrl = (valor: string | null): Casa =>
-  valor === "senado" ? "senado" : valor && /^\d{7}$/.test(valor) ? `municipal/${valor}` : "camara";
+  valor === "senado" ? "senado" : valor && /^\d{7}$/.test(valor) ? `municipal/${valor}`
+    : valor && /^\d{2}$/.test(valor) ? `estadual/${valor}` : "camara";
 
 /** O parâmetro da casa para a URL, com o `&` no fim (vazio para a Câmara). */
 export const consultaDaCasa = (casa: Casa): string =>
-  casa === "camara" ? "" : `casa=${municipioDaCasa(casa) ?? casa}&`;
+  casa === "camara" ? "" : `casa=${codigoDaCasa(casa) ?? casa}&`;
 
-/** Uma câmara municipal no índice: `[IBGE, município, UF, endereço do SAPL, vereadores, votações, anos]`. */
+/** A esfera das casas pelo SAPL: as câmaras municipais ou as Assembleias. */
+export type Esfera = "municipal" | "estadual";
+
+/** Uma casa pelo SAPL no índice: `[código IBGE, município ou UF, UF, endereço do SAPL, parlamentares, votações, anos]`. */
 export type CamaraMunicipal = [string, string, string, string, number, number, string[]];
 
-/** Arquivo `parlamentares/municipal/indice.json`: as câmaras municipais com dados do SAPL (ADR-062). */
+/** Arquivo `parlamentares/<esfera>/indice.json`: as câmaras municipais ou as Assembleias com dados do SAPL (ADR-062). */
 interface IndiceMunicipal {
   versao: 1;
-  tipo: "municipal-camaras";
+  tipo: `${Esfera}-camaras`;
   camaras: CamaraMunicipal[];
 }
 
-/** As câmaras municipais publicadas (vazio quando ainda não há nenhuma). */
-export async function carregarCamarasMunicipais(sinal?: AbortSignal): Promise<CamaraMunicipal[]> {
-  const url = `${BASE_PAINEL}/parlamentares/municipal/indice.json`;
+/** As câmaras municipais (ou, com `esfera` `estadual`, as Assembleias) publicadas; vazio quando não há nenhuma. */
+export async function carregarCamarasMunicipais(sinal?: AbortSignal, esfera: Esfera = "municipal"): Promise<CamaraMunicipal[]> {
+  const url = `${BASE_PAINEL}/parlamentares/${esfera}/indice.json`;
   const bruto = await obterJson(url, { sinal });
-  return bruto === null ? [] : conferir<IndiceMunicipal>(bruto, "municipal-camaras", url).camaras;
+  return bruto === null ? [] : conferir<IndiceMunicipal>(bruto, `${esfera}-camaras`, url).camaras;
 }
 
-/** A câmara municipal da casa (null nas casas federais ou quando ela não está publicada). */
+/** A câmara municipal ou a Assembleia da casa (null nas casas federais ou quando ela não está publicada). */
 export async function carregarCamaraDaCasa(casa: Casa, sinal?: AbortSignal): Promise<CamaraMunicipal | null> {
-  const ibge = municipioDaCasa(casa);
-  if (!ibge) return null;
-  return (await carregarCamarasMunicipais(sinal)).find((c) => c[0] === ibge) ?? null;
+  const codigo = codigoDaCasa(casa);
+  if (!codigo) return null;
+  const esfera = tipoDaCasa(casa) as Esfera;
+  return (await carregarCamarasMunicipais(sinal, esfera)).find((c) => c[0] === codigo) ?? null;
 }
 
 /** O índice dos parlamentares da casa; `null` quando ainda não foi publicado. */
@@ -250,9 +269,9 @@ export const urlDaVotacao = (ano: string, id: string, casa: Casa = "camara") =>
 
 /** A página do parlamentar no Lumen. */
 export const urlDoParlamentar = (id: string, casa: Casa = "camara", ano?: string | null) =>
-  `/parlamentares/${daCasa(casa).rota}/?${municipioDaCasa(casa) ? consultaDaCasa(casa) : ""}id=${id}${ano ? `&ano=${ano}` : ""}`;
+  `/parlamentares/${daCasa(casa).rota}/?${casaDoSapl(casa) ? consultaDaCasa(casa) : ""}id=${id}${ano ? `&ano=${ano}` : ""}`;
 
-/** A foto oficial do parlamentar no site da casa; null na câmara municipal (o SAPL não tem endereço fixo da foto). */
+/** A foto oficial do parlamentar no site da casa; null nas casas pelo SAPL (ele não tem endereço fixo da foto). */
 export const fotoDoDeputado = (id: string, casa: Casa = "camara"): string | null => casa === "senado"
   ? `https://www.senado.leg.br/senadores/img/fotos-oficiais/senador${id}.jpg`
   : casa === "camara" ? `https://www.camara.leg.br/internet/deputado/bandep/${id}.jpg` : null;

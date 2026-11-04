@@ -4,7 +4,7 @@
  * A página de um deputado federal (ADR-060), pelo id da Câmara (`?id=`): os totais, os votos nominais no Plenário com
  * a votação e a orientação do Governo, as proposições que apresentou e a cota parlamentar, num ano (`?ano=`) ou em
  * todos. São os fatos como a Câmara publica: a página não pontua nem ordena ninguém. A mesma página mostra o senador e
- * o vereador (ADR-062), com os textos da casa.
+ * o vereador e o deputado estadual (ADR-062), com os textos da casa.
  */
 
 import Link from "next/link";
@@ -31,6 +31,7 @@ import {
   fotoDoDeputado,
   paginaNaCamara,
   proposicaoNaCamara,
+  casaDoSapl,
   tipoDaCasa,
   totaisDoDeputado,
   urlDaVotacao,
@@ -59,7 +60,8 @@ export function PainelDeputado({ casa: casaFixa }: { casa?: Casa }) {
   const [votacoes, setVotacoes] = useState<Record<string, Record<string, Votacao>>>({});
   const [camara, setCamara] = useState<CamaraMunicipal | null>(null);
   const textos = daCasa(casa);
-  const municipal = tipoDaCasa(casa) === "municipal";
+  const municipal = casaDoSapl(casa);
+  const estadual = tipoDaCasa(casa) === "estadual";
 
   useEffect(() => {
     const c = new AbortController();
@@ -105,10 +107,10 @@ export function PainelDeputado({ casa: casaFixa }: { casa?: Casa }) {
           <p>
             {municipal
               ? <>{textos.pessoa}{camara ? <> de <Link href={`/parlamentares/?casa=${camara[0]}`}>{camara[1]} ({camara[2]})</Link></> : ""}
-                  {" "}· {d.partido || "sem partido registrado"} · mandato(s) {d.legislaturas.map((l) => `${l} a ${l + 3}`).join(" e ") || "sem registro"}</>
+                  {" "}· {d.partido || "sem partido registrado"} · {estadual ? "legislatura(s)" : "mandato(s)"} {d.legislaturas.map((l) => `${l} a ${l + 3}`).join(" e ") || "sem registro"}</>
               : <>{textos.pessoa} · {d.partido ? `${d.partido}-` : ""}{d.uf} · legislatura(s) {d.legislaturas.join(" e ")}</>}
             {pagina && <span className="busca-detalhe"> · <a href={pagina} target="_blank" rel="noreferrer">página no {
-              municipal ? "SAPL da câmara" : casa === "senado" ? "Senado" : "site da Câmara"}</a></span>}
+              estadual ? "SAPL da Assembleia" : municipal ? "SAPL da câmara" : casa === "senado" ? "Senado" : "site da Câmara"}</a></span>}
           </p>
           <p className="busca-detalhe">
             Em exercício: {d.exercicio.map(([i, f]) => `${dataCurta(i)} a ${f ? dataCurta(f) : "hoje"}`).join("; ") || "sem registro"}
@@ -136,11 +138,11 @@ export function PainelDeputado({ casa: casaFixa }: { casa?: Casa }) {
       <CotaParlamentar d={d} ano={ano} />
       {municipal ? (
         <p className="busca-detalhe">
-          Do SAPL da câmara municipal{host ? <> (<a href={`https://${host}`} target="_blank" rel="noreferrer">{host}</a>)</> : null}:
-          votações nominais dos projetos, presença nas sessões com presença registrada (conta só as do mandato do
-          vereador) e projetos de que é autor; os requerimentos, as indicações e as moções entram só na contagem por
-          tipo. São os números que a câmara registrou no sistema, sem juízo sobre o vereador: câmara que registra pouco
-          aparece com pouco.{" "}
+          Do SAPL {textos.doPlenario}{host ? <> (<a href={`https://${host}`} target="_blank" rel="noreferrer">{host}</a>)</> : null}:
+          votações nominais dos projetos, presença nas sessões com presença registrada (conta só as do mandato do{" "}
+          {textos.singular}) e projetos de que é autor; os requerimentos, as indicações e as moções entram só na
+          contagem por tipo. São os números que a casa registrou no sistema, sem juízo sobre o {textos.singular}: casa
+          que registra pouco aparece com pouco.{" "}
           <a href="https://github.com/Dracon-46/FalkyriaLumen/blob/main/docs/adr/ADR-062.md" target="_blank" rel="noreferrer">como é montado</a>
         </p>
       ) : (

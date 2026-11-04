@@ -68,6 +68,7 @@ describe("filtro de local", () => {
     expect(codigoNaUrl("/parlamentares/", u("casa=3509502"))).toBe("3509502");
     expect(codigoNaUrl("/parlamentares/vereadores/", u("uf=SP&municipio=3550308"))).toBe("3550308");
     expect(codigoNaUrl("/parlamentares/", u("casa=senado"))).toBeNull();
+    expect(codigoNaUrl("/parlamentares/deputado-estadual/", u("casa=13&id=5"))).toBe("13");
     expect(codigoNaUrl("/contratacoes/", u("ente=../x"))).toBeNull();
     expect(codigoDaUf("sp")).toBe("35");
     expect(codigoDaUf("zz")).toBeNull();

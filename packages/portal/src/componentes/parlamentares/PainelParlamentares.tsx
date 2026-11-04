@@ -2,7 +2,8 @@
 
 /**
  * A lista dos parlamentares (ADR-060): os deputados federais, os senadores (`?casa=senado`) ou os vereadores de uma
- * câmara municipal (`?casa=<IBGE>`, ADR-062). Filtros de
+ * câmara municipal (`?casa=<IBGE>`) ou os deputados de uma Assembleia (`?casa=<código da UF>`), pelo SAPL (ADR-062).
+ * Filtros de
  * período (um ano ou uma legislatura), nome, UF e partido, que ficam na URL (`?periodo=`, `?busca=`, `?uf=`,
  * `?partido=`), e as colunas ordenáveis pelo cabeçalho (`?ordem=coluna-sentido`). Cada nome abre a página do deputado.
  * A ordem padrão é a alfabética: a lista não pontua ninguém.
@@ -31,6 +32,7 @@ import {
   type LinhaDeputado,
   type Numeros,
   numerosNoPeriodo,
+  casaDoSapl,
   tipoDaCasa,
   urlDoParlamentar,
 } from "@/lib/parlamentares";
@@ -71,7 +73,8 @@ export function PainelParlamentares() {
   const [texto, setTexto] = useState(termo);
   const [camara, setCamara] = useState<CamaraMunicipal | null>(null);
   const textos = daCasa(casa);
-  const municipal = tipoDaCasa(casa) === "municipal";
+  const municipal = casaDoSapl(casa);
+  const estadual = tipoDaCasa(casa) === "estadual";
 
   useEffect(() => {
     const c = new AbortController();
@@ -110,7 +113,7 @@ export function PainelParlamentares() {
     });
   }, [indice, termo, uf, partido, chaveAnos, colunaOrdem, sentidoOrdem]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const nav = <NavParlamentares atual={municipal ? "vereadores" : casa === "senado" ? "senadores" : "deputados"} />;
+  const nav = <NavParlamentares atual={estadual ? "estaduais" : municipal ? "vereadores" : casa === "senado" ? "senadores" : "deputados"} />;
   if (estado.fase === "carregando") return <>{nav}<Situacao>Carregando…</Situacao></>;
   if (estado.fase === "erro") return <>{nav}<Situacao>Não foi possível ler os parlamentares agora.</Situacao></>;
   if (!indice) return <>{nav}<Situacao>Os {textos.pessoas.toLowerCase()} ainda não foram publicados.</Situacao></>;
@@ -134,7 +137,7 @@ export function PainelParlamentares() {
         onSubmit={(e) => { e.preventDefault(); mudar("busca", texto.trim() || null); }}>
         <Escolha rotulo="Período" className="escolha-larga" valor={periodo} onEscolher={(v) => mudar("periodo", v || null)} opcoes={[
           { valor: "", rotulo: "todos os anos" },
-          ...legislaturas.map(([l, [a, b]]) => ({ valor: l, rotulo: municipal ? `mandato de ${a} a ${b}` : `${l}ª legislatura (${a} a ${b})` })),
+          ...legislaturas.map(([l, [a, b]]) => ({ valor: l, rotulo: estadual ? `legislatura de ${a} a ${b}` : municipal ? `mandato de ${a} a ${b}` : `${l}ª legislatura (${a} a ${b})` })),
           ...[...indice.anos].reverse().map((a) => ({ valor: a, rotulo: a })),
         ]} />
         {!municipal && <Escolha rotulo="UF" valor={uf ?? ""} onEscolher={(v) => mudar("uf", v || null)}
@@ -193,18 +196,18 @@ export function PainelParlamentares() {
             {todos ? `mostrar só os ${INICIAIS} primeiros` : `ver todos os ${numero(linhas.length)}`}
           </button>
         )}
-        <BaixarCsv nome={municipal && camara ? `vereadores-${camara[0]}` : textos.arquivo}
+        <BaixarCsv nome={municipal && camara ? `${textos.arquivo}-${camara[0]}` : textos.arquivo}
           colunas={[textos.idRotulo, textos.singular[0]!.toUpperCase() + textos.singular.slice(1), "Partido", "UF", "Votos no Plenário", "Sessões presentes",
                     "Sessões em exercício", "Proposições", "Cota parlamentar (R$)"]}
           linhas={() => linhas.map(({ d: [id, nome, p, u], n }) => [id, nome, p, u, n[0], n[2], n[3], n[1], n[4]])} />
         <p className="busca-detalhe">
           {municipal
-            ? <>Votos nominais nos projetos (projetos de lei, de resolução e de decreto legislativo e emendas à Lei
-                Orgânica), presença nas sessões com presença registrada enquanto o vereador tinha mandato (passe o mouse
-                para ver quantas) e projetos que apresentou, {nomePeriodo}, do SAPL da câmara
+            ? <>Votos nominais nos projetos ({textos.tipos}), presença nas sessões com presença registrada enquanto o{" "}
+                {textos.singular} tinha mandato (passe o mouse para ver quantas) e projetos que apresentou, {nomePeriodo},
+                do SAPL {textos.doPlenario}
                 {camara ? <> (<a href={`https://${camara[3]}`} target="_blank" rel="noreferrer">{camara[3]}</a>)</> : null}.
-                Os números são os que a câmara registrou no sistema: câmara que registra pouco aparece com pouco. Vereador
-                não tem cota parlamentar federal.</>
+                Os números são os que a casa registrou no sistema: casa que registra pouco aparece com pouco. A cota
+                parlamentar federal não se aplica aqui.</>
             : casa === "senado"
             ? <>Votos nominais no Plenário, presença nas votações nominais enquanto o senador estava em exercício (passe o
                 mouse para ver quantas), matérias de que é autor ou coautor (projetos de lei, de lei complementar, de

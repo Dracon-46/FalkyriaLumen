@@ -36,6 +36,7 @@ def test_levantamento_grava_so_as_que_responderam(tmp_path):
                          "4209102": Ente("4209102", "Joinville", "SC", "M", 600_000),
                          "35": Ente("35", "São Paulo", "SP", "E", 46_000_000)})
     r = camaras.levantar(tmp_path, cadastro, contato="c",
-                         testar_fn=lambda host, contato: 327 if "campinas" in host else None)
-    assert r == {"municipios": 2, "com_sapl": 1}
-    assert camaras.ler(tmp_path) == {"3509502": ["sapl.campinas.sp.leg.br", 327]}
+                         testar_fn=lambda host, contato: {"sapl.campinas.sp.leg.br": 327,
+                                                          "sapl.al.sp.leg.br": 94}.get(host))
+    assert r == {"municipios": 2, "com_sapl": 1, "assembleias": 1}
+    assert camaras.ler(tmp_path) == {"35": ["sapl.al.sp.leg.br", 94], "3509502": ["sapl.campinas.sp.leg.br", 327]}
