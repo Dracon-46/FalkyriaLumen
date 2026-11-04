@@ -9,7 +9,7 @@ decisões que justificam cada mudança estão nas ADRs citadas.
 
 - Levantamento das câmaras municipais com o SAPL do Interlegis e a API aberta: 1.192 dos 5.570 municípios, 584 com votos
   nominais registrados. Novo comando `lumen painel camaras-sapl` e fluxo mensal `camaras-sapl`.
-- Coleta dos vereadores de 2017 em diante (`lumen painel vereadores`, job `vereadores` do fluxo `parlamentares`): os
+- Coleta dos vereadores de 2017 em diante (`lumen painel vereadores`, fluxo `vereadores`, a cada 3 horas): os
   mandatos e o partido em cada data, os projetos com a ementa e os autores (requerimentos, indicações e moções só
   contados), a presença nas sessões com presença registrada e o voto de cada vereador nas votações nominais dos
   projetos. A leitura das votações e da presença continua da página em que parou; cada câmara é relida a cada 6 dias.

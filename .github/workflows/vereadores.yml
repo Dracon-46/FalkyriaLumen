@@ -1,0 +1,60 @@
+# Vereadores pelo SAPL de cada câmara municipal (ADR-062): as câmaras do
+# levantamento (camaras-sapl.json.gz) lidas há mais de 6 dias, as nunca lidas
+# primeiro, 24 ao mesmo tempo, até o prazo; a que não termina continua na
+# próxima. Sobe o arquivo de cada UF lida (vereadores-<UF>.json.gz) na versão
+# "painel-estado", que a publicação diária dos painéis lê.
+#
+# A cada 3 horas e à mão: do GitHub, cada pedido ao SAPL leva perto de 1,6 s, e
+# a carga inicial das 1.192 câmaras leva dezenas de execuções. Depois dela, a
+# releitura semanal cabe em poucas. Usa o segredo LUMEN_CONTATO (User-Agent).
+
+name: vereadores
+
+on:
+  schedule:
+    - cron: "10 */3 * * *"
+  workflow_dispatch:
+    inputs:
+      municipios:
+        description: "Só estes municípios (código IBGE, separados por vírgula), mesmo os lidos há pouco"
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: vereadores
+  cancel-in-progress: false
+
+env:
+  TAG: painel-estado
+
+jobs:
+  vereadores:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
+      LUMEN_DADOS: dados
+      GH_TOKEN: ${{ github.token }}
+      MUNICIPIOS: ${{ inputs.municipios }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Instalar o Lumen
+        run: python -m pip install -e .
+      - name: O estado anterior
+        run: |
+          mkdir -p estado
+          gh release download "$TAG" -p cadastro-entes.json.gz -p camaras-sapl.json.gz -D estado --clobber
+          gh release download "$TAG" -p 'vereadores-*.json.gz' -D estado --clobber || true
+      - name: Câmaras municipais
+        shell: bash               # com pipefail: a falha do lumen não some atrás do tee
+        run: |
+          lumen painel vereadores --estado estado --limite-minutos 90 ${MUNICIPIOS:+--municipios "$MUNICIPIOS"} | tee vereadores.json
+          for uf in $(python -c "import json; print(' '.join(json.load(open('vereadores.json'))['ufs']))"); do
+            gh release upload "$TAG" "estado/vereadores-$uf.json.gz" --clobber
+          done

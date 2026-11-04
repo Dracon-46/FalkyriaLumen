@@ -131,8 +131,25 @@ def test_pagina_que_sumiu_volta_ao_comeco():
         if "page=3" in url:
             raise urllib.error.HTTPError(url, 404, "Invalid page", {}, io.BytesIO())  # type: ignore[arg-type]
         return base(url)
-    assert vereadores.coletar_camara(c, vereadores.Api(HOST, contato="c", ler_fn=ler), date(2025, 6, 1))
+    pausas: list[float] = []
+    api = vereadores.Api(HOST, contato="c", ler_fn=ler, esperar=pausas.append)
+    assert vereadores.coletar_camara(c, api, date(2025, 6, 1))
     assert c["presencas"]["lidas"] == 4 and c["registros_lidos"] == 3
+    assert pausas == [3, 6, 3, 6]   # cada página que sumiu foi pedida 3 vezes antes de voltar ao começo
+
+
+def test_404_passageiro_e_pedido_de_novo():
+    base, falhas = _sapl(_tabelas()), {"n": 0}
+
+    def ler(url: str) -> dict:
+        if "ordemdia" in url and falhas["n"] < 1:
+            falhas["n"] += 1
+            raise urllib.error.HTTPError(url, 404, "Not Found", {}, io.BytesIO())  # type: ignore[arg-type]
+        return base(url)
+    c, pausas = vereadores.vazia(HOST), []
+    assert vereadores.coletar_camara(c, vereadores.Api(HOST, contato="c", ler_fn=ler, esperar=pausas.append),
+                                     date(2025, 6, 1))
+    assert pausas == [3] and c["votacoes"]["900"][1] == "2025-03-17"
 
 
 def test_camara_com_erro_guarda_o_que_leu_e_espera(tmp_path):
@@ -144,7 +161,7 @@ def test_camara_com_erro_guarda_o_que_leu_e_espera(tmp_path):
         if "registrovotacao" in url:
             raise urllib.error.HTTPError(url, 500, "erro", {}, io.BytesIO())  # type: ignore[arg-type]
         return base(url)
-    r = vereadores.coletar(tmp_path, cadastro, contato="c", hoje=date(2025, 6, 1), ler_fn=ler)
+    r = vereadores.coletar(tmp_path, cadastro, contato="c", hoje=date(2025, 6, 1), ler_fn=ler, esperar=lambda s: None)
     assert list(r["falhas"]) == ["3133600"] and r["ufs"] == ["MG"]
     c = vereadores.ler_estado(tmp_path, "MG")["3133600"]
     assert c["lido_em"] is None and c["falhou_em"] and c["materias"]["2025"]["projetos"]

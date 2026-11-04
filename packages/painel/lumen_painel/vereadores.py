@@ -48,7 +48,8 @@ PRIMEIRO_ANO = 2017
 LEGISLATURAS = {2017: (2017, 2020), 2021: (2021, 2024), 2025: (2025, 2028)}
 POR_PAGINA = 100
 DIAS_ENTRE_COLETAS = 6
-SIMULTANEOS = 8
+SIMULTANEOS = 24                    # câmaras ao mesmo tempo: o tempo é de espera pela rede (1,6 s por pedido no GitHub)
+TENTATIVAS_404 = 3                  # o SAPL às vezes responde 404 a um pedido que funciona logo depois
 GRAVAR_A_CADA = 300                 # segundos entre as gravações do estado durante a coleta
 VOTOS = {"Sim": "S", "Não": "N", "Abstenção": "A"}
 PROJETO = re.compile(r"^projeto|^(proposta de )?emenda (a )?(lei )?organica")
@@ -75,18 +76,32 @@ class Api:
     """Os pedidos à API do SAPL de uma câmara, com o prazo da coleta."""
 
     def __init__(self, host: str, *, contato: str, ler_fn: Callable[[str], Any] | None = None,
-                 prazo: float | None = None, relogio: Callable[[], float] = time.monotonic):
+                 prazo: float | None = None, relogio: Callable[[], float] = time.monotonic,
+                 esperar: Callable[[float], None] = time.sleep):
         """A câmara (``host``), o contato do User-Agent e o prazo (no relógio ``relogio``); ``ler_fn`` substitui a rede
         nos testes."""
         self.host, self.contato, self.ler_fn, self.prazo, self.relogio = host, contato, ler_fn, prazo, relogio
+        self.esperar = esperar
         self.pedidos = 0
 
     def obter(self, caminho: str, **filtros: Any) -> dict:
-        """Uma página da API (``caminho`` como ``sessao/votoparlamentar``), em JSON."""
-        if self.prazo is not None and self.relogio() >= self.prazo:
-            raise _Prazo()
+        """Uma página da API (``caminho`` como ``sessao/votoparlamentar``), em JSON. O 404 é pedido de novo, com uma
+        pausa, até ``TENTATIVAS_404`` vezes: o SAPL às vezes o responde a um pedido que funciona logo depois."""
         url = f"https://{self.host}/api/{caminho}/?{urllib.parse.urlencode(filtros)}"
-        self.pedidos += 1
+        for tentativa in range(TENTATIVAS_404):
+            if self.prazo is not None and self.relogio() >= self.prazo:
+                raise _Prazo()
+            self.pedidos += 1
+            try:
+                return self._ler(url)
+            except urllib.error.HTTPError as erro:
+                if erro.code != 404 or tentativa + 1 == TENTATIVAS_404:
+                    raise
+                self.esperar(3 * (tentativa + 1))
+        raise AssertionError("inalcançável")
+
+    def _ler(self, url: str) -> dict:
+        """O JSON do endereço, pela rede (com as novas tentativas de ``tce.abrir`` para erro 5xx) ou por ``ler_fn``."""
         if self.ler_fn:
             return self.ler_fn(url)
         pedido = urllib.request.Request(url, headers={**tce.cabecalhos(self.contato), "Accept": "application/json"})
@@ -266,7 +281,7 @@ def _idade(c: dict | None, hoje: date) -> int:
 def coletar(estado: Path | str, cadastro: Cadastro, *, contato: str, hoje: date | None = None,
             ufs: list[str] | None = None, municipios: list[str] | None = None, limite_minutos: float | None = None,
             simultaneos: int = SIMULTANEOS, ler_fn: Callable[[str], Any] | None = None,
-            relogio: Callable[[], float] = time.monotonic) -> dict:
+            relogio: Callable[[], float] = time.monotonic, esperar: Callable[[float], None] = time.sleep) -> dict:
     """Lê as câmaras do levantamento que passaram de ``DIAS_ENTRE_COLETAS`` dias (as nunca lidas primeiro, depois as
     mais antigas), algumas ao mesmo tempo, e grava o arquivo de cada UF. Devolve o resumo."""
     hoje = hoje or datetime.now(timezone.utc).date()
@@ -290,7 +305,7 @@ def coletar(estado: Path | str, cadastro: Cadastro, *, contato: str, hoje: date 
         uf = cadastro.entes[i].uf
         c = json.loads(json.dumps(por_uf[uf].get(i) or vazia(hosts[i])))
         c["host"] = hosts[i]
-        api = Api(hosts[i], contato=contato, ler_fn=ler_fn, prazo=prazo, relogio=relogio)
+        api = Api(hosts[i], contato=contato, ler_fn=ler_fn, prazo=prazo, relogio=relogio, esperar=esperar)
         if prazo is not None and relogio() >= prazo:
             return c, "pulada", 0
         try:
