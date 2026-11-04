@@ -54,7 +54,7 @@ def _fontes():
             linhas = proposicoes.get(q["ano"], [])
             return {"total": len(linhas), "Data": linhas if q["pag"] == "1" else []}
         if partes.path.endswith("votacoes.json"):
-            if q["ano"] != "2025":
+            if q["ano"] != "2025" or q["mes"] != "6":
                 return []
             return detalhes if q["tipo"] == "detalhes" else resumo
         raise AssertionError(url)

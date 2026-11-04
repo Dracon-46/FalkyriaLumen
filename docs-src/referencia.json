@@ -8971,148 +8971,148 @@
   {
    "caminho": "packages/painel/lumen_painel/assembleias.py",
    "linguagem": "python",
-   "linhas": 540,
-   "doc": "Os deputados estaduais pelas fontes próprias das Assembleias Legislativas (ADR-062, adendos 2 e 3): as que usam o\nSPL da Ágape Consultoria, que tem uma API pública comum (``/api/publico/``), os votos nominais de Goiás, a API de\ndados abertos da Assembleia de Minas Gerais (``CASAS_ALMG``) e os arquivos da Assembleia de São Paulo\n(``CASAS_ALESP``), as duas com a verba de gabinete.\n\nAs Assembleias com o SAPL do Interlegis vão pela coleta dos vereadores (``vereadores.py``). As outras publicam cada\numa do seu jeito; o levantamento de 4/11/2026 achou o SPL da Ágape em quatro (``CASAS_SPL``: GO, ES, SE e BA):\n\n- ``/api/publico/parlamentar/?pag=&qtd=``: os deputados da legislatura atual, com o partido (a API não traz as\n  anteriores; por isso a coleta começa em ``PRIMEIRO_ANO``, o início da legislatura de 2023);\n- ``/api/publico/proposicao/?pag=&qtd=&ano=``: as proposições do ano, com o tipo, a ementa e o autor pelo nome (e o\n  gabinete). O autor é ligado ao deputado pelo nome; os documentos (CPF) e os contatos que a API traz não são\n  guardados. Os projetos (o tipo começa por \"projeto\" ou é proposta de emenda) ficam com a ementa; os outros tipos\n  são só contados;\n- em Goiás, ``transparencia.al.go.leg.br/api/transparencia/votacoes.json?tipo=detalhes&ano=&todos=true``: o voto de\n  cada deputado nas votações nominais do Plenário, com o partido no dia, de 2023 em diante; ``tipo=resumo`` dá o\n  processo votado. O voto vem com o nome do deputado, às vezes repetido em maiúsculas: fica um por deputado.\n\nMinas Gerais (``dadosabertos.almg.gov.br/api/v2``) dá os deputados da legislatura atual (em exercício e os que\nexerceram o mandato), as proposições de cada ano com os autores pelo id (``proposicoes/pesquisa/direcionada``, de 100\nem 100, uma consulta por tipo: a API não pagina além de 10 mil linhas) e a verba indenizatória de cada deputado por mês, nota a nota, com o CNPJ do emitente\n(``prestacao_contas/verbas_indenizatorias/deputados/<id>/<ano>/<mês>``). A verba vai no lugar da cota dos deputados\nfederais: por categoria, por mês e por fornecedor com CNPJ; o emitente pessoa física entra só na soma, sem o CPF. MG\nnão publica os votos nem a presença do Plenário.\n\nSão Paulo (``www.al.sp.gov.br/repositorioDados/``) publica arquivos inteiros, refeitos todo dia: os deputados em\nexercício (``deputados/deputados.xml``), todas as proposituras desde 1990 (``processo_legislativo/proposituras.zip``,\n132 MB descompactado), os autores de cada uma (``documento_autor.zip``, 145 MB; o autor é o ``IdSPL`` do deputado), as\nnaturezas (``naturezasSpl.xml``) e as despesas de gabinete por nota desde 2015 (``deputados/despesas_gabinetes.xml``,\n172 MB, ligadas ao deputado pela matrícula). Os arquivos são lidos em fluxo, sem carregar tudo na memória; ficam as\nproposituras e as despesas de ``PRIMEIRO_ANO`` em diante. A ALESP só publica votos e presença das comissões.\n\nNão há presença em nenhuma delas: o detalhe da sessão do SPL, que traria as presenças, respondeu erro em 4/11/2026.\nO estado fica em ``assembleias.json.gz``; o ano fechado é relido uma vez por mês e o corrente e o anterior, uma vez\npor semana (``tce.precisa_ler_por_idade``). A publicação é a dos deputados federais (``camara.publicar_casa``), em\n``parlamentares/estadual/<código da UF>/``, e as linhas entram no índice das Assembleias (``vereadores.publicar``).",
+   "linhas": 545,
+   "doc": "Os deputados estaduais pelas fontes próprias das Assembleias Legislativas (ADR-062, adendos 2 e 3): as que usam o\nSPL da Ágape Consultoria, que tem uma API pública comum (``/api/publico/``), os votos nominais de Goiás, a API de\ndados abertos da Assembleia de Minas Gerais (``CASAS_ALMG``) e os arquivos da Assembleia de São Paulo\n(``CASAS_ALESP``), as duas com a verba de gabinete.\n\nAs Assembleias com o SAPL do Interlegis vão pela coleta dos vereadores (``vereadores.py``). As outras publicam cada\numa do seu jeito; o levantamento de 4/11/2026 achou o SPL da Ágape em quatro (``CASAS_SPL``: GO, ES, SE e BA):\n\n- ``/api/publico/parlamentar/?pag=&qtd=``: os deputados da legislatura atual, com o partido (a API não traz as\n  anteriores; por isso a coleta começa em ``PRIMEIRO_ANO``, o início da legislatura de 2023);\n- ``/api/publico/proposicao/?pag=&qtd=&ano=``: as proposições do ano, com o tipo, a ementa e o autor pelo nome (e o\n  gabinete). O autor é ligado ao deputado pelo nome; os documentos (CPF) e os contatos que a API traz não são\n  guardados. Os projetos (o tipo começa por \"projeto\" ou é proposta de emenda) ficam com a ementa; os outros tipos\n  são só contados;\n- em Goiás, ``transparencia.al.go.leg.br/api/transparencia/votacoes.json?tipo=detalhes&ano=&mes=``: o voto de cada\n  deputado nas votações nominais do Plenário, com o partido no dia, de 2023 em diante, um mês por pedido (o ano\n  inteiro passa de 20 MB); ``tipo=resumo`` dá o processo votado. O voto vem com o nome do deputado, às vezes repetido\n  em maiúsculas: fica um por deputado.\n\nEssas quatro e a transparência da Alego não respondem fora do Brasil (tempo esgotado ou 403 para o GitHub Actions em\n4/11/2026): os pedidos vão pelo intermediário em São Paulo (``tce.SO_DO_BRASIL``, ``infra/proxy-br``).\n\nMinas Gerais (``dadosabertos.almg.gov.br/api/v2``) dá os deputados da legislatura atual (em exercício e os que\nexerceram o mandato), as proposições de cada ano com os autores pelo id (``proposicoes/pesquisa/direcionada``, de 100\nem 100, uma consulta por tipo: a API não pagina além de 10 mil linhas) e a verba indenizatória de cada deputado por mês, nota a nota, com o CNPJ do emitente\n(``prestacao_contas/verbas_indenizatorias/deputados/<id>/<ano>/<mês>``). A verba vai no lugar da cota dos deputados\nfederais: por categoria, por mês e por fornecedor com CNPJ; o emitente pessoa física entra só na soma, sem o CPF. MG\nnão publica os votos nem a presença do Plenário.\n\nSão Paulo (``www.al.sp.gov.br/repositorioDados/``) publica arquivos inteiros, refeitos todo dia: os deputados em\nexercício (``deputados/deputados.xml``), todas as proposituras desde 1990 (``processo_legislativo/proposituras.zip``,\n132 MB descompactado), os autores de cada uma (``documento_autor.zip``, 145 MB; o autor é o ``IdSPL`` do deputado), as\nnaturezas (``naturezasSpl.xml``) e as despesas de gabinete por nota desde 2015 (``deputados/despesas_gabinetes.xml``,\n172 MB, ligadas ao deputado pela matrícula). Os arquivos são lidos em fluxo, sem carregar tudo na memória; ficam as\nproposituras e as despesas de ``PRIMEIRO_ANO`` em diante. A ALESP só publica votos e presença das comissões.\n\nNão há presença em nenhuma delas: o detalhe da sessão do SPL, que traria as presenças, respondeu erro em 4/11/2026.\nO estado fica em ``assembleias.json.gz``; o ano fechado é relido uma vez por mês e o corrente e o anterior, uma vez\npor semana (``tce.precisa_ler_por_idade``). A publicação é a dos deputados federais (``camara.publicar_casa``), em\n``parlamentares/estadual/<código da UF>/``, e as linhas entram no índice das Assembleias (``vereadores.publicar``).",
    "itens": [
     {
      "tipo": "funcao",
      "nome": "chave",
      "assinatura": "def chave(nome: str | None) -> str",
      "doc": "O nome para ligar autor e voto ao deputado: sem acento, maiúsculo, sem pontuação e sem \"Gabinete do Deputado\"\n(\"Gab. Dep. João Coser\" → ``JOAO COSER``).",
-     "linha": 89
+     "linha": 93
     },
     {
      "tipo": "funcao",
      "nome": "_json",
      "assinatura": "def _json(url: str, *, contato: str, ler_fn: Callable[[str], Any] | None) -> Any",
      "doc": "O JSON de um endereço (``ler_fn`` substitui a rede nos testes).",
-     "linha": 96
+     "linha": 100
     },
     {
      "tipo": "funcao",
      "nome": "_paginas",
      "assinatura": "def _paginas(host: str, caminho: str, chave_lista: str, *, contato: str, ler_fn: Callable[[str], Any] | None, **filtros: Any) -> list[dict]",
      "doc": "Todas as linhas de uma lista paginada do SPL (``pag`` e ``qtd``; o total vem em ``total``).",
-     "linha": 105
+     "linha": 109
     },
     {
      "tipo": "funcao",
      "nome": "ler_deputados",
      "assinatura": "def ler_deputados(linhas: list[dict]) -> dict[str, list]",
      "doc": "Os deputados do SPL: ``{id: [nome, nome civil, partido, situação]}``.",
-     "linha": 122
+     "linha": 126
     },
     {
      "tipo": "funcao",
      "nome": "_por_nome",
      "assinatura": "def _por_nome(deputados: dict[str, list]) -> dict[str, str]",
      "doc": "O id do deputado pela chave do nome parlamentar e do nome civil.",
-     "linha": 130
+     "linha": 134
     },
     {
      "tipo": "funcao",
      "nome": "ler_proposicoes",
      "assinatura": "def ler_proposicoes(linhas: list[dict], deputados: dict[str, list], ano: int) -> dict[str, Any]",
      "doc": "As proposições de um ano: os projetos (com a ementa e os autores) e a contagem de todas por tipo e deputado.",
-     "linha": 140
+     "linha": 144
     },
     {
      "tipo": "funcao",
      "nome": "_ementa",
      "assinatura": "def _ementa(texto: str | None) -> str",
      "doc": "O assunto da votação de Goiás (\"AUTOR - ...\\nASSUNTO - ...\" → o assunto).",
-     "linha": 163
+     "linha": 167
     },
     {
      "tipo": "funcao",
      "nome": "ler_votacoes_go",
      "assinatura": "def ler_votacoes_go(detalhes: list[dict], resumo: list[dict], deputados: dict[str, list]) -> tuple[dict, int]",
      "doc": "As votações nominais de Goiás num ano: ``{pauta: [data, processo, ementa, resultado, aprovação, {id: voto},\n{id: partido}]}`` e quantos votos ficaram sem deputado no cadastro.",
-     "linha": 169
+     "linha": 173
     },
     {
      "tipo": "funcao",
      "nome": "_almg",
      "assinatura": "def _almg(caminho: str, *, contato: str, ler_fn: Callable[[str], Any] | None, esperar: Callable[[float], None]=time.sleep, **filtros: Any) -> Any",
      "doc": "Um pedido à API da ALMG, em JSON, com uma pausa antes (``PAUSA_ALMG``): a API responde 429 a quem pede rápido\ndemais, e então o pedido espera e é feito de novo, até ``TENTATIVAS_429`` vezes.",
-     "linha": 196
+     "linha": 200
     },
     {
      "tipo": "funcao",
      "nome": "ler_proposicoes_almg",
      "assinatura": "def ler_proposicoes_almg(linhas: list[dict], deputados: dict[str, list], ano: int) -> dict[str, Any]",
      "doc": "As proposições de um ano em Minas: os projetos (id ``SIGLA-número-ano``) com a ementa e os autores e a contagem\nde todas por tipo. O autor que não está no cadastro (deixou a Assembleia) entra nele, com o nome e o partido.",
-     "linha": 213
+     "linha": 217
     },
     {
      "tipo": "funcao",
      "nome": "ler_verba_almg",
      "assinatura": "def ler_verba_almg(notas_por_deputado: dict[str, list[dict]]) -> tuple[dict[str, dict], dict[str, str]]",
      "doc": "A verba indenizatória de um ano por deputado, como a cota dos federais (categorias, meses, fornecedores com\nCNPJ e a pessoa física só somada), e os nomes dos CNPJs. ``notas_por_deputado``: as linhas da API (uma por\ncategoria e mês, com as notas em ``listaDetalheVerba``).",
-     "linha": 241
+     "linha": 245
     },
     {
      "tipo": "funcao",
      "nome": "_coletar_almg",
      "assinatura": "def _coletar_almg(c: dict, *, contato: str, hoje: date, ler_fn: Callable[[str], Any] | None) -> dict",
      "doc": "Minas Gerais: os deputados, as proposições e a verba dos anos que passaram da idade de releitura.",
-     "linha": 274
+     "linha": 278
     },
     {
      "tipo": "funcao",
      "nome": "_elementos",
      "assinatura": "def _elementos(arquivo: Any, tag: str) -> Any",
      "doc": "Os elementos ``tag`` de um XML, um de cada vez (``iterparse``), cada um com os filhos num dicionário.",
-     "linha": 321
+     "linha": 325
     },
     {
      "tipo": "funcao",
      "nome": "ler_alesp",
      "assinatura": "def ler_alesp(deputados_xml: Any, naturezas_xml: Any, proposituras_xml: Any, autores_xml: Any, despesas_xml: Any, *, primeiro_ano: int=PRIMEIRO_ANO) -> dict[str, Any]",
      "doc": "Os arquivos da ALESP (abertos, em XML) no estado da Assembleia: os deputados (``{IdSPL: [nome, nome, partido,\nsituação]}``), as proposituras por ano (projetos e contagem) e a verba de gabinete por ano.",
-     "linha": 329
+     "linha": 333
     },
     {
      "tipo": "funcao",
      "nome": "_coletar_alesp",
      "assinatura": "def _coletar_alesp(c: dict, *, contato: str, abrir_fn: Callable[[str], Any] | None) -> dict",
      "doc": "São Paulo: baixa os cinco arquivos (os ZIPs, para uma pasta temporária) e lê tudo de novo.",
-     "linha": 380
+     "linha": 384
     },
     {
      "tipo": "funcao",
      "nome": "coletar_casa",
      "assinatura": "def coletar_casa(c: dict, codigo: str, *, contato: str, hoje: date, ler_fn: Callable[[str], Any] | None=None, abrir_fn: Callable[[str], Any] | None=None) -> dict",
      "doc": "Lê uma Assembleia sobre o estado ``c`` (alterado no lugar): os deputados, as proposições, os votos e a verba\ndos anos que passaram da idade de releitura. Devolve o resumo.",
-     "linha": 406
+     "linha": 410
     },
     {
      "tipo": "funcao",
      "nome": "ler_estado",
      "assinatura": "def ler_estado(estado: Path | str) -> dict[str, dict]",
      "doc": "As Assembleias já lidas (vazio se ainda não houve coleta).",
-     "linha": 444
+     "linha": 449
     },
     {
      "tipo": "funcao",
      "nome": "coletar",
      "assinatura": "def coletar(estado: Path | str, *, contato: str, hoje: date | None=None, casas: list[str] | None=None, ler_fn: Callable[[str], Any] | None=None, abrir_fn: Callable[[str], Any] | None=None) -> dict",
      "doc": "Lê as Assembleias de ``CASAS_SPL`` (ou as pedidas), uma por vez em paralelo, e grava ``ARQUIVO``.",
-     "linha": 455
+     "linha": 460
     },
     {
      "tipo": "funcao",
      "nome": "montar",
      "assinatura": "def montar(c: dict, uf: str) -> dict",
      "doc": "O estado de uma Assembleia no formato da publicação comum (``camara.publicar_casa``).",
-     "linha": 486
+     "linha": 491
     },
     {
      "tipo": "funcao",
      "nome": "publicar",
      "assinatura": "def publicar(estado: Path | str, cadastro: Cadastro, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> list[list]",
      "doc": "Grava ``parlamentares/estadual/<código>/`` de cada Assembleia lida e devolve as linhas do índice das\nAssembleias (``[código, estado, UF, endereço, deputados, votações, anos, sistema]``).",
-     "linha": 523
+     "linha": 528
     }
    ]
   },
@@ -11480,7 +11480,7 @@
   {
    "caminho": "packages/painel/lumen_painel/tce.py",
    "linguagem": "python",
-   "linhas": 351,
+   "linhas": 354,
    "doc": "O que os coletores dos tribunais de contas têm em comum (ADR-050): a leitura por partes, a regra de quando reler\num ano, a soma de um ano por ente e a publicação.\n\nCada tribunal tem o próprio módulo (``tce_rs``, ``tce_pr``, ``tce_pe``, ``tce_ce``), que lê a fonte dele e grava o estado em\n``tce-<sigla>.json.gz`` no mesmo formato:\n\n- ``anos``: por ano do contrato, a ``etiqueta`` e o ``tamanho`` do que foi lido, quando foi lido e a soma do ano\n  (``SomaAno.para_json``): por ente, as ``COLUNAS_ENTE``; por ente e CNPJ, ``[contratos, valor]``; e o que ficou\n  sem ente (consórcios e associações, que reúnem vários municípios);\n- ``nomes``: o nome de cada CNPJ, com o CPF do MEI mascarado;\n- ``tribunal``, ``sistema``, ``fonte`` e ``primeiro_ano``.\n\nA leitura por partes (``ArquivoRemoto``) é um arquivo que o ``zipfile`` abre e lê em fluxo. O ``zip_remoto`` do\n``lumen_ingestao`` (ADR-032) faz parecido, mas traz o arquivo pedido inteiro para a memória e não lê ZIP64; o\n``pessoas.csv`` do TCE-RS tem 200 MB.\n\nO valor acima do teto de plausibilidade do ente (o mesmo do painel de contratações, ADR-028) conta e fica fora\nda soma. Contrato com pessoa física entra só na soma anônima, sem nome nem documento (DOC-08). A publicação junta\ntodos os tribunais em ``tce/ente/<grupo>.json.gz``: um ente só é fiscalizado por um tribunal.\n\nOs servidores do TCE-RS e do TCE-CE só respondem a endereços do Brasil, e o GitHub Actions roda fora. Com\n``LUMEN_PROXY_BR`` e ``LUMEN_PROXY_CHAVE`` no ambiente, os pedidos a eles passam pelo intermediário em São Paulo\n(``infra/proxy-br``, uma função da Vercel), que devolve a resposta do tribunal como veio (ADR-050, adendo).",
    "itens": [
     {
@@ -11488,182 +11488,182 @@
      "nome": "cabecalhos",
      "assinatura": "def cabecalhos(contato: str) -> dict[str, str]",
      "doc": "User-Agent com o contato, como nas outras coletas.",
-     "linha": 56
+     "linha": 59
     },
     {
      "tipo": "funcao",
      "nome": "pelo_intermediario",
      "assinatura": "def pelo_intermediario(pedido: urllib.request.Request, ambiente=os.environ) -> urllib.request.Request",
      "doc": "O pedido a um servidor que só responde do Brasil, refeito para o intermediário em São Paulo quando ele está\nconfigurado (``LUMEN_PROXY_BR`` e ``LUMEN_PROXY_CHAVE``); os outros pedidos ficam como estão.",
-     "linha": 61
+     "linha": 64
     },
     {
      "tipo": "funcao",
      "nome": "abrir",
      "assinatura": "def abrir(pedido: urllib.request.Request, *, tentativas: int=TENTATIVAS, esperar: Callable[[float], None]=time.sleep)",
      "doc": "``urlopen`` com novas tentativas para falha de rede e erro 5xx; 404 sobe na hora. Passa pelo intermediário\nem São Paulo quando o servidor só responde do Brasil (``pelo_intermediario``). O erro leva o começo da resposta:\npelo intermediário, um 403 pode ser dele (\"destino fora da lista\") ou do tribunal.",
-     "linha": 72
+     "linha": 75
     },
     {
      "tipo": "funcao",
      "nome": "cabecalho",
      "assinatura": "def cabecalho(url: str, *, contato: str) -> tuple[int, str] | None",
      "doc": "Tamanho e ETag (ou Last-Modified) do arquivo; ``None`` quando ele não existe (404). Pelo intermediário, os\noriginais vêm em ``X-Lumen-Tamanho`` e ``X-Lumen-Etag``.",
-     "linha": 94
+     "linha": 97
     },
     {
      "tipo": "funcao",
      "nome": "baixar",
      "assinatura": "def baixar(url: str, *, contato: str, tentativas: int=TENTATIVAS, esperar: Callable[[float], None]=time.sleep) -> bytes | None",
      "doc": "Um arquivo inteiro; ``None`` quando ele não existe (404). A conexão que cai no meio da leitura (o TCE-PE\nfechou uma resposta de 30 MB depois de 8,7 MB, em 22/10/2026) faz baixar de novo, do começo.",
-     "linha": 108
+     "linha": 111
     },
     {
      "tipo": "classe",
      "nome": "ArquivoRemoto",
      "assinatura": "class ArquivoRemoto(io.RawIOBase)",
      "doc": "Um arquivo do servidor lido por partes (``Range``), em blocos guardados, para o ``zipfile`` abrir só os\nmembros pedidos sem baixar o resto.",
-     "linha": 127
+     "linha": 130
     },
     {
      "tipo": "metodo",
      "nome": "ArquivoRemoto.__init__",
      "assinatura": "def __init__(self, url: str, tamanho: int, *, contato: str, bloco: int=BLOCO, abrir: Callable[..., Any]=abrir)",
      "doc": "``tamanho`` vem do ``cabecalho``; ``abrir`` é substituível nos testes.",
-     "linha": 131
+     "linha": 134
     },
     {
      "tipo": "metodo",
      "nome": "ArquivoRemoto.readable",
      "assinatura": "def readable(self) -> bool",
      "doc": "Lê.",
-     "linha": 141
+     "linha": 144
     },
     {
      "tipo": "metodo",
      "nome": "ArquivoRemoto.seekable",
      "assinatura": "def seekable(self) -> bool",
      "doc": "Anda para qualquer posição.",
-     "linha": 145
+     "linha": 148
     },
     {
      "tipo": "metodo",
      "nome": "ArquivoRemoto.tell",
      "assinatura": "def tell(self) -> int",
      "doc": "A posição atual.",
-     "linha": 149
+     "linha": 152
     },
     {
      "tipo": "metodo",
      "nome": "ArquivoRemoto.seek",
      "assinatura": "def seek(self, deslocamento: int, de: int=io.SEEK_SET) -> int",
      "doc": "Muda a posição, como ``io``.",
-     "linha": 153
+     "linha": 156
     },
     {
      "tipo": "metodo",
      "nome": "ArquivoRemoto.readinto",
      "assinatura": "def readinto(self, destino) -> int",
      "doc": "Copia o que puder do bloco guardado; fora dele, busca um bloco novo a partir da posição.",
-     "linha": 159
+     "linha": 162
     },
     {
      "tipo": "classe",
      "nome": "SomaAno",
      "assinatura": "class SomaAno",
      "doc": "A soma de um ano: por ente (``COLUNAS_ENTE``), por ente e CNPJ e o que ficou sem ente. ``teto(ente)`` é o\nvalor acima do qual o contrato conta e fica fora da soma.",
-     "linha": 182
+     "linha": 185
     },
     {
      "tipo": "metodo",
      "nome": "SomaAno.__init__",
      "assinatura": "def __init__(self, teto: Callable[[str], float])",
      "doc": "Começa vazia.",
-     "linha": 186
+     "linha": 189
     },
     {
      "tipo": "metodo",
      "nome": "SomaAno._linha",
      "assinatura": "def _linha(self, ente: str) -> list",
      "doc": "A linha do ente (``COLUNAS_ENTE``), criada zerada na primeira vez.",
-     "linha": 194
+     "linha": 197
     },
     {
      "tipo": "metodo",
      "nome": "SomaAno.contrato",
      "assinatura": "def contrato(self, ente: str | None, valor: float | None, *, cnpj: str | None=None, sem_fornecedor: bool=False) -> None",
      "doc": "Um contrato do ente: com ``cnpj``, na empresa; sem ele, na soma anônima de pessoa física; com\n``sem_fornecedor`` (vários contratados, ou nenhum registrado), só no total do ente. Sem ente, vai para\n``sem_ente``.",
-     "linha": 198
+     "linha": 201
     },
     {
      "tipo": "metodo",
      "nome": "SomaAno.aditivo",
      "assinatura": "def aditivo(self, ente: str | None, valor: float | None) -> None",
      "doc": "Um aditivo do ente, com o acréscimo líquido (negativo quando reduz). Sem ``valor`` (a fonte não separa o\nacréscimo do valor do termo), o aditivo conta e o acréscimo do ente fica ``None``.",
-     "linha": 223
+     "linha": 226
     },
     {
      "tipo": "metodo",
      "nome": "SomaAno.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "A soma como vai no estado, em ordem e com os valores em centavos.",
-     "linha": 232
+     "linha": 235
     },
     {
      "tipo": "classe",
      "nome": "ResultadoTce",
      "assinatura": "class ResultadoTce",
      "doc": "O que a coleta de um tribunal fez: os anos lidos, os pulados (sem mudança) e os que não existem.",
-     "linha": 246
+     "linha": 249
     },
     {
      "tipo": "metodo",
      "nome": "ResultadoTce.para_json",
      "assinatura": "def para_json(self) -> dict",
      "doc": "Resumo para imprimir na linha de comando.",
-     "linha": 257
+     "linha": 260
     },
     {
      "tipo": "funcao",
      "nome": "precisa_ler",
      "assinatura": "def precisa_ler(guardado: dict | None, tamanho: int, etiqueta: str, ano: int, hoje: date) -> bool",
      "doc": "O ano tem de ser lido de novo? Nunca lido: sim. Fechado (antes do ano anterior): só se o tamanho mudou,\nporque os tribunais refazem os arquivos sem mudar o conteúdo. Corrente ou anterior: quando mudou e a última\nleitura tem ``DIAS_ENTRE_LEITURAS`` dias ou mais.",
-     "linha": 263
+     "linha": 266
     },
     {
      "tipo": "funcao",
      "nome": "precisa_ler_por_idade",
      "assinatura": "def precisa_ler_por_idade(guardado: dict | None, ano: int, hoje: date) -> bool",
      "doc": "Para a fonte sem cabeçalho de mudança (uma API): nunca lido, sim; fechado, quando a leitura tem\n``DIAS_ANO_FECHADO`` dias ou mais; corrente ou anterior, ``DIAS_ENTRE_LEITURAS``.",
-     "linha": 277
+     "linha": 280
     },
     {
      "tipo": "funcao",
      "nome": "ler_estado",
      "assinatura": "def ler_estado(caminho: Path, *, tribunal: str, sistema: str, fonte: str, primeiro_ano: int) -> dict",
      "doc": "O estado de um tribunal, ou um vazio; versão desconhecida é erro.",
-     "linha": 286
+     "linha": 289
     },
     {
      "tipo": "funcao",
      "nome": "estados",
      "assinatura": "def estados(estado: Path | str) -> list[dict]",
      "doc": "Os estados de todos os tribunais coletados (``tce-*.json.gz``), em ordem de nome.",
-     "linha": 298
+     "linha": 301
     },
     {
      "tipo": "funcao",
      "nome": "entes_do_estado",
      "assinatura": "def entes_do_estado(dados: dict) -> dict[str, dict]",
      "doc": "Por ente: os anos (``COLUNAS_ENTE``) e os fornecedores do maior valor ao menor, cada um com os anos\n(``[CNPJ, nome, [[ano, contratos, valor], ...]]``), até ``FORNECEDORES_PUBLICADOS``.",
-     "linha": 309
+     "linha": 312
     },
     {
      "tipo": "funcao",
      "nome": "publicar",
      "assinatura": "def publicar(estado: Path | str, gravar: Callable[[str, Any], Any], *, gerado_em: str) -> dict | None",
      "doc": "Grava ``tce/ente/<grupo>.json.gz`` (comprimido, ``comum.grupo_do_ente``) com os contratos de cada ente\nregistrados no tribunal de contas dele, e devolve o resumo de cada tribunal para o índice.",
-     "linha": 328
+     "linha": 331
     }
    ]
   },
@@ -12117,7 +12117,7 @@
   {
    "caminho": "packages/painel/lumen_painel/vereadores.py",
    "linguagem": "python",
-   "linhas": 466,
+   "linhas": 467,
    "doc": "Os vereadores pelo SAPL do Interlegis (ADR-062): mandatos e partidos, projetos apresentados, presença nas sessões e\no voto de cada vereador nas votações nominais dos projetos, de 2017 em diante (os mandatos de 2017, 2021 e 2025).\n\nAs câmaras são as do levantamento (``camaras.py``). A API do SAPL (``/api/``) pagina de 100 em 100, em ordem\ncrescente de id, e não filtra por data nem por id; filtra as matérias por ano, os votos por votação e as pautas por\nmatéria. De cada câmara, a coleta lê:\n\n- ``parlamentares/parlamentar``, ``mandato``, ``filiacao`` e ``partido``: os vereadores, os períodos de mandato e o\n  partido em cada data; ``base/autor`` liga o autor da matéria ao vereador (o autor do tipo \"Parlamentar\");\n- ``materia/materialegislativa?ano=AAAA``: as matérias de cada ano com os autores. As dos tipos de projeto (projetos\n  de lei, de lei complementar, de decreto legislativo e de resolução e emendas à Lei Orgânica, pela descrição do\n  tipo, que cada câmara cadastra do seu jeito) ficam com a ementa; as demais (requerimentos, indicações, moções) são\n  só contadas por tipo. O ano corrente e o anterior são relidos a cada coleta da câmara; os outros, uma vez;\n- ``sessao/sessaoplenaria`` e ``sessaoplenariapresenca``: as sessões e quem esteve nelas. A presença conta só as\n  sessões com alguma presença registrada, para não pesar contra o vereador a sessão que a câmara não registrou;\n- ``sessao/registrovotacao``: as votações, lidas a partir da página em que a leitura anterior parou. Ficam as dos\n  projetos; de cada uma, os votos (``votoparlamentar?votacao=``) e a data, pela pauta (``ordemdia`` e\n  ``expedientemateria`` da matéria). Votação sem voto por vereador (simbólica) fica registrada, sem votos, e não é\n  publicada.\n\nO estado fica num arquivo por UF (``vereadores-<UF>.json.gz``), com as câmaras do estado. Cada câmara é relida no\nmáximo uma vez a cada ``DIAS_ENTRE_COLETAS`` dias; a que não termina no prazo guarda o que leu e continua na próxima.\nA publicação usa a dos deputados e senadores (``camara.publicar_casa``), em ``parlamentares/municipal/<IBGE>/``.\n\nAs Assembleias Legislativas que usam o SAPL (``sapl.al.<uf>.leg.br``; 9 em 4/11/2026: AC, AL, AM, MT, PB, PI, RO, RR\ne TO) entram pelo mesmo caminho: estão no levantamento com o código da UF (2 dígitos), e a publicação vai para\n``parlamentares/estadual/<código da UF>/``, com as legislaturas estaduais (de 1º de fevereiro a 31 de janeiro).",
    "itens": [
     {
@@ -12209,84 +12209,84 @@
      "nome": "_materias",
      "assinatura": "def _materias(api: Api, c: dict, hoje: date) -> None",
      "doc": "As matérias de cada ano (o corrente e o anterior sempre; os outros, só se nunca lidos): os projetos com a\nementa e os autores, e a contagem de todas por tipo e vereador.",
-     "linha": 181
+     "linha": 182
     },
     {
      "tipo": "funcao",
      "nome": "_presenca",
      "assinatura": "def _presenca(api: Api, c: dict) -> None",
      "doc": "As sessões de 2017 em diante e a presença, a partir da página em que a leitura anterior parou.",
-     "linha": 202
+     "linha": 203
     },
     {
      "tipo": "funcao",
      "nome": "_votacoes",
      "assinatura": "def _votacoes(api: Api, c: dict) -> None",
      "doc": "As votações dos projetos, a partir da página em que a leitura anterior parou: a data pela pauta, o resultado e\nos votos. O contador só anda depois que a página inteira foi lida.",
-     "linha": 217
+     "linha": 218
     },
     {
      "tipo": "funcao",
      "nome": "vazia",
      "assinatura": "def vazia(host: str) -> dict",
      "doc": "O estado de uma câmara ainda não lida.",
-     "linha": 252
+     "linha": 253
     },
     {
      "tipo": "funcao",
      "nome": "coletar_camara",
      "assinatura": "def coletar_camara(c: dict, api: Api, hoje: date) -> bool",
      "doc": "Lê uma câmara sobre o estado ``c`` (alterado no lugar). Devolve se terminou; no prazo, guarda o que leu (o\ncadastro, os anos de matérias, a presença e as votações até a última página inteira) e devolve ``False``.",
-     "linha": 259
+     "linha": 260
     },
     {
      "tipo": "funcao",
      "nome": "ler_estado",
      "assinatura": "def ler_estado(estado: Path | str, uf: str) -> dict[str, dict]",
      "doc": "As câmaras de uma UF (vazio se ainda não houve coleta).",
-     "linha": 277
+     "linha": 278
     },
     {
      "tipo": "funcao",
      "nome": "_gravar",
      "assinatura": "def _gravar(estado: Path | str, uf: str, camaras_uf: dict[str, dict]) -> None",
      "doc": "Grava o arquivo das câmaras de uma UF.",
-     "linha": 288
+     "linha": 289
     },
     {
      "tipo": "funcao",
      "nome": "_idade",
      "assinatura": "def _idade(c: dict | None, hoje: date) -> int",
      "doc": "Dias desde a última coleta que terminou ou falhou (a interrompida pelo prazo não conta: continua logo).",
-     "linha": 296
+     "linha": 297
     },
     {
      "tipo": "funcao",
      "nome": "coletar",
      "assinatura": "def coletar(estado: Path | str, cadastro: Cadastro, *, contato: str, hoje: date | None=None, ufs: list[str] | None=None, municipios: list[str] | None=None, limite_minutos: float | None=None, simultaneos: int=SIMULTANEOS, ler_fn: Callable[[str], Any] | None=None, relogio: Callable[[], float]=time.monotonic, esperar: Callable[[float], None]=time.sleep) -> dict",
      "doc": "Lê as câmaras do levantamento que passaram de ``DIAS_ENTRE_COLETAS`` dias (as nunca lidas primeiro, depois as\nmais antigas), algumas ao mesmo tempo, e grava o arquivo de cada UF. Devolve o resumo.",
-     "linha": 304
+     "linha": 305
     },
     {
      "tipo": "funcao",
      "nome": "_partido",
      "assinatura": "def _partido(filiacoes: list[list], dia: str) -> str",
      "doc": "A sigla do partido do vereador no dia (a filiação mais recente começada até o dia e não encerrada antes).",
-     "linha": 371
+     "linha": 372
     },
     {
      "tipo": "funcao",
      "nome": "montar",
      "assinatura": "def montar(c: dict, uf: str, tipo: str='municipal') -> dict",
      "doc": "O estado de uma câmara (ou Assembleia, com ``tipo`` ``estadual``) no formato da publicação comum\n(``camara.publicar_casa``).",
-     "linha": 380
+     "linha": 381
     },
     {
      "tipo": "funcao",
      "nome": "publicar",
      "assinatura": "def publicar(estado: Path | str, cadastro: Cadastro, gravar: Callable[[str, Any], Any], *, gerado_em: str, estaduais: list[list] | None=None) -> dict | None",
      "doc": "Grava ``parlamentares/<esfera>/<código>/`` de cada câmara e Assembleia com dados (como os deputados) e o índice\nde cada esfera (``parlamentares/municipal/indice.json`` e ``parlamentares/estadual/indice.json``, com as linhas\ndas Assembleias pelas fontes próprias, ``estaduais``, de ``assembleias.publicar``); devolve o resumo para o índice\ndo site.",
-     "linha": 434
+     "linha": 435
     }
    ]
   },
@@ -20915,7 +20915,7 @@
   {
    "caminho": "packages/painel/testes/test_vereadores.py",
    "doc": "Os vereadores pelo SAPL (ADR-062): a coleta de uma câmara, a leitura incremental e a publicação.",
-   "testes": 8
+   "testes": 9
   },
   {
    "caminho": "testes/contrato/test_contrato_fontes.py",

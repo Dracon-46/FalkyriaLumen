@@ -216,3 +216,12 @@ def test_assembleia_com_sapl_publica_na_esfera_estadual(tmp_path):
         ["13", "Amazonas", "AM", "sapl.al.am.leg.br", 2, 1, ["2025"], "sapl"]]
     assert gravados["parlamentares/municipal/indice.json"]["camaras"] == []
     assert vereadores.no_mandato_estadual("2027-01-31", [2023]) and not vereadores.no_mandato_estadual("2023-01-31", [2023])
+
+
+def test_mandato_em_curso_e_encerrado_no_mesmo_dia():
+    tabelas = _tabelas()
+    tabelas["parlamentares/mandato"].append({"parlamentar": 1, "data_inicio_mandato": "2021-01-01",
+                                             "data_fim_mandato": None})
+    c = vereadores.vazia(HOST)
+    assert vereadores.coletar_camara(c, vereadores.Api(HOST, contato="c", ler_fn=_sapl(tabelas)), date(2025, 6, 1))
+    assert c["mandatos"]["1"] == [["2021-01-01", "2028-12-31"], ["2021-01-01", None]]

@@ -107,6 +107,9 @@ jobs:
     timeout-minutes: 120
     env:
       LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
+      # As Assembleias do SPL e a transparência da Alego só respondem do Brasil: o intermediário em São Paulo
+      LUMEN_PROXY_BR: ${{ vars.LUMEN_PROXY_BR }}
+      LUMEN_PROXY_CHAVE: ${{ secrets.LUMEN_PROXY_CHAVE }}
       LUMEN_DADOS: dados
       GH_TOKEN: ${{ github.token }}
       PYTHONUNBUFFERED: "1"
@@ -125,4 +128,8 @@ jobs:
         shell: bash               # com pipefail: a falha do lumen não some atrás do tee
         run: |
           lumen painel assembleias --estado estado | tee assembleias.json
-          gh release upload "$TAG" estado/assembleias.json.gz --clobber
+          for tentativa in 1 2 3; do
+            gh release upload "$TAG" estado/assembleias.json.gz --clobber && break
+            [ "$tentativa" = 3 ] && exit 1
+            sleep 20
+          done

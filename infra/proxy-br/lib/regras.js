@@ -16,6 +16,13 @@ export const DESTINOS = {
   "api-dados-abertos.tce.ce.gov.br": "/",
   // A API de serviços do IBGE (releases da Economia, localidades e malhas): desde 22/10/2026, só do Brasil
   "servicodados.ibge.gov.br": "/api/",
+  // As Assembleias com o SPL da Ágape e a transparência da Alego (ADR-062, adendo 2): em 4/11/2026, tempo esgotado
+  // ou 403 para o GitHub Actions
+  "alegodigital.al.go.leg.br": "/api/publico/",
+  "transparencia.al.go.leg.br": "/api/transparencia/",
+  "www3.al.es.gov.br": "/api/publico/",
+  "aleselegis.al.se.leg.br": "/api/publico/",
+  "albalegis.nopapercloud.com.br": "/api/publico/",
 };
 
 /** A resposta de uma função da Vercel tem no máximo 4,5 MB; o coletor pede os arquivos grandes em partes de 4 MiB. */

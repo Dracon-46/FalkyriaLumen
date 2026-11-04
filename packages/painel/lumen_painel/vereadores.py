@@ -164,14 +164,15 @@ def _cadastro(api: Api, c: dict) -> None:
     for m in api.listar("parlamentares/mandato")[0]:
         if m.get("data_inicio_mandato"):
             mandatos.setdefault(str(m["parlamentar"]), []).append([m["data_inicio_mandato"], m.get("data_fim_mandato")])
-    c["mandatos"] = {p: sorted(v) for p, v in mandatos.items()}
+    # O fim vazio (mandato em curso) ordena depois de qualquer data
+    c["mandatos"] = {p: sorted(v, key=lambda x: (x[0], x[1] or "9")) for p, v in mandatos.items()}
     siglas = {p["id"]: (p.get("sigla") or "").strip() for p in api.listar("parlamentares/partido")[0]}
     filiacoes: dict[str, list] = {}
     for f in api.listar("parlamentares/filiacao")[0]:
         if f.get("data") and siglas.get(f.get("partido")):
             filiacoes.setdefault(str(f["parlamentar"]), []).append(
                 [f["data"], f.get("data_desfiliacao"), siglas[f["partido"]]])
-    c["filiacoes"] = {p: sorted(v) for p, v in filiacoes.items()}
+    c["filiacoes"] = {p: sorted(v, key=lambda x: (x[0], x[1] or "9", x[2])) for p, v in filiacoes.items()}
     tipos = {t["content_type"] for t in api.listar("base/tipoautor")[0]
              if sem_acento(t.get("descricao") or "").strip().lower() == "parlamentar" and t.get("content_type")}
     c["autores"] = {str(a["id"]): str(a["object_id"]) for a in api.listar("base/autor")[0]

@@ -28,6 +28,9 @@ test("só os servidores da lista, por HTTPS, sem porta nem usuário e no caminho
   assert.ok(destinoPermitido("https://dados.tce.rs.gov.br/dados/licitacon/contrato/ano/2024.csv.zip"));
   assert.ok(destinoPermitido("https://api-dados-abertos.tce.ce.gov.br/sim/contratos?ano=2024"));
   assert.ok(destinoPermitido("https://servicodados.ibge.gov.br/api/v3/noticias/?tipo=release&idproduto=9256&qtd=3"));
+  assert.ok(destinoPermitido("https://alegodigital.al.go.leg.br/api/publico/proposicao/?pag=1&qtd=200&ano=2025"));
+  assert.ok(destinoPermitido("https://transparencia.al.go.leg.br/api/transparencia/votacoes.json?tipo=detalhes&ano=2025&mes=6"));
+  assert.ok(!destinoPermitido("https://alegodigital.al.go.leg.br/Arquivo/Documents/x.pdf"));
   for (const ruim of [
     "http://dados.tce.rs.gov.br/dados/x.csv",
     "https://dados.tce.rs.gov.br/admin",

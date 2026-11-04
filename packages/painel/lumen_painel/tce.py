@@ -48,7 +48,10 @@ BLOCO = 4 << 20
 TENTATIVAS = 4
 FORNECEDORES_PUBLICADOS = 100
 BLOCO_MAXIMO = 4 << 20         # a resposta da função da Vercel tem no máximo 4,5 MB (infra/proxy-br)
-SO_DO_BRASIL = {"dados.tce.rs.gov.br", "api-dados-abertos.tce.ce.gov.br"}
+SO_DO_BRASIL = {"dados.tce.rs.gov.br", "api-dados-abertos.tce.ce.gov.br",
+                # As Assembleias com o SPL da Ágape e a transparência da Alego (``assembleias.py``)
+                "alegodigital.al.go.leg.br", "transparencia.al.go.leg.br", "www3.al.es.gov.br",
+                "aleselegis.al.se.leg.br", "albalegis.nopapercloud.com.br"}
 
 
 # ------------------------------------------------------------------------------------------ fonte

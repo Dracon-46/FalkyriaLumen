@@ -12,9 +12,13 @@ uma do seu jeito; o levantamento de 4/11/2026 achou o SPL da Ágape em quatro (`
   gabinete). O autor é ligado ao deputado pelo nome; os documentos (CPF) e os contatos que a API traz não são
   guardados. Os projetos (o tipo começa por "projeto" ou é proposta de emenda) ficam com a ementa; os outros tipos
   são só contados;
-- em Goiás, ``transparencia.al.go.leg.br/api/transparencia/votacoes.json?tipo=detalhes&ano=&todos=true``: o voto de
-  cada deputado nas votações nominais do Plenário, com o partido no dia, de 2023 em diante; ``tipo=resumo`` dá o
-  processo votado. O voto vem com o nome do deputado, às vezes repetido em maiúsculas: fica um por deputado.
+- em Goiás, ``transparencia.al.go.leg.br/api/transparencia/votacoes.json?tipo=detalhes&ano=&mes=``: o voto de cada
+  deputado nas votações nominais do Plenário, com o partido no dia, de 2023 em diante, um mês por pedido (o ano
+  inteiro passa de 20 MB); ``tipo=resumo`` dá o processo votado. O voto vem com o nome do deputado, às vezes repetido
+  em maiúsculas: fica um por deputado.
+
+Essas quatro e a transparência da Alego não respondem fora do Brasil (tempo esgotado ou 403 para o GitHub Actions em
+4/11/2026): os pedidos vão pelo intermediário em São Paulo (``tce.SO_DO_BRASIL``, ``infra/proxy-br``).
 
 Minas Gerais (``dadosabertos.almg.gov.br/api/v2``) dá os deputados da legislatura atual (em exercício e os que
 exerceram o mandato), as proposições de cada ano com os autores pelo id (``proposicoes/pesquisa/direcionada``, de 100
@@ -65,7 +69,7 @@ FONTE = "Assembleias Legislativas, API pública do SPL (Ágape) e transparência
 ARQUIVO = "assembleias.json.gz"
 VERSAO_ESTADO = 1
 PRIMEIRO_ANO = 2023
-POR_PAGINA = 500
+POR_PAGINA = 200                    # pelo intermediário em São Paulo, a resposta tem no máximo 4,5 MB
 # Código IBGE da UF → endereço do SPL e se há votos nominais pela transparência (só Goiás)
 CASAS_SPL: dict[str, dict[str, Any]] = {
     "52": {"host": "alegodigital.al.go.leg.br", "votos": "https://transparencia.al.go.leg.br/api/transparencia"},
@@ -426,10 +430,11 @@ def coletar_casa(c: dict, codigo: str, *, contato: str, hoje: date,
             lidos.append(f"proposicoes-{ano}")
         if config.get("votos") and tce.precisa_ler_por_idade(c["votacoes"].get(str(ano)), ano, hoje):
             base = config["votos"]
-            detalhes = _json(f"{base}/votacoes.json?tipo=detalhes&ano={ano}&todos=true", contato=contato,
-                             ler_fn=ler_fn) or []
-            resumo = _json(f"{base}/votacoes.json?tipo=resumo&ano={ano}&todos=true", contato=contato,
-                           ler_fn=ler_fn) or []
+            meses = range(1, (hoje.month if ano == hoje.year else 12) + 1)
+            detalhes = [v for mes in meses for v in _json(f"{base}/votacoes.json?tipo=detalhes&ano={ano}&mes={mes}",
+                                                          contato=contato, ler_fn=ler_fn) or []]
+            resumo = [v for mes in meses for v in _json(f"{base}/votacoes.json?tipo=resumo&ano={ano}&mes={mes}",
+                                                        contato=contato, ler_fn=ler_fn) or []]
             votacoes, sem_deputado = ler_votacoes_go(detalhes, resumo, c["deputados"])
             c["votacoes"][str(ano)] = {"lido_em": instante_utc(), "votacoes": votacoes}
             lidos.append(f"votos-{ano}")
