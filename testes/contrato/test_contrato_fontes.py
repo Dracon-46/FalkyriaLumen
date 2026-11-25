@@ -73,7 +73,9 @@ def test_pncp_continua_exigindo_modalidade():
         _obter(f"https://pncp.gov.br/api/consulta/v1/contratacoes/publicacao?dataInicial={ONTEM}"
                f"&dataFinal={ONTEM}&pagina=1")
     except urllib.error.HTTPError as e:
-        assert e.code == 400
+        # 403 no lugar do 400 (visto em 24/11/2026): a recusa continua, só mudou o código. As consultas com a
+        # modalidade, no teste acima, respondem deste mesmo servidor — não é bloqueio de acesso.
+        assert e.code in (400, 403)
     else:
         pytest.fail("o PNCP deixou de exigir codigoModalidadeContratacao: revisar o adaptador")
 
@@ -262,15 +264,24 @@ def test_pntp_ciclo_mais_recente_mantem_as_colunas_lidas():
 
     Lê só a planilha de dentro do ZIP, por ``Range`` (cerca de 1,6 MB de um ZIP de mais de 300 MB).
     """
+    import urllib.error
+
     from lumen_ingestao.adaptadores.api.pntp import BASE_RADAR, ciclos_publicados, membro_de_avaliacoes
     from lumen_ingestao.cliente_http import ClienteHttp
     from lumen_ingestao.zip_remoto import baixar_membro
     from lumen_normalizacao.pntp import COLUNAS
     from lumen_normalizacao.xlsx import linhas
-    ciclos = ciclos_publicados(_obter_bytes(f"{BASE_RADAR}/downloads.html").decode("utf-8", errors="replace"))
-    assert ciclos and ciclos[-1] >= 2025, f"ciclos publicados: {ciclos}"
-    cliente = ClienteHttp("pntp_avaliacoes", user_agent=UA, rpm=30)
-    m = baixar_membro(cliente, f"{BASE_RADAR}/dados/dados_pntp_{ciclos[-1]}.zip", membro_de_avaliacoes(ciclos[-1]))
+    try:
+        ciclos = ciclos_publicados(_obter_bytes(f"{BASE_RADAR}/downloads.html").decode("utf-8", errors="replace"))
+        assert ciclos and ciclos[-1] >= 2025, f"ciclos publicados: {ciclos}"
+        cliente = ClienteHttp("pntp_avaliacoes", user_agent=UA, rpm=30)
+        m = baixar_membro(cliente, f"{BASE_RADAR}/dados/dados_pntp_{ciclos[-1]}.zip", membro_de_avaliacoes(ciclos[-1]))
+    except urllib.error.HTTPError as erro:
+        # O Radar passou a recusar servidores em nuvem (403, visto em 24/11/2026): é acesso, não mudança de formato
+        # (RF-CO-14), a mesma regra do SGS. Outro código continua falhando.
+        if erro.code != 403:
+            raise
+        pytest.skip(f"Radar da Transparência recusou este servidor: HTTP {erro.code}")
     cabecalho = {c.strip() for c in next(linhas(m.conteudo))}
     faltando = set(COLUNAS) - cabecalho
     assert not faltando, f"a planilha de {ciclos[-1]} deixou de ter as colunas {sorted(faltando)}"
@@ -296,9 +307,11 @@ def test_sgs_series_da_economia_respondem_e_ipca_confere_com_o_sidra():
     except SgsRecusou as erro:
         pytest.skip(f"SGS inacessível deste servidor: {erro}")
     except urllib.error.HTTPError as erro:
-        if erro.code < 500:
+        # 304 sem pedido condicional (nenhum If-Modified-Since sai daqui) é o firewall do Banco Central respondendo
+        # a servidor em nuvem, como a página de recusa acima — acesso, não formato. Visto em 24/11/2026.
+        if erro.code < 500 and erro.code != 304:
             raise
-        pytest.skip(f"SGS indisponível: HTTP {erro.code}")
+        pytest.skip(f"SGS indisponível deste servidor: HTTP {erro.code}")
     except SerieIlegivel as erro:
         if not str(erro).startswith("resposta não é JSON: b'<"):
             raise
