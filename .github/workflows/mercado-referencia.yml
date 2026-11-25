@@ -187,7 +187,7 @@ jobs:
         run: |
           if [ -f relatorio/resumo.md ]; then cat relatorio/resumo.md >> "$GITHUB_STEP_SUMMARY"; fi
           if [ -f relatorio/distribuicao.json ]; then cat relatorio/distribuicao.json; fi
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: relatorio-a05

@@ -65,7 +65,7 @@ jobs:
           python -m lumen_eleicoes medir --resumo "$GITHUB_STEP_SUMMARY" > medicao.json
       - name: Guardar a medição
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: medicao-feeds
           path: medicao.json
