@@ -115,8 +115,12 @@ class SemanaAnp:
     url: str
 
 
+# Dentro de cada data, o separador também varia: até 10/10/2026 era hífen (``2026-10-04_2026-10-10``); desde a
+# semana de 11/10 é sublinhado (``2026_10_11-2026_10_17``). Só com hífen, a página continuava listando as semanas
+# novas e nenhuma era lida — a coleta parou em 10/10 sem erro, e só o teste de contrato da página semanal acusou.
 _LINK_SEMANAL = re.compile(
-    r"""href=["']([^"']*?revendas_lpc_(\d{4})-(\d{1,2})-(\d{1,2})[_-](\d{4})-(\d{1,2})-(\d{1,2})[^"']*?\.xlsx[^"']*)["']""",
+    r"""href=["']([^"']*?revendas_lpc_(\d{4})[-_](\d{1,2})[-_](\d{1,2})[_-](\d{4})[-_](\d{1,2})[-_](\d{1,2})"""
+    r"""[^"']*?\.xlsx[^"']*)["']""",
     re.IGNORECASE)
 
 
@@ -130,7 +134,7 @@ def _preferencia(url: str) -> tuple[int, int]:
 def links_semanais(html: str, base: str = PAGINA_SEMANAS) -> list[SemanaAnp]:
     """Planilhas semanais (``revendas_lpc_...xlsx``) citadas na página do levantamento, da mais antiga à mais nova.
 
-    O nome do arquivo varia (``2026-09-27_2026-10-03``, ``2026-08-30-2026-09-5``); as datas são lidas com
+    O nome do arquivo varia (``2026-09-27_2026-10-03``, ``2026-08-30-2026-09-5``, ``2026_10_11-2026_10_17``); as datas são lidas com
     dia e mês de um ou dois dígitos, e os links relativos viram absolutos. Quando a mesma semana aparece em
     mais de um link (o arquivo, a página de visualização, o ``@@download``), vale o do arquivo. Link com data
     impossível é ignorado.

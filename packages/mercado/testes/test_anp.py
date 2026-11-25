@@ -169,6 +169,8 @@ de novo</a>
 <a href="arquivos-lpc/2026/revendas_lpc_2026-09-13_2026-09-19.xlsx/view">visualizar</a>
 <a href="/arquivos-lpc/2026/revendas_lpc_2026-02-30_2026-03-06.xlsx">data impossível</a>
 <a href="/arquivos-lpc/2026/resumo_semanal_lpc_2026-09-27_2026-10-03.xlsx">síntese, não é posto a posto</a>
+<a href="https://www.gov.br/anp/pt-br/assuntos/precos/arquivos-lpc/2026/revendas_lpc_2026_11_15-2026_11_21.xlsx">
+Revendas 15/11 a 21/11 (o nome novo, desde 11/10/2026)</a>
 </body></html>"""
 
 
@@ -176,7 +178,8 @@ def test_links_da_pagina_semanal():
     semanas = anp.links_semanais(PAGINA, "https://www.gov.br/anp/pt-br/assuntos/precos/semanas")
     assert [(s.inicio, s.fim) for s in semanas] == [(date(2026, 8, 30), date(2026, 9, 5)),
                                                     (date(2026, 9, 13), date(2026, 9, 19)),
-                                                    (date(2026, 9, 27), date(2026, 10, 3))]
+                                                    (date(2026, 9, 27), date(2026, 10, 3)),
+                                                    (date(2026, 11, 15), date(2026, 11, 21))]
     assert semanas[0].url == "https://www.gov.br/anp/pt-br/arquivos-lpc/2026/revendas_lpc_2026-08-30-2026-09-5.xlsx"
     assert semanas[1].url.endswith("/assuntos/precos/arquivos-lpc/2026/revendas_lpc_2026-09-13_2026-09-19.xlsx"
                                    "/@@download/file")      # entre a visualização e o download, o download
