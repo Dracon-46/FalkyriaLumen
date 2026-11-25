@@ -53,6 +53,10 @@ jobs:
     # O TCE-RS recusa os endereços da Vercel desde 28/10/2026 (ADR-050, adendo): com a variável LUMEN_RUNNER_BR, o job
     # do RS roda no runner próprio no Brasil (infra/runner-br), direto, sem o intermediário.
     runs-on: ${{ (matrix.tribunal == 'rs' && vars.LUMEN_RUNNER_BR) && fromJSON('["self-hosted", "lumen-br"]') || 'ubuntu-24.04' }}
+    # Sem o runner no Brasil, o RS tenta pelo intermediário e às vezes passa (22/11/2026), mas quase todo dia leva 403.
+    # A falha do RS fica no job — visível no Actions — sem marcar a execução como falha: era um e-mail de "Run failed"
+    # por dia para um problema já conhecido, que só some com LUMEN_RUNNER_BR. Com o runner, falhar volta a ser falha.
+    continue-on-error: ${{ matrix.tribunal == 'rs' && !vars.LUMEN_RUNNER_BR }}
     timeout-minutes: 120
     env:
       LUMEN_CONTATO: ${{ secrets.LUMEN_CONTATO }}
